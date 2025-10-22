@@ -1,0 +1,149 @@
+# FABER Configuration Example
+# Copy this file to .faber.config.toml in your project root and customize
+
+[project]
+name = "my-project"
+issue_system = "github"      # github | jira | linear | manual
+source_control = "github"    # github | gitlab | bitbucket
+file_system = "r2"           # r2 | s3 | local
+
+[auth]
+# Authentication tokens - use "env:VAR_NAME" to read from environment
+ISSUE_TOKEN = "env:GITHUB_TOKEN"
+GIT_TOKEN = "env:GITHUB_TOKEN"
+CI_TOKEN = "env:GITHUB_TOKEN"
+FILE_STORAGE_TOKEN = "env:R2_TOKEN"
+
+[defaults]
+# Preset determines default settings for all workflows
+# Available presets: software-basic | software-guarded | software-autonomous
+preset = "software-guarded"
+
+# Autonomy level controls how much human approval is required
+# dry-run: Simulate only, make no changes
+# assist: Open PRs/drafts, never merge/deploy
+# guarded: Proceed until gates, pause for approvals
+# autonomous: No pauses, still logs everything
+autonomy = "guarded"
+
+# Branch naming pattern - available variables: {issue_id}, {work_id}, {slug}, {work_type}
+branch_naming = "feat/{issue_id}-{slug}"
+
+[director]
+# Director agent configuration
+type = "default"                      # default | custom
+agent_ref = "agents/faber-director.md"
+model = "claude-3.7"
+max_tokens = 4096
+
+[safety]
+# Protected paths that require extra confirmation
+protected_paths = [
+    "secrets/**",
+    "infra/prod/**",
+    ".env*",
+    "credentials/**"
+]
+
+# Operations that require explicit confirmation
+require_confirm_for = ["release", "deploy", "tag", "merge_to_main"]
+
+[workflow]
+# Maximum number of Build-Evaluate retry loops before failing
+max_evaluate_retries = 3
+
+# Automatically merge PRs after successful Evaluate phase
+auto_merge = false
+
+# Automatically close work item after successful Release phase
+auto_close_work_item = false
+
+[systems.work_config]
+# GitHub-specific configuration (when issue_system = "github")
+repo = "owner/repo"
+api_url = "https://api.github.com"
+# GitHub labels for work classification
+labels_feature = ["feature", "enhancement"]
+labels_bug = ["bug", "fix"]
+labels_chore = ["chore", "maintenance"]
+labels_patch = ["patch", "hotfix"]
+
+# Jira-specific configuration (when issue_system = "jira")
+# jira_url = "https://your-domain.atlassian.net"
+# jira_project = "PROJ"
+
+# Linear-specific configuration (when issue_system = "linear")
+# linear_team = "your-team"
+# linear_workspace = "your-workspace"
+
+[systems.repo_config]
+# Repository configuration
+default_branch = "main"
+# Branch protection rules
+protected_branches = ["main", "master", "production"]
+# Commit signing
+require_signed_commits = false
+
+[systems.file_config]
+# Cloudflare R2 configuration (when file_system = "r2")
+account_id = "your-account-id"
+bucket_name = "faber-artifacts"
+public_url = "https://your-bucket.r2.dev"
+
+# AWS S3 configuration (when file_system = "s3")
+# s3_bucket = "your-bucket"
+# s3_region = "us-east-1"
+# s3_endpoint = ""  # Optional: for S3-compatible services
+
+# Local filesystem configuration (when file_system = "local")
+# local_storage_path = ".faber/artifacts"
+
+[session]
+# Session management
+session_storage = ".faber/sessions"
+session_ttl_hours = 168  # 1 week
+auto_cleanup_sessions = true
+
+[notifications]
+# Status card format
+post_status_cards = true
+status_card_style = "detailed"  # detailed | minimal
+include_session_metadata = true
+
+# Notification preferences
+notify_on_frame = true
+notify_on_architect = true
+notify_on_build = true
+notify_on_evaluate = true
+notify_on_release = true
+notify_on_error = true
+
+[logging]
+# Logging configuration
+log_level = "info"  # debug | info | warn | error
+log_file = ".faber/logs/faber.log"
+log_rotation = "daily"
+max_log_size_mb = 100
+
+[presets.software-basic]
+# Minimal workflow with no gates
+autonomy = "assist"
+auto_merge = false
+max_evaluate_retries = 2
+require_confirm_for = []
+
+[presets.software-guarded]
+# Workflow with approval gates at critical points
+autonomy = "guarded"
+auto_merge = false
+max_evaluate_retries = 3
+require_confirm_for = ["release", "deploy"]
+protected_paths = ["secrets/**", "infra/prod/**"]
+
+[presets.software-autonomous]
+# Fully autonomous workflow with no human gates
+autonomy = "autonomous"
+auto_merge = true
+max_evaluate_retries = 3
+require_confirm_for = []
+auto_close_work_item = true

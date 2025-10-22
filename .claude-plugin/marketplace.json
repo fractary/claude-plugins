@@ -1,0 +1,42 @@
+{
+    "name": "fractary-claude-agents",
+    "owner": {
+      "name": "The Fractary",
+      "email": "admin@fractary.com",
+      "url": "https://github.com/fractary"
+    },
+    "metadata": {
+      "description": "Production-ready workflow orchestration with claude code agents, commands, skills and hooks.",
+      "version": "1.0.0", 
+      "pluginRoot": "./plugins"
+    },
+    "plugins": [
+      {
+        "name": "codex-management",
+        "source": "./plugins/codex-management",
+        "description": "Project documentation and org wide syncronization to and from organization central codex",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-agents",
+        "repository": "https://github.com/fractary/claude-agents",
+        "license": "MIT",
+        "keywords": [
+          "documentation"
+        ],
+        "category": "documentation",
+        "strict": false,
+        "commands": [
+          "./commands/doc-generate.md",
+          "./commands/code-explain.md"
+        ],
+        "agents": [
+          "./agents/docs-architect.md",
+          "./agents/tutorial-engineer.md",
+          "./agents/code-reviewer.md"
+        ]
+      }      
+    ]
+  }

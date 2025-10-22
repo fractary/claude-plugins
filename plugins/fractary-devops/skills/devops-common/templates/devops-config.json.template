@@ -1,0 +1,60 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fractary/claude-devops-plugin/main/schemas/devops-config.schema.json",
+  "version": "1.0",
+
+  "provider": "aws",
+  "iac_tool": "terraform",
+
+  "project": {
+    "name": "{{PROJECT_NAME}}",
+    "namespace": "{{NAMESPACE}}",
+    "organization": "{{ORGANIZATION}}",
+    "repository_name": "{{REPOSITORY_NAME}}"
+  },
+
+  "aws": {
+    "account_id": "{{AWS_ACCOUNT_ID}}",
+    "region": "us-east-1",
+    "profiles": {
+      "discover": "{{NAMESPACE}}-discover-deploy",
+      "test": "{{NAMESPACE}}-test-deploy",
+      "prod": "{{NAMESPACE}}-prod-deploy"
+    },
+    "iam": {
+      "user_name_pattern": "{namespace}-{environment}-deploy",
+      "policy_name_pattern": "{project}-{environment}-deploy-terraform"
+    },
+    "resource_naming": {
+      "prefix": "{{PROJECT_NAME}}",
+      "separator": "-"
+    }
+  },
+
+  "terraform": {
+    "directory": "{{TERRAFORM_DIR}}",
+    "required_version": ">=1.5.0",
+    "backend": "s3",
+    "backend_config": {
+      "bucket": "{{PROJECT_NAME}}-terraform-state",
+      "key": "infrastructure/terraform.tfstate",
+      "region": "us-east-1"
+    }
+  },
+
+  "environments": ["test", "prod"],
+
+  "directories": {
+    "terraform": "{{TERRAFORM_DIR}}",
+    "iam_policies": "{{IAM_POLICIES_DIR}}"
+  },
+
+  "features": {
+    "build_lambda": false,
+    "lambda_packages": [],
+    "validate_plan_environment": true,
+    "minimum_versions": {
+      "terraform": "1.5.0",
+      "node": "18.0.0"
+    }
+  }
+}
