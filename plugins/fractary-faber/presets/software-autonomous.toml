@@ -1,0 +1,80 @@
+# FABER Preset: Software Development - Autonomous
+#
+# This preset provides full automation with no manual approval gates.
+# Workflows execute from issue to merged PR without intervention.
+#
+# ⚠️ WARNING: Use with caution in production environments!
+#
+# Use this when:
+# - High confidence in FABER setup
+# - Non-critical changes (docs, tests, minor fixes)
+# - Internal tools or experimental projects
+# - Maximum automation desired
+#
+# To use this preset:
+#   cp presets/software-autonomous.toml .faber.config.toml
+#   # Edit values marked with <...>
+#   /faber run <issue-id>
+
+[project]
+name = "<project-name>"
+org = "<github-org>"
+repo = "<repo-name>"
+issue_system = "github"
+repo_system = "github"
+file_system = "r2"  # Use Cloudflare R2 for artifacts
+
+[defaults]
+work_domain = "engineering"
+autonomy = "autonomous"  # Full automation - no pauses
+
+[workflow]
+max_evaluate_retries = 3
+auto_merge = true  # Automatically merge PR after creation (⚠️ careful!)
+
+[safety]
+protected_paths = [
+    ".git/",
+    "node_modules/",
+    ".env",
+    ".env.*",
+    "*.key",
+    "*.pem",
+    "credentials.json",
+    "secrets/",
+    "private/",
+    "config/production.*",
+    ".github/workflows/"  # Don't modify CI/CD automatically
+]
+require_confirmation = []  # No confirmations - fully autonomous
+
+# GitHub authentication (use gh CLI)
+[systems.work_config]
+# Uses gh CLI - run: gh auth login
+
+[systems.repo_config]
+default_branch = "main"
+# WARNING: PRs will be automatically merged to this branch!
+
+# Cloudflare R2 configuration
+[systems.file_config]
+account_id = "<cloudflare-account-id>"
+bucket_name = "<r2-bucket-name>"
+public_url = "https://<bucket-name>.<account-id>.r2.dev"
+
+# Configure AWS CLI for R2:
+#   aws configure
+#   AWS Access Key ID: <R2_ACCESS_KEY_ID>
+#   AWS Secret Access Key: <R2_SECRET_ACCESS_KEY>
+#   Default region: auto
+
+# Additional safety measures for autonomous mode
+[systems.repo_config.merge_strategy]
+# Use squash merge to keep history clean
+strategy = "squash"
+
+# Require status checks to pass before merge
+require_status_checks = true
+
+# Delete branch after merge
+delete_branch_after_merge = true

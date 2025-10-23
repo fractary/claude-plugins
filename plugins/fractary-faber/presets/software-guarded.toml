@@ -1,0 +1,67 @@
+# FABER Preset: Software Development - Guarded
+#
+# This preset provides balanced automation with a final approval gate
+# at the Release phase. Recommended for most production workflows.
+#
+# Use this when:
+# - Standard production workflows
+# - Want automation with oversight
+# - Need approval before merge
+# - Trust FABER for implementation, review for release
+#
+# To use this preset:
+#   cp presets/software-guarded.toml .faber.config.toml
+#   # Edit values marked with <...>
+#   /faber run <issue-id>
+
+[project]
+name = "<project-name>"
+org = "<github-org>"
+repo = "<repo-name>"
+issue_system = "github"
+repo_system = "github"
+file_system = "r2"  # Use Cloudflare R2 for artifacts
+
+[defaults]
+work_domain = "engineering"
+autonomy = "guarded"  # Execute all phases, pause at Release for approval
+
+[workflow]
+max_evaluate_retries = 3
+auto_merge = false  # Create PR but don't merge - manual approval required
+
+[safety]
+protected_paths = [
+    ".git/",
+    "node_modules/",
+    ".env",
+    ".env.*",
+    "*.key",
+    "*.pem",
+    "credentials.json",
+    "secrets/",
+    "private/"
+]
+require_confirmation = [
+    "release"  # Confirm before creating PR
+]
+
+# GitHub authentication (use gh CLI)
+[systems.work_config]
+# Uses gh CLI - run: gh auth login
+
+[systems.repo_config]
+# Uses git CLI
+default_branch = "main"
+
+# Cloudflare R2 configuration
+[systems.file_config]
+account_id = "<cloudflare-account-id>"
+bucket_name = "<r2-bucket-name>"
+public_url = "https://<bucket-name>.<account-id>.r2.dev"
+
+# Configure AWS CLI for R2:
+#   aws configure
+#   AWS Access Key ID: <R2_ACCESS_KEY_ID>
+#   AWS Secret Access Key: <R2_SECRET_ACCESS_KEY>
+#   Default region: auto

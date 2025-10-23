@@ -1,0 +1,54 @@
+# FABER Preset: Software Development - Basic
+#
+# This preset provides a safe, conservative configuration for software
+# development workflows with manual approval gates.
+#
+# Use this when:
+# - Getting started with FABER
+# - Working on production code
+# - Need approval before release
+# - Prefer cautious automation
+#
+# To use this preset:
+#   cp presets/software-basic.toml .faber.config.toml
+#   # Edit values marked with <...>
+#   /faber run <issue-id>
+
+[project]
+name = "<project-name>"
+org = "<github-org>"
+repo = "<repo-name>"
+issue_system = "github"
+repo_system = "github"
+file_system = "local"  # Use local filesystem (no cloud storage)
+
+[defaults]
+work_domain = "engineering"
+autonomy = "assist"  # Stop before Release - manual review required
+
+[workflow]
+max_evaluate_retries = 3
+auto_merge = false  # Never auto-merge - always manual
+
+[safety]
+protected_paths = [
+    ".git/",
+    "node_modules/",
+    ".env",
+    "*.key",
+    "*.pem"
+]
+require_confirmation = [
+    "release"  # Always confirm before release
+]
+
+# GitHub authentication (use environment variables or gh CLI)
+[systems.work_config]
+# No credentials needed - uses gh CLI
+
+[systems.repo_config]
+# No credentials needed - uses git CLI
+
+[systems.file_config]
+# Local filesystem - no configuration needed
+storage_path = ".faber/storage"

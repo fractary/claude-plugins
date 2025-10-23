@@ -1,521 +1,670 @@
 ---
-description: Execute complete FABER workflow (Frame → Architect → Build → Evaluate → Release) for any domain
-allowed-tools: Bash, SlashCommand
+name: faber
+description: FABER main entry point - intelligent router for init, run, status, and freeform requests
+tools: Bash, SlashCommand, Read, Glob, Grep
+model: inherit
 ---
 
-# FABER Core Workflow
+# FABER Main Command
 
-Execute the complete universal FABER (Frame → Architect → Build → Evaluate → Release) workflow for **any domain** (engineering, design, writing, data, etc.).
+You are the **FABER Assistant**, the main entry point for all FABER operations. Your mission is to intelligently route user requests to the appropriate FABER subcommands or respond to freeform questions about FABER workflows.
 
-## Usage
+## Your Mission
 
-```bash
-/fractary/faber/core/faber <source_type> <source_id> <work_domain> [model_set] [auto_merge]
-```
+1. **Parse user input** to determine intent
+2. **Route to subcommands** for structured operations (init, run, status)
+3. **Answer questions** about FABER workflows, configuration, and usage
+4. **Provide guidance** on best practices and troubleshooting
+5. **Handle errors** gracefully with helpful suggestions
 
-## Parameters
+## Supported Operations
 
-- `source_type` (required): Work tracking system - "github", "jira", "linear", "manual"
-- `source_id` (required): External work item ID (e.g., GitHub issue number, Jira ticket ID)
-- `work_domain` (required): Domain for this work - "engineering", "design", "writing", "data"
-- `model_set` (optional): Model set to use - "base" (default) or "heavy"
-- `auto_merge` (optional): Auto-merge on release - "true" or "false" (default)
+### Initialization
+- `/faber init` - Initialize FABER in a project
 
-## What This Command Does
+### Workflow Execution
+- `/faber run <id>` - Execute complete workflow for a work item
+- `/faber run <id> --domain <domain>` - Override work domain
+- `/faber run <id> --autonomy <level>` - Override autonomy level
 
-This command orchestrates a complete FABER workflow for any domain:
+### Status and Monitoring
+- `/faber status` - Show all active workflows
+- `/faber status <work_id>` - Show detailed status for a workflow
+- `/faber status --failed` - Show failed workflows
+- `/faber status --waiting` - Show workflows waiting for approval
 
-1. **Frame Phase**: Fetch and classify the work item, set up environment
-2. **Architect Phase**: Generate implementation specification
-3. **Build Phase**: Implement the solution from specification
-4. **Evaluate Phase**: Test and review with automatic issue resolution (retry loop)
-5. **Release Phase**: Deploy/publish and create pull request
+### Future Operations
+- `/faber approve <work_id>` - Approve a workflow for release
+- `/faber retry <work_id>` - Retry a failed workflow
+
+### Freeform Queries
+Answer questions about:
+- FABER framework and concepts
+- Configuration and setup
+- Workflow status and progress
+- Troubleshooting and errors
+- Best practices and usage patterns
 
 ## Workflow
 
-### Step 1: Validate Input
+### Step 1: Parse Intent
+
+Analyze user input to determine intent:
 
 ```bash
-# Check required parameters
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-    echo "❌ Error: source_type, source_id, and work_domain are required"
-    echo "Usage: /fractary/faber/core/faber <source_type> <source_id> <work_domain> [model_set] [auto_merge]"
-    exit 1
-fi
+#!/bin/bash
 
-source_type="$1"
-source_id="$2"
-work_domain="$3"
-model_set="${4:-base}"
-auto_merge="${5:-false}"
+INPUT="$*"
 
-# Validate source_type
-case ${source_type} in
-    github|jira|linear|manual)
+# Trim leading/trailing whitespace
+INPUT=$(echo "$INPUT" | xargs)
+
+# Extract first word as potential command
+FIRST_WORD=$(echo "$INPUT" | awk '{print $1}')
+REST=$(echo "$INPUT" | cut -d' ' -f2-)
+
+# Detect command intent
+case "$FIRST_WORD" in
+    init)
+        INTENT="init"
+        ARGS=""
+        ;;
+    run)
+        INTENT="run"
+        ARGS="$REST"
+        ;;
+    status)
+        INTENT="status"
+        ARGS="$REST"
+        ;;
+    approve)
+        INTENT="approve"
+        ARGS="$REST"
+        ;;
+    retry)
+        INTENT="retry"
+        ARGS="$REST"
+        ;;
+    help|--help|-h)
+        INTENT="help"
+        ARGS=""
         ;;
     *)
-        echo "❌ Error: Invalid source_type '${source_type}'"
-        echo "Valid options: github, jira, linear, manual"
-        exit 1
+        # Freeform query or question
+        INTENT="query"
+        ARGS="$INPUT"
         ;;
 esac
+```
 
-# Validate work_domain
-case ${work_domain} in
-    engineering|design|writing|data)
+### Step 2: Route to Subcommands
+
+For structured operations, delegate to specialized commands:
+
+```bash
+case "$INTENT" in
+    init)
+        echo "🔧 Initializing FABER..."
+        echo ""
+        /faber-init
+        exit $?
         ;;
-    *)
-        echo "❌ Error: Invalid work_domain '${work_domain}'"
-        echo "Valid options: engineering, design, writing, data"
+
+    run)
+        echo "🚀 Starting FABER workflow..."
+        echo ""
+        /faber-run $ARGS
+        exit $?
+        ;;
+
+    status)
+        /faber-status $ARGS
+        exit $?
+        ;;
+
+    approve)
+        echo "⚠️  Approve command not yet implemented"
+        echo ""
+        echo "To manually approve a workflow:"
+        echo "1. Review the changes in the PR"
+        echo "2. Merge the PR manually"
+        echo "3. Or wait for the full approve command in a future release"
         exit 1
         ;;
+
+    retry)
+        echo "⚠️  Retry command not yet implemented"
+        echo ""
+        echo "To manually retry a workflow:"
+        echo "1. Check the session status: /faber status <work_id>"
+        echo "2. Identify which phase failed"
+        echo "3. Or wait for the full retry command in a future release"
+        exit 1
+        ;;
+
+    help)
+        show_help
+        exit 0
+        ;;
+
+    query)
+        # Handle freeform query
+        handle_query "$ARGS"
+        exit 0
+        ;;
 esac
-
-echo "🚀 Starting FABER workflow"
-echo "Source: ${source_type}/${source_id}"
-echo "Domain: ${work_domain}"
-echo "Model set: ${model_set}"
-echo "Auto-merge: ${auto_merge}"
 ```
 
-### Step 2: Generate Work ID
+### Step 3: Handle Freeform Queries
+
+Respond to questions about FABER:
 
 ```bash
-# Generate unique work identifier
-work_id=$(python3 -c "import uuid; print(uuid.uuid4().hex[:8])")
+handle_query() {
+    local query="$1"
 
-echo "🆔 Work ID: ${work_id}"
+    # Normalize query to lowercase for matching
+    query_lower=$(echo "$query" | tr '[:upper:]' '[:lower:]')
+
+    # Detect query type and respond appropriately
+    if [[ "$query_lower" =~ what.*is.*faber ]]; then
+        explain_faber
+    elif [[ "$query_lower" =~ how.*configure|setup|install ]]; then
+        explain_configuration
+    elif [[ "$query_lower" =~ how.*use|how.*run|how.*start ]]; then
+        explain_usage
+    elif [[ "$query_lower" =~ what.*domain|domain.*support ]]; then
+        explain_domains
+    elif [[ "$query_lower" =~ retry|loop|evaluate ]]; then
+        explain_retry_loop
+    elif [[ "$query_lower" =~ autonomy|mode ]]; then
+        explain_autonomy
+    elif [[ "$query_lower" =~ status|progress|check ]]; then
+        # Redirect to status command
+        echo "To check workflow status, use:"
+        echo "  /faber status"
+        echo ""
+        /faber-status
+    else
+        # General help for unclear queries
+        echo "I can help with FABER workflows!"
+        echo ""
+        echo "Common commands:"
+        echo "  /faber init          - Initialize FABER in your project"
+        echo "  /faber run <id>      - Execute workflow for an issue"
+        echo "  /faber status        - Check workflow status"
+        echo ""
+        echo "Ask me questions like:"
+        echo "  - What is FABER?"
+        echo "  - How do I configure FABER?"
+        echo "  - What domains are supported?"
+        echo "  - How does the retry loop work?"
+        echo ""
+        echo "Or just tell me what you'd like to do!"
+    fi
+}
 ```
 
-### Step 3: Initialize Work State
+### Step 4: Explanation Functions
+
+Provide detailed explanations:
 
 ```bash
-# Initialize state with FABER schema
-claude -p "/fractary/faber/core/state_init ${work_id} ${source_id} ${work_domain} ${model_set}"
+explain_faber() {
+    cat <<'EOF'
+========================================
+🤖 What is FABER?
+========================================
 
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to initialize work state"
-    exit 1
-fi
+FABER is a tool-agnostic SDLC workflow framework that automates
+the complete lifecycle from work item to production:
 
-echo "✅ Work state initialized"
-```
-
-### Step 4: Post Initial Status
+📋 **F**rame     - Fetch and classify work item
+📐 **A**rchitect - Design solution and create spec
+🔨 **B**uild     - Implement from specification
+🧪 **E**valuate  - Test and review with retry loop
+🚀 **R**elease   - Deploy and create PR
 
-Post workflow start notification to work tracking system.
+## Key Features
 
-```bash
-# Notify work item that workflow has started
-claude -p "/fractary/faber/core/work_comment ${source_id} ${work_id} ops \"🚀 FABER Workflow Started
+- **Tool-Agnostic**: Works with GitHub, Jira, Linear, etc.
+- **Domain-Agnostic**: Supports engineering, design, writing, data
+- **Context-Efficient**: 3-layer architecture minimizes token usage
+- **Autonomous**: Configurable autonomy levels
+- **Resilient**: Automatic retry loop for failed evaluations
 
-**Work ID**: \\\`${work_id}\\\`
-**Domain**: ${work_domain}
-**Model Set**: ${model_set}
-**Auto-Merge**: ${auto_merge}
+## Quick Start
 
-Executing phases:
-1. ⏳ Frame - Fetch and classify work item
-2. ⏸️ Architect - Generate specification
-3. ⏸️ Build - Implement solution
-4. ⏸️ Evaluate - Test and review
-5. ⏸️ Release - Deploy/publish
+Initialize FABER in your project:
+  /faber init
 
----
-🤖 Powered by FABER Core\""
+Run workflow for an issue:
+  /faber run 123
 
-echo "✅ Posted workflow start notification"
-```
+Check status:
+  /faber status
 
-### Step 5: Invoke Universal Director
+For more information, ask:
+  - How do I configure FABER?
+  - How do I use FABER?
+  - What domains are supported?
 
-Execute the complete FABER workflow via the universal director.
+EOF
+}
 
-```bash
-# Execute complete FABER workflow via director agent
-echo "🎬 Invoking universal-director..."
+explain_configuration() {
+    cat <<'EOF'
+========================================
+🔧 Configuring FABER
+========================================
 
-claude --agent faber-director "${work_id}" "${source_type}" "${source_id}" "${work_domain}" "${auto_merge}"
-director_exit=$?
+## Quick Setup
 
-if [ ${director_exit} -ne 0 ]; then
-    echo ""
-    echo "❌ FABER workflow failed (exit code: ${director_exit})"
+1. Initialize FABER (auto-detects settings):
+   /faber init
 
-    # Post failure notification
-    claude -p "/fractary/faber/core/work_comment ${source_id} ${work_id} ops \"❌ FABER Workflow Failed
+2. Review generated config:
+   cat .faber.config.toml
 
-One or more phases failed. Please check the workflow state for details.
+3. Configure authentication:
+   # For GitHub
+   gh auth login
 
-**Work ID**: \\\`${work_id}\\\`
+   # For Cloudflare R2
+   aws configure
 
-To investigate:
-\\\`\\\`\\\`bash
-claude -p \\\"/fractary/faber/core/state_load ${work_id}\\\"
-\\\`\\\`\\\`
+4. Start using FABER:
+   /faber run <issue-id>
 
----
-🤖 Powered by FABER Core\""
+## Configuration File
 
-    exit 1
-fi
+FABER uses `.faber.config.toml` with these sections:
 
-echo ""
-echo "✅ FABER workflow completed successfully"
-```
+**[project]** - Project metadata
+  - name, org, repo
+  - issue_system (github, jira, linear)
+  - repo_system (github, gitlab, bitbucket)
+  - file_system (r2, s3, local)
 
-### Step 6: Output Results
+**[defaults]** - Workflow defaults
+  - work_domain (engineering, design, writing, data)
+  - autonomy (dry-run, assist, guarded, autonomous)
 
-Load final state and output workflow summary.
+**[workflow]** - Workflow behavior
+  - max_evaluate_retries (default: 3)
+  - auto_merge (default: false)
 
-```bash
-# Load final state
-state_json=$(claude -p "/fractary/faber/core/state_load ${work_id}")
+**[safety]** - Safety settings
+  - protected_paths, require_confirmation
 
-if [ $? -eq 0 ]; then
-    # Extract key results
-    work_type=$(echo ${state_json} | jq -r .work_type)
-    spec_file=$(echo ${state_json} | jq -r .architect.file_path)
-    pr_url=$(echo ${state_json} | jq -r '.release.pr_url // "N/A"')
+**[systems.*]** - Platform credentials
 
-    # Domain-specific fields (try multiple domains)
-    branch_name=$(echo ${state_json} | jq -r '
-        .engineering.branch_name //
-        .design.branch_name //
-        .writing.branch_name //
-        .data.branch_name //
-        "N/A"
-    ')
+## Manual Configuration
 
-    echo ""
-    echo "📊 FABER Workflow Summary"
-    echo "========================"
-    echo "Work ID: ${work_id}"
-    echo "Source: ${source_type}/${source_id}"
-    echo "Domain: ${work_domain}"
-    echo "Type: ${work_type}"
-    echo "Branch: ${branch_name}"
-    echo "Specification: ${spec_file}"
-    echo "Pull Request: ${pr_url}"
-    echo ""
-    echo "✅ All 5 phases completed successfully!"
-fi
-```
+If auto-detection fails, edit `.faber.config.toml` directly.
+See `config/faber.example.toml` for full reference.
 
-### Step 7: Post Final Status
+EOF
+}
 
-Post workflow completion notification.
+explain_usage() {
+    cat <<'EOF'
+========================================
+🚀 Using FABER
+========================================
 
-```bash
-# Post final notification
-if [ $? -eq 0 ]; then
-    claude -p "/fractary/faber/core/work_comment ${source_id} ${work_id} ops \"🎉 FABER Workflow Complete
+## Basic Workflow
 
-**Work ID**: \\\`${work_id}\\\`
-**Domain**: ${work_domain}
-**Type**: ${work_type}
+1. **Initialize** (first time only):
+   /faber init
 
-## Workflow Summary
+2. **Run workflow** for an issue:
+   /faber run 123
 
-1. ✅ **Frame**: Work classified and environment prepared
-2. ✅ **Architect**: Specification generated
-3. ✅ **Build**: Solution implemented
-4. ✅ **Evaluate**: Tests and review passed
-5. ✅ **Release**: Deployed/published
+3. **Check status**:
+   /faber status
 
-## Results
+4. **Review and approve** (if in guarded mode):
+   /faber approve <work_id>
 
-- **Specification**: \\\`${spec_file}\\\`
-- **Branch**: \\\`${branch_name}\\\`
-- **Pull Request**: ${pr_url}
+## Advanced Usage
 
-$([ \"${auto_merge}\" = \"false\" ] && echo \"Next: Review and merge pull request to complete.\")
+**Override domain:**
+  /faber run 123 --domain design
 
----
-🤖 Powered by FABER Core\""
-fi
-```
-
-## Exit Codes
-
-- `0` - Success: All phases completed
-- `1` - Failure: One or more phases failed
-
-## Examples
-
-### Engineering Workflow (GitHub)
-
-```bash
-# Feature for GitHub issue #123
-/fractary/faber/core/faber github 123 engineering
-
-# Bug fix with heavy models
-/fractary/faber/core/faber github 456 engineering heavy
-
-# Hotfix with auto-merge
-/fractary/faber/core/faber github 789 engineering base true
-```
-
-### Design Workflow (Jira)
-
-```bash
-# Design task from Jira
-/fractary/faber/core/faber jira PROJ-123 design
-
-# Design with auto-merge
-/fractary/faber/core/faber jira PROJ-456 design base true
-```
-
-### Writing Workflow (Linear)
-
-```bash
-# Content from Linear
-/fractary/faber/core/faber linear CONT-123 writing
-
-# Content with heavy models
-/fractary/faber/core/faber linear CONT-456 writing heavy
-```
-
-### Data Workflow (GitHub)
-
-```bash
-# Data pipeline from GitHub
-/fractary/faber/core/faber github 123 data
-
-# Data analysis with auto-merge
-/fractary/faber/core/faber github 456 data base true
-```
-
-## Output
-
-```
-🚀 Starting FABER workflow
-Source: github/123
-Domain: engineering
-Model set: base
-Auto-merge: false
-🆔 Work ID: abc12345
-✅ Work state initialized
-✅ Posted workflow start notification
-🎬 Invoking universal-director...
-
-======================================
-📋 Phase 1: Frame
-======================================
-✅ Frame phase complete
-
-======================================
-📐 Phase 2: Architect
-======================================
-✅ Architect phase complete
-
-======================================
-🔨 Phase 3: Build
-======================================
-✅ Build phase complete
-
-======================================
-🧪 Phase 4: Evaluate (with retry loop)
-======================================
-✅ Evaluate phase complete - GO decision
-
-======================================
-🚀 Phase 5: Release
-======================================
-✅ Release phase complete
-
-======================================
-🎉 FABER Workflow Complete
-======================================
-
-📊 FABER Workflow Summary
-========================
-Work ID: abc12345
-Source: github/123
-Domain: engineering
-Type: /feature
-Branch: feat-123-abc12345-add-export
-Specification: docs/specs/issue-123-feature-abc12345-add-export.md
-Pull Request: https://github.com/owner/repo/pull/45
-
-✅ All 5 phases completed successfully!
-```
-
-## What Gets Created
-
-After successful execution:
-
-1. **Work State**: `.faber/state/{work_id}.json`
-2. **Specification**: Domain-specific location (e.g., `docs/specs/`, `designs/`, `content/`)
-3. **Implementation**: Domain-specific artifacts (code, designs, content, data pipelines)
-4. **Tests/Reviews**: Test results and review evidence
-5. **Documentation**: Domain-specific documentation
-6. **Pull Request/Release**: Deployment artifact (PR, published design, published content, etc.)
-
-## FABER Phases Executed
-
-### 1. Frame Phase
-- Fetch work item from tracking system
-- Classify work type (bug, feature, chore, patch)
-- Set up domain-specific environment
-- Allocate resources as needed
-- Post Frame start/complete notifications
-
-### 2. Architect Phase
-- Generate detailed implementation specification
-- Create spec file in domain-appropriate location
-- Commit and push specification
-- Post Architect start/complete notifications
-
-### 3. Build Phase
-- Implement solution from specification
-- Follow domain best practices
-- Create tests/reviews as appropriate
-- Commit implementation
-- Push changes to remote
-- Post Build start/complete notifications
-
-### 4. Evaluate Phase (with retry loop)
-- Run domain-specific tests
-- Execute domain-specific review
-- Make go/no-go decision
-- If no-go and retries remain: loop back to Build
-- If no-go and no retries: fail workflow
-- Post Evaluate results
-
-### 5. Release Phase
-- Create pull request (or domain equivalent)
-- Optional: Auto-merge to main
-- Upload artifacts as needed
-- Post Release start/complete notifications
-- Optionally close work item
-
-## Director Coordination
-
-The universal-director orchestrates these managers:
-
-- **frame-manager**: Frame phase operations
-- **architect-manager**: Architect phase operations
-- **build-manager**: Build phase operations
-- **evaluate-manager**: Evaluate phase operations (with retry loop)
-- **release-manager**: Release phase operations
-
-These managers coordinate with:
-- **work-manager**: Work tracking operations
-- **repo-manager**: Version control operations
-- **file-manager**: File storage operations
-- **Domain bundles**: Domain-specific operations
-
-## Domain Support
-
-FABER Core supports multiple domains:
-
-### Engineering (Implemented)
-- Full FABER workflow
-- Git worktrees for isolation
-- Comprehensive testing
-- Code review with auto-resolution
-- Pull request creation
-
-### Design (Future)
-- Design workspace setup
-- Design briefs and style guides
+**Override autonomy:**
+  /faber run 123 --autonomy autonomous
+
+**Enable auto-merge:**
+  /faber run 123 --auto-merge
+
+**Dry-run (simulation):**
+  /faber run 123 --autonomy dry-run
+
+## Supported Input Formats
+
+- GitHub: `123`, `#123`, `GH-123`, or full URL
+- Jira: `PROJ-123` or full URL
+- Linear: `LIN-123` or full URL
+
+## Workflow Phases
+
+Every FABER run executes 5 phases:
+
+1. **Frame** - Fetch and classify work
+2. **Architect** - Generate specification
+3. **Build** - Implement solution
+4. **Evaluate** - Test and review (with retry loop)
+5. **Release** - Create PR and deploy
+
+## Autonomy Levels
+
+- **dry-run**: Simulate only, no changes
+- **assist**: Stop before Release
+- **guarded**: Pause at Release for approval (default)
+- **autonomous**: Full automation, no pauses
+
+EOF
+}
+
+explain_domains() {
+    cat <<'EOF'
+========================================
+🎯 FABER Domains
+========================================
+
+FABER supports multiple work domains:
+
+## Engineering (Implemented)
+- Software development workflows
+- Code implementation
+- Automated testing
+- Code review
+- Pull requests
+
+**Usage:**
+  /faber run 123 --domain engineering
+
+## Design (Future)
+- Design brief generation
 - Asset creation
 - Design review
 - Asset publication
 
-### Writing (Future)
-- Content workspace setup
+**Usage:**
+  /faber run 123 --domain design
+
+## Writing (Future)
 - Content outlines
-- Content writing and editing
+- Writing and editing
 - Content review
-- Content publication
+- Publication
 
-### Data (Future)
-- Data workspace setup
+**Usage:**
+  /faber run 123 --domain writing
+
+## Data (Future)
 - Pipeline design
-- Pipeline implementation
-- Data quality checks
-- Pipeline deployment
+- Implementation
+- Quality checks
+- Deployment
 
-## Error Handling
+**Usage:**
+  /faber run 123 --domain data
 
-If any phase fails:
-- Error logged with context
-- Error notification posted to work tracking
-- Work state preserved for debugging
-- Environment/artifacts preserved for inspection
-- Exit with non-zero code
+## Default Domain
 
-## Recovery
+Set default domain in `.faber.config.toml`:
 
-To resume after failure:
-```bash
-# Load state to see where it failed
-state_json=$(claude -p "/fractary/faber/core/state_load abc12345")
+  [defaults]
+  work_domain = "engineering"
 
-# Check phase statuses
-echo ${state_json} | jq '{
-  frame: .frame.status,
-  architect: .architect.status,
-  build: .build.status,
-  evaluate: .evaluate.status,
-  release: .release.status
-}'
+EOF
+}
 
-# Continue from specific phase (manual recovery)
-# (Invoke specific phase managers as needed)
-```
+explain_retry_loop() {
+    cat <<'EOF'
+========================================
+🔄 FABER Retry Loop
+========================================
 
-## Notes
+FABER includes an intelligent retry mechanism during
+the Evaluate phase:
 
-- This command is the main entry point for FABER workflows
-- It delegates all work to the universal-director agent
-- The director coordinates managers, which use experts and domain bundles
-- All work is tracked in state files
-- Domain bundles provide domain-specific implementations
+## How It Works
 
-## Dependencies
+1. **Build** phase completes
+2. **Evaluate** phase runs tests/reviews
+3. **Decision**:
+   - GO → Proceed to Release
+   - NO-GO → Return to Build
 
-- Python 3 (for UUID generation)
-- Claude Code with agent support
-- All FABER core components:
-  - universal-director agent
-  - 5 workflow managers (frame, architect, build, evaluate, release)
-  - 3 system managers (work, repo, file)
-  - 3 core experts (github-work, github-repo, r2)
-  - Installed domain bundles (e.g., engineering)
-- Work tracking system CLI (gh for GitHub, etc.)
-- Version control (git)
+## Retry Process
+
+If Evaluate returns NO-GO:
+
+1. Check retry count < max_retries (default: 3)
+2. Return to Build phase
+3. Re-implement with evaluation feedback
+4. Run Evaluate again
+5. Repeat up to max_retries times
 
 ## Configuration
 
-Reads from `.faber.config.json`:
+Set maximum retries in `.faber.config.toml`:
 
-```json
-{
-  "systems": {
-    "work_system": "github",
-    "repo_system": "github",
-    "file_system": "r2"
-  },
-  "bundles": {
-    "installed": ["fractary/faber/engineering"],
-    "available_directors": {
-      "engineering": ["engineering-web-director", "universal-director"],
-      "design": ["universal-director"]
-    }
-  },
-  "workflow": {
-    "max_evaluate_retries": 3,
-    "auto_merge": false
-  }
+  [workflow]
+  max_evaluate_retries = 3
+
+## Failure Handling
+
+If max retries exceeded:
+- Workflow fails
+- Error logged
+- Status card posted
+- Manual intervention required
+
+Check status:
+  /faber status <work_id>
+
+Retry manually:
+  /faber retry <work_id>  # (future)
+
+EOF
+}
+
+explain_autonomy() {
+    cat <<'EOF'
+========================================
+🤖 FABER Autonomy Levels
+========================================
+
+FABER supports 4 autonomy levels:
+
+## dry-run
+**What it does:**
+- Simulates all phases
+- No actual changes made
+- Shows what would happen
+
+**Use when:**
+- Testing FABER setup
+- Understanding workflow
+- Debugging issues
+
+**Usage:**
+  /faber run 123 --autonomy dry-run
+
+## assist
+**What it does:**
+- Executes Frame → Architect → Build → Evaluate
+- Stops before Release
+- Waits for manual intervention
+
+**Use when:**
+- You want to review before release
+- Learning FABER workflows
+- Cautious automation
+
+**Usage:**
+  /faber run 123 --autonomy assist
+
+## guarded (DEFAULT)
+**What it does:**
+- Executes all 5 phases
+- Pauses at Release for approval
+- Posts status card
+
+**Use when:**
+- Production workflows
+- Need approval gate
+- Balance of automation and control
+
+**Usage:**
+  /faber run 123 --autonomy guarded
+  /faber run 123  # (default)
+
+## autonomous
+**What it does:**
+- Executes all phases without pausing
+- Creates and optionally merges PR
+- Fully automated
+
+**Use when:**
+- High confidence in setup
+- Non-critical changes
+- Maximum automation desired
+
+**Usage:**
+  /faber run 123 --autonomy autonomous
+
+## Configuration
+
+Set default autonomy in `.faber.config.toml`:
+
+  [defaults]
+  autonomy = "guarded"
+
+Override per workflow with --autonomy flag.
+
+EOF
+}
+
+show_help() {
+    cat <<'EOF'
+========================================
+📖 FABER Help
+========================================
+
+FABER automates complete SDLC workflows:
+Frame → Architect → Build → Evaluate → Release
+
+## Commands
+
+  /faber init
+    Initialize FABER in current project
+
+  /faber run <id> [flags]
+    Execute workflow for a work item
+    Flags:
+      --domain <domain>     Override work domain
+      --autonomy <level>    Override autonomy level
+      --auto-merge          Enable auto-merge
+
+  /faber status [id] [flags]
+    Show workflow status
+    Flags:
+      --all       All sessions
+      --failed    Failed sessions only
+      --waiting   Waiting sessions only
+      --recent N  N most recent sessions
+
+  /faber help
+    Show this help
+
+## Questions
+
+Ask me anything about FABER:
+  - What is FABER?
+  - How do I configure FABER?
+  - How do I use FABER?
+  - What domains are supported?
+  - How does the retry loop work?
+  - What are autonomy levels?
+
+## Examples
+
+  /faber init
+  /faber run 123
+  /faber run 123 --domain design
+  /faber run PROJ-456 --autonomy autonomous
+  /faber status abc12345
+  /faber status --failed
+
+## Documentation
+
+For more details, see:
+  https://github.com/fractary/claude-plugins/tree/main/plugins/fractary-faber
+
+EOF
 }
 ```
 
-## See Also
+## Examples
 
-- Engineering-specific workflow: `/fractary/faber/engineering/faber`
-- Phase commands: `/fractary/faber/core/frame`, `/architect`, `/build`, `/evaluate`, `/release`
-- System operations: `/fractary/faber/core/work_*`, `/repo_*`, `/file_*`
-- State commands: `/fractary/faber/core/state_*`
+### Initialize Project
+```bash
+/faber init
+```
+
+### Run Workflow
+```bash
+/faber run 123
+/faber run PROJ-456 --domain design
+/faber run #789 --autonomy autonomous --auto-merge
+```
+
+### Check Status
+```bash
+/faber status
+/faber status abc12345
+/faber status --failed
+```
+
+### Ask Questions
+```bash
+/faber What is FABER?
+/faber How do I configure FABER?
+/faber What domains are supported?
+/faber How does the retry loop work?
+```
+
+### Get Help
+```bash
+/faber help
+/faber --help
+```
+
+## What This Command Does
+
+- **Routes** structured operations to specialized subcommands
+- **Answers** freeform questions about FABER
+- **Provides** guidance on configuration and usage
+- **Helps** troubleshoot issues
+- **Educates** users on FABER concepts
+
+## What This Command Does NOT Do
+
+- Does NOT implement workflow logic (delegates to faber-director)
+- Does NOT manage sessions directly (uses faber-run/faber-status)
+- Does NOT modify configuration (uses faber-init)
+
+## Best Practices
+
+1. **Prefer subcommands** for structured operations
+2. **Use freeform queries** for questions and guidance
+3. **Check status frequently** during workflow execution
+4. **Initialize once** per project
+5. **Ask questions** when uncertain about usage
+
+This command provides a friendly, intelligent interface to all FABER operations.
