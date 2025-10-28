@@ -1,312 +1,270 @@
 #!/bin/bash
 # config-loader.sh
-# Loads DevOps configuration from .fractary/.config/devops.json
-# Provides pattern substitution and auto-discovery fallbacks
+# Loads DevOps configuration from .fractary/plugins/devops/config/devops.json
+# Provides pattern substitution and validation
 
 set -euo pipefail
 
-# Configuration file path
-CONFIG_FILE=".fractary/.config/devops.json"
+# Configuration paths
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/devops/config"
+CONFIG_FILE="${CONFIG_DIR}/devops.json"
 
-# Default values
-DEFAULT_AWS_REGION="us-east-1"
-DEFAULT_TERRAFORM_DIR="infrastructure/terraform"
-DEFAULT_IAM_POLICIES_DIR="infrastructure/iam-policies"
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
 # Global configuration variables (exported for use by other scripts)
-export PROJECT_NAME=""
-export NAMESPACE=""
-export ORGANIZATION=""
-export AWS_REGION=""
-export TERRAFORM_DIR=""
-export IAM_POLICIES_DIR=""
-export PROVIDER=""
-export IAC_TOOL=""
+export DEVOPS_CONFIG_FILE=""
+export DEVOPS_CONFIG_DIR=""
+export DEVOPS_PROJECT_ROOT=""
+
+# Project metadata
+export DEVOPS_PROJECT_NAME=""
+export DEVOPS_PROJECT_SUBSYSTEM=""
+export DEVOPS_PROJECT_ORG=""
+
+# Handler configuration
+export DEVOPS_HOSTING_HANDLER=""
+export DEVOPS_IAC_HANDLER=""
+
+# Environment
+export DEVOPS_ENVIRONMENT=""
 
 # AWS-specific
 export AWS_ACCOUNT_ID=""
-export PROFILE_DISCOVER=""
-export PROFILE_TEST=""
-export PROFILE_PROD=""
-export USER_NAME_PATTERN=""
-export POLICY_NAME_PATTERN=""
-export RESOURCE_PREFIX=""
+export AWS_REGION=""
+export AWS_PROFILE_DISCOVER=""
+export AWS_PROFILE_TEST=""
+export AWS_PROFILE_PROD=""
+export AWS_PROFILE=""
 
 # Terraform-specific
-export TERRAFORM_REQUIRED_VERSION=""
-export TERRAFORM_BACKEND=""
+export TF_DIRECTORY=""
+export TF_VAR_FILE_PATTERN=""
+export TF_BACKEND_TYPE=""
+export TF_BACKEND_BUCKET=""
+export TF_BACKEND_KEY=""
 
-# Load configuration from file or auto-discover
-load_devops_config() {
-    local config_file="${1:-$CONFIG_FILE}"
+# Resource naming
+export DEVOPS_NAMING_PATTERN=""
+export DEVOPS_NAMING_SEPARATOR=""
 
-    echo "Loading DevOps configuration..."
+# Environment settings
+export DEVOPS_AUTO_APPROVE=""
+export DEVOPS_REQUIRE_CONFIRMATION=""
 
-    # Check if config file exists
-    if [ ! -f "$config_file" ]; then
-        echo "⚠️  Configuration file not found: $config_file"
-        echo "   Run /devops:init to create configuration"
-        echo "   Using auto-discovery and defaults..."
-        auto_discover_config
-        return 0
+# Function: Print colored messages
+log_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+# Function: Check if config file exists
+check_config_exists() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        log_error "Configuration file not found: $CONFIG_FILE"
+        log_info "Run /fractary-devops:init to create configuration"
+        return 1
+    fi
+    return 0
+}
+
+# Function: Validate JSON syntax
+validate_json() {
+    if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
+        log_error "Invalid JSON in configuration file: $CONFIG_FILE"
+        return 1
+    fi
+    return 0
+}
+
+# Function: Load configuration
+load_config() {
+    local env="${1:-test}"
+
+    log_info "Loading DevOps configuration..."
+
+    # Check if config exists
+    if ! check_config_exists; then
+        return 1
     fi
 
     # Validate JSON
-    if ! jq empty "$config_file" >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in configuration file: $config_file"
+    if ! validate_json; then
+        return 1
+    fi
+
+    # Export configuration variables
+    export DEVOPS_CONFIG_FILE="$CONFIG_FILE"
+    export DEVOPS_CONFIG_DIR="$CONFIG_DIR"
+    export DEVOPS_PROJECT_ROOT="$PROJECT_ROOT"
+
+    # Load project metadata
+    export DEVOPS_PROJECT_NAME=$(jq -r '.project.name' "$CONFIG_FILE")
+    export DEVOPS_PROJECT_SUBSYSTEM=$(jq -r '.project.subsystem' "$CONFIG_FILE")
+    export DEVOPS_PROJECT_ORG=$(jq -r '.project.organization' "$CONFIG_FILE")
+
+    # Load handler configuration
+    export DEVOPS_HOSTING_HANDLER=$(jq -r '.handlers.hosting.active' "$CONFIG_FILE")
+    export DEVOPS_IAC_HANDLER=$(jq -r '.handlers.iac.active' "$CONFIG_FILE")
+
+    # Load environment
+    export DEVOPS_ENVIRONMENT="$env"
+
+    # Load AWS configuration (if AWS is active)
+    if [[ "$DEVOPS_HOSTING_HANDLER" == "aws" ]]; then
+        export AWS_ACCOUNT_ID=$(jq -r '.handlers.hosting.aws.account_id' "$CONFIG_FILE")
+        export AWS_REGION=$(jq -r '.handlers.hosting.aws.region' "$CONFIG_FILE")
+        export AWS_PROFILE_DISCOVER=$(jq -r '.handlers.hosting.aws.profiles.discover_deploy' "$CONFIG_FILE")
+        export AWS_PROFILE_TEST=$(jq -r '.handlers.hosting.aws.profiles.test_deploy' "$CONFIG_FILE")
+        export AWS_PROFILE_PROD=$(jq -r '.handlers.hosting.aws.profiles.prod_deploy' "$CONFIG_FILE")
+
+        # Set active AWS profile based on environment
+        case "$env" in
+            test)
+                export AWS_PROFILE="$AWS_PROFILE_TEST"
+                ;;
+            prod)
+                export AWS_PROFILE="$AWS_PROFILE_PROD"
+                ;;
+            discover)
+                export AWS_PROFILE="$AWS_PROFILE_DISCOVER"
+                ;;
+            *)
+                log_warning "Unknown environment: $env, defaulting to test"
+                export AWS_PROFILE="$AWS_PROFILE_TEST"
+                ;;
+        esac
+    fi
+
+    # Load Terraform configuration (if Terraform is active)
+    if [[ "$DEVOPS_IAC_HANDLER" == "terraform" ]]; then
+        export TF_DIRECTORY=$(jq -r '.handlers.iac.terraform.directory' "$CONFIG_FILE")
+        export TF_VAR_FILE_PATTERN=$(jq -r '.handlers.iac.terraform.var_file_pattern' "$CONFIG_FILE")
+        export TF_BACKEND_TYPE=$(jq -r '.handlers.iac.terraform.backend.type' "$CONFIG_FILE")
+        export TF_BACKEND_BUCKET=$(jq -r '.handlers.iac.terraform.backend.bucket' "$CONFIG_FILE")
+        export TF_BACKEND_KEY=$(jq -r '.handlers.iac.terraform.backend.key' "$CONFIG_FILE")
+
+        # Substitute patterns in terraform directory
+        TF_DIRECTORY="${TF_DIRECTORY/\{project\}/$DEVOPS_PROJECT_NAME}"
+        TF_DIRECTORY="${TF_DIRECTORY/\{subsystem\}/$DEVOPS_PROJECT_SUBSYSTEM}"
+        export TF_DIRECTORY
+    fi
+
+    # Load resource naming pattern
+    export DEVOPS_NAMING_PATTERN=$(jq -r '.resource_naming.pattern' "$CONFIG_FILE")
+    export DEVOPS_NAMING_SEPARATOR=$(jq -r '.resource_naming.separator' "$CONFIG_FILE")
+
+    # Load environment-specific settings
+    export DEVOPS_AUTO_APPROVE=$(jq -r ".environments.${env}.auto_approve" "$CONFIG_FILE")
+    export DEVOPS_REQUIRE_CONFIRMATION=$(jq -r ".environments.${env}.require_confirmation" "$CONFIG_FILE")
+
+    log_success "Configuration loaded successfully"
+    log_info "Project: ${DEVOPS_PROJECT_NAME}-${DEVOPS_PROJECT_SUBSYSTEM}"
+    log_info "Environment: ${DEVOPS_ENVIRONMENT}"
+    log_info "Hosting: ${DEVOPS_HOSTING_HANDLER}"
+    log_info "IaC: ${DEVOPS_IAC_HANDLER}"
+
+    if [[ "$DEVOPS_HOSTING_HANDLER" == "aws" ]]; then
+        log_info "AWS Profile: ${AWS_PROFILE}"
+        log_info "AWS Region: ${AWS_REGION}"
+    fi
+
+    return 0
+}
+
+# Function: Get resource name with pattern substitution
+get_resource_name() {
+    local resource_type="$1"
+    local resource_name="$2"
+    local env="${3:-$DEVOPS_ENVIRONMENT}"
+
+    local name="$DEVOPS_NAMING_PATTERN"
+    name="${name/\{project\}/$DEVOPS_PROJECT_NAME}"
+    name="${name/\{subsystem\}/$DEVOPS_PROJECT_SUBSYSTEM}"
+    name="${name/\{environment\}/$env}"
+    name="${name/\{resource\}/$resource_name}"
+    name="${name/\{organization\}/$DEVOPS_PROJECT_ORG}"
+
+    echo "$name"
+}
+
+# Function: Validate environment
+validate_environment() {
+    local env="$1"
+
+    if [[ ! "$env" =~ ^(test|prod|discover)$ ]]; then
+        log_error "Invalid environment: $env"
+        log_info "Valid environments: test, prod, discover"
+        return 1
+    fi
+
+    return 0
+}
+
+# Function: Validate AWS profile separation
+validate_profile_separation() {
+    local operation="$1"  # deploy or discover
+    local env="$2"
+
+    # discover operations can ONLY use discover-deploy profile
+    if [[ "$operation" == "discover" ]] && [[ "$AWS_PROFILE" != "$AWS_PROFILE_DISCOVER" ]]; then
+        log_error "CRITICAL: IAM permission discovery must use discover-deploy profile"
+        log_error "Current: $AWS_PROFILE"
+        log_error "Required: $AWS_PROFILE_DISCOVER"
+        return 1
+    fi
+
+    # deploy operations can NEVER use discover-deploy profile
+    if [[ "$operation" == "deploy" ]] && [[ "$AWS_PROFILE" == "$AWS_PROFILE_DISCOVER" ]]; then
+        log_error "CRITICAL: Deployment cannot use discover-deploy profile"
+        log_error "Current: $AWS_PROFILE"
+        log_error "Use: $AWS_PROFILE_TEST (test) or $AWS_PROFILE_PROD (prod)"
+        return 1
+    fi
+
+    # Production deployments must use prod-deploy profile
+    if [[ "$env" == "prod" ]] && [[ "$AWS_PROFILE" != "$AWS_PROFILE_PROD" ]]; then
+        log_error "CRITICAL: Production deployment must use prod-deploy profile"
+        log_error "Current: $AWS_PROFILE"
+        log_error "Required: $AWS_PROFILE_PROD"
+        return 1
+    fi
+
+    # Test deployments must use test-deploy profile
+    if [[ "$env" == "test" ]] && [[ "$AWS_PROFILE" != "$AWS_PROFILE_TEST" ]]; then
+        log_error "CRITICAL: Test deployment must use test-deploy profile"
+        log_error "Current: $AWS_PROFILE"
+        log_error "Required: $AWS_PROFILE_TEST"
+        return 1
+    fi
+
+    log_success "Profile separation validated: $AWS_PROFILE for $operation in $env"
+    return 0
+}
+
+# Main execution if script is run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    ENV="${1:-test}"
+
+    if validate_environment "$ENV"; then
+        load_config "$ENV"
+    else
         exit 1
     fi
-
-    # Load core configuration
-    PROJECT_NAME=$(jq -r '.project.name // empty' "$config_file")
-    NAMESPACE=$(jq -r '.project.namespace // empty' "$config_file")
-    ORGANIZATION=$(jq -r '.project.organization // empty' "$config_file")
-    PROVIDER=$(jq -r '.provider // empty' "$config_file")
-    IAC_TOOL=$(jq -r '.iac_tool // empty' "$config_file")
-
-    # Load directories
-    TERRAFORM_DIR=$(jq -r '.directories.terraform // empty' "$config_file")
-    IAM_POLICIES_DIR=$(jq -r '.directories.iam_policies // empty' "$config_file")
-
-    # Apply defaults and fallbacks
-    : "${PROJECT_NAME:=$(auto_discover_project_name)}"
-    : "${NAMESPACE:=$PROJECT_NAME}"
-    : "${ORGANIZATION:=$(auto_discover_organization)}"
-    : "${TERRAFORM_DIR:=$DEFAULT_TERRAFORM_DIR}"
-    : "${IAM_POLICIES_DIR:=$DEFAULT_IAM_POLICIES_DIR}"
-
-    # Load provider-specific config
-    case "$PROVIDER" in
-        aws)
-            load_aws_config "$config_file"
-            ;;
-        gcp)
-            load_gcp_config "$config_file"
-            ;;
-        azure)
-            load_azure_config "$config_file"
-            ;;
-        *)
-            if [ -n "$PROVIDER" ]; then
-                echo "⚠️  Unknown provider: $PROVIDER"
-            fi
-            ;;
-    esac
-
-    # Load IaC tool-specific config
-    case "$IAC_TOOL" in
-        terraform)
-            load_terraform_config "$config_file"
-            ;;
-        pulumi)
-            load_pulumi_config "$config_file"
-            ;;
-        *)
-            if [ -n "$IAC_TOOL" ]; then
-                echo "⚠️  Unknown IaC tool: $IAC_TOOL"
-            fi
-            ;;
-    esac
-
-    echo "✓ Configuration loaded"
-    echo "  Project: $PROJECT_NAME"
-    echo "  Provider: $PROVIDER"
-    echo "  IaC Tool: $IAC_TOOL"
-}
-
-# Load AWS-specific configuration
-load_aws_config() {
-    local config_file="$1"
-
-    AWS_ACCOUNT_ID=$(jq -r '.aws.account_id // empty' "$config_file")
-    AWS_REGION=$(jq -r '.aws.region // empty' "$config_file")
-    PROFILE_DISCOVER=$(jq -r '.aws.profiles.discover // empty' "$config_file")
-    PROFILE_TEST=$(jq -r '.aws.profiles.test // empty' "$config_file")
-    PROFILE_PROD=$(jq -r '.aws.profiles.prod // empty' "$config_file")
-    USER_NAME_PATTERN=$(jq -r '.aws.iam.user_name_pattern // empty' "$config_file")
-    POLICY_NAME_PATTERN=$(jq -r '.aws.iam.policy_name_pattern // empty' "$config_file")
-    RESOURCE_PREFIX=$(jq -r '.aws.resource_naming.prefix // empty' "$config_file")
-
-    # Apply defaults
-    : "${AWS_REGION:=$DEFAULT_AWS_REGION}"
-    : "${PROFILE_DISCOVER:=${NAMESPACE}-discover-deploy}"
-    : "${PROFILE_TEST:=${NAMESPACE}-test-deploy}"
-    : "${PROFILE_PROD:=${NAMESPACE}-prod-deploy}"
-    : "${USER_NAME_PATTERN:={namespace}-{environment}-deploy}"
-    : "${POLICY_NAME_PATTERN:={project}-{environment}-deploy-terraform}"
-    : "${RESOURCE_PREFIX:=$PROJECT_NAME}"
-
-    # Auto-discover AWS account if not specified
-    if [ -z "$AWS_ACCOUNT_ID" ]; then
-        AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
-    fi
-}
-
-# Load GCP-specific configuration
-load_gcp_config() {
-    local config_file="$1"
-    # TODO: Implement GCP config loading
-    echo "⚠️  GCP configuration not yet implemented"
-}
-
-# Load Azure-specific configuration
-load_azure_config() {
-    local config_file="$1"
-    # TODO: Implement Azure config loading
-    echo "⚠️  Azure configuration not yet implemented"
-}
-
-# Load Terraform-specific configuration
-load_terraform_config() {
-    local config_file="$1"
-
-    TERRAFORM_REQUIRED_VERSION=$(jq -r '.terraform.required_version // empty' "$config_file")
-    TERRAFORM_BACKEND=$(jq -r '.terraform.backend // empty' "$config_file")
-
-    : "${TERRAFORM_REQUIRED_VERSION:=>=1.5.0}"
-    : "${TERRAFORM_BACKEND:=s3}"
-}
-
-# Load Pulumi-specific configuration
-load_pulumi_config() {
-    local config_file="$1"
-    # TODO: Implement Pulumi config loading
-    echo "⚠️  Pulumi configuration not yet implemented"
-}
-
-# Auto-discover configuration when file doesn't exist
-auto_discover_config() {
-    PROJECT_NAME=$(auto_discover_project_name)
-    NAMESPACE="$PROJECT_NAME"
-    ORGANIZATION=$(auto_discover_organization)
-    TERRAFORM_DIR="$DEFAULT_TERRAFORM_DIR"
-    IAM_POLICIES_DIR="$DEFAULT_IAM_POLICIES_DIR"
-    AWS_REGION="$DEFAULT_AWS_REGION"
-
-    # Try to detect provider and IaC tool
-    if command -v aws >/dev/null 2>&1; then
-        PROVIDER="aws"
-        AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "")
-    fi
-
-    if command -v terraform >/dev/null 2>&1 && [ -d "$TERRAFORM_DIR" ]; then
-        IAC_TOOL="terraform"
-    fi
-}
-
-# Auto-discover project name from Git
-auto_discover_project_name() {
-    if git rev-parse --git-dir > /dev/null 2>&1; then
-        basename "$(git rev-parse --show-toplevel)" | sed 's/\.git$//'
-    else
-        basename "$(pwd)"
-    fi
-}
-
-# Auto-discover organization from Git remote
-auto_discover_organization() {
-    if git rev-parse --git-dir > /dev/null 2>&1; then
-        git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/.*|\1|' || echo ""
-    else
-        echo ""
-    fi
-}
-
-# Get configuration value
-get_config_value() {
-    local key="$1"
-    local config_file="${2:-$CONFIG_FILE}"
-
-    if [ -f "$config_file" ]; then
-        jq -r ".$key // empty" "$config_file"
-    else
-        echo ""
-    fi
-}
-
-# Resolve pattern with placeholder substitution
-resolve_pattern() {
-    local pattern="$1"
-    local environment="${2:-test}"
-
-    # Substitute placeholders
-    echo "$pattern" | \
-        sed "s/{project}/$PROJECT_NAME/g" | \
-        sed "s/{namespace}/$NAMESPACE/g" | \
-        sed "s/{organization}/$ORGANIZATION/g" | \
-        sed "s/{environment}/$environment/g" | \
-        sed "s/{prefix}/$RESOURCE_PREFIX/g"
-}
-
-# Get AWS profile for environment
-get_aws_profile() {
-    local environment="$1"
-
-    case "$environment" in
-        test)
-            echo "$PROFILE_TEST"
-            ;;
-        prod)
-            echo "$PROFILE_PROD"
-            ;;
-        discover)
-            echo "$PROFILE_DISCOVER"
-            ;;
-        *)
-            echo "❌ Invalid environment: $environment" >&2
-            exit 1
-            ;;
-    esac
-}
-
-# Validate configuration is loaded
-validate_config_loaded() {
-    if [ -z "$PROJECT_NAME" ]; then
-        echo "❌ Configuration not loaded. Call load_devops_config first." >&2
-        exit 1
-    fi
-}
-
-# Display current configuration
-show_config() {
-    validate_config_loaded
-
-    echo "=== DevOps Configuration ==="
-    echo ""
-    echo "Project:"
-    echo "  Name: $PROJECT_NAME"
-    echo "  Namespace: $NAMESPACE"
-    echo "  Organization: $ORGANIZATION"
-    echo ""
-    echo "Infrastructure:"
-    echo "  Provider: ${PROVIDER:-not set}"
-    echo "  IaC Tool: ${IAC_TOOL:-not set}"
-    echo ""
-    echo "Directories:"
-    echo "  Terraform: $TERRAFORM_DIR"
-    echo "  IAM Policies: $IAM_POLICIES_DIR"
-    echo ""
-
-    if [ "$PROVIDER" = "aws" ]; then
-        echo "AWS Configuration:"
-        echo "  Account ID: $AWS_ACCOUNT_ID"
-        echo "  Region: $AWS_REGION"
-        echo "  Profiles:"
-        echo "    Discover: $PROFILE_DISCOVER"
-        echo "    Test: $PROFILE_TEST"
-        echo "    Prod: $PROFILE_PROD"
-        echo "  Patterns:"
-        echo "    User: $USER_NAME_PATTERN"
-        echo "    Policy: $POLICY_NAME_PATTERN"
-        echo "  Resource Prefix: $RESOURCE_PREFIX"
-        echo ""
-    fi
-
-    if [ "$IAC_TOOL" = "terraform" ]; then
-        echo "Terraform Configuration:"
-        echo "  Required Version: $TERRAFORM_REQUIRED_VERSION"
-        echo "  Backend: $TERRAFORM_BACKEND"
-        echo "  Directory: $TERRAFORM_DIR"
-        echo ""
-    fi
-}
+fi

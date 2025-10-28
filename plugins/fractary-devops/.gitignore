@@ -1,0 +1,67 @@
+# DevOps Configuration (contains secrets and profiles)
+.fractary/plugins/devops/config/
+
+# Terraform State Files
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform/
+.terraform.lock.hcl
+
+# Pulumi State Files
+.pulumi/
+Pulumi.*.yaml
+
+# AWS CLI Credentials
+.aws/
+
+# GCP Credentials
+.gcloud/
+*-service-account-key.json
+
+# Azure Credentials
+.azure/
+
+# Environment Files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Temporary Files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build Artifacts
+dist/
+build/
+*.zip
+*.tar.gz
+
+# Node Modules (if using CDK or other JS-based IaC)
+node_modules/
+package-lock.json
+
+# Python Virtual Environments (if using Python-based IaC)
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Large Log Files (stored in S3)
+.fractary/plugins/devops/deployments/logs/*.json
+
+# Backup Files
+*.bak
+*.backup

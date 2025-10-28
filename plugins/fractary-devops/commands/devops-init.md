@@ -1,11 +1,46 @@
 ---
-description: Initialize DevOps configuration for project
-allowed-tools: Bash, Read, Write, Edit, Glob, AskUserQuestion
+name: devops-init
+description: Initialize DevOps plugin configuration for cloud infrastructure management - routes to init-manager agent
+tags: [devops, initialization, configuration, setup]
+examples:
+  - trigger: "/fractary-devops:init"
+    action: "Invoke init-manager agent to initialize DevOps configuration"
+  - trigger: "/fractary-devops:init --provider=aws --iac=terraform"
+    action: "Invoke init-manager with specified provider and IaC tool"
 ---
 
-# Initialize DevOps Configuration
+# fractary-devops:init
 
-Create `.fractary/.config/devops.json` configuration file for this project.
+Initializes the DevOps plugin configuration for your project. Creates the configuration file at `.fractary/plugins/devops/config/devops.json` with project-specific settings for cloud infrastructure management.
+
+<CRITICAL_RULES>
+**YOU MUST:**
+- Create initialization script directly (this is a setup command)
+- Do NOT invoke any agents (this is an exception to the normal pattern)
+- Prompt user for required configuration values
+- Create `.fractary/plugins/devops/config/` directory
+- Generate `devops.json` from template at `skills/devops-common/templates/devops.json.template`
+- Validate all inputs before saving
+- Do NOT commit the config file (contains secrets/profiles)
+- Add config directory to `.gitignore` if not already present
+
+**THIS COMMAND PERFORMS SETUP WORK DIRECTLY.**
+This is an exception to the normal pattern because it's a one-time setup command.
+</CRITICAL_RULES>
+
+<IMPLEMENTATION>
+1. Parse command line arguments
+2. Detect project information from Git (or prompt)
+3. Prompt for provider (AWS, GCP) and IaC tool (Terraform, Pulumi)
+4. For AWS: Get account ID via `aws sts get-caller-identity`, prompt for region
+5. Read template from `skills/devops-common/templates/devops.json.template`
+6. Substitute all placeholders with user values
+7. Create config directory: `.fractary/plugins/devops/config/`
+8. Save to `.fractary/plugins/devops/config/devops.json`
+9. Display configuration summary and next steps
+</IMPLEMENTATION>
+
+Create `.fractary/plugins/devops/config/devops.json` configuration file for this project.
 
 ## Your Task
 
