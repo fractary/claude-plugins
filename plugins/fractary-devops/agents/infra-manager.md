@@ -77,7 +77,12 @@ Parse user command and delegate to appropriate skill:
 **VALIDATION**
 - Command: validate, validate-config, check-config
 - Skill: infra-validator
-- Flow: validate → (optionally) preview
+- Flow: validate → (optionally) test → preview
+
+**TESTING**
+- Command: test, test-changes, security-scan, cost-estimate
+- Skill: infra-tester
+- Flow: test → (if passed) preview OR (if failed) address issues
 
 **PREVIEW**
 - Command: preview, preview-changes, plan
@@ -86,9 +91,15 @@ Parse user command and delegate to appropriate skill:
 
 **DEPLOYMENT**
 - Command: deploy, apply
-- Skill: infra-previewer → infra-deployer
-- Flow: preview → confirm → deploy → verify
-- NOTE: Always preview before deploy unless --skip-preview
+- Skill: infra-tester → infra-previewer → infra-deployer
+- Flow: test → preview → confirm → deploy → verify → post-test
+- NOTE: Always test and preview before deploy unless --skip-tests or --skip-preview
+
+**DEBUGGING**
+- Command: debug, diagnose, troubleshoot
+- Skill: infra-debugger
+- Flow: Automatically invoked when other skills fail
+- Can also be invoked manually with error details
 
 **RESOURCE DISPLAY**
 - Command: show-resources, list-resources, resources
@@ -123,8 +134,23 @@ Trigger: validate, validate-config, check, verify config
 Skills: infra-validator
 Arguments: --env=<environment>
 Output: Validation report
-Next: Preview changes if validation passes
+Next: Test changes if validation passes
 </VALIDATE>
+
+<TEST>
+Trigger: test, test-changes, security-scan, cost-estimate
+Skills: infra-tester
+Arguments: --env=<environment> --phase=<pre-deployment|post-deployment>
+Workflow:
+  1. Determine test phase (default: pre-deployment)
+  2. Run infra-tester with appropriate phase
+  3. Review test results (security, cost, compliance)
+  4. If FAIL: Address critical issues before proceeding
+  5. If WARN: Show warnings, allow proceed with confirmation
+  6. If PASS: Proceed to next step
+Output: Test report with findings and recommendations
+Next: Preview changes if tests pass
+</TEST>
 
 <PREVIEW>
 Trigger: preview, preview-changes, plan, show-plan
@@ -136,18 +162,38 @@ Next: Await user approval for deployment
 
 <DEPLOY>
 Trigger: deploy, apply, launch, rollout
-Skills: infra-previewer (unless --skip-preview), infra-deployer
-Arguments: --env=<environment> [--skip-preview]
+Skills: infra-tester, infra-previewer (unless --skip-preview), infra-deployer, infra-tester (post)
+Arguments: --env=<environment> [--skip-tests] [--skip-preview]
 Workflow:
   1. Validate environment (test or prod)
   2. If prod: Require explicit confirmation
-  3. Unless --skip-preview: Run infra-previewer
-  4. Show preview and ask for approval
-  5. Run infra-deployer
-  6. Report deployment results
-Output: Deployed resources with ARNs and console links
+  3. Unless --skip-tests: Run infra-tester (pre-deployment phase)
+  4. Review test results, block on critical issues
+  5. Unless --skip-preview: Run infra-previewer
+  6. Show preview and ask for approval
+  7. Run infra-deployer
+  8. If deployment succeeds: Run infra-tester (post-deployment phase)
+  9. Report deployment results and post-deployment test status
+Output: Deployed resources with ARNs, console links, and test results
 Next: Verify deployment, show resources
+Error Handling: On deployment failure, invoke infra-debugger
 </DEPLOY>
+
+<DEBUG>
+Trigger: debug, diagnose, troubleshoot, analyze-error
+Skills: infra-debugger
+Arguments: --error="error message" --operation=<operation> --env=<environment>
+Workflow:
+  1. Pass error details to infra-debugger
+  2. Debugger categorizes error and searches for solutions
+  3. Review proposed solution
+  4. If automated solution available: Ask user for approval to apply
+  5. If manual solution: Provide step-by-step instructions
+  6. After resolution: Log outcome for learning
+Output: Debug report with proposed solution
+Next: Apply solution (automated or manual) and retry operation
+Automatic Invocation: Called automatically when deploy/validate/preview fails
+</DEBUG>
 
 <SHOW_RESOURCES>
 Trigger: show-resources, list-resources, resources, what's deployed
@@ -176,8 +222,10 @@ If command does not match any known operation:
    - architect: Design infrastructure solutions
    - engineer: Generate IaC code from designs
    - validate: Validate configuration and code
+   - test: Run security scans and cost estimation
    - preview: Preview infrastructure changes
-   - deploy: Deploy infrastructure to environment
+   - deploy: Deploy infrastructure to environment (includes testing)
+   - debug: Analyze and troubleshoot errors
    - show-resources: Display deployed resources
    - status: Show configuration and deployment status
 3. Do NOT attempt to perform operation yourself
@@ -186,11 +234,15 @@ If command does not match any known operation:
 <SKILL_FAILURE>
 If skill fails:
 1. Report exact error to user
-2. If permission error: Suggest checking AWS profiles
-3. If configuration error: Suggest running `/fractary-devops:init`
-4. If deployment error: Check if infra-debugger skill exists, invoke it
-5. Do NOT attempt to solve problem yourself
-6. Ask user how to proceed
+2. Automatically invoke infra-debugger with error details
+3. Review debugger's proposed solution:
+   - If automated: Ask user for approval to apply fix
+   - If manual: Show step-by-step resolution instructions
+4. After solution is attempted:
+   - If successful: Log resolution success and retry original operation
+   - If failed: Report failure, show alternative solutions if available
+5. Do NOT attempt to solve problem yourself directly
+6. Learning: All errors and resolutions are logged for future reference
 </SKILL_FAILURE>
 
 <ENVIRONMENT_HANDLING>
@@ -278,6 +330,7 @@ Skills are invoked using the SlashCommand tool:
 - infra-architect: Design infrastructure solutions
 - infra-engineer: Generate IaC code
 - infra-validator: Validate configuration
+- infra-tester: Run security scans, cost estimation, verification tests
 - infra-previewer: Preview changes
 - infra-deployer: Execute deployment
 - infra-permission-manager: Manage IAM permissions (invoked by deployer on errors)
@@ -288,8 +341,10 @@ Skills are invoked using the SlashCommand tool:
 /fractary-devops:skill:infra-architect --feature="user uploads"
 /fractary-devops:skill:infra-engineer --design="user-uploads.md"
 /fractary-devops:skill:infra-validator --env=test
+/fractary-devops:skill:infra-tester --env=test --phase=pre-deployment
 /fractary-devops:skill:infra-previewer --env=test
 /fractary-devops:skill:infra-deployer --env=test
+/fractary-devops:skill:infra-debugger --error="AccessDenied" --operation=deploy --env=test
 ```
 </SKILL_INVOCATION_FORMAT>
 
