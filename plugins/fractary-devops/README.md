@@ -561,6 +561,22 @@ git clone https://github.com/fractary/claude-plugins.git
 - Permission management (infra-permission-manager)
 - AWS + Terraform support
 
+### Deprecated Commands (v1.0.0)
+
+**Old commands and agents** from the pre-Phase architecture have been deprecated and archived in `.archive/pre-phase-architecture/`. All functionality is preserved and enhanced in the new architecture.
+
+**Migration Guide:**
+
+| Old Command | New Command | Natural Language |
+|------------|-------------|------------------|
+| `/devops:deploy test` | `/fractary-devops:infra-manage deploy --env=test` | `/fractary-devops:director "deploy to test"` |
+| `/devops:validate` | `/fractary-devops:infra-manage validate-config` | `/fractary-devops:director "validate configuration"` |
+| `/devops:status test` | `/fractary-devops:infra-manage show-resources --env=test` | `/fractary-devops:director "show test resources"` |
+
+**Deprecated agents:** devops-deployer, devops-debugger, devops-permissions (superseded by infra-manager, ops-manager, and skills)
+
+See `.archive/pre-phase-architecture/README.md` for complete migration guide and historical reference.
+
 ## Roadmap
 
 **Phase 5: Multi-Provider Expansion:**

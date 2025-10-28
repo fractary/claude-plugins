@@ -100,8 +100,24 @@ See `/docs/specs/fractary-devops-plugin-spec.md` for complete schema.
 
 ## Used By
 
-- devops-deployer
-- devops-debugger
-- devops-permissions
-- All provider plugins
-- All IaC tool plugins
+**Infrastructure Skills:**
+- infra-architect
+- infra-engineer
+- infra-validator
+- infra-previewer
+- infra-deployer
+- infra-permission-manager
+- infra-tester
+- infra-debugger
+
+**Operations Skills:**
+- ops-monitor
+- ops-investigator
+- ops-responder
+- ops-auditor
+
+**Handler Skills:**
+- handler-hosting-aws
+- handler-iac-terraform
+
+**Note:** Previously used by deprecated agents (devops-deployer, devops-debugger, devops-permissions) - now superseded by Phase 1-4 architecture. See `.archive/pre-phase-architecture/` for historical reference.
