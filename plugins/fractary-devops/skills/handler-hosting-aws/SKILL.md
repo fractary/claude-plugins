@@ -33,11 +33,15 @@ interact with AWS, abstracting away AWS-specific details.
 <INPUTS>
 This skill receives operation requests from infrastructure skills:
 
-- **operation**: authenticate | deploy | verify | query | delete
+- **operation**: authenticate | deploy | verify | query | delete | get-resource-status | query-metrics | query-logs | restart-service | scale-service
 - **environment**: test | prod | discover
 - **resource_type**: s3 | lambda | dynamodb | etc (operation-dependent)
 - **resource_config**: Resource-specific configuration (operation-dependent)
 - **config**: Configuration loaded from config-loader.sh
+- **metric_name**: CloudWatch metric to query (for query-metrics operation)
+- **log_group**: CloudWatch log group to query (for query-logs operation)
+- **filter_pattern**: Log filter pattern (for query-logs operation)
+- **timeframe**: Time period for queries (default: 1h)
 </INPUTS>
 
 <WORKFLOW>
