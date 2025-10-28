@@ -1,88 +1,290 @@
 # Fractary DevOps Plugin
 
-Generic DevOps automation plugin for Claude Code, supporting multiple cloud providers and Infrastructure as Code (IaC) tools.
+**Version:** 1.0.0 (Phase 4 Complete)
+
+Comprehensive DevOps automation for Claude Code - infrastructure lifecycle, testing, debugging, and runtime operations.
 
 ## Overview
 
-This plugin provides configuration-driven DevOps automation that works across projects. Instead of hardcoding AWS profiles, Terraform paths, and resource names for each project, you configure once in `.fractary/.config/devops.json` and the plugin handles the rest.
+The Fractary DevOps plugin provides end-to-end DevOps automation from infrastructure design through production operations. It features natural language commands, intelligent error debugging with learning, comprehensive testing, and runtime monitoring.
 
-**Key Features:**
-- Multi-cloud provider support (AWS, GCP, Azure)
-- Multi-IaC tool support (Terraform, Pulumi, CDK, CloudFormation)
-- Configuration-driven with pattern substitution
-- Auto-discovery fallbacks when config missing
-- IAM permission audit system
-- Error categorization and auto-fix
-- Deployment orchestration with safety checks
+### Key Features
+
+**Infrastructure Management:**
+- Design infrastructure solutions from natural language requirements
+- Generate Terraform IaC code automatically
+- Validate, test, preview, and deploy with safety checks
+- Auto-fix permission errors via intelligent delegation
+- Track all deployed resources with AWS Console links
+
+**Testing & Debugging:**
+- Pre-deployment security scans (Checkov, tfsec)
+- Cost estimation with budget validation
+- Post-deployment verification tests
+- Intelligent error categorization and solution matching
+- Learning system that improves over time
+
+**Runtime Operations:**
+- Health monitoring with CloudWatch metrics
+- Log analysis and incident investigation
+- Automated remediation (restart, scale services)
+- Cost optimization recommendations
+- Security and compliance auditing
+
+**Natural Language Interface:**
+- Plain English commands via devops-director
+- Automatic intent parsing and routing
+- Context-aware command mapping
 
 ## Quick Start
 
-### 1. Install Plugin
-
-```bash
-# Clone to your Claude Code plugins directory
-cd ~/.claude-code/plugins/
-git clone https://github.com/fractary/claude-devops-plugin.git fractary-devops
-```
-
-### 2. Initialize Configuration
+### 1. Initialize Plugin
 
 ```bash
 # In your project directory
-/devops:init
+/fractary-devops:init --provider=aws --iac=terraform
 ```
 
-This creates `.fractary/.config/devops.json` with auto-discovered settings.
+This creates `.fractary/plugins/devops/config/devops.json` with your project configuration.
 
-### 3. Deploy Infrastructure
+### 2. Deploy Infrastructure
+
+Using natural language:
+```bash
+/fractary-devops:director "deploy my infrastructure to test"
+```
+
+Or direct command:
+```bash
+/fractary-devops:infra-manage deploy --env=test
+```
+
+### 3. Monitor Operations
+
+Check health of deployed services:
+```bash
+/fractary-devops:director "check health of my services"
+```
+
+Or direct command:
+```bash
+/fractary-devops:ops-manage check-health --env=test
+```
+
+## Commands
+
+### Natural Language Entry Point
+
+#### /fractary-devops:director
+
+Route natural language requests to appropriate operations:
 
 ```bash
-# Deploy to test environment
-/devops:deploy test
+# Infrastructure examples
+/fractary-devops:director "design an S3 bucket for user uploads"
+/fractary-devops:director "deploy to production"
+/fractary-devops:director "validate my terraform configuration"
 
-# Deploy to production (with safety checks)
-/devops:deploy prod
+# Operations examples
+/fractary-devops:director "check if production is healthy"
+/fractary-devops:director "investigate errors in API service"
+/fractary-devops:director "show me the logs from Lambda"
+/fractary-devops:director "analyze costs for test environment"
+```
+
+### Infrastructure Commands
+
+#### /fractary-devops:infra-manage
+
+Manage infrastructure lifecycle:
+
+```bash
+# Design infrastructure
+/fractary-devops:infra-manage architect --feature="API service with database"
+
+# Generate Terraform code
+/fractary-devops:infra-manage engineer --design=api-service.md
+
+# Validate configuration
+/fractary-devops:infra-manage validate-config --env=test
+
+# Run tests (security, cost, compliance)
+/fractary-devops:infra-manage test --env=test --phase=pre-deployment
+
+# Preview changes
+/fractary-devops:infra-manage preview-changes --env=test
+
+# Deploy infrastructure
+/fractary-devops:infra-manage deploy --env=test
+
+# Show deployed resources
+/fractary-devops:infra-manage show-resources --env=test
+
+# Debug errors
+/fractary-devops:infra-manage debug --error="<error message>"
+```
+
+### Operations Commands
+
+#### /fractary-devops:ops-manage
+
+Manage runtime operations:
+
+```bash
+# Check health
+/fractary-devops:ops-manage check-health --env=prod
+
+# Query logs
+/fractary-devops:ops-manage query-logs --env=prod --service=api-lambda --filter=ERROR
+
+# Investigate incidents
+/fractary-devops:ops-manage investigate --env=prod --service=api-lambda --timeframe=2h
+
+# Analyze performance
+/fractary-devops:ops-manage analyze-performance --env=prod --service=api-lambda
+
+# Apply remediation
+/fractary-devops:ops-manage remediate --env=prod --service=api-lambda --action=restart
+
+# Audit costs/security
+/fractary-devops:ops-manage audit --env=test --focus=cost
+```
+
+### Configuration Command
+
+#### /fractary-devops:init
+
+Initialize plugin configuration:
+
+```bash
+/fractary-devops:init --provider=aws --iac=terraform
+/fractary-devops:init --provider=aws --iac=terraform --env=test
+```
+
+## Architecture
+
+### Component Hierarchy
+
+```
+Natural Language
+  ↓
+devops-director (intent parsing & routing)
+  ↓
+┌─────────────────────┬─────────────────────┐
+│  infra-manager      │  ops-manager        │
+│  (infrastructure)   │  (operations)       │
+└─────────────────────┴─────────────────────┘
+  ↓                     ↓
+Skills (execution)    Skills (execution)
+  ↓                     ↓
+Handlers (providers)  Handlers (CloudWatch)
+```
+
+### Agents
+
+**devops-director:**
+- Natural language router
+- Parses intent (infrastructure vs operations)
+- Routes to infra-manager or ops-manager
+
+**infra-manager:**
+- Infrastructure lifecycle orchestration
+- Workflow: design → engineer → validate → test → preview → deploy
+- Delegates to infrastructure skills
+
+**ops-manager:**
+- Runtime operations orchestration
+- Workflow: monitor → investigate → respond → audit
+- Delegates to operations skills
+
+### Skills
+
+**Infrastructure Skills (Phase 1):**
+- infra-architect: Design solutions
+- infra-engineer: Generate Terraform code
+- infra-validator: Validate configurations
+- infra-previewer: Generate deployment plans
+- infra-deployer: Execute deployments
+- infra-permission-manager: Manage IAM permissions
+
+**Testing & Debugging Skills (Phase 2):**
+- infra-tester: Security scans, cost estimation, verification
+- infra-debugger: Error analysis and solution matching
+
+**Operations Skills (Phase 3):**
+- ops-monitor: Health checks and metrics
+- ops-investigator: Log analysis and incident investigation
+- ops-responder: Incident remediation
+- ops-auditor: Cost, security, compliance auditing
+
+**Handler Skills:**
+- handler-hosting-aws: AWS operations (deploy, verify, CloudWatch)
+- handler-iac-terraform: Terraform operations (init, plan, apply)
+
+### Data Flows
+
+**Resource Tracking:**
+```
+Deploy → Update Registry → Generate DEPLOYED.md → Console URLs
+```
+
+**Error Learning:**
+```
+Error → Categorize → Search Issue Log → Propose Solution → Log Outcome
+```
+
+**Health Monitoring:**
+```
+Check Status → Query CloudWatch → Analyze Metrics → Report Health
 ```
 
 ## Configuration
 
-Configuration file: `.fractary/.config/devops.json`
+Configuration file: `.fractary/plugins/devops/config/devops.json`
 
 ### Example Configuration
 
 ```json
 {
-  "provider": "aws",
-  "iac_tool": "terraform",
+  "version": "1.0",
   "project": {
-    "name": "corthography",
-    "namespace": "corthuxa-core",
-    "organization": "corthos"
+    "name": "my-project",
+    "subsystem": "core",
+    "organization": "my-org"
   },
-  "aws": {
-    "account_id": "123456789012",
-    "region": "us-east-1",
-    "profiles": {
-      "discover": "corthuxa-core-discover-deploy",
-      "test": "corthuxa-core-test-deploy",
-      "prod": "corthuxa-core-prod-deploy"
+  "handlers": {
+    "hosting": {
+      "active": "aws",
+      "aws": {
+        "region": "us-east-1",
+        "profiles": {
+          "discover": "my-project-discover-deploy",
+          "test": "my-project-test-deploy",
+          "prod": "my-project-prod-deploy"
+        }
+      }
     },
-    "iam": {
-      "user_name_pattern": "{namespace}-{environment}-deploy",
-      "policy_name_pattern": "{project}-{environment}-deploy-terraform"
-    },
-    "resource_naming": {
-      "prefix": "corthuxa",
-      "separator": "-"
+    "iac": {
+      "active": "terraform",
+      "terraform": {
+        "directory": "./infrastructure/terraform",
+        "var_file_pattern": "{environment}.tfvars"
+      }
     }
   },
-  "terraform": {
-    "directory": "./infrastructure/terraform",
-    "var_file_pattern": "{environment}.tfvars",
-    "backend": {
-      "type": "s3",
-      "bucket": "{namespace}-terraform-state",
-      "key": "{project}/terraform.tfstate"
+  "resource_naming": {
+    "pattern": "{project}-{subsystem}-{environment}-{resource}",
+    "separator": "-"
+  },
+  "environments": {
+    "test": {
+      "auto_approve": false,
+      "cost_threshold": 100
+    },
+    "prod": {
+      "auto_approve": false,
+      "cost_threshold": 500,
+      "require_confirmation": true
     }
   }
 }
@@ -90,509 +292,306 @@ Configuration file: `.fractary/.config/devops.json`
 
 ### Pattern Substitution
 
-Patterns use placeholders that get substituted with actual values:
+Available variables:
+- `{project}` - Project name
+- `{subsystem}` - Subsystem name
+- `{environment}` - Current environment (test/prod)
+- `{resource}` - Resource name
+- `{organization}` - Organization name
 
-- `{project}` - Project name (e.g., "corthography")
-- `{namespace}` - Project namespace (e.g., "corthuxa-core")
-- `{organization}` - Organization (e.g., "corthos")
-- `{environment}` - Current environment (e.g., "test", "prod")
-- `{prefix}` - Resource prefix (e.g., "corthuxa")
+Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-test-database`
 
-Example:
-```json
-"user_name_pattern": "{namespace}-{environment}-deploy"
-```
-Resolves to: `corthuxa-core-test-deploy`
+## Complete Workflow Example
 
-## Commands
-
-### /devops:init
-
-Initialize DevOps configuration for your project.
+### End-to-End Infrastructure Deployment
 
 ```bash
-/devops:init
+# 1. Design infrastructure
+/fractary-devops:director "design an API service with RDS database"
+# → Creates design document
+
+# 2. Generate Terraform code
+/fractary-devops:director "implement the API service design"
+# → Generates main.tf, variables.tf, outputs.tf
+
+# 3. Deploy to test
+/fractary-devops:director "deploy to test environment"
+# → Security scans (Checkov, tfsec)
+# → Cost estimation
+# → Preview changes
+# → User approval
+# → Execute deployment
+# → Post-deployment verification
+# → Health checks
+# → Registry updated
+# → DEPLOYED.md generated
+
+# 4. Monitor health
+/fractary-devops:director "check health of test services"
+# → CloudWatch metrics
+# → Status report
+
+# If errors occur:
+# → infra-debugger analyzes
+# → Solution proposed
+# → Automated fix if possible
+# → Retry deployment
 ```
 
-Auto-discovers:
-- Project name from Git repository
-- AWS profiles and credentials
-- Terraform directory location
-- Cloud provider and IaC tool
-
-### /devops:deploy
-
-Deploy infrastructure to specified environment.
+### Incident Response Workflow
 
 ```bash
-/devops:deploy [environment] [options]
+# 1. Detect issue
+/fractary-devops:director "check health of production"
+# → Identifies degraded Lambda
 
-# Examples:
-/devops:deploy test                # Deploy to test
-/devops:deploy prod                # Deploy to production
-/devops:deploy test --auto-approve # Skip approval prompt
-/devops:deploy test --plan-only    # Generate plan without applying
+# 2. Investigate
+/fractary-devops:director "investigate API Lambda errors"
+# → Queries CloudWatch logs
+# → Correlates events
+# → Identifies root cause: Database connections exhausted
+
+# 3. Remediate
+/fractary-devops:director "restart API Lambda in production"
+# → Impact assessment
+# → User confirmation (production)
+# → Restart service
+# → Verify health
+# → Document remediation
+
+# 4. Audit and optimize
+/fractary-devops:director "analyze costs for production"
+# → Cost breakdown
+# → Optimization recommendations
+# → Potential savings identified
 ```
-
-**Options:**
-- `--auto-approve` - Skip interactive approval
-- `--plan-only` - Generate plan without applying
-- `--var-file=PATH` - Custom variable file
-- `--complete` - Auto-fix permission errors
-
-### /devops:debug
-
-Debug deployment errors and suggest fixes.
-
-```bash
-/devops:debug                  # Analyze last deployment failure
-/devops:debug --complete       # Auto-fix permission errors
-/devops:debug --report-only    # Just show analysis
-```
-
-Categorizes errors into:
-- Permission errors (auto-fixable)
-- Configuration errors (manual fix)
-- Resource errors (needs resolution)
-- State errors (backend issues)
-
-### /devops:permissions
-
-Manage IAM permissions for deploy users.
-
-```bash
-/devops:permissions <action> [args]
-
-# Examples:
-/devops:permissions add ecr:DescribeRepositories test "Required for ECR state"
-/devops:permissions verify s3:PutBucketPolicy test
-/devops:permissions list test
-/devops:permissions audit test
-```
-
-**Actions:**
-- `add <permission> <environment> [reason]` - Add permission
-- `verify <permission> <environment>` - Check if exists
-- `list <environment>` - List all permissions
-- `audit <environment>` - Show change history
-
-### /devops:validate
-
-Validate DevOps configuration and setup.
-
-```bash
-/devops:validate [component]
-
-# Examples:
-/devops:validate           # Validate everything
-/devops:validate config    # Config file only
-/devops:validate provider  # Provider credentials only
-/devops:validate iac       # IaC tool only
-```
-
-### /devops:status
-
-Show current DevOps configuration and deployment status.
-
-```bash
-/devops:status [environment] [options]
-
-# Examples:
-/devops:status                    # Show all environments
-/devops:status test               # Test environment only
-/devops:status --verbose          # Detailed information
-/devops:status --resources        # Include resource list
-/devops:status --config           # Show full configuration
-```
-
-## Agents
-
-### devops-deployer
-
-Orchestrates infrastructure deployments.
-
-**Features:**
-- Configuration-driven provider/tool selection
-- Authenticate with cloud provider
-- Execute IaC workflow (init → validate → plan → apply)
-- Error handling and delegation
-- Production safety checks
-
-**Invoked by:**
-- `/devops:deploy` command
-- Direct skill invocation
-
-### devops-debugger
-
-Analyzes deployment errors and determines fix strategies.
-
-**Features:**
-- Parse IaC tool error output
-- Categorize errors (permission, configuration, resource, state)
-- Determine fix strategies
-- Delegate to specialized skills
-- Multi-error handling
-
-**Invoked by:**
-- `/devops:debug` command
-- `devops-deployer` on deployment failure
-- Direct skill invocation
-
-### devops-permissions
-
-Manages IAM permissions for deployment users.
-
-**Features:**
-- Add permissions to deploy user IAM policies
-- Track changes in audit system
-- Verify permissions exist
-- List current permissions
-- Show permission change history
-
-**Invoked by:**
-- `/devops:permissions` command
-- `devops-debugger` when permission errors detected
-- `devops-deployer` for proactive permission checks
-
-## Architecture
-
-```
-fractary-devops-plugin/
-├── plugin.json                      # Plugin metadata
-├── README.md                        # This file
-├── commands/                        # Slash commands
-│   ├── devops-init.md
-│   ├── devops-deploy.md
-│   ├── devops-debug.md
-│   ├── devops-permissions.md
-│   ├── devops-validate.md
-│   └── devops-status.md
-├── agents/                          # Agent definitions
-│   ├── devops-deployer.md
-│   ├── devops-debugger.md
-│   └── devops-permissions.md
-├── skills/                          # Skills and plugins
-│   ├── devops-common/              # Shared utilities
-│   │   ├── SKILL.md
-│   │   ├── scripts/
-│   │   │   └── config-loader.sh   # Config loading & patterns
-│   │   └── templates/
-│   │       └── devops-config.json.template
-│   └── devops-deployer/            # Deployment orchestration
-│       ├── providers/              # Cloud provider plugins
-│       │   ├── aws/
-│       │   │   ├── auth.sh
-│       │   │   ├── permissions.sh
-│       │   │   ├── resource-naming.sh
-│       │   │   └── README.md
-│       │   ├── gcp/                # Future
-│       │   └── azure/              # Future
-│       └── iac-tools/              # IaC tool plugins
-│           ├── terraform/
-│           │   ├── init.sh
-│           │   ├── validate.sh
-│           │   ├── plan.sh
-│           │   ├── apply.sh
-│           │   ├── error-parser.sh
-│           │   └── README.md
-│           ├── pulumi/             # Future
-│           └── cdk/                # Future
-└── docs/                           # Documentation
-    └── specs/
-        └── fractary-devops-plugin-spec.md
-```
-
-## Provider Plugins
-
-### AWS (Implemented)
-
-**Features:**
-- AWS profile-based authentication
-- IAM permission management via audit system
-- AWS resource naming conventions
-- Multi-environment support (discover, test, prod)
-
-**Configuration:**
-```json
-{
-  "provider": "aws",
-  "aws": {
-    "account_id": "123456789012",
-    "region": "us-east-1",
-    "profiles": {
-      "discover": "myproject-discover-deploy",
-      "test": "myproject-test-deploy",
-      "prod": "myproject-prod-deploy"
-    }
-  }
-}
-```
-
-### GCP (Planned)
-
-Service account or user authentication, IAM binding management, GCP naming conventions.
-
-### Azure (Planned)
-
-Azure CLI authentication, RBAC management, Azure naming conventions.
-
-## IaC Tool Plugins
-
-### Terraform (Implemented)
-
-**Workflow:** init → validate → plan → apply
-
-**Features:**
-- Terraform initialization and validation
-- Plan generation and display
-- Apply with approval gates
-- Error parsing and categorization
-- State management
-
-**Configuration:**
-```json
-{
-  "iac_tool": "terraform",
-  "terraform": {
-    "directory": "./infrastructure/terraform",
-    "var_file_pattern": "{environment}.tfvars",
-    "backend": {
-      "type": "s3",
-      "bucket": "{namespace}-terraform-state"
-    }
-  }
-}
-```
-
-### Pulumi (Planned)
-
-Stack-based deployment with preview and up commands.
-
-### CDK (Planned)
-
-AWS CDK synth, diff, and deploy workflow.
-
-### CloudFormation (Planned)
-
-Change set creation and execution.
-
-## IAM Permission Audit System
-
-All IAM permission changes are tracked in audit files.
-
-**Location:** `/infrastructure/iam-policies/{environment}-deploy-permissions.json`
-
-**Audit Entry:**
-```json
-{
-  "timestamp": "2025-10-17T14:07:22Z",
-  "action": "added",
-  "permissions": ["ecr:DescribeRepositories"],
-  "reason": "Required for Terraform to read ECR repository state",
-  "terraform_error": "User is not authorized to perform: ecr:DescribeRepositories",
-  "added_by": "devops-permissions-skill"
-}
-```
-
-**Benefits:**
-- Complete history of permission changes
-- Drift detection
-- Reproduction from audit files
-- Context for each permission (why, when, who)
 
 ## Safety Features
 
-### Environment Protection
+### Production Protection
 
-**Test Environment:**
-- Lower risk, faster iteration
-- Auto-approve allowed
-- Permissive error handling
+**Multiple levels of confirmation:**
+- Command level: Checks for prod flag
+- Manager level: Requires explicit confirmation
+- Skill level: Validates environment
+- Handler level: Profile separation enforcement
 
-**Production Environment:**
-- High risk, requires caution
-- Always prompts for approval (ignores `--auto-approve`)
-- Requires explicit "yes" confirmation
-- Shows detailed plan review
+**Production deployments:**
+- Always show full preview
+- Require typed "yes" confirmation
+- Cannot skip with `--auto-approve`
+- Extra validation steps
 
-### IAM Security
+### Permission Management
 
 **AWS Profile Strategy:**
-- `{namespace}-discover-deploy` - IAM management only (temporary use)
-- `{namespace}-test-deploy` - Test deployments (NO IAM permissions)
-- `{namespace}-prod-deploy` - Production deployments (NO IAM permissions)
+- `{project}-discover-deploy`: IAM management only (temporary use)
+- `{project}-test-deploy`: Test deployments (no IAM permissions)
+- `{project}-prod-deploy`: Production deployments (no IAM permissions)
 
 **Principle of Least Privilege:**
 - Add only specific permissions needed
 - Document reason for each permission
-- Track all changes in audit system
+- Track all changes in IAM audit trail
 - Regular permission reviews
 
-### Delegation Pattern
+### Error Handling
 
-Errors are delegated to appropriate specialists:
-- Permission errors → `devops-permissions` skill (auto-fixable)
-- Complex errors → `devops-debugger` skill (analysis and categorization)
-- Configuration errors → User (manual fix required)
+**Automatic Recovery:**
+- Permission errors → Auto-grant via discover profile
+- State errors → Guided resolution
+- Configuration errors → Clear fix instructions
 
-## Auto-Discovery
+**Learning System:**
+- Errors normalized and logged
+- Solutions ranked by success rate
+- Recurring issues solved faster
+- Continuous improvement
 
-When configuration file doesn't exist, the plugin auto-discovers:
+## Testing
 
-**Project Information:**
-- Project name from Git repository
-- Organization from Git remote
-- Namespace from repository structure
+### Pre-Deployment Tests
 
-**Infrastructure:**
-- Cloud provider from installed tools and credentials
-- IaC tool from directory structure
-- Terraform directory location
-- Environment variable files
+Automatic before deployment:
+- Security scans (Checkov, tfsec)
+- Cost estimation with budget validation
+- Terraform syntax validation
+- Naming convention compliance
+- Tagging compliance
+- Configuration best practices
 
-**AWS:**
-- Account ID from credentials
-- Configured profiles
-- Default region
+### Post-Deployment Tests
 
-## Workflow Example
+Automatic after deployment:
+- Resource existence verification
+- Resource configuration validation
+- Security posture checks
+- Integration testing
+- Health checks
+- Monitoring setup verification
 
-Typical deployment workflow:
+### Test Reports
 
-```bash
-# 1. Initialize configuration (first time only)
-/devops:init
-# Auto-discovers project, AWS profiles, Terraform directory
-# Creates .fractary/.config/devops.json
+Location: `.fractary/plugins/devops/test-reports/{env}/`
 
-# 2. Validate setup
-/devops:validate
-# Checks config, AWS credentials, Terraform setup
+Format: JSON with detailed findings, severity levels, recommendations
 
-# 3. Deploy to test
-/devops:deploy test
-# Authenticates with AWS
-# Runs: terraform init → validate → plan
-# Shows plan, prompts for approval
-# Applies changes
+## Documentation
 
-# If deployment fails with permission error:
-# → devops-debugger analyzes errors
-# → Detects permission error (e.g., ecr:DescribeRepositories)
-# → Delegates to devops-permissions
-# → Permission added via audit system
-# → Deployment retries
+### Auto-Generated Documentation
 
-# 4. Check status
-/devops:status test
-# Shows resources deployed, last deployment time
+**Resource Registry:**
+- Machine-readable JSON
+- Complete resource metadata
+- Location: `.fractary/plugins/devops/deployments/{env}/registry.json`
 
-# 5. Deploy to production
-/devops:deploy prod
-# Extra safety checks
-# Requires explicit "yes" confirmation
-```
+**DEPLOYED.md:**
+- Human-readable Markdown
+- Organized by resource type
+- AWS Console links
+- Location: `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
 
-## Error Handling
+**Issue Log:**
+- Historical error database
+- Solution success rates
+- Location: `.fractary/plugins/devops/deployments/issue-log.json`
 
-### Permission Errors
+**IAM Audit Trail:**
+- Complete permission history
+- Timestamps and reasons
+- Location: `.fractary/plugins/devops/deployments/iam-audit.json`
 
-**Automatic Fix:**
-1. Error detected during deployment
-2. `devops-debugger` extracts permission (e.g., `s3:PutBucketPolicy`)
-3. Delegates to `devops-permissions`
-4. Permission added via audit system
-5. Deployment retries
+### User Guides
 
-### Configuration Errors
+- [Getting Started](docs/guides/getting-started.md)
+- [User Guide](docs/guides/user-guide.md)
+- [Troubleshooting](docs/guides/troubleshooting.md)
 
-**Manual Fix Required:**
-1. Error detected and categorized
-2. File location and issue identified
-3. Fix suggestions provided
-4. User manually corrects Terraform files
-5. Re-run deployment
+### Reference Documentation
 
-### Resource Errors
+- [Commands Reference](docs/reference/commands.md)
+- [Agents Reference](docs/reference/agents.md)
+- [Skills Reference](docs/reference/skills.md)
 
-**Resolution Required:**
-1. Conflict detected (e.g., resource already exists)
-2. Options presented:
-   - Import existing resource
-   - Remove existing resource
-   - Rename in Terraform
-3. User resolves manually
-4. Re-run deployment
+### Architecture Documentation
 
-## Supported Versions
+- [Architecture Overview](ARCHITECTURE.md)
+- [Detailed Architecture](docs/specs/fractary-devops-architecture.md)
+- [Implementation Phases](docs/specs/fractary-devops-implementation-phases.md)
 
-**Current (v0.1.0):**
-- AWS provider
-- Terraform IaC tool
-- Configuration system
-- Audit system
-- All commands and agents
+## Performance
 
-**Planned:**
-- v0.2.0: GCP provider, Pulumi IaC tool
-- v0.3.0: Azure provider
-- v0.4.0: CDK, CloudFormation support
+**Standard Operations:**
+- Health check (10 resources): ~20-35 seconds
+- Pre-deployment tests: ~10-25 seconds
+- Post-deployment tests: ~15-40 seconds
+- Deployment (5 resources): ~2-5 minutes
+- Error debugging: ~2-5 seconds
+
+**Optimization:**
+- Minimal context per skill invocation
+- Workflow files loaded on-demand
+- CloudWatch queries optimized
+- Caching for frequently-used data
 
 ## Requirements
 
+**Required:**
 - Claude Code >= 1.0.0
-- One of:
-  - AWS CLI (for AWS provider)
-  - gcloud (for GCP provider)
-  - az (for Azure provider)
-- One of:
-  - Terraform (for Terraform IaC tool)
-  - Pulumi (for Pulumi IaC tool)
-  - AWS CDK (for CDK IaC tool)
+- AWS CLI (for AWS provider)
+- Terraform (for Terraform IaC)
 - jq (for JSON processing)
+
+**Optional (for testing):**
+- Checkov (security scanning)
+- tfsec (Terraform security)
+
+**Planned Support:**
+- GCP (handler-hosting-gcp)
+- Pulumi (handler-iac-pulumi)
 
 ## Installation
 
-### Option 1: Clone Repository
+### Via Git Clone
 
 ```bash
 cd ~/.claude-code/plugins/
-git clone https://github.com/fractary/claude-devops-plugin.git fractary-devops
+git clone https://github.com/fractary/claude-plugins.git
+# Plugin is in: claude-plugins/plugins/fractary-devops/
 ```
 
-### Option 2: Manual Installation
+### Manual Installation
 
-1. Download latest release
+1. Download from GitHub
 2. Extract to `~/.claude-code/plugins/fractary-devops/`
 3. Restart Claude Code or reload plugins
 
-## Usage
+## Version History
 
-See [Commands](#commands) section for detailed usage of each command.
+**1.0.0 (Phase 4 Complete):**
+- Natural language interface (devops-director)
+- Complete documentation suite
+- Error handling improvements
+- Production safety enhancements
+- Performance optimization
 
-Quick reference:
-```bash
-/devops:init              # Setup configuration
-/devops:validate          # Validate setup
-/devops:deploy test       # Deploy to test
-/devops:status test       # Check status
-/devops:permissions list  # List permissions
-```
+**0.3.0 (Phase 3 Complete):**
+- Runtime operations (ops-manager)
+- Health monitoring (ops-monitor)
+- Incident investigation (ops-investigator)
+- Remediation (ops-responder)
+- Cost/security auditing (ops-auditor)
+- CloudWatch integration
+
+**0.2.0 (Phase 2 Complete):**
+- Testing (infra-tester)
+- Debugging with learning (infra-debugger)
+- Issue log system
+- Pre and post-deployment tests
+- Security scanning integration
+- Cost estimation
+
+**0.1.0 (Phase 1 Complete):**
+- Infrastructure management (infra-manager)
+- Design (infra-architect)
+- Code generation (infra-engineer)
+- Validation (infra-validator)
+- Preview (infra-previewer)
+- Deployment (infra-deployer)
+- Permission management (infra-permission-manager)
+- AWS + Terraform support
+
+## Roadmap
+
+**Phase 5: Multi-Provider Expansion:**
+- GCP support (handler-hosting-gcp)
+- Pulumi support (handler-iac-pulumi)
+- Multi-cloud deployments
+
+**Future Phases:**
+- Azure support
+- CDK and CloudFormation support
+- Blue-green deployments
+- Canary deployments
+- CI/CD integration
+- Custom metrics and dashboards
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions welcome! Please see [FRACTARY-PLUGIN-STANDARDS.md](../../FRACTARY-PLUGIN-STANDARDS.md) for development patterns.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+MIT License
 
 ## Support
 
+- Issues: https://github.com/fractary/claude-plugins/issues
 - Documentation: [docs/](docs/)
-- Issues: https://github.com/fractary/claude-devops-plugin/issues
-- Spec: [docs/specs/fractary-devops-plugin-spec.md](docs/specs/fractary-devops-plugin-spec.md)
+- Plugin Standards: [FRACTARY-PLUGIN-STANDARDS.md](../../FRACTARY-PLUGIN-STANDARDS.md)
 
 ## Credits
 
 Created by Fractary for Claude Code.
+
+Part of the Fractary Claude Code Plugins collection.
