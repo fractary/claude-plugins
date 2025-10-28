@@ -1,0 +1,190 @@
+# Infrastructure Design: {{FEATURE_NAME}}
+
+**Created:** {{DATE}}
+**Project:** {{PROJECT_NAME}}-{{SUBSYSTEM}}
+**Environment:** {{ENVIRONMENT}}
+
+---
+
+## Overview
+
+{{OVERVIEW_DESCRIPTION}}
+
+## Requirements
+
+### Functional Requirements
+- {{REQUIREMENT_1}}
+- {{REQUIREMENT_2}}
+- {{REQUIREMENT_3}}
+
+### Non-Functional Requirements
+- **Performance:** {{PERFORMANCE_REQUIREMENTS}}
+- **Security:** {{SECURITY_REQUIREMENTS}}
+- **Scalability:** {{SCALABILITY_REQUIREMENTS}}
+
+## Architecture Diagram
+
+```
+{{ARCHITECTURE_ASCII_DIAGRAM}}
+```
+
+## Resources
+
+### 1. {{RESOURCE_1_TYPE}} - {{RESOURCE_1_NAME}}
+
+**Purpose:** {{RESOURCE_1_PURPOSE}}
+
+**Configuration:**
+- {{RESOURCE_1_CONFIG_1}}
+- {{RESOURCE_1_CONFIG_2}}
+- {{RESOURCE_1_CONFIG_3}}
+
+**Security:**
+- Encryption: {{RESOURCE_1_ENCRYPTION}}
+- Access Control: {{RESOURCE_1_ACCESS}}
+- Monitoring: {{RESOURCE_1_MONITORING}}
+
+**Estimated Cost:** ${{RESOURCE_1_COST}}/month
+
+---
+
+### 2. {{RESOURCE_2_TYPE}} - {{RESOURCE_2_NAME}}
+
+**Purpose:** {{RESOURCE_2_PURPOSE}}
+
+**Configuration:**
+- {{RESOURCE_2_CONFIG_1}}
+- {{RESOURCE_2_CONFIG_2}}
+
+**Security:**
+- Encryption: {{RESOURCE_2_ENCRYPTION}}
+- Access Control: {{RESOURCE_2_ACCESS}}
+
+**Estimated Cost:** ${{RESOURCE_2_COST}}/month
+
+---
+
+## Security Considerations
+
+### Encryption
+- **At Rest:** {{ENCRYPTION_AT_REST_DETAILS}}
+- **In Transit:** {{ENCRYPTION_IN_TRANSIT_DETAILS}}
+
+### Identity & Access Management
+- **Roles:** {{IAM_ROLES_SUMMARY}}
+- **Policies:** {{IAM_POLICIES_SUMMARY}}
+- **Principle:** Least privilege access enforced
+
+### Network Security
+- **VPC:** {{VPC_CONFIGURATION}}
+- **Security Groups:** {{SECURITY_GROUPS}}
+- **Network ACLs:** {{NETWORK_ACLS}}
+
+### Monitoring & Auditing
+- **Logging:** {{LOGGING_STRATEGY}}
+- **Alerts:** {{ALERTING_STRATEGY}}
+- **Audit Trail:** {{AUDIT_TRAIL}}
+
+## Cost Estimate
+
+| Resource | Type | Configuration | Monthly Cost |
+|----------|------|---------------|--------------|
+| {{RESOURCE_1_NAME}} | {{RESOURCE_1_TYPE}} | {{RESOURCE_1_SIZE}} | ${{RESOURCE_1_COST}} |
+| {{RESOURCE_2_NAME}} | {{RESOURCE_2_TYPE}} | {{RESOURCE_2_SIZE}} | ${{RESOURCE_2_COST}} |
+| Data Transfer | Network | {{DATA_TRANSFER_ESTIMATE}} | ${{DATA_TRANSFER_COST}} |
+
+**Total Estimated Monthly Cost:** ${{TOTAL_MONTHLY_COST}}
+
+### Cost Optimization Strategies
+- {{COST_OPTIMIZATION_1}}
+- {{COST_OPTIMIZATION_2}}
+- {{COST_OPTIMIZATION_3}}
+
+## Implementation Plan
+
+### Phase 1: Core Infrastructure
+1. {{IMPLEMENTATION_STEP_1}}
+2. {{IMPLEMENTATION_STEP_2}}
+3. {{IMPLEMENTATION_STEP_3}}
+
+### Phase 2: Security & Monitoring
+1. {{IMPLEMENTATION_STEP_4}}
+2. {{IMPLEMENTATION_STEP_5}}
+
+### Phase 3: Optimization
+1. {{IMPLEMENTATION_STEP_6}}
+2. {{IMPLEMENTATION_STEP_7}}
+
+## Design Decisions
+
+### Decision 1: {{DECISION_1_TITLE}}
+**Choice:** {{DECISION_1_CHOICE}}
+**Rationale:** {{DECISION_1_RATIONALE}}
+**Alternatives Considered:** {{DECISION_1_ALTERNATIVES}}
+
+### Decision 2: {{DECISION_2_TITLE}}
+**Choice:** {{DECISION_2_CHOICE}}
+**Rationale:** {{DECISION_2_RATIONALE}}
+**Alternatives Considered:** {{DECISION_2_ALTERNATIVES}}
+
+## Dependencies
+
+- {{DEPENDENCY_1}}
+- {{DEPENDENCY_2}}
+- {{DEPENDENCY_3}}
+
+## Risks & Mitigation
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| {{RISK_1}} | {{RISK_1_IMPACT}} | {{RISK_1_PROBABILITY}} | {{RISK_1_MITIGATION}} |
+| {{RISK_2}} | {{RISK_2_IMPACT}} | {{RISK_2_PROBABILITY}} | {{RISK_2_MITIGATION}} |
+
+## Future Considerations
+
+### Scalability
+- {{SCALABILITY_CONSIDERATION_1}}
+- {{SCALABILITY_CONSIDERATION_2}}
+
+### Additional Features
+- {{FUTURE_FEATURE_1}}
+- {{FUTURE_FEATURE_2}}
+
+### Optimization Opportunities
+- {{OPTIMIZATION_OPPORTUNITY_1}}
+- {{OPTIMIZATION_OPPORTUNITY_2}}
+
+## Testing Strategy
+
+### Unit Tests
+- {{UNIT_TEST_STRATEGY}}
+
+### Integration Tests
+- {{INTEGRATION_TEST_STRATEGY}}
+
+### Performance Tests
+- {{PERFORMANCE_TEST_STRATEGY}}
+
+## Rollout Plan
+
+1. **Test Environment:** {{TEST_ROLLOUT_PLAN}}
+2. **Validation:** {{VALIDATION_STRATEGY}}
+3. **Production:** {{PROD_ROLLOUT_PLAN}}
+4. **Monitoring:** {{POST_DEPLOYMENT_MONITORING}}
+
+## Success Criteria
+
+- [ ] All resources deployed successfully
+- [ ] Security checklist completed
+- [ ] Performance targets met
+- [ ] Cost within budget
+- [ ] Monitoring and alerts operational
+- [ ] Documentation complete
+
+---
+
+**Next Steps:**
+1. Review and approve this design
+2. Generate Terraform code: `/fractary-devops:infra-manage engineer --design={{FEATURE_SLUG}}.md`
+3. Validate configuration: `/fractary-devops:infra-manage validate --env=test`
+4. Deploy to test: `/fractary-devops:infra-manage deploy --env=test`
