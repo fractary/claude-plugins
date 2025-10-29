@@ -1,0 +1,7 @@
+{
+  "name": "fractary-work",
+  "version": "1.0.0",
+  "description": "Work item management across GitHub, Jira, Linear, etc.",
+  "agents": "agents/",
+  "skills": "skills/"
+}
