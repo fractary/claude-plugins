@@ -37,6 +37,45 @@
           "./agents/tutorial-engineer.md",
           "./agents/code-reviewer.md"
         ]
-      }      
+      },
+      {
+        "name": "fractary-repo",
+        "source": "./plugins/repo",
+        "description": "Universal source control operations across GitHub, GitLab, and Bitbucket with modular handler architecture",
+        "version": "2.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/repo",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/repo",
+        "license": "MIT",
+        "keywords": [
+          "git",
+          "github",
+          "gitlab",
+          "bitbucket",
+          "source-control",
+          "repository",
+          "version-control",
+          "branches",
+          "commits",
+          "pull-requests",
+          "tags"
+        ],
+        "category": "development",
+        "strict": false,
+        "commands": [
+          "./commands/branch.md",
+          "./commands/commit.md",
+          "./commands/push.md",
+          "./commands/pr.md",
+          "./commands/tag.md",
+          "./commands/cleanup.md"
+        ],
+        "agents": [
+          "./agents/repo-manager.md"
+        ]
+      }
     ]
   }
