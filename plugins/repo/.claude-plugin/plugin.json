@@ -2,6 +2,6 @@
   "name": "fractary-repo",
   "version": "1.0.0",
   "description": "Source control operations across GitHub, GitLab, Bitbucket, etc.",
-  "agents": "agents/",
-  "skills": "skills/"
+  "agents": "./agents/repo-manager.md",
+  "skills": "./skills/"
 }
