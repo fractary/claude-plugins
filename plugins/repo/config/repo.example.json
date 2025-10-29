@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "Fractary Repo Plugin Configuration",
+  "version": "2.0.0",
+
+  "handlers": {
+    "source_control": {
+      "active": "github",
+      "$comment": "Active source control platform: github|gitlab|bitbucket",
+
+      "github": {
+        "token": "$GITHUB_TOKEN",
+        "$comment": "GitHub token from environment variable. Generate at: https://github.com/settings/tokens",
+        "api_url": "https://api.github.com",
+        "$comment_api": "Override for GitHub Enterprise installations"
+      },
+
+      "gitlab": {
+        "token": "$GITLAB_TOKEN",
+        "$comment": "GitLab token from environment variable. Generate at: https://gitlab.com/-/profile/personal_access_tokens",
+        "api_url": "https://gitlab.com/api/v4",
+        "$comment_api": "Override for self-hosted GitLab installations"
+      },
+
+      "bitbucket": {
+        "username": "$BITBUCKET_USERNAME",
+        "token": "$BITBUCKET_TOKEN",
+        "$comment": "Bitbucket app password. Generate at: https://bitbucket.org/account/settings/app-passwords/",
+        "workspace": "your-workspace-slug",
+        "$comment_workspace": "Your Bitbucket workspace identifier",
+        "api_url": "https://api.bitbucket.org/2.0"
+      }
+    }
+  },
+
+  "defaults": {
+    "default_branch": "main",
+    "$comment_default_branch": "Default base branch for new feature branches",
+
+    "protected_branches": [
+      "main",
+      "master",
+      "production",
+      "staging"
+    ],
+    "$comment_protected": "Branches that require extra protection (no force push, merge warnings)",
+
+    "branch_naming": {
+      "pattern": "{prefix}/{issue_id}-{slug}",
+      "$comment_pattern": "Branch naming pattern. Variables: {prefix}, {issue_id}, {slug}",
+      "allowed_prefixes": [
+        "feat",
+        "fix",
+        "chore",
+        "hotfix",
+        "docs",
+        "test",
+        "refactor",
+        "style",
+        "perf"
+      ],
+      "$comment_prefixes": "Valid branch prefixes (semantic types)"
+    },
+
+    "commit_format": "faber",
+    "$comment_format": "Commit message format: conventional|faber. FABER includes additional metadata.",
+
+    "require_signed_commits": false,
+    "$comment_signed": "Require GPG-signed commits. Set to true for compliance.",
+
+    "merge_strategy": "no-ff",
+    "$comment_strategy": "Default merge strategy: no-ff|squash|ff-only",
+
+    "auto_delete_merged_branches": false,
+    "$comment_auto_delete": "Automatically delete branches after successful merge",
+
+    "remote": {
+      "name": "origin",
+      "$comment_name": "Default remote name",
+      "auto_set_upstream": true,
+      "$comment_upstream": "Automatically set upstream when pushing new branches"
+    },
+
+    "pr": {
+      "template": "standard",
+      "$comment_template": "PR body template: standard|minimal|detailed",
+      "require_work_id": true,
+      "$comment_work_id": "Require work item reference in PRs",
+      "auto_link_issues": true,
+      "$comment_auto_link": "Automatically add 'closes #issue' references"
+    },
+
+    "cleanup": {
+      "inactive_threshold_days": 30,
+      "$comment_inactive": "Days of inactivity before branch is considered stale",
+      "auto_cleanup_merged": false,
+      "$comment_auto_cleanup": "Automatically clean up merged branches",
+      "exclude_patterns": [
+        "release/*",
+        "hotfix/*"
+      ],
+      "$comment_exclude": "Branch patterns to exclude from cleanup"
+    },
+
+    "tags": {
+      "require_signed_tags": false,
+      "$comment_signed_tags": "Require GPG-signed tags for releases",
+      "auto_push_tags": false,
+      "$comment_auto_push": "Automatically push tags after creation"
+    }
+  },
+
+  "faber_integration": {
+    "enabled": true,
+    "$comment_enabled": "Enable FABER workflow integration",
+
+    "branch_creation": {
+      "auto_create": true,
+      "$comment_auto": "Automatically create branches during Frame phase",
+      "use_work_id": true,
+      "$comment_work_id": "Include work item ID in branch name"
+    },
+
+    "commit_metadata": {
+      "include_author_context": true,
+      "$comment_author": "Include author context (architect|implementor|tester|reviewer)",
+      "include_phase": true,
+      "$comment_phase": "Include FABER phase in commit metadata",
+      "include_work_id": true
+    },
+
+    "pr_creation": {
+      "auto_create": true,
+      "$comment_pr_auto": "Automatically create PR during Release phase",
+      "include_metadata": true,
+      "$comment_metadata": "Include FABER metadata in PR body",
+      "draft_until_approved": false,
+      "$comment_draft": "Create PRs as drafts until workflow approval"
+    }
+  },
+
+  "platform_specific": {
+    "$comment": "Platform-specific overrides (optional)",
+
+    "github": {
+      "use_gh_cli": true,
+      "$comment_gh": "Use gh CLI for GitHub operations (recommended)",
+      "pr_checks": {
+        "require_ci_pass": true,
+        "$comment_ci": "Require CI checks to pass before merge",
+        "require_reviews": 1,
+        "$comment_reviews": "Minimum number of approving reviews (0 to disable)"
+      }
+    },
+
+    "gitlab": {
+      "use_glab_cli": true,
+      "$comment_glab": "Use glab CLI for GitLab operations (recommended)",
+      "mr_checks": {
+        "require_ci_pass": true,
+        "require_approvals": 1
+      }
+    },
+
+    "bitbucket": {
+      "use_bb_cli": false,
+      "$comment_bb": "Use Bitbucket CLI if available (optional)",
+      "pr_checks": {
+        "require_builds_pass": true,
+        "require_approvals": 1
+      }
+    }
+  }
+}
