@@ -1,0 +1,224 @@
+{
+  "_comment": "Work Plugin v2.0 Configuration Template",
+  "_instructions": "Copy this file to .faber/plugins/work/config.json and customize for your project",
+
+  "version": "2.0",
+
+  "project": {
+    "issue_system": "github",
+    "repository": "owner/repo",
+    "_comment_issue_system": "Primary work tracking system: github, jira, or linear",
+    "_comment_repository": "Repository identifier (format depends on platform)"
+  },
+
+  "handlers": {
+    "work-tracker": {
+      "active": "github",
+      "_comment_active": "Active handler: github, jira, or linear",
+
+      "github": {
+        "owner": "myorg",
+        "repo": "my-project",
+        "api_url": "https://api.github.com",
+        "_comment_owner": "GitHub organization or username",
+        "_comment_repo": "Repository name",
+        "_comment_api_url": "GitHub API endpoint (change for GitHub Enterprise)",
+
+        "classification": {
+          "feature": ["feature", "enhancement", "story", "user-story"],
+          "bug": ["bug", "fix", "defect", "error"],
+          "chore": ["chore", "maintenance", "docs", "documentation", "test", "refactor"],
+          "patch": ["hotfix", "patch", "urgent", "critical", "security"],
+          "_comment": "Map GitHub labels to FABER work types (/feature, /bug, /chore, /patch)"
+        },
+
+        "states": {
+          "open": "OPEN",
+          "in_progress": "OPEN",
+          "in_review": "OPEN",
+          "done": "CLOSED",
+          "closed": "CLOSED",
+          "_comment": "GitHub only has OPEN/CLOSED. Use labels for intermediate states."
+        },
+
+        "labels": {
+          "prefix": "faber-",
+          "in_progress": "in-progress",
+          "in_review": "in-review",
+          "completed": "completed",
+          "error": "faber-error",
+          "_comment_prefix": "Prefix for all FABER-managed labels",
+          "_comment": "FABER applies these labels during workflow phases"
+        },
+
+        "environment": {
+          "_token_variable": "GITHUB_TOKEN",
+          "_token_docs": "Set in environment: export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx",
+          "_cli_docs": "Install GitHub CLI: https://cli.github.com",
+          "_auth_command": "gh auth login"
+        }
+      },
+
+      "jira": {
+        "url": "https://mycompany.atlassian.net",
+        "project_key": "PROJ",
+        "email": "user@example.com",
+        "_comment_url": "Jira instance URL",
+        "_comment_project_key": "Jira project key (e.g., PROJ for PROJ-123)",
+        "_comment_email": "Email for Jira authentication",
+
+        "issue_types": {
+          "feature": "Story",
+          "bug": "Bug",
+          "chore": "Task",
+          "patch": "Bug",
+          "_comment": "Map FABER work types to Jira issue types"
+        },
+
+        "classification": {
+          "feature": ["story", "feature", "enhancement"],
+          "bug": ["bug", "defect"],
+          "chore": ["task", "improvement", "maintenance"],
+          "patch": ["hotfix", "urgent"],
+          "_comment": "Map Jira issue types/labels to FABER work types"
+        },
+
+        "states": {
+          "open": "To Do",
+          "in_progress": "In Progress",
+          "in_review": "In Review",
+          "done": "Done",
+          "closed": "Closed",
+          "_comment": "Map FABER universal states to Jira workflow states"
+        },
+
+        "transitions": {
+          "to_progress": "Start Progress",
+          "to_review": "Submit for Review",
+          "to_done": "Done",
+          "to_closed": "Close Issue",
+          "_comment": "Jira transition names for state changes"
+        },
+
+        "custom_fields": {
+          "work_id": "customfield_10100",
+          "_comment_work_id": "Custom field ID for storing FABER work_id",
+          "_comment": "Find field IDs via Jira API or admin settings"
+        },
+
+        "environment": {
+          "_token_variable": "JIRA_TOKEN",
+          "_email_variable": "JIRA_EMAIL",
+          "_token_docs": "Set in environment: export JIRA_TOKEN=your_jira_api_token",
+          "_email_docs": "Set in environment: export JIRA_EMAIL=user@example.com",
+          "_api_docs": "Generate API token: https://id.atlassian.com/manage-profile/security/api-tokens"
+        }
+      },
+
+      "linear": {
+        "workspace_id": "workspace-uuid",
+        "team_id": "team-uuid",
+        "team_key": "TEAM",
+        "_comment_workspace_id": "Linear workspace UUID",
+        "_comment_team_id": "Linear team UUID (primary team for issues)",
+        "_comment_team_key": "Team key prefix (e.g., TEAM for TEAM-123)",
+
+        "classification": {
+          "feature": ["feature", "enhancement"],
+          "bug": ["bug"],
+          "chore": ["improvement", "maintenance"],
+          "patch": ["urgent", "hotfix"],
+          "_comment": "Map Linear labels to FABER work types"
+        },
+
+        "states": {
+          "open": "Todo",
+          "in_progress": "In Progress",
+          "in_review": "In Review",
+          "done": "Done",
+          "closed": "Canceled",
+          "_comment": "Map FABER universal states to Linear workflow states"
+        },
+
+        "priority_mapping": {
+          "urgent": 1,
+          "high": 2,
+          "normal": 3,
+          "low": 4,
+          "none": 0,
+          "_comment": "Linear priority values (1=urgent, 4=low, 0=none)"
+        },
+
+        "custom_fields": {
+          "work_id_label": "faber-",
+          "_comment": "Prefix for FABER-managed labels storing work_id"
+        },
+
+        "environment": {
+          "_token_variable": "LINEAR_API_KEY",
+          "_token_docs": "Set in environment: export LINEAR_API_KEY=lin_api_xxxxxxxxxxxxxxxxxxxxx",
+          "_api_docs": "Generate API key: https://linear.app/settings/api"
+        }
+      }
+    }
+  },
+
+  "defaults": {
+    "auto_assign": false,
+    "auto_label": true,
+    "close_on_merge": true,
+    "comment_on_state_change": true,
+    "link_pr_to_issue": true,
+    "_comment_auto_assign": "Automatically assign issue to workflow executor",
+    "_comment_auto_label": "Automatically apply FABER labels during workflow",
+    "_comment_close_on_merge": "Automatically close issue when PR merges",
+    "_comment_comment_on_state_change": "Post comment when issue state changes",
+    "_comment_link_pr_to_issue": "Reference issue number in PR description"
+  },
+
+  "advanced": {
+    "retry": {
+      "enabled": true,
+      "max_attempts": 3,
+      "backoff_seconds": 5,
+      "_comment": "Retry failed API operations with exponential backoff"
+    },
+
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 60,
+      "_comment": "Rate limiting for API requests (platform-dependent)"
+    },
+
+    "caching": {
+      "enabled": false,
+      "ttl_seconds": 300,
+      "_comment": "Cache issue data to reduce API calls (experimental)"
+    }
+  },
+
+  "_setup_instructions": {
+    "step_1": "Copy this file to .faber/plugins/work/config.json",
+    "step_2": "Set 'handlers.work-tracker.active' to your platform (github, jira, linear)",
+    "step_3": "Configure platform-specific settings under handlers.work-tracker.{platform}",
+    "step_4": "Set environment variables for authentication (see environment sections)",
+    "step_5": "Test configuration: plugins/work/skills/work-common/scripts/config-loader.sh",
+    "step_6": "Test connection: Create test issue or fetch existing issue"
+  },
+
+  "_environment_variables": {
+    "github": "GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxx",
+    "jira": "JIRA_TOKEN=your_api_token and JIRA_EMAIL=user@example.com",
+    "linear": "LINEAR_API_KEY=lin_api_xxxxxxxxxxxxxxxxxxxxx",
+    "note": "Set these in your shell profile (~/.bashrc, ~/.zshrc) or CI/CD secrets"
+  },
+
+  "_migration_from_v1": {
+    "note": "If migrating from work plugin v1.x, major changes:",
+    "change_1": "JSON protocol instead of string-based (work-manager now uses JSON)",
+    "change_2": "Close operation actually works (v1.x only posted comment)",
+    "change_3": "Focused skills replace monolithic handler",
+    "change_4": "Handler abstraction supports multiple platforms",
+    "migration_guide": "See docs/specs/work-plugin-v2-next-steps.md"
+  }
+}

@@ -198,6 +198,65 @@ issue_json=$(./scripts/fetch-issue.sh 123)
 ```bash
 ./scripts/search-issues.sh "login crash" 20
 ```
+
+## Relationship Operations
+
+### link-issues
+**Script:** `scripts/link-issues.sh <issue_id> <related_issue_id> <relationship_type>`
+**Purpose:** Create relationship between two issues
+**Returns:** Link confirmation JSON
+**Exit Codes:** 0=success, 2=invalid args, 3=validation error (self-reference, invalid type), 10=not found, 11=auth error
+**Implementation:** Uses comment references (#123) as GitHub doesn't have native linking API
+**Example:**
+```bash
+./scripts/link-issues.sh 123 456 "blocks"
+# Creates comments:
+#   On #123: "Blocks #456"
+#   On #456: "Blocked by #123"
+```
+
+**Supported Relationship Types:**
+- `relates_to` - General relationship (comment on source)
+- `blocks` - Source blocks target (comments on both)
+- `blocked_by` - Source blocked by target (comments on both)
+- `duplicates` - Source duplicates target (comment on source)
+
+## Milestone Operations
+
+### create-milestone
+**Script:** `scripts/create-milestone.sh <title> [description] [due_date]`
+**Purpose:** Create new milestone in repository
+**Returns:** Milestone JSON with id, title, due_date, url
+**Exit Codes:** 0=success, 2=invalid args, 11=auth error
+**Implementation:** Uses GitHub API (gh api repos/:owner/:repo/milestones)
+**Example:**
+```bash
+./scripts/create-milestone.sh "v2.0 Release" "Major release" "2025-03-01"
+```
+
+### update-milestone
+**Script:** `scripts/update-milestone.sh <milestone_id> [title] [description] [due_date] [state]`
+**Purpose:** Update milestone properties (title, description, due date, state)
+**Returns:** Updated milestone JSON
+**Exit Codes:** 0=success, 2=invalid args, 10=not found, 11=auth error
+**Implementation:** Uses GitHub API PATCH request
+**Example:**
+```bash
+./scripts/update-milestone.sh 5 "" "" "2025-04-01" "closed"
+```
+
+### assign-milestone
+**Script:** `scripts/assign-milestone.sh <issue_id> <milestone_id>`
+**Purpose:** Assign issue to milestone (or remove with "none")
+**Returns:** Issue JSON with milestone assignment
+**Exit Codes:** 0=success, 2=invalid args, 10=not found (issue or milestone)
+**Implementation:** Uses gh issue edit --milestone
+**Example:**
+```bash
+./scripts/assign-milestone.sh 123 5
+./scripts/assign-milestone.sh 123 none  # Remove milestone
+```
+
 </SUPPORTED_OPERATIONS>
 
 <GITHUB_SPECIFICS>

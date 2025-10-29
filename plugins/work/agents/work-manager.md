@@ -29,7 +29,7 @@ You receive JSON requests with:
 ### Request Format
 ```json
 {
-  "operation": "fetch|classify|comment|label|close|reopen|update-state|create|update|search|list|assign|unassign",
+  "operation": "fetch|classify|comment|label|close|reopen|update-state|create|update|search|list|assign|unassign|link|create-milestone|update-milestone|assign-milestone",
   "parameters": {
     "issue_id": "123",
     "...": "other parameters"
@@ -269,6 +269,90 @@ Route operations to focused skills based on operation type:
 {
   "operation": "unassign",
   "parameters": {"issue_id": "123", "assignee_username": "johndoe"}
+}
+```
+
+## Relationship Operations
+
+### link → issue-linker skill
+**Operation:** Create relationship between issues for dependency tracking
+**Parameters:**
+- `issue_id` (required): Source issue identifier
+- `related_issue_id` (required): Target issue identifier
+- `relationship_type` (optional): Type of relationship (default: "relates_to")
+  - `relates_to` - General relationship (bidirectional)
+  - `blocks` - Source blocks target (directional)
+  - `blocked_by` - Source blocked by target (directional)
+  - `duplicates` - Source duplicates target (directional)
+**Returns:** Link confirmation with relationship details
+**Example:**
+```json
+{
+  "operation": "link",
+  "parameters": {
+    "issue_id": "123",
+    "related_issue_id": "456",
+    "relationship_type": "blocks"
+  }
+}
+```
+
+## Milestone Operations
+
+### create-milestone → milestone-manager skill
+**Operation:** Create new milestone/version/sprint
+**Parameters:**
+- `title` (required): Milestone name
+- `description` (optional): Milestone description
+- `due_date` (optional): Due date in YYYY-MM-DD format
+**Returns:** Created milestone JSON with id and url
+**Example:**
+```json
+{
+  "operation": "create-milestone",
+  "parameters": {
+    "title": "v2.0 Release",
+    "description": "Second major release",
+    "due_date": "2025-03-01"
+  }
+}
+```
+
+### update-milestone → milestone-manager skill
+**Operation:** Update milestone properties
+**Parameters:**
+- `milestone_id` (required): Milestone identifier
+- `title` (optional): New title
+- `description` (optional): New description
+- `due_date` (optional): New due date (YYYY-MM-DD)
+- `state` (optional): "open" or "closed"
+**Returns:** Updated milestone JSON
+**Example:**
+```json
+{
+  "operation": "update-milestone",
+  "parameters": {
+    "milestone_id": "5",
+    "due_date": "2025-04-01",
+    "state": "closed"
+  }
+}
+```
+
+### assign-milestone → milestone-manager skill
+**Operation:** Assign issue to milestone
+**Parameters:**
+- `issue_id` (required): Issue identifier
+- `milestone_id` (required): Milestone identifier (or "none" to remove)
+**Returns:** Issue JSON with milestone assignment
+**Example:**
+```json
+{
+  "operation": "assign-milestone",
+  "parameters": {
+    "issue_id": "123",
+    "milestone_id": "5"
+  }
 }
 ```
 
