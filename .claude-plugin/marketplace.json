@@ -6,22 +6,22 @@
       "url": "https://github.com/fractary"
     },
     "metadata": {
-      "description": "Production-ready workflow orchestration with claude code agents, commands, skills and hooks.",
-      "version": "1.0.0", 
+      "description": "Production-ready workflow orchestration and platform integrations with Claude Code agents, commands, skills and hooks.",
+      "version": "2.0.0",
       "pluginRoot": "./plugins"
     },
     "plugins": [
       {
         "name": "fractary-codex",
         "source": "./plugins/codex",
-        "description": "Project documentation and org wide syncronization to and from organization central codex",
+        "description": "Project documentation and org-wide synchronization to and from organization central codex",
         "version": "1.0.0",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
         },
-        "homepage": "https://github.com/fractary/claude-agents/plugins/codex",
-        "repository": "https://github.com/fractary/claude-agents/plugins/codex",
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/codex",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/codex",
         "license": "MIT",
         "keywords": [
           "documentation"
@@ -75,6 +75,38 @@
         ],
         "agents": [
           "./agents/repo-manager.md"
+        ]
+      },
+      {
+        "name": "fractary-work",
+        "source": "./plugins/work",
+        "description": "Universal work item management across GitHub Issues, Jira Cloud, and Linear with 100% feature parity and handler-based architecture",
+        "version": "2.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/work",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/work",
+        "license": "MIT",
+        "keywords": [
+          "issues",
+          "work-tracking",
+          "project-management",
+          "github-issues",
+          "jira",
+          "linear",
+          "tickets",
+          "tasks",
+          "bug-tracking",
+          "agile",
+          "workflow",
+          "issue-management"
+        ],
+        "category": "development",
+        "strict": false,
+        "agents": [
+          "./agents/work-manager.md"
         ]
       }
     ]
