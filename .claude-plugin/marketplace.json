@@ -1,5 +1,5 @@
 {
-    "name": "fractary-claude-agents",
+    "name": "fractary-claude-plugins",
     "owner": {
       "name": "The Fractary",
       "email": "admin@fractary.com",
@@ -12,16 +12,16 @@
     },
     "plugins": [
       {
-        "name": "codex-management",
-        "source": "./plugins/codex-management",
+        "name": "fractary-codex",
+        "source": "./plugins/codex",
         "description": "Project documentation and org wide syncronization to and from organization central codex",
         "version": "1.0.0",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
         },
-        "homepage": "https://github.com/fractary/claude-agents",
-        "repository": "https://github.com/fractary/claude-agents",
+        "homepage": "https://github.com/fractary/claude-agents/plugins/codex",
+        "repository": "https://github.com/fractary/claude-agents/plugins/codex",
         "license": "MIT",
         "keywords": [
           "documentation"
