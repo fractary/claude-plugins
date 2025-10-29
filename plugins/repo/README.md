@@ -47,50 +47,64 @@ The plugin uses a **3-layer architecture** with handler pattern:
 ```bash
 # Install plugin
 claude plugin install fractary/repo
-
-# Copy example configuration
-cp plugins/repo/config/repo.example.json ~/.fractary/repo/config.json
-
-# Edit configuration
-# Set your platform and credentials
 ```
 
 ## Quick Start
 
-### Setup
+### Option 1: Setup Wizard (Recommended) ⚡
 
-1. **Choose authentication method**:
-   - **SSH** (recommended): Use SSH keys for git operations + token for API operations
-   - **HTTPS + Token**: Use token for both git and API operations
+The fastest way to get started:
 
-   See [GitHub Setup Guide](docs/setup/github-setup.md) for detailed instructions.
+```bash
+/repo:init
+```
 
-2. **Set GitHub token** (required for API operations):
+The interactive wizard will:
+- ✅ Auto-detect your platform (GitHub/GitLab/Bitbucket)
+- ✅ Guide you through authentication setup (SSH or HTTPS+token)
+- ✅ Validate your credentials
+- ✅ Create the configuration file
+- ✅ Test connectivity
+
+**Time to setup**: ~2 minutes
+
+See [`/repo:init` documentation](commands/init.md) for all options.
+
+### Option 2: Manual Configuration
+
+If you prefer manual setup:
+
+1. **Set GitHub token** (required for API operations):
 
 ```bash
 export GITHUB_TOKEN="your_github_token_here"
 ```
 
-**Note**: If using SSH for git operations, the token is only needed for GitHub API operations (creating PRs, issues, etc.). Git push/pull will use your SSH keys automatically.
+2. **Create configuration file**:
 
-3. **Configure the plugin**:
-
-```json
+```bash
+mkdir -p ~/.fractary/repo
+cat > ~/.fractary/repo/config.json <<EOF
 {
   "handlers": {
     "source_control": {
       "active": "github",
       "github": {
-        "token": "$GITHUB_TOKEN"  // For API operations (gh CLI)
+        "token": "$GITHUB_TOKEN"
       }
     }
   }
 }
+EOF
 ```
 
-Or use the setup wizard: `/repo:init` (coming soon)
+3. **Choose authentication method**:
+   - **SSH** (recommended): Use SSH keys for git operations + token for API operations
+   - **HTTPS + Token**: Use token for both git and API operations
 
-4. **Start using commands**:
+   See [GitHub Setup Guide](docs/setup/github-setup.md) for detailed instructions.
+
+### Start Using Commands
 
 ```bash
 # Create a feature branch
