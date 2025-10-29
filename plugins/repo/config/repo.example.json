@@ -11,6 +11,8 @@
       "github": {
         "token": "$GITHUB_TOKEN",
         "$comment": "GitHub token from environment variable. Generate at: https://github.com/settings/tokens",
+        "$comment_auth": "Token is required for API operations (gh CLI). For git operations, you can use either HTTPS+token or SSH keys.",
+        "$comment_ssh": "If using SSH: Token still required for API ops. Git push/pull will use SSH keys automatically from ~/.ssh/",
         "api_url": "https://api.github.com",
         "$comment_api": "Override for GitHub Enterprise installations"
       },

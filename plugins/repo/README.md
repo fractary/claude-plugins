@@ -59,7 +59,21 @@ cp plugins/repo/config/repo.example.json ~/.fractary/repo/config.json
 
 ### Setup
 
-1. **Configure your platform**:
+1. **Choose authentication method**:
+   - **SSH** (recommended): Use SSH keys for git operations + token for API operations
+   - **HTTPS + Token**: Use token for both git and API operations
+
+   See [GitHub Setup Guide](docs/setup/github-setup.md) for detailed instructions.
+
+2. **Set GitHub token** (required for API operations):
+
+```bash
+export GITHUB_TOKEN="your_github_token_here"
+```
+
+**Note**: If using SSH for git operations, the token is only needed for GitHub API operations (creating PRs, issues, etc.). Git push/pull will use your SSH keys automatically.
+
+3. **Configure the plugin**:
 
 ```json
 {
@@ -67,20 +81,16 @@ cp plugins/repo/config/repo.example.json ~/.fractary/repo/config.json
     "source_control": {
       "active": "github",
       "github": {
-        "token": "$GITHUB_TOKEN"
+        "token": "$GITHUB_TOKEN"  // For API operations (gh CLI)
       }
     }
   }
 }
 ```
 
-2. **Set environment variables**:
+Or use the setup wizard: `/repo:init` (coming soon)
 
-```bash
-export GITHUB_TOKEN="your_github_token_here"
-```
-
-3. **Start using commands**:
+4. **Start using commands**:
 
 ```bash
 # Create a feature branch

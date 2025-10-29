@@ -59,7 +59,141 @@ gh repo view
 
 ## Configuration
 
-### 1. Create GitHub Personal Access Token
+### Authentication Methods Overview
+
+The Fractary Repo Plugin supports two authentication methods for GitHub:
+
+| Method | Use Case | Git Operations | API Operations (gh CLI) | Security |
+|--------|----------|----------------|-------------------------|----------|
+| **SSH Keys** | Recommended for daily development | ✅ Yes | ❌ No (requires token) | 🔒 Most secure (key-based) |
+| **HTTPS + Token** | Simplest setup, CI/CD | ✅ Yes | ✅ Yes | 🔐 Secure (token-based) |
+
+**Recommendation**: Use **SSH for git operations** (clone, push, pull) and **token for API operations** (creating PRs, managing issues). This provides the best security and user experience.
+
+### Option A: SSH Authentication (Recommended)
+
+SSH keys provide secure, password-less authentication for git operations.
+
+#### 1. Generate SSH Key (if you don't have one)
+
+```bash
+# Generate new SSH key
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# When prompted for file location, press Enter to accept default
+# Set a secure passphrase when prompted (or press Enter for no passphrase)
+```
+
+For older systems that don't support Ed25519:
+```bash
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+
+#### 2. Add SSH Key to SSH Agent
+
+```bash
+# Start ssh-agent
+eval "$(ssh-agent -s)"
+
+# Add your SSH private key
+ssh-add ~/.ssh/id_ed25519  # or ~/.ssh/id_rsa if you used RSA
+```
+
+**macOS users**: Add to `~/.ssh/config` for automatic key loading:
+```
+Host github.com
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+#### 3. Add SSH Public Key to GitHub
+
+```bash
+# Copy your public key to clipboard
+# macOS:
+pbcopy < ~/.ssh/id_ed25519.pub
+
+# Linux:
+cat ~/.ssh/id_ed25519.pub | xclip -selection clipboard
+
+# Windows (Git Bash):
+cat ~/.ssh/id_ed25519.pub | clip
+```
+
+Then:
+1. Go to GitHub Settings → SSH and GPG keys: https://github.com/settings/keys
+2. Click "New SSH key"
+3. Title: "My Development Machine" (or descriptive name)
+4. Paste your public key
+5. Click "Add SSH key"
+
+#### 4. Test SSH Connection
+
+```bash
+ssh -T git@github.com
+```
+
+You should see:
+```
+Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+#### 5. Configure Git to Use SSH
+
+For new repositories:
+```bash
+# Clone with SSH
+git clone git@github.com:owner/repo.git
+```
+
+For existing repositories using HTTPS:
+```bash
+# Switch remote to SSH
+git remote set-url origin git@github.com:owner/repo.git
+
+# Verify
+git remote -v
+```
+
+#### 6. GitHub Token for API Operations
+
+Even with SSH, you still need a Personal Access Token for API operations (creating PRs, issues, etc.):
+
+```bash
+# Create token (see Option B below for detailed steps)
+export GITHUB_TOKEN="ghp_your_token_here"
+```
+
+Add to your shell profile (`~/.bashrc` or `~/.zshrc`):
+```bash
+export GITHUB_TOKEN="ghp_your_token_here"
+```
+
+#### 7. Configure Plugin for SSH
+
+When using SSH, your plugin configuration is minimal:
+
+```json
+{
+  "handlers": {
+    "source_control": {
+      "active": "github",
+      "github": {
+        "token": "$GITHUB_TOKEN"  // Only for API operations
+      }
+    }
+  }
+}
+```
+
+**Note**: Git operations (push, pull, clone) will use SSH keys automatically. The token is only needed for `gh` CLI API operations (creating PRs, managing issues).
+
+### Option B: HTTPS with Personal Access Token
+
+HTTPS authentication uses a Personal Access Token for both git and API operations.
+
+#### 1. Create GitHub Personal Access Token
 
 1. Go to GitHub Settings: https://github.com/settings/tokens
 2. Click "Generate new token" → "Generate new token (classic)"
@@ -323,6 +457,67 @@ git config --global http.proxy http://proxy:port
 
 # 3. Test GitHub API
 curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
+```
+
+### SSH Authentication Issues
+
+**Problem**: "Permission denied (publickey)"
+
+**Solutions**:
+```bash
+# 1. Test SSH connection
+ssh -T git@github.com
+
+# 2. Check if ssh-agent is running and has your key
+ssh-add -l
+
+# 3. Add your SSH key to agent
+ssh-add ~/.ssh/id_ed25519  # or ~/.ssh/id_rsa
+
+# 4. Verify key is added to GitHub
+# Go to https://github.com/settings/keys
+
+# 5. Check SSH config
+cat ~/.ssh/config
+
+# 6. Use verbose mode to debug
+ssh -vT git@github.com
+```
+
+**Problem**: "Could not open a connection to your authentication agent"
+
+**Solutions**:
+```bash
+# Start ssh-agent
+eval "$(ssh-agent -s)"
+
+# Then add your key
+ssh-add ~/.ssh/id_ed25519
+```
+
+**Problem**: "Host key verification failed"
+
+**Solutions**:
+```bash
+# Accept GitHub's host key
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+# Or remove old host key and reconnect
+ssh-keygen -R github.com
+ssh -T git@github.com  # Accept new key when prompted
+```
+
+**Problem**: "Git operations work but API operations fail"
+
+**Solution**:
+This is expected when using SSH for git operations. API operations require a Personal Access Token:
+```bash
+# Set GitHub token for API operations
+export GITHUB_TOKEN="ghp_your_token_here"
+
+# Test API access
+gh auth status
+gh api user
 ```
 
 ## Best Practices
