@@ -27,7 +27,7 @@
           "documentation"
         ],
         "category": "documentation",
-        "strict": false,
+        "strict": true,
         "commands": [
           "./commands/doc-generate.md",
           "./commands/code-explain.md"
@@ -64,7 +64,7 @@
           "tags"
         ],
         "category": "development",
-        "strict": false,
+        "strict": true,
         "commands": [
           "./commands/branch.md",
           "./commands/commit.md",
@@ -104,7 +104,7 @@
           "issue-management"
         ],
         "category": "development",
-        "strict": false,
+        "strict": true,
         "agents": [
           "./agents/work-manager.md"
         ]
