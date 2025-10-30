@@ -1,5 +1,5 @@
-# DevOps Configuration (contains secrets and profiles)
-.fractary/plugins/devops/config/
+# Faber Cloud Configuration (contains secrets and profiles)
+.fractary/plugins/faber-cloud/config/
 
 # Terraform State Files
 *.tfstate
@@ -60,7 +60,7 @@ __pycache__/
 *.pyo
 
 # Large Log Files (stored in S3)
-.fractary/plugins/devops/deployments/logs/*.json
+.fractary/plugins/faber-cloud/deployments/logs/*.json
 
 # Backup Files
 *.bak

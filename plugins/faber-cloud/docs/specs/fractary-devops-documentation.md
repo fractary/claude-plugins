@@ -13,7 +13,7 @@
 
 ## Resource Registry
 
-**Location:** `.fractary/plugins/devops/deployments/{env}/registry.json`
+**Location:** `.fractary/plugins/faber-cloud/deployments/{env}/registry.json`
 
 **Purpose:** Machine-readable record of all deployed resources
 
@@ -40,7 +40,7 @@
 
 ## Deployment Documentation
 
-**Location:** `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
+**Location:** `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
 
 **Purpose:** Human-readable resource list with console links
 
@@ -60,7 +60,7 @@ Last Updated: 2025-10-28 14:31:00 UTC
 
 ## Issue Log
 
-**Location:** `.fractary/plugins/devops/deployments/issue-log.json`
+**Location:** `.fractary/plugins/faber-cloud/deployments/issue-log.json`
 
 **Purpose:** Historical record of errors and solutions
 
@@ -84,7 +84,7 @@ Last Updated: 2025-10-28 14:31:00 UTC
 
 ## Design Documents
 
-**Location:** `.fractary/plugins/devops/designs/{feature}.md`
+**Location:** `.fractary/plugins/faber-cloud/designs/{feature}.md`
 
 **Purpose:** Architecture designs for features
 

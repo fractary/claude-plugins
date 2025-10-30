@@ -291,22 +291,22 @@ A unified, intelligent DevOps plugin that:
 
 ```bash
 # Initialize configuration
-/fractary-devops:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform
 
 # Infrastructure Management
-/fractary-devops:infra-manage deploy --env=test
-/fractary-devops:infra-manage architect --feature="user uploads"
-/fractary-devops:infra-manage validate-config
-/fractary-devops:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage architect --feature="user uploads"
+/fractary-faber-cloud:infra-manage validate-config
+/fractary-faber-cloud:infra-manage show-resources --env=test
 
 # Operations Management
-/fractary-devops:ops-manage check-health --service=api
-/fractary-devops:ops-manage investigate --issue="500 errors"
-/fractary-devops:ops-manage query-logs --service=api --level=error
+/fractary-faber-cloud:ops-manage check-health --service=api
+/fractary-faber-cloud:ops-manage investigate --issue="500 errors"
+/fractary-faber-cloud:ops-manage query-logs --service=api --level=error
 
 # Natural Language
-/fractary-devops:director "deploy infrastructure to test"
-/fractary-devops:director "check if services are healthy"
+/fractary-faber-cloud:director "deploy infrastructure to test"
+/fractary-faber-cloud:director "check if services are healthy"
 ```
 
 ### Managers
@@ -342,7 +342,7 @@ A unified, intelligent DevOps plugin that:
 
 ### Configuration
 
-**Location:** `.fractary/plugins/devops/config/devops.json`
+**Location:** `.fractary/plugins/faber-cloud/config/devops.json`
 
 **Key sections:**
 - `project`: Project metadata
@@ -353,16 +353,16 @@ A unified, intelligent DevOps plugin that:
 
 ### Artifacts
 
-**Resource Registry:** `.fractary/plugins/devops/deployments/{env}/registry.json`
+**Resource Registry:** `.fractary/plugins/faber-cloud/deployments/{env}/registry.json`
 - All deployed resources with ARNs, IDs, console URLs
 
-**Deployment Docs:** `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
+**Deployment Docs:** `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
 - Human-readable resource list
 
-**Design Docs:** `.fractary/plugins/devops/designs/{feature}.md`
+**Design Docs:** `.fractary/plugins/faber-cloud/designs/{feature}.md`
 - Architecture designs
 
-**IAM Audit:** `.fractary/plugins/devops/deployments/iam-audit.json`
+**IAM Audit:** `.fractary/plugins/faber-cloud/deployments/iam-audit.json`
 - Complete IAM permission history
 
 ---
@@ -371,12 +371,12 @@ A unified, intelligent DevOps plugin that:
 
 ### Detailed Specifications
 
-- **[Architecture](fractary-devops-architecture.md)** - Detailed architecture, components, data flow
-- **[Configuration](fractary-devops-configuration.md)** - Configuration file structure and options
-- **[Handlers](fractary-devops-handlers.md)** - Handler pattern and implementation
-- **[Permissions](fractary-devops-permissions.md)** - Permission management strategy
-- **[Documentation](fractary-devops-documentation.md)** - Documentation and registry systems
-- **[Implementation Phases](fractary-devops-implementation-phases.md)** - Phase-by-phase implementation plan
+- **[Architecture](fractary-faber-cloud-architecture.md)** - Detailed architecture, components, data flow
+- **[Configuration](fractary-faber-cloud-configuration.md)** - Configuration file structure and options
+- **[Handlers](fractary-faber-cloud-handlers.md)** - Handler pattern and implementation
+- **[Permissions](fractary-faber-cloud-permissions.md)** - Permission management strategy
+- **[Documentation](fractary-faber-cloud-documentation.md)** - Documentation and registry systems
+- **[Implementation Phases](fractary-faber-cloud-implementation-phases.md)** - Phase-by-phase implementation plan
 
 ### Standards
 
@@ -400,7 +400,7 @@ This plugin is successful when:
 3. ✅ Permission errors are auto-resolved with audit trails
 4. ✅ Recurring issues are prevented through learning
 5. ✅ Works across multiple cloud providers and IaC tools
-6. ✅ New projects can be set up in minutes with `/fractary-devops:init`
+6. ✅ New projects can be set up in minutes with `/fractary-faber-cloud:init`
 7. ✅ Deployment state is always clear and accessible
 8. ✅ Production deployments are safe with mandatory confirmations
 9. ✅ Plugin patterns are reusable for other domains (engineering, marketing, etc.)

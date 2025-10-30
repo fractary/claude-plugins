@@ -30,7 +30,7 @@ What this skill receives:
 - environment: Target environment (test/prod)
 - phase: Test phase (pre-deployment/post-deployment)
 - terraform_dir: Path to terraform code
-- config: Configuration from .fractary/plugins/devops/config/devops.json
+- config: Configuration from .fractary/plugins/faber-cloud/config/devops.json
 </INPUTS>
 
 <WORKFLOW>
@@ -46,7 +46,7 @@ Terraform: ${terraform_dir}
 **EXECUTE STEPS:**
 
 **Step 1: Load Configuration**
-- Read: .fractary/plugins/devops/config/devops.json
+- Read: .fractary/plugins/faber-cloud/config/devops.json
 - Extract: environment settings, resource patterns, cost thresholds
 - Output: "✓ Configuration loaded"
 
@@ -75,7 +75,7 @@ Terraform: ${terraform_dir}
 **Step 5: Generate Report**
 - Create test report with findings
 - Include recommendations
-- Save to: .fractary/plugins/devops/test-reports/${environment}/${timestamp}-${phase}.json
+- Save to: .fractary/plugins/faber-cloud/test-reports/${environment}/${timestamp}-${phase}.json
 - Generate human-readable summary
 - Output: "✓ Report generated: ${report_path}"
 
@@ -148,7 +148,7 @@ This skill is complete and successful when ALL verified:
 After successful completion, return to agent:
 
 1. **Test Report**
-   - Location: .fractary/plugins/devops/test-reports/${environment}/${timestamp}-${phase}.json
+   - Location: .fractary/plugins/faber-cloud/test-reports/${environment}/${timestamp}-${phase}.json
    - Format: JSON with findings array
    - Contains: Test results, findings, recommendations, overall status
 

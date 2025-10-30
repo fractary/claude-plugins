@@ -116,7 +116,7 @@ Skill: Validates environment is prod
 
 ### Layer 1: Entry Points
 
-**Commands** (`/fractary-devops:*`)
+**Commands** (`/fractary-faber-cloud:*`)
 - Lightweight entry points
 - Parse arguments
 - Immediately invoke appropriate agent
@@ -415,7 +415,7 @@ Step 3: Verify with hosting
 ### Standard Deployment Workflow
 
 ```
-User: /fractary-devops:infra-manage deploy --env=test
+User: /fractary-faber-cloud:infra-manage deploy --env=test
   ↓
 infra-manage command
   ↓
@@ -476,7 +476,7 @@ infra-manager: Retry deployment
 ```
 Skill starts
   ↓
-Read: .fractary/plugins/devops/config/devops.json
+Read: .fractary/plugins/faber-cloud/config/devops.json
   ↓
 Extract relevant configuration:
   - hosting_handler = config.handlers.hosting.active
@@ -506,10 +506,10 @@ Update registry:
   Execute: ../devops-common/scripts/update-registry.sh
   ↓
 Registry updated:
-  .fractary/plugins/devops/deployments/${env}/registry.json
+  .fractary/plugins/faber-cloud/deployments/${env}/registry.json
   ↓
 Documentation generated:
-  .fractary/plugins/devops/deployments/${env}/DEPLOYED.md
+  .fractary/plugins/faber-cloud/deployments/${env}/DEPLOYED.md
 ```
 
 ### Issue Log Flow
@@ -518,7 +518,7 @@ Documentation generated:
 infra-debugger analyzes error
   ↓
 Search issue log:
-  .fractary/plugins/devops/deployments/issue-log.json
+  .fractary/plugins/faber-cloud/deployments/issue-log.json
   ↓
 Match against historical errors
   ↓
@@ -602,7 +602,7 @@ infra-manager retries infra-deployer
 ## Directory Structure
 
 ```
-plugins/fractary-devops/
+plugins/fractary-faber-cloud/
 ├── plugin.json                   # Plugin metadata
 ├── README.md                     # User documentation
 ├── ARCHITECTURE.md               # Architecture overview
@@ -655,8 +655,8 @@ plugins/fractary-devops/
 
 ## Next Steps
 
-1. Review [Configuration](fractary-devops-configuration.md) for config file structure
-2. Review [Handlers](fractary-devops-handlers.md) for handler implementation details
-3. Review [Permissions](fractary-devops-permissions.md) for permission management strategy
-4. Review [Documentation](fractary-devops-documentation.md) for documentation systems
-5. Review [Implementation Phases](fractary-devops-implementation-phases.md) for build plan
+1. Review [Configuration](fractary-faber-cloud-configuration.md) for config file structure
+2. Review [Handlers](fractary-faber-cloud-handlers.md) for handler implementation details
+3. Review [Permissions](fractary-faber-cloud-permissions.md) for permission management strategy
+4. Review [Documentation](fractary-faber-cloud-documentation.md) for documentation systems
+5. Review [Implementation Phases](fractary-faber-cloud-implementation-phases.md) for build plan

@@ -10,7 +10,7 @@ Verify infrastructure after deployment to ensure resources are correctly created
 **Test: Verify Resources Created**
 ```bash
 # Read deployed resources from registry
-registry_path=".fractary/plugins/devops/deployments/${environment}/registry.json"
+registry_path=".fractary/plugins/faber-cloud/deployments/${environment}/registry.json"
 expected_resources=$(jq -r '.resources | keys[]' ${registry_path})
 
 # For each expected resource, verify it exists

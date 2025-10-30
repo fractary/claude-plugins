@@ -58,7 +58,7 @@
 
 ### IAM Audit Trail
 
-**Location:** `.fractary/plugins/devops/deployments/iam-audit.json`
+**Location:** `.fractary/plugins/faber-cloud/deployments/iam-audit.json`
 
 **Structure:**
 ```json

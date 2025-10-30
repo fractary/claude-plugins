@@ -1,6 +1,6 @@
 # Agents Reference
 
-Complete reference for all fractary-devops agents.
+Complete reference for all fractary-faber-cloud agents.
 
 ## Overview
 
@@ -42,25 +42,25 @@ Agents are workflow orchestrators that coordinate skill invocations to accomplis
 ### Usage
 
 ```bash
-/fractary-devops:director "<natural language request>"
+/fractary-faber-cloud:director "<natural language request>"
 ```
 
 ### Examples
 
 ```bash
 # Infrastructure
-/fractary-devops:director "deploy my infrastructure to test"
-# Routes to: /fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:director "deploy my infrastructure to test"
+# Routes to: /fractary-faber-cloud:infra-manage deploy --env=test
 
-/fractary-devops:director "design an S3 bucket"
-# Routes to: /fractary-devops:infra-manage architect --feature="S3 bucket"
+/fractary-faber-cloud:director "design an S3 bucket"
+# Routes to: /fractary-faber-cloud:infra-manage architect --feature="S3 bucket"
 
 # Operations
-/fractary-devops:director "check if production is healthy"
-# Routes to: /fractary-devops:ops-manage check-health --env=prod
+/fractary-faber-cloud:director "check if production is healthy"
+# Routes to: /fractary-faber-cloud:ops-manage check-health --env=prod
 
-/fractary-devops:director "investigate API errors"
-# Routes to: /fractary-devops:ops-manage investigate --service=API
+/fractary-faber-cloud:director "investigate API errors"
+# Routes to: /fractary-faber-cloud:ops-manage investigate --service=API
 ```
 
 ### Ambiguity Handling
@@ -134,20 +134,20 @@ architect → engineer → validate → test → preview → deploy → (debug i
 ### Usage
 
 ```bash
-/fractary-devops:infra-manage <command> [options]
+/fractary-faber-cloud:infra-manage <command> [options]
 ```
 
 ### Examples
 
 ```bash
 # Design
-/fractary-devops:infra-manage architect --feature="API service"
+/fractary-faber-cloud:infra-manage architect --feature="API service"
 
 # Deploy
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
 
 # Debug
-/fractary-devops:infra-manage debug --error="<error message>"
+/fractary-faber-cloud:infra-manage debug --error="<error message>"
 ```
 
 ### File
@@ -202,23 +202,23 @@ monitor → investigate → respond → audit
 ### Usage
 
 ```bash
-/fractary-devops:ops-manage <command> [options]
+/fractary-faber-cloud:ops-manage <command> [options]
 ```
 
 ### Examples
 
 ```bash
 # Health check
-/fractary-devops:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env=prod
 
 # Investigate
-/fractary-devops:ops-manage investigate --service=api-lambda
+/fractary-faber-cloud:ops-manage investigate --service=api-lambda
 
 # Remediate
-/fractary-devops:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
 
 # Audit
-/fractary-devops:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
 ```
 
 ### File
@@ -289,7 +289,7 @@ All agents enforce:
 
 ```bash
 # User speaks naturally
-/fractary-devops:director "deploy to production"
+/fractary-faber-cloud:director "deploy to production"
 
 # Director parses and routes
 → infra-manager with deploy command
@@ -302,7 +302,7 @@ All agents enforce:
 
 ```bash
 # Skip director, go straight to manager
-/fractary-devops:infra-manage deploy --env=prod
+/fractary-faber-cloud:infra-manage deploy --env=prod
 
 # Manager orchestrates
 → Skills execute deployment
@@ -316,5 +316,5 @@ Both approaches work identically. Natural language is easier.
 
 - [Commands Reference](commands.md)
 - [Skills Reference](skills.md)
-- [Architecture](../../ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [User Guide](../guides/user-guide.md)

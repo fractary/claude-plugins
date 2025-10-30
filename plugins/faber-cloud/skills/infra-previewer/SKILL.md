@@ -55,7 +55,7 @@ Plan Summary:
 
 Plan saved to: {environment}.tfplan
 ───────────────────────────────────────
-Ready to deploy? Run: /fractary-devops:infra-manage deploy --env={environment}
+Ready to deploy? Run: /fractary-faber-cloud:infra-manage deploy --env={environment}
 ```
 </WORKFLOW>
 

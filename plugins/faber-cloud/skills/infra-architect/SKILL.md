@@ -71,14 +71,14 @@ Feature: {feature description}
 4. **Read: workflow/document-design.md**
    - Generate design document from template
    - Include all specifications and decisions
-   - Save to `.fractary/plugins/devops/designs/{feature-slug}.md`
+   - Save to `.fractary/plugins/faber-cloud/designs/{feature-slug}.md`
    - Output: "✓ Step 4 complete: Design documented"
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
 ✅ COMPLETED: Infrastructure Architect
 Feature: {feature}
-Design Document: .fractary/plugins/devops/designs/{feature-slug}.md
+Design Document: .fractary/plugins/faber-cloud/designs/{feature-slug}.md
 
 Summary:
 - Resources: {count} AWS resources designed
@@ -87,7 +87,7 @@ Summary:
 
 Next Steps:
 - Review the design document
-- Run: /fractary-devops:infra-manage engineer --design={feature-slug}.md
+- Run: /fractary-faber-cloud:infra-manage engineer --design={feature-slug}.md
 ───────────────────────────────────────
 ```
 
@@ -116,7 +116,7 @@ This skill is complete and successful when ALL verified:
 - Cost estimate provided
 
 ✅ **3. Design Documentation**
-- Design document created at `.fractary/plugins/devops/designs/{feature-slug}.md`
+- Design document created at `.fractary/plugins/faber-cloud/designs/{feature-slug}.md`
 - Document includes: overview, resources, security, cost, implementation plan
 - Document follows standard template format
 
@@ -136,7 +136,7 @@ This skill is complete and successful when ALL verified:
 After successful completion:
 
 **1. Design Document**
-   - Location: `.fractary/plugins/devops/designs/{feature-slug}.md`
+   - Location: `.fractary/plugins/faber-cloud/designs/{feature-slug}.md`
    - Format: Markdown following template
    - Contains: Complete infrastructure design
 
@@ -145,7 +145,7 @@ After successful completion:
 {
   "status": "success",
   "feature": "feature name",
-  "design_file": ".fractary/plugins/devops/designs/{feature-slug}.md",
+  "design_file": ".fractary/plugins/faber-cloud/designs/{feature-slug}.md",
   "resource_count": 5,
   "estimated_monthly_cost": 25.50,
   "resources": [
@@ -239,7 +239,7 @@ Design:
   - Lambda: Virus scanning on upload (optional)
   - CloudFront: For global content delivery (optional)
 Cost: ~$5-20/month depending on storage and transfer
-Output: Design document at .fractary/plugins/devops/designs/user-uploads.md
+Output: Design document at .fractary/plugins/faber-cloud/designs/user-uploads.md
 </example>
 
 <example>
@@ -256,7 +256,7 @@ Design:
   - Cognito: User pool with email verification
   - CloudWatch: Logs and metrics
 Cost: ~$10-50/month depending on usage
-Output: Design document at .fractary/plugins/devops/designs/task-api.md
+Output: Design document at .fractary/plugins/faber-cloud/designs/task-api.md
 </example>
 </EXAMPLES>
 

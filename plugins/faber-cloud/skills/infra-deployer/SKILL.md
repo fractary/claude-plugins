@@ -61,10 +61,10 @@ AWS Profile: {profile}
 Environment: {environment}
 Resources Deployed: {count}
 
-Registry Updated: .fractary/plugins/devops/deployments/{env}/registry.json
-Documentation: .fractary/plugins/devops/deployments/{env}/DEPLOYED.md
+Registry Updated: .fractary/plugins/faber-cloud/deployments/{env}/registry.json
+Documentation: .fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md
 ───────────────────────────────────────
-View resources: /fractary-devops:infra-manage show-resources --env={environment}
+View resources: /fractary-faber-cloud:infra-manage show-resources --env={environment}
 ```
 </WORKFLOW>
 
@@ -82,8 +82,8 @@ Return deployment results:
   "status": "success",
   "environment": "test",
   "resources_deployed": 5,
-  "registry_path": ".fractary/plugins/devops/deployments/test/registry.json",
-  "documentation_path": ".fractary/plugins/devops/deployments/test/DEPLOYED.md",
+  "registry_path": ".fractary/plugins/faber-cloud/deployments/test/registry.json",
+  "documentation_path": ".fractary/plugins/faber-cloud/deployments/test/DEPLOYED.md",
   "resources": [
     {
       "type": "aws_s3_bucket",
@@ -100,7 +100,7 @@ Return deployment results:
 If Terraform apply fails with permission error:
 
 1. Extract required permission from error message
-2. Invoke: /fractary-devops:skill:infra-permission-manager --permission={permission} --environment={environment}
+2. Invoke: /fractary-faber-cloud:skill:infra-permission-manager --permission={permission} --environment={environment}
 3. Wait for permission grant
 4. Retry Terraform apply
 5. If successful: Log auto-fix in IAM audit trail

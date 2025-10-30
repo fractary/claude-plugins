@@ -1,6 +1,6 @@
 # Getting Started with Fractary DevOps Plugin
 
-This guide will help you get started with the fractary-devops plugin in 15 minutes.
+This guide will help you get started with the fractary-faber-cloud plugin in 15 minutes.
 
 ## Prerequisites
 
@@ -18,10 +18,10 @@ Before you begin, ensure you have:
 In your project directory, initialize the plugin:
 
 ```bash
-/fractary-devops:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
-This creates `.fractary/plugins/devops/config/devops.json` with your project configuration.
+This creates `.fractary/plugins/faber-cloud/config/devops.json` with your project configuration.
 
 **What it does:**
 - Auto-discovers your project name
@@ -36,7 +36,7 @@ Check that everything is configured correctly:
 
 ```bash
 # View configuration
-cat .fractary/plugins/devops/config/devops.json
+cat .fractary/plugins/faber-cloud/config/devops.json
 
 # Verify AWS credentials
 aws sts get-caller-identity --profile your-test-profile
@@ -78,13 +78,13 @@ Your config should look like:
 ### Option A: Natural Language (Recommended)
 
 ```bash
-/fractary-devops:director "deploy my infrastructure to test"
+/fractary-faber-cloud:director "deploy my infrastructure to test"
 ```
 
 ### Option B: Direct Command
 
 ```bash
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
 ```
 
 **What happens:**
@@ -100,12 +100,12 @@ Your config should look like:
 ## Step 4: View Deployed Resources
 
 ```bash
-/fractary-devops:director "show me deployed resources"
+/fractary-faber-cloud:director "show me deployed resources"
 ```
 
 Or:
 ```bash
-/fractary-devops:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env=test
 ```
 
 You'll see:
@@ -117,12 +117,12 @@ You'll see:
 ## Step 5: Monitor Health
 
 ```bash
-/fractary-devops:director "check health of my services"
+/fractary-faber-cloud:director "check health of my services"
 ```
 
 Or:
 ```bash
-/fractary-devops:ops-manage check-health --env=test
+/fractary-faber-cloud:ops-manage check-health --env=test
 ```
 
 **What it checks:**
@@ -137,7 +137,7 @@ Or:
 ### Design New Infrastructure
 
 ```bash
-/fractary-devops:director "design an S3 bucket for user uploads"
+/fractary-faber-cloud:director "design an S3 bucket for user uploads"
 ```
 
 This creates a design document you can review and modify.
@@ -145,7 +145,7 @@ This creates a design document you can review and modify.
 ### Generate Terraform Code
 
 ```bash
-/fractary-devops:director "implement the S3 bucket design"
+/fractary-faber-cloud:director "implement the S3 bucket design"
 ```
 
 This generates `main.tf`, `variables.tf`, and `outputs.tf`.
@@ -153,7 +153,7 @@ This generates `main.tf`, `variables.tf`, and `outputs.tf`.
 ### Validate Configuration
 
 ```bash
-/fractary-devops:director "validate my terraform configuration"
+/fractary-faber-cloud:director "validate my terraform configuration"
 ```
 
 This checks syntax and configuration correctness.
@@ -161,7 +161,7 @@ This checks syntax and configuration correctness.
 ### Preview Changes Before Deploying
 
 ```bash
-/fractary-devops:director "preview changes for test environment"
+/fractary-faber-cloud:director "preview changes for test environment"
 ```
 
 This shows you exactly what will change.
@@ -169,7 +169,7 @@ This shows you exactly what will change.
 ### Investigate Issues
 
 ```bash
-/fractary-devops:director "investigate errors in my API service"
+/fractary-faber-cloud:director "investigate errors in my API service"
 ```
 
 This analyzes logs and identifies root causes.
@@ -240,30 +240,30 @@ Now that you're set up:
 **Natural Language Commands:**
 ```bash
 # Infrastructure
-/fractary-devops:director "design [feature]"
-/fractary-devops:director "deploy to [environment]"
-/fractary-devops:director "validate configuration"
+/fractary-faber-cloud:director "design [feature]"
+/fractary-faber-cloud:director "deploy to [environment]"
+/fractary-faber-cloud:director "validate configuration"
 
 # Operations
-/fractary-devops:director "check health"
-/fractary-devops:director "investigate errors"
-/fractary-devops:director "analyze costs"
+/fractary-faber-cloud:director "check health"
+/fractary-faber-cloud:director "investigate errors"
+/fractary-faber-cloud:director "analyze costs"
 ```
 
 **Direct Commands:**
 ```bash
 # Infrastructure
-/fractary-devops:infra-manage architect --feature="..."
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage architect --feature="..."
+/fractary-faber-cloud:infra-manage deploy --env=test
 
 # Operations
-/fractary-devops:ops-manage check-health --env=test
-/fractary-devops:ops-manage investigate --service=...
+/fractary-faber-cloud:ops-manage check-health --env=test
+/fractary-faber-cloud:ops-manage investigate --service=...
 ```
 
 ## Getting Help
 
-- **Documentation:** [User Guide](user-guide.md), [Architecture](../../ARCHITECTURE.md)
+- **Documentation:** [User Guide](user-guide.md), [Architecture](../architecture/ARCHITECTURE.md)
 - **Troubleshooting:** [Troubleshooting Guide](troubleshooting.md)
 - **Examples:** [README.md](../../README.md#complete-workflow-example)
 - **Issues:** GitHub Issues
@@ -278,4 +278,4 @@ Now that you're set up:
 6. **Read error messages** - They contain specific guidance
 7. **Check documentation** - Generated docs are always up-to-date
 
-Congratulations! You're ready to use fractary-devops for your infrastructure automation.
+Congratulations! You're ready to use fractary-faber-cloud for your infrastructure automation.

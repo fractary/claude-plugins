@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0
 
-This comprehensive guide covers all features and operations of the fractary-devops plugin.
+This comprehensive guide covers all features and operations of the fractary-faber-cloud plugin.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ This comprehensive guide covers all features and operations of the fractary-devo
 
 ## Introduction
 
-The fractary-devops plugin provides complete DevOps automation from infrastructure design through production operations. It features:
+The fractary-faber-cloud plugin provides complete DevOps automation from infrastructure design through production operations. It features:
 
 - **Natural language interface** for intuitive commands
 - **Infrastructure lifecycle** management (design → deploy)
@@ -34,12 +34,12 @@ The fractary-devops plugin provides complete DevOps automation from infrastructu
 
 **1. Natural Language (Recommended):**
 ```bash
-/fractary-devops:director "deploy my infrastructure to test"
+/fractary-faber-cloud:director "deploy my infrastructure to test"
 ```
 
 **2. Direct Commands:**
 ```bash
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
 ```
 
 Both approaches work identically. Natural language is easier to remember.
@@ -56,14 +56,14 @@ The director agent understands natural language and routes to appropriate operat
 
 **Examples:**
 ```bash
-/fractary-devops:director "design an S3 bucket for user uploads"
-/fractary-devops:director "create infrastructure for an API service"
-/fractary-devops:director "generate terraform code from the design"
-/fractary-devops:director "validate my terraform configuration"
-/fractary-devops:director "preview changes before deploying"
-/fractary-devops:director "deploy to test environment"
-/fractary-devops:director "deploy to production"
-/fractary-devops:director "show me all deployed resources"
+/fractary-faber-cloud:director "design an S3 bucket for user uploads"
+/fractary-faber-cloud:director "create infrastructure for an API service"
+/fractary-faber-cloud:director "generate terraform code from the design"
+/fractary-faber-cloud:director "validate my terraform configuration"
+/fractary-faber-cloud:director "preview changes before deploying"
+/fractary-faber-cloud:director "deploy to test environment"
+/fractary-faber-cloud:director "deploy to production"
+/fractary-faber-cloud:director "show me all deployed resources"
 ```
 
 ### Operations Keywords
@@ -72,14 +72,14 @@ The director agent understands natural language and routes to appropriate operat
 
 **Examples:**
 ```bash
-/fractary-devops:director "check health of my services"
-/fractary-devops:director "monitor production"
-/fractary-devops:director "show me the logs from Lambda"
-/fractary-devops:director "investigate errors in API service"
-/fractary-devops:director "fix the failing service"
-/fractary-devops:director "restart the Lambda function"
-/fractary-devops:director "analyze costs for test environment"
-/fractary-devops:director "audit security posture"
+/fractary-faber-cloud:director "check health of my services"
+/fractary-faber-cloud:director "monitor production"
+/fractary-faber-cloud:director "show me the logs from Lambda"
+/fractary-faber-cloud:director "investigate errors in API service"
+/fractary-faber-cloud:director "fix the failing service"
+/fractary-faber-cloud:director "restart the Lambda function"
+/fractary-faber-cloud:director "analyze costs for test environment"
+/fractary-faber-cloud:director "audit security posture"
 ```
 
 ### Environment Detection
@@ -94,7 +94,7 @@ The director automatically detects environments:
 If your request is ambiguous, the director will ask for clarification:
 
 ```bash
-/fractary-devops:director "check my infrastructure"
+/fractary-faber-cloud:director "check my infrastructure"
 
 # Response:
 Your request could mean:
@@ -115,12 +115,12 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "design infrastructure for user authentication"
+/fractary-faber-cloud:director "design infrastructure for user authentication"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage architect --feature="User authentication service"
+/fractary-faber-cloud:infra-manage architect --feature="User authentication service"
 ```
 
 **What it does:**
@@ -130,19 +130,19 @@ Complete infrastructure lifecycle from design through deployment.
 - Creates detailed design document
 
 **Output:**
-- Design document at `.fractary/plugins/devops/designs/user-authentication.md`
+- Design document at `.fractary/plugins/faber-cloud/designs/user-authentication.md`
 - Includes: resource specifications, security considerations, cost estimates
 
 ### 2. Generate Terraform Code
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "implement the user authentication design"
+/fractary-faber-cloud:director "implement the user authentication design"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage engineer --design=user-authentication.md
+/fractary-faber-cloud:infra-manage engineer --design=user-authentication.md
 ```
 
 **What it does:**
@@ -160,12 +160,12 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "validate my terraform configuration"
+/fractary-faber-cloud:director "validate my terraform configuration"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage validate-config --env=test
+/fractary-faber-cloud:infra-manage validate-config --env=test
 ```
 
 **What it checks:**
@@ -179,12 +179,12 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "test my infrastructure before deploying"
+/fractary-faber-cloud:director "test my infrastructure before deploying"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
 ```
 
 **Pre-deployment tests:**
@@ -194,18 +194,18 @@ Complete infrastructure lifecycle from design through deployment.
 - Configuration best practices
 
 **Test report location:**
-`.fractary/plugins/devops/test-reports/{env}/{timestamp}-pre-deployment.json`
+`.fractary/plugins/faber-cloud/test-reports/{env}/{timestamp}-pre-deployment.json`
 
 ### 5. Preview Changes
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "preview what will change in test"
+/fractary-faber-cloud:director "preview what will change in test"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage preview-changes --env=test
+/fractary-faber-cloud:infra-manage preview-changes --env=test
 ```
 
 **What it shows:**
@@ -218,12 +218,12 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "deploy to test environment"
+/fractary-faber-cloud:director "deploy to test environment"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
 ```
 
 **Deployment workflow:**
@@ -245,12 +245,12 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "show me deployed resources in test"
+/fractary-faber-cloud:director "show me deployed resources in test"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env=test
 ```
 
 **What you see:**
@@ -261,8 +261,8 @@ Complete infrastructure lifecycle from design through deployment.
 - Configuration summary
 
 **Documents generated:**
-- Registry: `.fractary/plugins/devops/deployments/{env}/registry.json`
-- Human-readable: `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
+- Registry: `.fractary/plugins/faber-cloud/deployments/{env}/registry.json`
+- Human-readable: `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
 
 ---
 
@@ -274,12 +274,12 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "check health of production services"
+/fractary-faber-cloud:director "check health of production services"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env=prod
 ```
 
 **What it checks:**
@@ -296,19 +296,19 @@ Monitor health, investigate issues, and respond to incidents.
 
 **For specific services:**
 ```bash
-/fractary-devops:ops-manage check-health --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
 ```
 
 ### 2. Query Logs
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "show me error logs from API Lambda"
+/fractary-faber-cloud:director "show me error logs from API Lambda"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:ops-manage query-logs --env=prod --service=api-lambda --filter=ERROR
+/fractary-faber-cloud:ops-manage query-logs --env=prod --service=api-lambda --filter=ERROR
 ```
 
 **Query options:**
@@ -328,12 +328,12 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "investigate errors in API service"
+/fractary-faber-cloud:director "investigate errors in API service"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:ops-manage investigate --env=prod --service=api-lambda --timeframe=2h
+/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda --timeframe=2h
 ```
 
 **Investigation includes:**
@@ -345,18 +345,18 @@ Monitor health, investigate issues, and respond to incidents.
 - Remediation recommendations
 
 **Incident report location:**
-`.fractary/plugins/devops/incidents/{env}/{timestamp}-incident.json`
+`.fractary/plugins/faber-cloud/incidents/{env}/{timestamp}-incident.json`
 
 ### 4. Analyze Performance
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "analyze performance of API Lambda"
+/fractary-faber-cloud:director "analyze performance of API Lambda"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:ops-manage analyze-performance --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage analyze-performance --env=prod --service=api-lambda
 ```
 
 **Metrics analyzed:**
@@ -370,12 +370,12 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "restart API Lambda in production"
+/fractary-faber-cloud:director "restart API Lambda in production"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
 ```
 
 **Remediation actions:**
@@ -391,18 +391,18 @@ Monitor health, investigate issues, and respond to incidents.
 - Action documented
 
 **Remediation log:**
-`.fractary/plugins/devops/remediations/{env}/remediation-log.json`
+`.fractary/plugins/faber-cloud/remediations/{env}/remediation-log.json`
 
 ### 6. Audit Costs and Security
 
 **Natural Language:**
 ```bash
-/fractary-devops:director "analyze costs for test environment"
+/fractary-faber-cloud:director "analyze costs for test environment"
 ```
 
 **Direct Command:**
 ```bash
-/fractary-devops:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
 ```
 
 **Cost audit includes:**
@@ -415,7 +415,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Security audit:**
 ```bash
-/fractary-devops:ops-manage audit --env=prod --focus=security
+/fractary-faber-cloud:ops-manage audit --env=prod --focus=security
 ```
 
 **Security audit includes:**
@@ -426,18 +426,18 @@ Monitor health, investigate issues, and respond to incidents.
 - Best practices validation
 
 **Audit report location:**
-`.fractary/plugins/devops/audits/{env}/{timestamp}-audit.json`
+`.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-audit.json`
 
 ---
 
 ## Configuration
 
-The plugin is configured via `.fractary/plugins/devops/config/devops.json`.
+The plugin is configured via `.fractary/plugins/faber-cloud/config/devops.json`.
 
 ### Initialize Configuration
 
 ```bash
-/fractary-devops:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
 ### Configuration Structure
@@ -561,7 +561,7 @@ Automatic before every deployment:
 
 **Skip tests (not recommended):**
 ```bash
-/fractary-devops:infra-manage deploy --env=test --skip-tests
+/fractary-faber-cloud:infra-manage deploy --env=test --skip-tests
 ```
 
 ### Post-Deployment Testing
@@ -603,16 +603,16 @@ When deployments fail, the debugger automatically analyzes errors.
 
 **Manual debugging:**
 ```bash
-/fractary-devops:director "debug the deployment error"
+/fractary-faber-cloud:director "debug the deployment error"
 ```
 
 Or:
 ```bash
-/fractary-devops:infra-manage debug --error="<error message>" --operation=deploy --env=test
+/fractary-faber-cloud:infra-manage debug --error="<error message>" --operation=deploy --env=test
 ```
 
 **Issue log location:**
-`.fractary/plugins/devops/deployments/issue-log.json`
+`.fractary/plugins/faber-cloud/deployments/issue-log.json`
 
 ---
 
@@ -660,24 +660,24 @@ Type 'yes' to confirm: _
 
 ```bash
 # 1. Deploy to test first
-/fractary-devops:director "deploy to test"
+/fractary-faber-cloud:director "deploy to test"
 # Verify everything works
 
 # 2. Monitor test environment
-/fractary-devops:director "check health of test services"
+/fractary-faber-cloud:director "check health of test services"
 # Ensure stable for 24+ hours
 
 # 3. Deploy to production
-/fractary-devops:director "deploy to production"
+/fractary-faber-cloud:director "deploy to production"
 # Extra confirmations required
 # Type "yes" when prompted
 
 # 4. Monitor production
-/fractary-devops:director "check health of production"
+/fractary-faber-cloud:director "check health of production"
 # Verify deployment successful
 
 # 5. Investigate any issues
-/fractary-devops:director "investigate production errors"
+/fractary-faber-cloud:director "investigate production errors"
 # If problems detected
 ```
 
@@ -695,13 +695,13 @@ terraform apply -target=<resource> -var-file=prod.tfvars
 **Option 2: Code rollback**
 ```bash
 git revert <commit>
-/fractary-devops:director "deploy to production"
+/fractary-faber-cloud:director "deploy to production"
 # Deploy previous version
 ```
 
 **Option 3: Service rollback**
 ```bash
-/fractary-devops:director "roll back API Lambda to previous version"
+/fractary-faber-cloud:director "roll back API Lambda to previous version"
 ```
 
 ---
@@ -712,12 +712,12 @@ git revert <commit>
 
 **Check all services:**
 ```bash
-/fractary-devops:director "check health of production"
+/fractary-faber-cloud:director "check health of production"
 ```
 
 **Check specific service:**
 ```bash
-/fractary-devops:ops-manage check-health --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
 ```
 
 **Recommended frequency:**
@@ -728,19 +728,19 @@ git revert <commit>
 
 **Query recent errors:**
 ```bash
-/fractary-devops:director "show me errors from the last hour"
+/fractary-faber-cloud:director "show me errors from the last hour"
 ```
 
 **Search for specific pattern:**
 ```bash
-/fractary-devops:ops-manage query-logs --env=prod --filter="Database timeout" --timeframe=24h
+/fractary-faber-cloud:ops-manage query-logs --env=prod --filter="Database timeout" --timeframe=24h
 ```
 
 ### Cost Auditing
 
 **Monthly cost analysis:**
 ```bash
-/fractary-devops:director "analyze costs for production"
+/fractary-faber-cloud:director "analyze costs for production"
 ```
 
 **Cost optimization recommendations:**
@@ -753,7 +753,7 @@ git revert <commit>
 
 **Security posture:**
 ```bash
-/fractary-devops:director "audit security for production"
+/fractary-faber-cloud:director "audit security for production"
 ```
 
 **Checks include:**
@@ -767,7 +767,7 @@ git revert <commit>
 
 **Configuration compliance:**
 ```bash
-/fractary-devops:ops-manage audit --env=prod --focus=compliance
+/fractary-faber-cloud:ops-manage audit --env=prod --focus=compliance
 ```
 
 **Verifies:**
@@ -897,7 +897,7 @@ git revert <commit>
 Deploy multiple environments:
 ```bash
 for env in test staging prod; do
-  /fractary-devops:director "deploy to $env"
+  /fractary-faber-cloud:director "deploy to $env"
 done
 ```
 
@@ -906,10 +906,10 @@ done
 Create custom deployment workflows:
 ```bash
 # Design → Implement → Test → Deploy
-/fractary-devops:director "design API service"
-/fractary-devops:director "implement the design"
-/fractary-devops:director "test the infrastructure"
-/fractary-devops:director "deploy to test"
+/fractary-faber-cloud:director "design API service"
+/fractary-faber-cloud:director "implement the design"
+/fractary-faber-cloud:director "test the infrastructure"
+/fractary-faber-cloud:director "deploy to test"
 ```
 
 ### Integration with CI/CD
@@ -919,7 +919,7 @@ Use in automation pipelines:
 # GitHub Actions example
 - name: Deploy infrastructure
   run: |
-    /fractary-devops:infra-manage deploy --env=test
+    /fractary-faber-cloud:infra-manage deploy --env=test
 ```
 
 ### Multi-Region Deployments
@@ -942,7 +942,7 @@ Configure multiple regions:
 Regular cost reviews:
 ```bash
 # Weekly cost audit
-/fractary-devops:director "analyze costs"
+/fractary-faber-cloud:director "analyze costs"
 
 # Apply recommendations
 # Right-size resources
@@ -965,7 +965,7 @@ aws s3 cp ./backup/terraform.tfstate s3://my-terraform-state/
 
 ## Summary
 
-The fractary-devops plugin provides complete DevOps automation with:
+The fractary-faber-cloud plugin provides complete DevOps automation with:
 - Natural language interface for ease of use
 - Complete infrastructure lifecycle management
 - Intelligent debugging with learning
@@ -985,5 +985,5 @@ The fractary-devops plugin provides complete DevOps automation with:
 For more information:
 - [Getting Started Guide](getting-started.md)
 - [Troubleshooting Guide](troubleshooting.md)
-- [Architecture Documentation](../../ARCHITECTURE.md)
+- [Architecture Documentation](../architecture/ARCHITECTURE.md)
 - [README](../../README.md)

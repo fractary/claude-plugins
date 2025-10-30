@@ -8,7 +8,7 @@ Check health status of all deployed resources in the environment.
 ### 1. Load Resources
 ```bash
 # Read resource registry
-registry=".fractary/plugins/devops/deployments/${environment}/registry.json"
+registry=".fractary/plugins/faber-cloud/deployments/${environment}/registry.json"
 resources=$(jq -r '.resources | to_entries[] | {id: .key, type: .value.type, arn: .value.arn}' ${registry})
 ```
 

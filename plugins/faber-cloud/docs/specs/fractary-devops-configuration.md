@@ -7,7 +7,7 @@
 
 ## Configuration File Structure
 
-**Location:** `.fractary/plugins/devops/config/devops.json`
+**Location:** `.fractary/plugins/faber-cloud/config/devops.json`
 
 ### Complete Example
 
@@ -90,4 +90,4 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `corthovore-core-t
 
 ---
 
-See [full specification](fractary-devops-configuration.md) for detailed schema and examples.
+See [full specification](fractary-faber-cloud-configuration.md) for detailed schema and examples.

@@ -88,7 +88,7 @@ Terraform Files Created:
 Resources Implemented: {count}
 Next Steps:
 - Review Terraform code
-- Run: /fractary-devops:infra-manage validate --env=test
+- Run: /fractary-faber-cloud:infra-manage validate --env=test
 ───────────────────────────────────────
 ```
 
@@ -207,7 +207,7 @@ locals {
     Subsystem   = var.subsystem
     Environment = var.environment
     ManagedBy   = "terraform"
-    CreatedBy   = "fractary-devops"
+    CreatedBy   = "fractary-faber-cloud"
   }
 }
 ```
@@ -386,7 +386,7 @@ locals {
     Subsystem   = var.subsystem
     Environment = var.environment
     ManagedBy   = "terraform"
-    CreatedBy   = "fractary-devops"
+    CreatedBy   = "fractary-faber-cloud"
   }
 }
 

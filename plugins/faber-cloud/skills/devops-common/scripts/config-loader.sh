@@ -1,13 +1,13 @@
 #!/bin/bash
 # config-loader.sh
-# Loads DevOps configuration from .fractary/plugins/devops/config/devops.json
+# Loads DevOps configuration from .fractary/plugins/faber-cloud/config/devops.json
 # Provides pattern substitution and validation
 
 set -euo pipefail
 
 # Configuration paths
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/devops/config"
+CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/faber-cloud/config"
 CONFIG_FILE="${CONFIG_DIR}/devops.json"
 
 # Color codes for output
@@ -78,7 +78,7 @@ log_error() {
 check_config_exists() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
         log_error "Configuration file not found: $CONFIG_FILE"
-        log_info "Run /fractary-devops:init to create configuration"
+        log_info "Run /fractary-faber-cloud:init to create configuration"
         return 1
     fi
     return 0

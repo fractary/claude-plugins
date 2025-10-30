@@ -1,6 +1,6 @@
 # Skills Reference
 
-Complete reference for all fractary-devops skills.
+Complete reference for all fractary-faber-cloud skills.
 
 ## Overview
 
@@ -33,12 +33,12 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 5. Create design document
 
 **Outputs:**
-- Design document at `.fractary/plugins/devops/designs/<feature>.md`
+- Design document at `.fractary/plugins/faber-cloud/designs/<feature>.md`
 - Includes: resources, security, cost estimate, implementation plan
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage architect --feature="S3 bucket for uploads"
+/fractary-faber-cloud:infra-manage architect --feature="S3 bucket for uploads"
 ```
 
 ### infra-engineer
@@ -68,7 +68,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage engineer --design=s3-bucket.md
+/fractary-faber-cloud:infra-manage engineer --design=s3-bucket.md
 ```
 
 ### infra-validator
@@ -96,7 +96,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage validate-config --env=test
+/fractary-faber-cloud:infra-manage validate-config --env=test
 ```
 
 ### infra-previewer
@@ -126,7 +126,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage preview-changes --env=test
+/fractary-faber-cloud:infra-manage preview-changes --env=test
 ```
 
 ### infra-deployer
@@ -151,8 +151,8 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Outputs:**
 - Deployed resources
-- Registry updated at `.fractary/plugins/devops/deployments/{env}/registry.json`
-- Documentation at `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
+- Registry updated at `.fractary/plugins/faber-cloud/deployments/{env}/registry.json`
+- Documentation at `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
 
 **Handlers used:**
 - handler-hosting-aws (authenticate, verify)
@@ -160,7 +160,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
 ```
 
 ### infra-permission-manager
@@ -185,7 +185,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Outputs:**
 - Permission granted
-- IAM audit trail updated at `.fractary/plugins/devops/deployments/iam-audit.json`
+- IAM audit trail updated at `.fractary/plugins/faber-cloud/deployments/iam-audit.json`
 
 **Safety:**
 - Only adds specific permissions
@@ -230,14 +230,14 @@ Automatically invoked when permission errors occur during deployment.
 7. Generate test report
 
 **Outputs:**
-- Test report at `.fractary/plugins/devops/test-reports/{env}/{timestamp}-{phase}.json`
+- Test report at `.fractary/plugins/faber-cloud/test-reports/{env}/{timestamp}-{phase}.json`
 - Pass/fail status
 - Detailed findings
 - Recommendations
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
 ```
 
 ### infra-debugger
@@ -287,7 +287,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-devops:infra-manage debug --error="AccessDenied: s3:PutObject"
+/fractary-faber-cloud:infra-manage debug --error="AccessDenied: s3:PutObject"
 ```
 
 ---
@@ -321,7 +321,7 @@ Automatically invoked when permission errors occur during deployment.
 - S3: size, objects
 
 **Outputs:**
-- Health report at `.fractary/plugins/devops/monitoring/{env}/{timestamp}-health-check.json`
+- Health report at `.fractary/plugins/faber-cloud/monitoring/{env}/{timestamp}-health-check.json`
 - Overall status
 - Per-resource health
 - Metrics summaries
@@ -329,7 +329,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-devops:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env=prod
 ```
 
 ### ops-investigator
@@ -354,7 +354,7 @@ Automatically invoked when permission errors occur during deployment.
 7. Generate incident report
 
 **Outputs:**
-- Incident report at `.fractary/plugins/devops/incidents/{env}/{timestamp}-incident.json`
+- Incident report at `.fractary/plugins/faber-cloud/incidents/{env}/{timestamp}-incident.json`
 - Timeline of events
 - Error patterns
 - Root cause analysis
@@ -363,7 +363,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-devops:ops-manage investigate --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda
 ```
 
 ### ops-responder
@@ -394,7 +394,7 @@ Automatically invoked when permission errors occur during deployment.
 **Outputs:**
 - Remediation success/failure
 - Verification results
-- Action documented at `.fractary/plugins/devops/remediations/{env}/remediation-log.json`
+- Action documented at `.fractary/plugins/faber-cloud/remediations/{env}/remediation-log.json`
 
 **Safety:**
 - Production requires confirmation
@@ -404,7 +404,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-devops:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
 ```
 
 ### ops-auditor
@@ -443,14 +443,14 @@ Automatically invoked when permission errors occur during deployment.
 6. Generate compliance report
 
 **Outputs:**
-- Audit report at `.fractary/plugins/devops/audits/{env}/{timestamp}-audit.json`
+- Audit report at `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-audit.json`
 - Findings with severity
 - Prioritized recommendations
 - Potential savings (for cost)
 
 **Example:**
 ```bash
-/fractary-devops:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
 ```
 
 ---
@@ -606,5 +606,5 @@ Debugger proposes solution
 
 - [Commands Reference](commands.md)
 - [Agents Reference](agents.md)
-- [Architecture](../../ARCHITECTURE.md)
+- [Architecture](../architecture/ARCHITECTURE.md)
 - [User Guide](../guides/user-guide.md)

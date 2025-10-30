@@ -49,7 +49,7 @@ Environment: {environment}
 Validation: PASSED
 Files Checked: {count}
 ───────────────────────────────────────
-Next: /fractary-devops:infra-manage preview --env={environment}
+Next: /fractary-faber-cloud:infra-manage preview --env={environment}
 ```
 </WORKFLOW>
 

@@ -108,6 +108,44 @@
         "agents": [
           "./agents/work-manager.md"
         ]
+      },
+      {
+        "name": "fractary-faber-cloud",
+        "source": "./plugins/faber-cloud",
+        "description": "Comprehensive infrastructure and operations management for Claude Code - design, deploy, and monitor cloud infrastructure with AI assistance",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber-cloud",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber-cloud",
+        "license": "MIT",
+        "keywords": [
+          "infrastructure",
+          "cloud",
+          "devops",
+          "aws",
+          "terraform",
+          "deployment",
+          "monitoring",
+          "operations",
+          "iac",
+          "infrastructure-as-code"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/devops-init.md",
+          "./commands/director.md",
+          "./commands/infra-manage.md",
+          "./commands/ops-manage.md"
+        ],
+        "agents": [
+          "./agents/devops-director.md",
+          "./agents/infra-manager.md",
+          "./agents/ops-manager.md"
+        ]
       }
     ]
   }

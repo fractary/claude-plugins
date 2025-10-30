@@ -199,7 +199,7 @@ fi
 
 ```bash
 # Check against configured thresholds from config
-config_path=".fractary/plugins/devops/config/devops.json"
+config_path=".fractary/plugins/faber-cloud/config/devops.json"
 
 # Security thresholds
 max_critical=$(jq -r '.testing.thresholds.max_critical_findings // 0' ${config_path})
@@ -299,7 +299,7 @@ Compare current results with historical test data:
 
 ```bash
 # Load historical test results
-history_file=".fractary/plugins/devops/test-reports/${environment}/history.json"
+history_file=".fractary/plugins/faber-cloud/test-reports/${environment}/history.json"
 
 # Calculate trends
 previous_critical=$(jq -r '.[-1].findings_summary.critical' ${history_file})
@@ -318,7 +318,7 @@ Generate final report combining all analysis:
 
 ```bash
 # Create comprehensive report
-report_path=".fractary/plugins/devops/test-reports/${environment}/${timestamp}-${phase}.json"
+report_path=".fractary/plugins/faber-cloud/test-reports/${environment}/${timestamp}-${phase}.json"
 
 jq -n \
   --arg status "${overall_status}" \

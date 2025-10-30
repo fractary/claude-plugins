@@ -1,29 +1,29 @@
 # Commands Reference
 
-Complete reference for all fractary-devops commands.
+Complete reference for all fractary-faber-cloud commands.
 
 ## Natural Language Entry Point
 
-### /fractary-devops:director
+### /fractary-faber-cloud:director
 
 **Description:** Natural language router for all plugin operations
 
 **Syntax:**
 ```bash
-/fractary-devops:director "<natural language request>"
+/fractary-faber-cloud:director "<natural language request>"
 ```
 
 **Examples:**
 ```bash
 # Infrastructure
-/fractary-devops:director "deploy my infrastructure to test"
-/fractary-devops:director "design an S3 bucket for user uploads"
-/fractary-devops:director "validate my terraform configuration"
+/fractary-faber-cloud:director "deploy my infrastructure to test"
+/fractary-faber-cloud:director "design an S3 bucket for user uploads"
+/fractary-faber-cloud:director "validate my terraform configuration"
 
 # Operations
-/fractary-devops:director "check if production is healthy"
-/fractary-devops:director "investigate errors in API Lambda"
-/fractary-devops:director "show me the logs"
+/fractary-faber-cloud:director "check if production is healthy"
+/fractary-faber-cloud:director "investigate errors in API Lambda"
+/fractary-faber-cloud:director "show me the logs"
 ```
 
 **How it works:**
@@ -39,13 +39,13 @@ Complete reference for all fractary-devops commands.
 
 ## Infrastructure Commands
 
-### /fractary-devops:infra-manage
+### /fractary-faber-cloud:infra-manage
 
 **Description:** Manage infrastructure lifecycle
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage <command> [options]
+/fractary-faber-cloud:infra-manage <command> [options]
 ```
 
 #### architect
@@ -54,7 +54,7 @@ Design infrastructure solutions from requirements.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage architect --feature="<description>"
+/fractary-faber-cloud:infra-manage architect --feature="<description>"
 ```
 
 **Options:**
@@ -63,12 +63,12 @@ Design infrastructure solutions from requirements.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage architect --feature="S3 bucket for user uploads"
-/fractary-devops:infra-manage architect --feature="API service with RDS database"
+/fractary-faber-cloud:infra-manage architect --feature="S3 bucket for user uploads"
+/fractary-faber-cloud:infra-manage architect --feature="API service with RDS database"
 ```
 
 **Output:**
-- Design document at `.fractary/plugins/devops/designs/<feature>.md`
+- Design document at `.fractary/plugins/faber-cloud/designs/<feature>.md`
 - Includes: resources, security, cost estimate, implementation plan
 
 #### engineer
@@ -77,7 +77,7 @@ Generate Terraform code from design documents.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage engineer --design=<design-file>
+/fractary-faber-cloud:infra-manage engineer --design=<design-file>
 ```
 
 **Options:**
@@ -86,8 +86,8 @@ Generate Terraform code from design documents.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage engineer --design=s3-bucket.md
-/fractary-devops:infra-manage engineer --design=api-service.md --env=test
+/fractary-faber-cloud:infra-manage engineer --design=s3-bucket.md
+/fractary-faber-cloud:infra-manage engineer --design=api-service.md --env=test
 ```
 
 **Output:**
@@ -101,7 +101,7 @@ Validate Terraform configuration.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage validate-config [--env=<env>]
+/fractary-faber-cloud:infra-manage validate-config [--env=<env>]
 ```
 
 **Options:**
@@ -109,8 +109,8 @@ Validate Terraform configuration.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage validate-config
-/fractary-devops:infra-manage validate-config --env=test
+/fractary-faber-cloud:infra-manage validate-config
+/fractary-faber-cloud:infra-manage validate-config --env=test
 ```
 
 **Checks:**
@@ -126,7 +126,7 @@ Run pre or post-deployment tests.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage test --env=<env> --phase=<phase>
+/fractary-faber-cloud:infra-manage test --env=<env> --phase=<phase>
 ```
 
 **Options:**
@@ -135,8 +135,8 @@ Run pre or post-deployment tests.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage test --env=test --phase=pre-deployment
-/fractary-devops:infra-manage test --env=test --phase=post-deployment
+/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:infra-manage test --env=test --phase=post-deployment
 ```
 
 **Pre-deployment tests:**
@@ -155,7 +155,7 @@ Generate Terraform execution plan.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage preview-changes --env=<env>
+/fractary-faber-cloud:infra-manage preview-changes --env=<env>
 ```
 
 **Options:**
@@ -163,8 +163,8 @@ Generate Terraform execution plan.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage preview-changes --env=test
-/fractary-devops:infra-manage preview-changes --env=prod
+/fractary-faber-cloud:infra-manage preview-changes --env=test
+/fractary-faber-cloud:infra-manage preview-changes --env=prod
 ```
 
 **Shows:**
@@ -178,7 +178,7 @@ Execute infrastructure deployment.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage deploy --env=<env> [options]
+/fractary-faber-cloud:infra-manage deploy --env=<env> [options]
 ```
 
 **Options:**
@@ -188,8 +188,8 @@ Execute infrastructure deployment.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage deploy --env=test
-/fractary-devops:infra-manage deploy --env=prod
+/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=prod
 ```
 
 **Workflow:**
@@ -211,7 +211,7 @@ Display deployed resources.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage show-resources --env=<env>
+/fractary-faber-cloud:infra-manage show-resources --env=<env>
 ```
 
 **Options:**
@@ -219,8 +219,8 @@ Display deployed resources.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage show-resources --env=test
-/fractary-devops:infra-manage show-resources --env=prod
+/fractary-faber-cloud:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env=prod
 ```
 
 **Shows:**
@@ -235,7 +235,7 @@ Analyze and troubleshoot errors.
 
 **Syntax:**
 ```bash
-/fractary-devops:infra-manage debug --error="<error>" [options]
+/fractary-faber-cloud:infra-manage debug --error="<error>" [options]
 ```
 
 **Options:**
@@ -245,8 +245,8 @@ Analyze and troubleshoot errors.
 
 **Examples:**
 ```bash
-/fractary-devops:infra-manage debug --error="AccessDenied: s3:PutObject"
-/fractary-devops:infra-manage debug --error="<full error>" --operation=deploy --env=test
+/fractary-faber-cloud:infra-manage debug --error="AccessDenied: s3:PutObject"
+/fractary-faber-cloud:infra-manage debug --error="<full error>" --operation=deploy --env=test
 ```
 
 **Provides:**
@@ -259,13 +259,13 @@ Analyze and troubleshoot errors.
 
 ## Operations Commands
 
-### /fractary-devops:ops-manage
+### /fractary-faber-cloud:ops-manage
 
 **Description:** Manage runtime operations
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage <command> [options]
+/fractary-faber-cloud:ops-manage <command> [options]
 ```
 
 #### check-health
@@ -274,7 +274,7 @@ Check health of deployed services.
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage check-health --env=<env> [options]
+/fractary-faber-cloud:ops-manage check-health --env=<env> [options]
 ```
 
 **Options:**
@@ -283,8 +283,8 @@ Check health of deployed services.
 
 **Examples:**
 ```bash
-/fractary-devops:ops-manage check-health --env=prod
-/fractary-devops:ops-manage check-health --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
 ```
 
 **Checks:**
@@ -305,7 +305,7 @@ Query CloudWatch logs.
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage query-logs --env=<env> [options]
+/fractary-faber-cloud:ops-manage query-logs --env=<env> [options]
 ```
 
 **Options:**
@@ -316,9 +316,9 @@ Query CloudWatch logs.
 
 **Examples:**
 ```bash
-/fractary-devops:ops-manage query-logs --env=prod --filter=ERROR
-/fractary-devops:ops-manage query-logs --env=prod --service=api-lambda --filter="Database timeout"
-/fractary-devops:ops-manage query-logs --env=prod --timeframe=24h
+/fractary-faber-cloud:ops-manage query-logs --env=prod --filter=ERROR
+/fractary-faber-cloud:ops-manage query-logs --env=prod --service=api-lambda --filter="Database timeout"
+/fractary-faber-cloud:ops-manage query-logs --env=prod --timeframe=24h
 ```
 
 **Timeframe formats:**
@@ -332,7 +332,7 @@ Investigate incidents with root cause analysis.
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage investigate --env=<env> [options]
+/fractary-faber-cloud:ops-manage investigate --env=<env> [options]
 ```
 
 **Options:**
@@ -342,8 +342,8 @@ Investigate incidents with root cause analysis.
 
 **Examples:**
 ```bash
-/fractary-devops:ops-manage investigate --env=prod
-/fractary-devops:ops-manage investigate --env=prod --service=api-lambda --timeframe=4h
+/fractary-faber-cloud:ops-manage investigate --env=prod
+/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda --timeframe=4h
 ```
 
 **Provides:**
@@ -359,7 +359,7 @@ Analyze performance metrics.
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage analyze-performance --env=<env> [options]
+/fractary-faber-cloud:ops-manage analyze-performance --env=<env> [options]
 ```
 
 **Options:**
@@ -369,8 +369,8 @@ Analyze performance metrics.
 
 **Examples:**
 ```bash
-/fractary-devops:ops-manage analyze-performance --env=prod
-/fractary-devops:ops-manage analyze-performance --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage analyze-performance --env=prod
+/fractary-faber-cloud:ops-manage analyze-performance --env=prod --service=api-lambda
 ```
 
 **Analyzes:**
@@ -386,7 +386,7 @@ Apply remediations to fix issues.
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage remediate --env=<env> --service=<name> --action=<action>
+/fractary-faber-cloud:ops-manage remediate --env=<env> --service=<name> --action=<action>
 ```
 
 **Options:**
@@ -401,8 +401,8 @@ Apply remediations to fix issues.
 
 **Examples:**
 ```bash
-/fractary-devops:ops-manage remediate --env=prod --service=api-lambda --action=restart
-/fractary-devops:ops-manage remediate --env=prod --service=ecs-service --action=scale
+/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env=prod --service=ecs-service --action=scale
 ```
 
 **Production:**
@@ -417,7 +417,7 @@ Audit costs, security, or compliance.
 
 **Syntax:**
 ```bash
-/fractary-devops:ops-manage audit --env=<env> [options]
+/fractary-faber-cloud:ops-manage audit --env=<env> [options]
 ```
 
 **Options:**
@@ -432,9 +432,9 @@ Audit costs, security, or compliance.
 
 **Examples:**
 ```bash
-/fractary-devops:ops-manage audit --env=test --focus=cost
-/fractary-devops:ops-manage audit --env=prod --focus=security
-/fractary-devops:ops-manage audit --env=prod
+/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env=prod --focus=security
+/fractary-faber-cloud:ops-manage audit --env=prod
 ```
 
 **Cost audit provides:**
@@ -455,13 +455,13 @@ Audit costs, security, or compliance.
 
 ## Configuration Command
 
-### /fractary-devops:init
+### /fractary-faber-cloud:init
 
 **Description:** Initialize plugin configuration
 
 **Syntax:**
 ```bash
-/fractary-devops:init --provider=<provider> --iac=<tool> [options]
+/fractary-faber-cloud:init --provider=<provider> --iac=<tool> [options]
 ```
 
 **Options:**
@@ -471,12 +471,12 @@ Audit costs, security, or compliance.
 
 **Examples:**
 ```bash
-/fractary-devops:init --provider=aws --iac=terraform
-/fractary-devops:init --provider=aws --iac=terraform --env=test
+/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform --env=test
 ```
 
 **Creates:**
-- Configuration file at `.fractary/plugins/devops/config/devops.json`
+- Configuration file at `.fractary/plugins/faber-cloud/config/devops.json`
 - Directory structure
 - Auto-discovers project settings
 
@@ -494,27 +494,27 @@ Audit costs, security, or compliance.
 
 **Deploy:**
 ```bash
-/fractary-devops:director "deploy to test"
+/fractary-faber-cloud:director "deploy to test"
 ```
 
 **Check health:**
 ```bash
-/fractary-devops:director "check health"
+/fractary-faber-cloud:director "check health"
 ```
 
 **Investigate:**
 ```bash
-/fractary-devops:director "investigate errors"
+/fractary-faber-cloud:director "investigate errors"
 ```
 
 **Show resources:**
 ```bash
-/fractary-devops:director "show resources"
+/fractary-faber-cloud:director "show resources"
 ```
 
 **Analyze costs:**
 ```bash
-/fractary-devops:director "analyze costs"
+/fractary-faber-cloud:director "analyze costs"
 ```
 
 ### Environment Flags

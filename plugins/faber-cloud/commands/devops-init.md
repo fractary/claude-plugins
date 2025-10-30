@@ -1,24 +1,24 @@
 ---
 name: devops-init
-description: Initialize DevOps plugin configuration for cloud infrastructure management - routes to init-manager agent
-tags: [devops, initialization, configuration, setup]
+description: Initialize faber-cloud plugin configuration for cloud infrastructure management - routes to init-manager agent
+tags: [faber-cloud, initialization, configuration, setup]
 examples:
-  - trigger: "/fractary-devops:init"
-    action: "Invoke init-manager agent to initialize DevOps configuration"
-  - trigger: "/fractary-devops:init --provider=aws --iac=terraform"
+  - trigger: "/fractary-faber-cloud:init"
+    action: "Invoke init-manager agent to initialize faber-cloud configuration"
+  - trigger: "/fractary-faber-cloud:init --provider=aws --iac=terraform"
     action: "Invoke init-manager with specified provider and IaC tool"
 ---
 
-# fractary-devops:init
+# fractary-faber-cloud:init
 
-Initializes the DevOps plugin configuration for your project. Creates the configuration file at `.fractary/plugins/devops/config/devops.json` with project-specific settings for cloud infrastructure management.
+Initializes the DevOps plugin configuration for your project. Creates the configuration file at `.fractary/plugins/faber-cloud/config/devops.json` with project-specific settings for cloud infrastructure management.
 
 <CRITICAL_RULES>
 **YOU MUST:**
 - Create initialization script directly (this is a setup command)
 - Do NOT invoke any agents (this is an exception to the normal pattern)
 - Prompt user for required configuration values
-- Create `.fractary/plugins/devops/config/` directory
+- Create `.fractary/plugins/faber-cloud/config/` directory
 - Generate `devops.json` from template at `skills/devops-common/templates/devops.json.template`
 - Validate all inputs before saving
 - Do NOT commit the config file (contains secrets/profiles)
@@ -35,12 +35,12 @@ This is an exception to the normal pattern because it's a one-time setup command
 4. For AWS: Get account ID via `aws sts get-caller-identity`, prompt for region
 5. Read template from `skills/devops-common/templates/devops.json.template`
 6. Substitute all placeholders with user values
-7. Create config directory: `.fractary/plugins/devops/config/`
-8. Save to `.fractary/plugins/devops/config/devops.json`
+7. Create config directory: `.fractary/plugins/faber-cloud/config/`
+8. Save to `.fractary/plugins/faber-cloud/config/devops.json`
 9. Display configuration summary and next steps
 </IMPLEMENTATION>
 
-Create `.fractary/plugins/devops/config/devops.json` configuration file for this project.
+Create `.fractary/plugins/faber-cloud/config/devops.json` configuration file for this project.
 
 ## Your Task
 
@@ -59,7 +59,7 @@ Set up DevOps automation configuration by:
 3. **Generate Configuration**
    - Use template from `skills/devops-common/templates/devops-config.json.template`
    - Substitute detected values
-   - Create `.fractary/.config/devops.json`
+   - Create `.fractary/plugins/faber-cloud/config/faber-cloud.json`
 
 4. **Validate Setup**
    - Verify AWS profiles exist
@@ -157,9 +157,9 @@ After generating configuration:
 
 1. **File Structure Check**
    ```bash
-   # Verify .fractary/.config/devops.json exists
+   # Verify .fractary/plugins/faber-cloud/config/faber-cloud.json exists
    # Validate JSON syntax
-   jq empty .fractary/.config/devops.json
+   jq empty .fractary/plugins/faber-cloud/config/faber-cloud.json
    ```
 
 2. **AWS Profile Validation**
@@ -204,12 +204,12 @@ AWS Profiles:
   ✓ Test: corthuxa-core-test-deploy
   ✓ Prod: corthuxa-core-prod-deploy
 
-Configuration saved to: .fractary/.config/devops.json
+Configuration saved to: .fractary/plugins/faber-cloud/config/faber-cloud.json
 
 Next steps:
-  - Review configuration: cat .fractary/.config/devops.json
-  - Validate setup: /devops:validate
-  - Deploy infrastructure: /devops:deploy test
+  - Review configuration: cat .fractary/plugins/faber-cloud/config/faber-cloud.json
+  - Validate setup: /faber-cloud:validate
+  - Deploy infrastructure: /faber-cloud:deploy test
 ```
 
 ## Error Handling
@@ -244,6 +244,6 @@ Next steps:
 
 ## Related Commands
 
-- `/devops:validate` - Validate existing configuration
-- `/devops:status` - Show current configuration status
-- `/devops:deploy` - Deploy infrastructure using configuration
+- `/faber-cloud:validate` - Validate existing configuration
+- `/faber-cloud:status` - Show current configuration status
+- `/faber-cloud:deploy` - Deploy infrastructure using configuration

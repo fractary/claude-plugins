@@ -45,7 +45,7 @@ fi
 load_config "$ENVIRONMENT"
 
 # Define registry paths
-REGISTRY_DIR="${DEVOPS_PROJECT_ROOT}/.fractary/plugins/devops/deployments/${ENVIRONMENT}"
+REGISTRY_DIR="${DEVOPS_PROJECT_ROOT}/.fractary/plugins/faber-cloud/deployments/${ENVIRONMENT}"
 REGISTRY_FILE="${REGISTRY_DIR}/registry.json"
 DEPLOYED_DOC="${REGISTRY_DIR}/DEPLOYED.md"
 

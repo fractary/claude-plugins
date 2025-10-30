@@ -3,13 +3,13 @@ name: infra-manage
 description: Manage infrastructure lifecycle - routes to infra-manager agent for architecture, deployment, and resource management
 tags: [devops, infrastructure, deployment, management]
 examples:
-  - trigger: "/fractary-devops:infra-manage deploy --env=test"
+  - trigger: "/fractary-faber-cloud:infra-manage deploy --env=test"
     action: "Invoke infra-manager agent to deploy infrastructure to test"
-  - trigger: "/fractary-devops:infra-manage architect --feature='user uploads'"
+  - trigger: "/fractary-faber-cloud:infra-manage architect --feature='user uploads'"
     action: "Invoke infra-manager agent to design infrastructure"
 ---
 
-# fractary-devops:infra-manage
+# fractary-faber-cloud:infra-manage
 
 Manages infrastructure lifecycle operations including design, engineering, validation, preview, and deployment.
 
@@ -28,7 +28,7 @@ Parse user input and invoke infra-manager agent with all arguments:
 
 ```bash
 # Parse the command
-# Example: /fractary-devops:infra-manage deploy --env=test
+# Example: /fractary-faber-cloud:infra-manage deploy --env=test
 
 # YOU MUST INVOKE AGENT:
 # Use the SlashCommand tool to invoke the agent:
@@ -51,22 +51,22 @@ ARGUMENTS="--env=test"
 
 <EXAMPLES>
 <example>
-User: /fractary-devops:infra-manage deploy --env=test
+User: /fractary-faber-cloud:infra-manage deploy --env=test
 Action: Invoke infra-manager agent with: "deploy --env=test"
 </example>
 
 <example>
-User: /fractary-devops:infra-manage architect --feature="user uploads"
+User: /fractary-faber-cloud:infra-manage architect --feature="user uploads"
 Action: Invoke infra-manager agent with: "architect --feature='user uploads'"
 </example>
 
 <example>
-User: /fractary-devops:infra-manage show-resources --env=prod
+User: /fractary-faber-cloud:infra-manage show-resources --env=prod
 Action: Invoke infra-manager agent with: "show-resources --env=prod"
 </example>
 
 <example>
-User: /fractary-devops:infra-manage validate
+User: /fractary-faber-cloud:infra-manage validate
 Action: Invoke infra-manager agent with: "validate"
 </example>
 </EXAMPLES>
@@ -85,26 +85,26 @@ Action: Invoke infra-manager agent with: "validate"
 
 ```bash
 # Design infrastructure
-/fractary-devops:infra-manage architect --feature="S3 bucket for user uploads"
+/fractary-faber-cloud:infra-manage architect --feature="S3 bucket for user uploads"
 
 # Generate Terraform code
-/fractary-devops:infra-manage engineer --design="user-uploads.md"
+/fractary-faber-cloud:infra-manage engineer --design="user-uploads.md"
 
 # Validate configuration
-/fractary-devops:infra-manage validate --env=test
+/fractary-faber-cloud:infra-manage validate --env=test
 
 # Preview changes
-/fractary-devops:infra-manage preview --env=test
+/fractary-faber-cloud:infra-manage preview --env=test
 
 # Deploy to test
-/fractary-devops:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env=test
 
 # Deploy to production (requires confirmation)
-/fractary-devops:infra-manage deploy --env=prod
+/fractary-faber-cloud:infra-manage deploy --env=prod
 
 # Show deployed resources
-/fractary-devops:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env=test
 
 # Check status
-/fractary-devops:infra-manage status
+/fractary-faber-cloud:infra-manage status
 ```

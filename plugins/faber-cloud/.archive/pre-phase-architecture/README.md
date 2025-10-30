@@ -136,10 +136,10 @@ All functionality from the old architecture has been preserved and enhanced:
 
 For current plugin documentation, see:
 - [README.md](../../README.md) - Plugin overview and quick start
-- [ARCHITECTURE.md](../../ARCHITECTURE.md) - Current architecture
+- [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md) - Current architecture
 - [docs/guides/getting-started.md](../../docs/guides/getting-started.md) - Getting started
 - [docs/guides/user-guide.md](../../docs/guides/user-guide.md) - Complete user guide
-- [PHASE-4-COMPLETE.md](../../PHASE-4-COMPLETE.md) - Phase 4 summary
+- [PHASE-4-COMPLETE.md](../../docs/specs/status/PHASE-4-COMPLETE.md) - Phase 4 summary
 
 ---
 

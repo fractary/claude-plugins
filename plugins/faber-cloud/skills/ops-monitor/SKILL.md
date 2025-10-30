@@ -33,7 +33,7 @@ What this skill receives:
 - service: Optional specific service to check (or all if not specified)
 - metric: Optional specific metric to query
 - timeframe: Time period for analysis (default: 1h)
-- config: Configuration from .fractary/plugins/devops/config/devops.json
+- config: Configuration from .fractary/plugins/faber-cloud/config/devops.json
 </INPUTS>
 
 <WORKFLOW>
@@ -49,8 +49,8 @@ ${service ? "Service: " + service : "Checking all services"}
 **EXECUTE STEPS:**
 
 **Step 1: Load Configuration and Registry**
-- Read: .fractary/plugins/devops/config/devops.json
-- Read: .fractary/plugins/devops/deployments/${environment}/registry.json
+- Read: .fractary/plugins/faber-cloud/config/devops.json
+- Read: .fractary/plugins/faber-cloud/deployments/${environment}/registry.json
 - Extract: List of deployed resources to monitor
 - Output: "✓ Found ${resource_count} resources to monitor"
 
@@ -89,7 +89,7 @@ ${service ? "Service: " + service : "Checking all services"}
   - Metrics summary
   - Issues found
   - Recommendations
-- Save to: .fractary/plugins/devops/monitoring/${environment}/${timestamp}-${operation}.json
+- Save to: .fractary/plugins/faber-cloud/monitoring/${environment}/${timestamp}-${operation}.json
 - Output: "✓ Report generated: ${report_path}"
 
 **Step 6: Check Thresholds**
@@ -184,7 +184,7 @@ This skill is complete and successful when ALL verified:
 After successful completion, return to agent:
 
 1. **Monitoring Report**
-   - Location: .fractary/plugins/devops/monitoring/${environment}/${timestamp}-${operation}.json
+   - Location: .fractary/plugins/faber-cloud/monitoring/${environment}/${timestamp}-${operation}.json
    - Format: JSON with detailed findings
    - Contains: Health status, metrics, issues, recommendations
 
@@ -235,7 +235,7 @@ Return to agent:
     "Review database connection pooling"
   ],
 
-  "report_path": ".fractary/plugins/devops/monitoring/test/2025-10-28-health-check.json"
+  "report_path": ".fractary/plugins/faber-cloud/monitoring/test/2025-10-28-health-check.json"
 }
 ```
 </OUTPUTS>
@@ -258,7 +258,7 @@ After monitoring operation:
 - Track metric trends over time
 
 Reports are stored in:
-- .fractary/plugins/devops/monitoring/${environment}/${timestamp}-${operation}.json
+- .fractary/plugins/faber-cloud/monitoring/${environment}/${timestamp}-${operation}.json
 - Historical trends in monitoring-history.json
 </DOCUMENTATION>
 

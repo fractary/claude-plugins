@@ -11,7 +11,7 @@ Shared utilities used across all DevOps skills.
 ## Purpose
 
 This skill provides:
-- Configuration loading from `.fractary/.config/devops.json`
+- Configuration loading from `.fractary/plugins/faber-cloud/config/faber-cloud.json`
 - Pattern substitution (`{project}`, `{environment}`, etc.)
 - Auto-discovery fallbacks when config is missing
 - Validation and error handling
@@ -66,9 +66,9 @@ AWS_PROFILE=$(get_aws_profile "test")
 
 ### templates/devops-config.json.template
 
-Template for generating `.fractary/.config/devops.json`:
+Template for generating `.fractary/plugins/faber-cloud/config/faber-cloud.json`:
 - Placeholders: `{{PROJECT_NAME}}`, `{{NAMESPACE}}`, etc.
-- Used by `/devops:init` command
+- Used by `/faber-cloud:init` command
 - Includes sensible defaults
 
 ## Auto-Discovery
@@ -96,7 +96,7 @@ Result: "corthuxa-test-bucket"
 
 ## Configuration Schema
 
-See `/docs/specs/fractary-devops-plugin-spec.md` for complete schema.
+See `/docs/specs/fractary-faber-cloud-plugin-spec.md` for complete schema.
 
 ## Used By
 

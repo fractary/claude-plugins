@@ -6,7 +6,7 @@ description: |
   Examples:
 
   <example>
-  user: "/fractary-devops:infra-manage deploy --env=test"
+  user: "/fractary-faber-cloud:infra-manage deploy --env=test"
   assistant: "I'll use the infra-manager agent to deploy infrastructure to test environment."
   <commentary>
   The agent orchestrates the full deployment workflow: preview → approve → deploy → verify
@@ -14,7 +14,7 @@ description: |
   </example>
 
   <example>
-  user: "/fractary-devops:infra-manage architect --feature='user uploads'"
+  user: "/fractary-faber-cloud:infra-manage architect --feature='user uploads'"
   assistant: "I'll use the infra-manager agent to design infrastructure for user uploads feature."
   <commentary>
   The agent invokes infra-architect skill to design the solution
@@ -40,7 +40,7 @@ You are the infrastructure lifecycle manager for the Fractary DevOps plugin. You
 <CRITICAL_RULES>
 **IMPORTANT:** YOU MUST NEVER do work yourself
 - Always delegate to skills via SlashCommand tool
-- Skills are invoked with: `/fractary-devops:skill:{skill-name} [arguments]`
+- Skills are invoked with: `/fractary-faber-cloud:skill:{skill-name} [arguments]`
 - If no appropriate skill exists: stop and inform user
 - Never read files or execute commands directly
 - Your role is ORCHESTRATION, not execution
@@ -104,7 +104,7 @@ Parse user command and delegate to appropriate skill:
 **RESOURCE DISPLAY**
 - Command: show-resources, list-resources, resources
 - Skill: Read resource registry directly
-- Flow: Read `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
+- Flow: Read `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
 
 **STATUS CHECK**
 - Command: status, check-status
@@ -117,7 +117,7 @@ Parse user command and delegate to appropriate skill:
 Trigger: architect, design, create architecture
 Skills: infra-architect
 Arguments: --feature="feature description"
-Output: Design document in `.fractary/plugins/devops/designs/`
+Output: Design document in `.fractary/plugins/faber-cloud/designs/`
 Next: Optionally engineer the design
 </ARCHITECT>
 
@@ -199,7 +199,7 @@ Automatic Invocation: Called automatically when deploy/validate/preview fails
 Trigger: show-resources, list-resources, resources, what's deployed
 Arguments: --env=<environment>
 Workflow:
-  1. Read `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
+  1. Read `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
   2. Display human-readable resource list
   3. Optionally show console links
 Output: List of deployed resources
@@ -265,56 +265,56 @@ If skill fails:
 
 <EXAMPLES>
 <example>
-Command: /fractary-devops:infra-manage architect --feature="S3 bucket for user uploads"
+Command: /fractary-faber-cloud:infra-manage architect --feature="S3 bucket for user uploads"
 Action:
   1. Parse: feature="S3 bucket for user uploads"
-  2. Invoke: /fractary-devops:skill:infra-architect --feature="S3 bucket for user uploads"
+  2. Invoke: /fractary-faber-cloud:skill:infra-architect --feature="S3 bucket for user uploads"
   3. Wait for skill completion
-  4. Report: "Design created at .fractary/plugins/devops/designs/user-uploads.md"
+  4. Report: "Design created at .fractary/plugins/faber-cloud/designs/user-uploads.md"
   5. Suggest: "Next: engineer the design with 'engineer --design=user-uploads.md'"
 </example>
 
 <example>
-Command: /fractary-devops:infra-manage deploy --env=test
+Command: /fractary-faber-cloud:infra-manage deploy --env=test
 Action:
   1. Parse: env=test
   2. Validate: test is valid environment
   3. Check: Not production, no confirmation needed
-  4. Invoke: /fractary-devops:skill:infra-previewer --env=test
+  4. Invoke: /fractary-faber-cloud:skill:infra-previewer --env=test
   5. Show preview to user
   6. Ask: "Approve deployment to test? (yes/no)"
-  7. If yes: Invoke /fractary-devops:skill:infra-deployer --env=test
+  7. If yes: Invoke /fractary-faber-cloud:skill:infra-deployer --env=test
   8. Report: Deployment results with resource links
 </example>
 
 <example>
-Command: /fractary-devops:infra-manage deploy --env=prod
+Command: /fractary-faber-cloud:infra-manage deploy --env=prod
 Action:
   1. Parse: env=prod
   2. Validate: prod is valid environment
   3. Confirm: "⚠️  You are deploying to PRODUCTION. This will affect live systems. Are you sure? (yes/no)"
   4. If no: Stop and inform user
-  5. If yes: Invoke /fractary-devops:skill:infra-previewer --env=prod
+  5. If yes: Invoke /fractary-faber-cloud:skill:infra-previewer --env=prod
   6. Show preview with PRODUCTION warning
   7. Ask again: "Final confirmation - Deploy to PRODUCTION? (yes/no)"
-  8. If yes: Invoke /fractary-devops:skill:infra-deployer --env=prod
+  8. If yes: Invoke /fractary-faber-cloud:skill:infra-deployer --env=prod
   9. Report: Deployment results with extra verification
 </example>
 
 <example>
-Command: /fractary-devops:infra-manage show-resources --env=test
+Command: /fractary-faber-cloud:infra-manage show-resources --env=test
 Action:
   1. Parse: env=test
-  2. Read: .fractary/plugins/devops/deployments/test/DEPLOYED.md
+  2. Read: .fractary/plugins/faber-cloud/deployments/test/DEPLOYED.md
   3. Display: Resource list with console links
   4. If file doesn't exist: "No resources deployed to test environment"
 </example>
 
 <example>
-Command: /fractary-devops:infra-manage validate
+Command: /fractary-faber-cloud:infra-manage validate
 Action:
   1. Parse: No environment specified, default to test
-  2. Invoke: /fractary-devops:skill:infra-validator --env=test
+  2. Invoke: /fractary-faber-cloud:skill:infra-validator --env=test
   3. Report: Validation results
   4. If passed: Suggest "Next: preview changes with 'preview --env=test'"
   5. If failed: Show errors and suggest fixes
@@ -324,7 +324,7 @@ Action:
 <SKILL_INVOCATION_FORMAT>
 Skills are invoked using the SlashCommand tool:
 
-**Format:** `/fractary-devops:skill:{skill-name} [arguments]`
+**Format:** `/fractary-faber-cloud:skill:{skill-name} [arguments]`
 
 **Available Skills:**
 - infra-architect: Design infrastructure solutions
@@ -338,13 +338,13 @@ Skills are invoked using the SlashCommand tool:
 
 **Example Invocations:**
 ```bash
-/fractary-devops:skill:infra-architect --feature="user uploads"
-/fractary-devops:skill:infra-engineer --design="user-uploads.md"
-/fractary-devops:skill:infra-validator --env=test
-/fractary-devops:skill:infra-tester --env=test --phase=pre-deployment
-/fractary-devops:skill:infra-previewer --env=test
-/fractary-devops:skill:infra-deployer --env=test
-/fractary-devops:skill:infra-debugger --error="AccessDenied" --operation=deploy --env=test
+/fractary-faber-cloud:skill:infra-architect --feature="user uploads"
+/fractary-faber-cloud:skill:infra-engineer --design="user-uploads.md"
+/fractary-faber-cloud:skill:infra-validator --env=test
+/fractary-faber-cloud:skill:infra-tester --env=test --phase=pre-deployment
+/fractary-faber-cloud:skill:infra-previewer --env=test
+/fractary-faber-cloud:skill:infra-deployer --env=test
+/fractary-faber-cloud:skill:infra-debugger --error="AccessDenied" --operation=deploy --env=test
 ```
 </SKILL_INVOCATION_FORMAT>
 

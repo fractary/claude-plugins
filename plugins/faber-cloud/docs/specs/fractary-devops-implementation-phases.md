@@ -26,7 +26,7 @@ Working infra-manager with AWS + Terraform support
 - `devops-common` skill with config-loader
 - Configuration schema and template
 - Pattern substitution system
-- `/fractary-devops:init` command
+- `/fractary-faber-cloud:init` command
 
 **3. infra-manager Agent**
 - Agent with command routing
@@ -61,12 +61,12 @@ Working infra-manager with AWS + Terraform support
 - Console URL generation
 
 **8. Commands**
-- `/fractary-devops:init`
-- `/fractary-devops:infra-manage`
+- `/fractary-faber-cloud:init`
+- `/fractary-faber-cloud:infra-manage`
 
 ### Success Criteria
 
-✅ Can initialize new project with `/fractary-devops:init`
+✅ Can initialize new project with `/fractary-faber-cloud:init`
 ✅ Can design infrastructure with `architect` command
 ✅ Can implement designs with `engineer` command
 ✅ Can validate terraform with `validate-config` command
@@ -174,7 +174,7 @@ Working ops-manager with monitoring and incident response
 - Log aggregation
 
 **7. Commands**
-- `/fractary-devops:ops-manage`
+- `/fractary-faber-cloud:ops-manage`
 
 ### Success Criteria
 
@@ -215,7 +215,7 @@ Natural language interface and production-ready polish
 - Reference docs (commands, agents, skills)
 - Architecture decision log
 
-**3. Command: `/fractary-devops:director`**
+**3. Command: `/fractary-faber-cloud:director`**
 
 **4. Error Handling Improvements**
 - Better error messages

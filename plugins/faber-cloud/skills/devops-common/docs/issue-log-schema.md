@@ -4,7 +4,7 @@
 The issue log tracks infrastructure deployment errors, their solutions, and success rates for intelligent debugging.
 
 ## File Location
-`.fractary/plugins/devops/deployments/issue-log.json`
+`.fractary/plugins/faber-cloud/deployments/issue-log.json`
 
 ## Schema Definition
 

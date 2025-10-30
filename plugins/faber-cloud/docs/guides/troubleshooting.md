@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues and solutions for the fractary-devops plugin.
+Common issues and solutions for the fractary-faber-cloud plugin.
 
 ## Permission Errors
 
@@ -21,7 +21,7 @@ The plugin can auto-fix permission errors:
 
 **Manual fix:**
 ```bash
-/fractary-devops:infra-manage debug --error="<error message>"
+/fractary-faber-cloud:infra-manage debug --error="<error message>"
 # Follow instructions to grant permission manually
 ```
 
@@ -40,7 +40,7 @@ Error: Using test profile for production deployment
 
 2. Verify config file has correct profiles:
    ```bash
-   cat .fractary/plugins/devops/config/devops.json
+   cat .fractary/plugins/faber-cloud/config/devops.json
    ```
 
 3. Update profiles in config if needed:
@@ -78,20 +78,20 @@ Error: Invalid resource block on main.tf line 45
 
 3. Validate before deploying:
    ```bash
-   /fractary-devops:director "validate configuration"
+   /fractary-faber-cloud:director "validate configuration"
    ```
 
 ### Issue: Configuration file not found
 
 **Error:**
 ```
-Error: Configuration file not found at .fractary/plugins/devops/config/devops.json
+Error: Configuration file not found at .fractary/plugins/faber-cloud/config/devops.json
 ```
 
 **Solution:**
 Initialize the configuration:
 ```bash
-/fractary-devops:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
 ## Deployment Errors
@@ -151,7 +151,7 @@ Error: Timeout waiting for resource to be ready
 
 3. If resource failed, check CloudWatch logs:
    ```bash
-   /fractary-devops:director "show me logs from <service>"
+   /fractary-faber-cloud:director "show me logs from <service>"
    ```
 
 ## Director Routing Issues
@@ -210,7 +210,7 @@ Error: No metrics found for resource
 
 2. Verify resource exists:
    ```bash
-   /fractary-devops:director "show deployed resources"
+   /fractary-faber-cloud:director "show deployed resources"
    ```
 
 3. Check CloudWatch permissions:
@@ -256,7 +256,7 @@ pip install tfsec
 
 Or skip tests (not recommended):
 ```bash
-/fractary-devops:infra-manage deploy --env=test --skip-tests
+/fractary-faber-cloud:infra-manage deploy --env=test --skip-tests
 ```
 
 ### Issue: Cost estimation errors
@@ -286,7 +286,7 @@ Cannot estimate costs
 1. **Reduce resources checked:**
    Check specific services instead of all:
    ```bash
-   /fractary-devops:ops-manage check-health --env=test --service=api-lambda
+   /fractary-faber-cloud:ops-manage check-health --env=test --service=api-lambda
    ```
 
 2. **Optimize Terraform:**
@@ -330,7 +330,7 @@ Cannot estimate costs
 **Fix:**
 1. Read the error details
 2. Follow specific guidance
-3. Check logs at `.fractary/plugins/devops/logs/`
+3. Check logs at `.fractary/plugins/faber-cloud/logs/`
 
 ### "Environment not configured"
 
@@ -380,7 +380,7 @@ Enable detailed logging:
 
 Check logs:
 ```bash
-tail -f .fractary/plugins/devops/logs/debug.log
+tail -f .fractary/plugins/faber-cloud/logs/debug.log
 ```
 
 ## Getting Additional Help
@@ -391,12 +391,12 @@ If you're still stuck:
    - [Getting Started](getting-started.md)
    - [User Guide](user-guide.md)
    - [README](../../README.md)
-   - [Architecture](../../ARCHITECTURE.md)
+   - [Architecture](../architecture/ARCHITECTURE.md)
 
 2. **Review generated docs:**
-   - Registry: `.fractary/plugins/devops/deployments/{env}/registry.json`
-   - Deployed: `.fractary/plugins/devops/deployments/{env}/DEPLOYED.md`
-   - Issue log: `.fractary/plugins/devops/deployments/issue-log.json`
+   - Registry: `.fractary/plugins/faber-cloud/deployments/{env}/registry.json`
+   - Deployed: `.fractary/plugins/faber-cloud/deployments/{env}/DEPLOYED.md`
+   - Issue log: `.fractary/plugins/faber-cloud/deployments/issue-log.json`
 
 3. **File an issue:**
    - GitHub: https://github.com/fractary/claude-plugins/issues
@@ -408,7 +408,7 @@ If you're still stuck:
 
 1. **Always test first:**
    ```bash
-   /fractary-devops:director "deploy to test"
+   /fractary-faber-cloud:director "deploy to test"
    # Verify everything works before production
    ```
 
@@ -434,7 +434,7 @@ If you're still stuck:
 
 ```bash
 # Check configuration
-cat .fractary/plugins/devops/config/devops.json
+cat .fractary/plugins/faber-cloud/config/devops.json
 
 # Verify AWS credentials
 aws sts get-caller-identity
@@ -447,10 +447,10 @@ terraform version
 cd infrastructure/terraform && terraform validate
 
 # View deployed resources
-/fractary-devops:director "show resources"
+/fractary-faber-cloud:director "show resources"
 
 # Check recent errors
-cat .fractary/plugins/devops/deployments/issue-log.json | jq '.statistics'
+cat .fractary/plugins/faber-cloud/deployments/issue-log.json | jq '.statistics'
 ```
 
 ## FAQ

@@ -124,7 +124,7 @@ arn:aws:dynamodb:{region}:{account}:table/{project}-{subsystem}-prod-*
 </PERMISSION_SCOPING>
 
 <AUDIT_TRAIL>
-IAM Audit Log: `.fractary/plugins/devops/deployments/iam-audit.json`
+IAM Audit Log: `.fractary/plugins/faber-cloud/deployments/iam-audit.json`
 
 ```json
 {

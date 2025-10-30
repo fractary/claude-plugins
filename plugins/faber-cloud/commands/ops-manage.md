@@ -25,7 +25,7 @@ examples:
 Parse user input and invoke agent:
 
 ```bash
-# Example: /fractary-devops:ops-manage check-health --env=test
+# Example: /fractary-faber-cloud:ops-manage check-health --env=test
 
 # YOU MUST INVOKE AGENT:
 Invoke ops-manager with parsed arguments
@@ -39,17 +39,17 @@ Invoke ops-manager with parsed arguments
 
 <EXAMPLES>
 <example>
-User: /fractary-devops:ops-manage check-health --env=test
+User: /fractary-faber-cloud:ops-manage check-health --env=test
 Action: Invoke ops-manager with: check-health --env=test
 </example>
 
 <example>
-User: /fractary-devops:ops-manage query-logs --env=prod --service=api --filter=ERROR
+User: /fractary-faber-cloud:ops-manage query-logs --env=prod --service=api --filter=ERROR
 Action: Invoke ops-manager with: query-logs --env=prod --service=api --filter=ERROR
 </example>
 
 <example>
-User: /fractary-devops:ops-manage audit --env=test --focus=cost
+User: /fractary-faber-cloud:ops-manage audit --env=test --focus=cost
 Action: Invoke ops-manager with: audit --env=test --focus=cost
 </example>
 </EXAMPLES>

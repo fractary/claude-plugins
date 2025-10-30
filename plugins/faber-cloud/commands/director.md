@@ -1,6 +1,6 @@
 ---
 name: director
-description: Natural language entry point for fractary-devops - routes requests to appropriate manager
+description: Natural language entry point for fractary-faber-cloud - routes requests to appropriate manager
 examples:
   - trigger: "Deploy my application to production"
     action: "Invoke devops-director agent"
@@ -27,7 +27,7 @@ The devops-director agent handles all intent parsing and routing.
 Parse user input and invoke devops-director agent:
 
 ```bash
-# Example: /fractary-devops:director "deploy my app to production"
+# Example: /fractary-faber-cloud:director "deploy my app to production"
 
 # YOU MUST INVOKE AGENT:
 Invoke devops-director agent with user's full natural language request
@@ -48,36 +48,36 @@ Invoke devops-director agent with user's full natural language request
 
 <EXAMPLES>
 <example>
-User: /fractary-devops:director "check health of production services"
+User: /fractary-faber-cloud:director "check health of production services"
 Action: Invoke devops-director agent with request
-Director will route to: /fractary-devops:ops-manage check-health --env=prod
+Director will route to: /fractary-faber-cloud:ops-manage check-health --env=prod
 </example>
 
 <example>
-User: /fractary-devops:director "deploy infrastructure to test"
+User: /fractary-faber-cloud:director "deploy infrastructure to test"
 Action: Invoke devops-director agent with request
-Director will route to: /fractary-devops:infra-manage deploy --env=test
+Director will route to: /fractary-faber-cloud:infra-manage deploy --env=test
 </example>
 
 <example>
-User: /fractary-devops:director "design an S3 bucket for uploads"
+User: /fractary-faber-cloud:director "design an S3 bucket for uploads"
 Action: Invoke devops-director agent with request
-Director will route to: /fractary-devops:infra-manage architect --feature="S3 bucket for uploads"
+Director will route to: /fractary-faber-cloud:infra-manage architect --feature="S3 bucket for uploads"
 </example>
 
 <example>
-User: /fractary-devops:director "show me the logs from Lambda"
+User: /fractary-faber-cloud:director "show me the logs from Lambda"
 Action: Invoke devops-director agent with request
-Director will route to: /fractary-devops:ops-manage query-logs --service=Lambda
+Director will route to: /fractary-faber-cloud:ops-manage query-logs --service=Lambda
 </example>
 </EXAMPLES>
 
 <USAGE_NOTE>
-This command provides a natural language interface to all fractary-devops operations.
+This command provides a natural language interface to all fractary-faber-cloud operations.
 Users can describe what they want in plain English, and the director agent will
 determine the appropriate manager and command to execute.
 
 Alternative: Users can also invoke managers directly if they prefer:
-- /fractary-devops:infra-manage [command] [args]
-- /fractary-devops:ops-manage [command] [args]
+- /fractary-faber-cloud:infra-manage [command] [args]
+- /fractary-faber-cloud:ops-manage [command] [args]
 </USAGE_NOTE>

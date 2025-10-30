@@ -35,7 +35,7 @@ fi
 load_config "$ENVIRONMENT"
 
 # Define paths
-REGISTRY_DIR="${DEVOPS_PROJECT_ROOT}/.fractary/plugins/devops/deployments/${ENVIRONMENT}"
+REGISTRY_DIR="${DEVOPS_PROJECT_ROOT}/.fractary/plugins/faber-cloud/deployments/${ENVIRONMENT}"
 REGISTRY_FILE="${REGISTRY_DIR}/registry.json"
 DEPLOYED_DOC="${REGISTRY_DIR}/DEPLOYED.md"
 
@@ -100,16 +100,16 @@ cat >> "$DEPLOYED_DOC" <<EOF
 
 \`\`\`bash
 # View all resources
-/fractary-devops:infra-manage show-resources --env=${ENVIRONMENT}
+/fractary-faber-cloud:infra-manage show-resources --env=${ENVIRONMENT}
 
 # Deploy changes
-/fractary-devops:infra-manage deploy --env=${ENVIRONMENT}
+/fractary-faber-cloud:infra-manage deploy --env=${ENVIRONMENT}
 
 # Check status
-/fractary-devops:infra-manage status
+/fractary-faber-cloud:infra-manage status
 \`\`\`
 
-**Registry File:** \`.fractary/plugins/devops/deployments/${ENVIRONMENT}/registry.json\`
+**Registry File:** \`.fractary/plugins/faber-cloud/deployments/${ENVIRONMENT}/registry.json\`
 EOF
 
 log_success "Documentation generated: ${DEPLOYED_DOC}"

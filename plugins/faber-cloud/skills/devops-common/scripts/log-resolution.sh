@@ -18,7 +18,7 @@ set -euo pipefail
 # Default paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
-ISSUE_LOG_FILE="${PLUGIN_DIR}/.fractary/plugins/devops/deployments/issue-log.json"
+ISSUE_LOG_FILE="${PLUGIN_DIR}/.fractary/plugins/faber-cloud/deployments/issue-log.json"
 ISSUE_LOG_TEMPLATE="${SCRIPT_DIR}/../templates/issue-log.json.template"
 
 # Initialize variables
