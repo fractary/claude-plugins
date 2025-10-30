@@ -1,6 +1,9 @@
 {
   "name": "fractary-codex",
   "version": "1.0.0",
-  "description": "Fractary codex commands, agents, hooks, and skills."
+  "description": "Fractary codex commands, agents, hooks, and skills.",
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
 }
   
