@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:tag
 description: Create and push semantic version tags
+argument-hint: create <tag_name> [--message <text>] [--commit <sha>] [--sign] [--force] | push <tag_name|all> [--remote <name>] | list [--pattern <pattern>] [--latest <n>]
 ---
 
 # /repo:tag - Version Tag Management Command

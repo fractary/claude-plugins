@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:branch
 description: Create, delete, and manage Git branches
+argument-hint: create <work_id> <description> [--base <branch>] [--prefix <prefix>] | delete <branch_name> [--location <where>] [--force] | list [--stale] [--merged] [--days <n>] [--pattern <pattern>]
 ---
 
 # /repo:branch - Branch Management Command

@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:commit
 description: Create semantic commits with conventional commit format and FABER metadata
+argument-hint: [message] [--type <type>] [--work-id <id>] [--scope <scope>] [--breaking] [--description <text>]
 ---
 
 # /repo:commit - Commit Creation Command

@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:ops-manage
 description: Runtime operations management - routes to ops-manager agent for monitoring, log analysis, incident response, and auditing
+argument-hint: check-health --env=<env> [--service <name>] | query-logs --env=<env> [--service <name>] [--filter <pattern>] | audit [--env <env>] [--focus <area>]
 examples:
   - trigger: "check health of test environment"
     action: "Invoke ops-manager agent with health check operation"

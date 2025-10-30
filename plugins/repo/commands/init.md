@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:init
 description: Repository Plugin Setup Wizard
+argument-hint: [--platform <name>] [--global|--project] [--token <value>] [--yes] [--force]
 ---
 
 # /repo:init - Repository Plugin Setup Wizard

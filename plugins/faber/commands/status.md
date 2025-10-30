@@ -1,6 +1,7 @@
 ---
 name: status
 description: Show detailed status of FABER workflow sessions
+argument-hint: [work_id] | --all | --recent <N> | --failed | --waiting
 tools: Bash, Read, Glob
 model: inherit
 ---

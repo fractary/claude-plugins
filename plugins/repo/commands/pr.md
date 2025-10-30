@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:pr
 description: Create, comment, review, and merge pull requests
+argument-hint: create <title> [--body <text>] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft] | comment <pr_number> <comment> | review <pr_number> <action> [--comment <text>] | merge <pr_number> [--strategy <strategy>] [--delete-branch]
 ---
 
 # /repo:pr - Pull Request Management Command

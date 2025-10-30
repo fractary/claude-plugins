@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:infra-manage
 description: Manage infrastructure lifecycle - routes to infra-manager agent for architecture, deployment, and resource management
+argument-hint: architect [--feature <description>] | engineer | validate | preview | deploy --env=<env> | show-resources [--env <env>] | status
 tags: [devops, infrastructure, deployment, management]
 examples:
   - trigger: "/fractary-faber-cloud:infra-manage deploy --env=test"

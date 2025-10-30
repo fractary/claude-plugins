@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:devops-init
 description: Initialize faber-cloud plugin configuration for cloud infrastructure management - routes to init-manager agent
+argument-hint: [--provider=aws] [--iac=terraform]
 tags: [faber-cloud, initialization, configuration, setup]
 examples:
   - trigger: "/fractary-faber-cloud:init"

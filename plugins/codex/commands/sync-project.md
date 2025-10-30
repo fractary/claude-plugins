@@ -2,6 +2,7 @@
 org: omnidas
 name: fractary-codex:sync-project
 description: Sync project documentation with Codex
+argument-hint: [project-name] | *
 codex_sync_include: [*]
 codex_sync_exclude: []
 tags: [sync, documentation, workflow]

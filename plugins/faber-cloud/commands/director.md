@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:director
 description: Natural language entry point for fractary-faber-cloud - routes requests to appropriate manager
+argument-hint: <natural-language-request>
 examples:
   - trigger: "Deploy my application to production"
     action: "Invoke devops-director agent"

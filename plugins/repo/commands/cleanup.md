@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:cleanup
 description: Clean up stale and merged branches safely
+argument-hint: [--delete] [--merged] [--inactive] [--days <n>] [--location <where>] [--exclude <pattern>]
 ---
 
 # /repo:cleanup - Branch Cleanup Command

@@ -1,6 +1,7 @@
 ---
 name: init
 description: Initialize FABER in a project with auto-discovered configuration
+argument-hint: (no arguments)
 tools: Bash, Read, Write, Glob, Grep
 model: inherit
 ---

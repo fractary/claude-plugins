@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:push
 description: Push branches to remote repository with safety checks
+argument-hint: [branch_name] [--remote <name>] [--set-upstream] [--force]
 ---
 
 # /repo:push - Branch Push Command
