@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Fractary codex commands, agents, hooks, and skills.",
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": "./agents/sync-manager.md",
   "skills": "./skills/"
 }
   
