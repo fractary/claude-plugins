@@ -1,5 +1,5 @@
 ---
-name: director
+name: fractary-faber-cloud:director
 description: Natural language entry point for fractary-faber-cloud - routes requests to appropriate manager
 examples:
   - trigger: "Deploy my application to production"

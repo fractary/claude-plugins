@@ -1,5 +1,5 @@
 ---
-name: repo:branch
+name: fractary-repo:branch
 description: Create, delete, and manage Git branches
 ---
 

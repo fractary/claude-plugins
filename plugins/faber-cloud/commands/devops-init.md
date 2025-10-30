@@ -1,5 +1,5 @@
 ---
-name: devops-init
+name: fractary-faber-cloud:devops-init
 description: Initialize faber-cloud plugin configuration for cloud infrastructure management - routes to init-manager agent
 tags: [faber-cloud, initialization, configuration, setup]
 examples:

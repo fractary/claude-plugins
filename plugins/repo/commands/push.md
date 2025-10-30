@@ -1,5 +1,5 @@
 ---
-name: repo:push
+name: fractary-repo:push
 description: Push branches to remote repository with safety checks
 ---
 

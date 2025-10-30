@@ -1,5 +1,5 @@
 ---
-name: repo:tag
+name: fractary-repo:tag
 description: Create and push semantic version tags
 ---
 

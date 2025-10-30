@@ -1,3 +1,8 @@
+---
+name: fractary-repo:init
+description: Repository Plugin Setup Wizard
+---
+
 # /repo:init - Repository Plugin Setup Wizard
 
 **Interactive setup wizard for the Fractary Repo Plugin**

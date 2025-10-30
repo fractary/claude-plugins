@@ -1,6 +1,6 @@
 ---
 org: omnidas
-name: sync-project
+name: fractary-codex:sync-project
 description: Sync project documentation with Codex
 codex_sync_include: [*]
 codex_sync_exclude: []

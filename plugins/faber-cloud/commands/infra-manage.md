@@ -1,5 +1,5 @@
 ---
-name: infra-manage
+name: fractary-faber-cloud:infra-manage
 description: Manage infrastructure lifecycle - routes to infra-manager agent for architecture, deployment, and resource management
 tags: [devops, infrastructure, deployment, management]
 examples:

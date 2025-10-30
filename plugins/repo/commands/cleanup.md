@@ -1,5 +1,5 @@
 ---
-name: repo:cleanup
+name: fractary-repo:cleanup
 description: Clean up stale and merged branches safely
 ---
 

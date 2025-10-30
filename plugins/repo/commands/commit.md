@@ -1,5 +1,5 @@
 ---
-name: repo:commit
+name: fractary-repo:commit
 description: Create semantic commits with conventional commit format and FABER metadata
 ---
 

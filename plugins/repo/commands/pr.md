@@ -1,5 +1,5 @@
 ---
-name: repo:pr
+name: fractary-repo:pr
 description: Create, comment, review, and merge pull requests
 ---
 

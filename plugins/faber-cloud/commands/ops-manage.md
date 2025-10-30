@@ -1,5 +1,5 @@
 ---
-name: ops-manage
+name: fractary-faber-cloud:ops-manage
 description: Runtime operations management - routes to ops-manager agent for monitoring, log analysis, incident response, and auditing
 examples:
   - trigger: "check health of test environment"
