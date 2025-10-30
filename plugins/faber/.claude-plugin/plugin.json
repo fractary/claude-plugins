@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
   "commands": "commands/",
-  "agents": "agents/",
+  "agents": "agents/director.md",
   "skills": "skills/",
   "requires": [
     "fractary-work",
