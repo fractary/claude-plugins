@@ -2,9 +2,9 @@
   "name": "fractary-faber",
   "version": "1.0.0",
   "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
-  "commands": "commands/",
-  "agents": "agents/director.md",
-  "skills": "skills/",
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/",
   "requires": [
     "fractary-work",
     "fractary-repo",

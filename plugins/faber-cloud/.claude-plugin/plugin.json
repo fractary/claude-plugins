@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "description": "Comprehensive infrastructure and operations management for Claude Code - design, deploy, and monitor cloud infrastructure with AI assistance.",
   "commands": "./commands/",
-  "agents": "./agents/devops-director.md",
+  "agents": "./agents/",
   "skills": "./skills/"
 }
