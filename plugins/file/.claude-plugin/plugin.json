@@ -1,6 +1,6 @@
 {
   "name": "fractary-file",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "File storage operations across R2, S3, local filesystem, etc.",
   "agents": "./agents/",
   "skills": "./skills/"
