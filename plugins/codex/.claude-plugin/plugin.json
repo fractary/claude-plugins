@@ -1,9 +1,6 @@
 {
-    "name": "fractary-codex",
-    "version": "1.0.0",
-    "description": "Fractary codex commands, agents, hooks, and skills.",
-    "commands": "commands/",
-    "agents": "agents/",
-    "mcpServers": "mcp.json"
-  }
+  "name": "fractary-codex",
+  "version": "1.0.0",
+  "description": "Fractary codex commands, agents, hooks, and skills."
+}
   
