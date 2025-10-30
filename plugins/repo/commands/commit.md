@@ -10,15 +10,37 @@ Create semantic, well-formatted Git commits following conventional commit standa
 ## Usage
 
 ```bash
-# Create a commit
+# Auto-generate commit from changes (no arguments required)
+/repo:commit
+
+# Create a commit with explicit message and type
 /repo:commit <message> --type <type> [options]
 ```
 
-## Required Flags
+## Automatic Mode (No Arguments)
+
+When invoked without arguments, the command will:
+1. Analyze both staged and unstaged git changes
+2. Review recent commit history for style consistency
+3. Automatically generate an appropriate commit message
+4. Automatically determine the correct commit type
+5. Create the commit
+
+**Example:**
+```bash
+# Automatically analyze changes and create commit
+/repo:commit
+```
+
+## Manual Mode (Explicit Arguments)
+
+When you want full control over the commit message and type.
+
+### Required Flags
 
 - `--type`: Commit type (feat|fix|chore|docs|test|refactor|style|perf)
 
-## Optional Flags
+### Optional Flags
 
 - `--work-id <id>`: Work item identifier (required for FABER workflows)
 - `--context <context>`: Author context (architect|implementor|tester|reviewer)
@@ -26,7 +48,7 @@ Create semantic, well-formatted Git commits following conventional commit standa
 - `--breaking`: Mark as breaking change
 - `--description <text>`: Extended description for commit body
 
-## Examples
+### Examples
 
 ```bash
 # Feature commit
@@ -50,6 +72,51 @@ Create semantic, well-formatted Git commits following conventional commit standa
 This command creates properly formatted commits with metadata.
 
 ### Workflow
+
+**1. Check for Arguments**:
+- If no arguments provided → Enter **Automatic Mode**
+- If arguments provided → Enter **Manual Mode**
+
+### Automatic Mode Workflow
+
+**1. Analyze Git State**:
+- Run `git status` to see staged and unstaged changes
+- Run `git diff` for staged changes
+- Run `git diff` for unstaged changes
+- Run `git log` to review recent commit style
+
+**2. Generate Commit Details**:
+- Analyze the nature of changes (new feature, bug fix, refactor, docs, etc.)
+- Determine appropriate commit type automatically
+- Draft concise commit message (< 72 chars) following conventional commits
+- Identify scope if applicable
+- Ensure message follows repository commit style
+
+**3. Stage Changes if Needed**:
+- If relevant unstaged files exist, add them to staging area
+- Skip files that should not be committed (e.g., .env, credentials)
+
+**4. Create Commit**:
+- Invoke repo-manager agent with generated parameters
+- Include Claude Code attribution and co-author
+
+**5. Display Result**:
+```
+✅ Commit created successfully
+
+Commit SHA: abc123def456...
+Type: docs
+Message: docs(faber-cloud): Reorganize documentation structure
+
+Changes:
+- Moved phase completion docs to docs/specs/status/
+- Created centralized architecture document
+- 7 files added, 7 files deleted
+
+To push: /repo:push
+```
+
+### Manual Mode Workflow
 
 **1. Parse Arguments**:
 - Extract message (first positional argument)
@@ -138,22 +205,24 @@ Error: No changes to commit
 Stage your changes first: git add <files>
 ```
 
-**Invalid Type**:
+**Invalid Type (Manual Mode)**:
 ```
 Error: Invalid commit type: invalid
 Valid types: feat, fix, chore, docs, test, refactor, style, perf
 ```
 
-**Message Too Long**:
+**Message Too Long (Manual Mode)**:
 ```
 Error: Commit message exceeds 72 characters
 Keep the summary concise, use --description for details
 ```
 
-**Missing Required Flag**:
+**Missing Type Flag (Manual Mode with Message)**:
 ```
-Error: --type flag is required
+Error: --type flag is required when providing a commit message
 Usage: /repo:commit <message> --type <type>
+
+Or use automatic mode: /repo:commit (no arguments)
 ```
 
 **Invalid Author Context**:
@@ -215,17 +284,22 @@ When used within FABER workflows, the command automatically:
 
 ## Best Practices
 
-1. **Keep summaries concise**: < 72 characters
-2. **Use imperative mood**: "Add feature" not "Added feature"
-3. **Include work item**: Always use --work-id for traceability
-4. **Choose correct type**: Helps with changelog generation
-5. **Use scopes**: Helps identify which part of codebase changed
-6. **Mark breaking changes**: Critical for semantic versioning
+1. **Use automatic mode for quick commits**: Just run `/repo:commit` without arguments
+2. **Use manual mode for precise control**: When you need specific FABER metadata or work items
+3. **Keep summaries concise**: < 72 characters
+4. **Use imperative mood**: "Add feature" not "Added feature"
+5. **Include work item**: Always use --work-id for traceability in FABER workflows
+6. **Choose correct type**: Helps with changelog generation
+7. **Use scopes**: Helps identify which part of codebase changed
+8. **Mark breaking changes**: Critical for semantic versioning
 
 ## Notes
 
+- **Automatic mode** analyzes changes and generates commit message/type automatically
+- **Manual mode** requires explicit --type flag when providing a message
 - Commits are created on current branch
 - Work item references enable automatic issue closing
 - FABER metadata aids in workflow traceability
 - Conventional format enables automated changelog generation
 - GPG signing respects configuration settings
+- Automatic mode follows the same commit style as Claude Code's built-in git commit behavior
