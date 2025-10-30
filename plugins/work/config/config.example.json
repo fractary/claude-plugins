@@ -1,6 +1,6 @@
 {
   "_comment": "Work Plugin v2.0 Configuration Template",
-  "_instructions": "Copy this file to .faber/plugins/work/config.json and customize for your project",
+  "_instructions": "Copy this file to .fractary/plugins/work/config.json and customize for your project",
 
   "version": "2.0",
 
@@ -198,7 +198,7 @@
   },
 
   "_setup_instructions": {
-    "step_1": "Copy this file to .faber/plugins/work/config.json",
+    "step_1": "Copy this file to .fractary/plugins/work/config.json",
     "step_2": "Set 'handlers.work-tracker.active' to your platform (github, jira, linear)",
     "step_3": "Configure platform-specific settings under handlers.work-tracker.{platform}",
     "step_4": "Set environment variables for authentication (see environment sections)",

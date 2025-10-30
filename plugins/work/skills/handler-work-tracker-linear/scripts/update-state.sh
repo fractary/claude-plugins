@@ -20,7 +20,7 @@ if [ -z "${LINEAR_API_KEY:-}" ]; then
 fi
 
 # Load configuration for state mappings
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 if [ -f "$CONFIG_FILE" ]; then
     LINEAR_STATE=$(jq -r --arg state "$TARGET_STATE" '.handlers["work-tracker"].linear.states[$state] // ""' "$CONFIG_FILE")
 else

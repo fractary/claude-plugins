@@ -17,7 +17,7 @@ if [ -z "${LINEAR_API_KEY:-}" ]; then
 fi
 
 # Load team_id from config if available
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 TEAM_ID=""
 if [ -f "$CONFIG_FILE" ]; then
     TEAM_ID=$(jq -r '.handlers["work-tracker"].linear.team_id // ""' "$CONFIG_FILE")

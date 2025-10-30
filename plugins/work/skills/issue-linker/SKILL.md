@@ -82,7 +82,7 @@ You are part of the FABER v2.0 work plugin architecture and integrate with GitHu
 
 <HANDLERS>
 
-This skill uses the **work-tracker** handler configured in `.faber/plugins/work/config.json`.
+This skill uses the **work-tracker** handler configured in `.fractary/plugins/work/config.json`.
 
 **Handler Script:** `handler-work-tracker-{platform}/scripts/link-issues.sh`
 

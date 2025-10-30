@@ -59,7 +59,7 @@ Each handler implements platform-specific classification rules based on:
 - Title patterns (e.g., "[bug]", "fix:", "feat:")
 - Description keywords
 
-Configuration path: `.faber/plugins/work/config.json`
+Configuration path: `.fractary/plugins/work/config.json`
 Field: `.handlers["work-tracker"].active`
 </HANDLERS>
 
@@ -279,7 +279,7 @@ issue_json=$(./scripts/fetch-issue.sh 123)
 ## Dependencies
 
 - Active handler (handler-work-tracker-github, handler-work-tracker-jira, or handler-work-tracker-linear)
-- Configuration file at `.faber/plugins/work/config.json`
+- Configuration file at `.fractary/plugins/work/config.json`
 - work-manager agent for routing
 - Valid issue JSON from issue-fetcher
 

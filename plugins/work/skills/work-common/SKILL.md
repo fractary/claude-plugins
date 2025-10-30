@@ -44,7 +44,7 @@ PLATFORM=$(echo "$CONFIG_JSON" | jq -r '.handlers["work-tracker"].active')
 - 0: Success - configuration loaded and valid
 - 3: Validation error - config not found or invalid JSON
 
-**Configuration Location:** `.faber/plugins/work/config.json`
+**Configuration Location:** `.fractary/plugins/work/config.json`
 
 **Example:**
 ```bash
@@ -121,7 +121,7 @@ Standard error codes used across all work plugin utilities:
 
 ## Configuration Structure
 
-Expected configuration file at `.faber/plugins/work/config.json`:
+Expected configuration file at `.fractary/plugins/work/config.json`:
 
 ```json
 {
@@ -156,12 +156,12 @@ cd /mnt/c/GitHub/fractary/claude-plugins
 # Expected: Outputs valid JSON configuration
 
 # Test missing config
-mv .faber/plugins/work/config.json .faber/plugins/work/config.json.bak
+mv .fractary/plugins/work/config.json .fractary/plugins/work/config.json.bak
 ./plugins/work/skills/work-common/scripts/config-loader.sh
 # Expected: Exit code 3, error message "Configuration file not found"
 
 # Test invalid JSON
-echo "{ invalid json" > .faber/plugins/work/config.json
+echo "{ invalid json" > .fractary/plugins/work/config.json
 ./plugins/work/skills/work-common/scripts/config-loader.sh
 # Expected: Exit code 3, error message "Invalid JSON"
 ```

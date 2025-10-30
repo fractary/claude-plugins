@@ -68,17 +68,19 @@
           "./commands/push.md",
           "./commands/pr.md",
           "./commands/tag.md",
-          "./commands/cleanup.md"
+          "./commands/cleanup.md",
+          "./commands/init.md"
         ],
         "agents": [
           "./agents/repo-manager.md"
-        ]
+        ],
+        "hooks": "./hooks/hooks.json"
       },
       {
         "name": "fractary-work",
         "source": "./plugins/work",
         "description": "Universal work item management across GitHub Issues, Jira Cloud, and Linear with 100% feature parity and handler-based architecture",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
@@ -102,6 +104,9 @@
         ],
         "category": "development",
         "strict": true,
+        "commands": [
+          "./commands/init.md"
+        ],
         "agents": [
           "./agents/work-manager.md"
         ]

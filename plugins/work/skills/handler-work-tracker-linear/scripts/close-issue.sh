@@ -21,7 +21,7 @@ if [ -z "${LINEAR_API_KEY:-}" ]; then
 fi
 
 # Load configuration to get team_id and state mappings
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 if [ -f "$CONFIG_FILE" ]; then
     TEAM_ID=$(jq -r '.handlers["work-tracker"].linear.team_id // ""' "$CONFIG_FILE")
     DONE_STATE=$(jq -r '.handlers["work-tracker"].linear.states.done // "Done"' "$CONFIG_FILE")

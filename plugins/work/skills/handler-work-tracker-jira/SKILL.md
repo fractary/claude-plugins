@@ -400,7 +400,7 @@ Jira has flexible workflow states configured per project:
 | done | Done, Resolved |
 | closed | Closed, Cancelled |
 
-**Configuration-Driven:** States are mapped in `.faber/plugins/work/config.json`
+**Configuration-Driven:** States are mapped in `.fractary/plugins/work/config.json`
 
 ## Custom Fields
 
@@ -468,7 +468,7 @@ All errors output to stderr with descriptive messages.
 
 <CONFIGURATION>
 
-Configuration is loaded from `.faber/plugins/work/config.json`:
+Configuration is loaded from `.fractary/plugins/work/config.json`:
 
 ```json
 {
@@ -525,7 +525,7 @@ Configuration is loaded from `.faber/plugins/work/config.json`:
 - `curl` - HTTP requests
 - `jq` - JSON processing
 - `base64` - Authentication encoding
-- Configuration at `.faber/plugins/work/config.json`
+- Configuration at `.fractary/plugins/work/config.json`
 
 ## Testing
 

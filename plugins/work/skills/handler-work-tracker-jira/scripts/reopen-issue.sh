@@ -66,7 +66,7 @@ fi
 
 # Step 2: Find transition to "Open", "To Do", or "Backlog" state
 # Load target states from config if available
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 if [ -f "$CONFIG_FILE" ]; then
     OPEN_STATE=$(jq -r '.handlers["work-tracker"].jira.states.open // "To Do"' "$CONFIG_FILE")
 else

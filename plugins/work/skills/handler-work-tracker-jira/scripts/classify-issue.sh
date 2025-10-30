@@ -25,7 +25,7 @@ LABELS=$(echo "$ISSUE_JSON" | jq -r '.labels // ""' | tr '[:upper:]' '[:lower:]'
 
 # Load configuration (if available) for custom mappings
 # For MVP, use default mappings. Can be enhanced to read from config.
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 
 if [ -f "$CONFIG_FILE" ]; then
     # Load custom classification from config

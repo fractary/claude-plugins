@@ -24,7 +24,7 @@ fi
 
 # If team_id is empty, try to load from config
 if [ -z "$TEAM_ID" ]; then
-    CONFIG_FILE=".faber/plugins/work/config.json"
+    CONFIG_FILE=".fractary/plugins/work/config.json"
     if [ -f "$CONFIG_FILE" ]; then
         TEAM_ID=$(jq -r '.handlers["work-tracker"].linear.team_id // ""' "$CONFIG_FILE")
     fi

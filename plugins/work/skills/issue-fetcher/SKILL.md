@@ -53,7 +53,7 @@ The active handler is determined from configuration:
 - **Jira**: `handler-work-tracker-jira` (future)
 - **Linear**: `handler-work-tracker-linear` (future)
 
-Configuration path: `.faber/plugins/work/config.json`
+Configuration path: `.fractary/plugins/work/config.json`
 Field: `.handlers["work-tracker"].active`
 </HANDLERS>
 
@@ -254,7 +254,7 @@ cd plugins/work/skills/handler-work-tracker-github
 ## Dependencies
 
 - Active handler (handler-work-tracker-github, handler-work-tracker-jira, or handler-work-tracker-linear)
-- Configuration file at `.faber/plugins/work/config.json`
+- Configuration file at `.fractary/plugins/work/config.json`
 - work-manager agent for routing
 
 ## Platform-Specific Notes

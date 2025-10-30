@@ -67,7 +67,7 @@ fi
 
 # Step 2: Find transition to "Done" or "Closed" state
 # Load target states from config if available
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 if [ -f "$CONFIG_FILE" ]; then
     DONE_STATE=$(jq -r '.handlers["work-tracker"].jira.states.done // "Done"' "$CONFIG_FILE")
     CLOSED_STATE=$(jq -r '.handlers["work-tracker"].jira.states.closed // "Closed"' "$CONFIG_FILE")

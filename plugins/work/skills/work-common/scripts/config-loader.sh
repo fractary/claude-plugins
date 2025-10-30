@@ -1,11 +1,11 @@
 #!/bin/bash
 # Work Common: Configuration Loader
-# Loads and validates work plugin configuration from .faber/plugins/work/config.json
+# Loads and validates work plugin configuration from .fractary/plugins/work/config.json
 
 set -euo pipefail
 
 # Configuration file location (relative to project root)
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 
 # Check if config file exists
 if [ ! -f "$CONFIG_FILE" ]; then

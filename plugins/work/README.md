@@ -103,7 +103,7 @@ export LINEAR_API_KEY="lin_api_xxxxxxxxxxxxxxxxxxxx"  # For Linear
 
 ## Configuration
 
-Create `.faber/plugins/work/config.json`:
+Create `.fractary/plugins/work/config.json`:
 
 ```json
 {
@@ -363,7 +363,7 @@ To add support for a new platform:
 **Breaking Changes:**
 - String protocol → JSON protocol
 - Monolithic skill → 11 focused skills
-- Configuration moved to `.faber/plugins/work/config.json`
+- Configuration moved to `.fractary/plugins/work/config.json`
 
 See `docs/MIGRATION-v1-to-v2.md` for detailed migration guide.
 

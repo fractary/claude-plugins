@@ -65,7 +65,7 @@ fi
 
 # Determine issue type (default to Task)
 # Can be enhanced to auto-detect from labels or config
-CONFIG_FILE=".faber/plugins/work/config.json"
+CONFIG_FILE=".fractary/plugins/work/config.json"
 ISSUE_TYPE="Task"
 
 if [ -f "$CONFIG_FILE" ]; then

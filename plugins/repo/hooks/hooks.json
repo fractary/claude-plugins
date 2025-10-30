@@ -1,0 +1,16 @@
+{
+    "description": "Fractary Repo Plugin Hooks - Auto-commit changes when Claude Code session ends",
+    "hooks": {
+      "Stop": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
+            }
+          ]
+        }
+      ]
+    }
+  }
+  

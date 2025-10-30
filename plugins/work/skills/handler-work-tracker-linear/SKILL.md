@@ -317,7 +317,7 @@ query {
 
 ## Configuration Requirements
 
-Linear handler requires configuration in `.faber/plugins/work/config.json`:
+Linear handler requires configuration in `.fractary/plugins/work/config.json`:
 
 ```json
 {

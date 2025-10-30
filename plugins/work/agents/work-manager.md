@@ -29,7 +29,7 @@ You receive JSON requests with:
 ### Request Format
 ```json
 {
-  "operation": "fetch|classify|comment|label|close|reopen|update-state|create|update|search|list|assign|unassign|link|create-milestone|update-milestone|assign-milestone",
+  "operation": "fetch|classify|comment|label|close|reopen|update-state|create|update|search|list|assign|unassign|link|create-milestone|update-milestone|assign-milestone|initialize-configuration",
   "parameters": {
     "issue_id": "123",
     "...": "other parameters"
@@ -356,6 +356,45 @@ Route operations to focused skills based on operation type:
 }
 ```
 
+## Configuration Operations
+
+### initialize-configuration → work-initializer skill
+**Operation:** Interactive setup wizard to configure the work plugin
+**Parameters:**
+- `platform` (optional): Platform override (github, jira, linear)
+- `token` (optional): Authentication token
+- `interactive` (optional): Interactive mode (default: true)
+- `force` (optional): Overwrite existing config (default: false)
+- `github_config` (optional): GitHub-specific configuration
+  - `owner` (required): Repository owner
+  - `repo` (required): Repository name
+  - `api_url` (optional): GitHub API URL (default: https://api.github.com)
+- `jira_config` (optional): Jira-specific configuration
+  - `url` (required): Jira instance URL
+  - `project_key` (required): Project key
+  - `email` (required): User email
+- `linear_config` (optional): Linear-specific configuration
+  - `workspace_id` (required): Workspace identifier
+  - `team_id` (required): Team identifier
+  - `team_key` (required): Team key
+**Returns:** Configuration file path and validation status
+**Example:**
+```json
+{
+  "operation": "initialize-configuration",
+  "parameters": {
+    "platform": "github",
+    "interactive": true,
+    "force": false,
+    "github_config": {
+      "owner": "myorg",
+      "repo": "myproject",
+      "api_url": "https://api.github.com"
+    }
+  }
+}
+```
+
 </OPERATION_ROUTING>
 
 <OUTPUTS>
@@ -533,7 +572,7 @@ claude --agent work-manager '{
 
 - Focused skills in `plugins/work/skills/`
 - Active handler based on configuration
-- Configuration file: `.faber/plugins/work/config.json`
+- Configuration file: `.fractary/plugins/work/config.json`
 
 ## Testing
 
