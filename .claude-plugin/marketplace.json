@@ -29,13 +29,10 @@
         "category": "documentation",
         "strict": true,
         "commands": [
-          "./commands/doc-generate.md",
-          "./commands/code-explain.md"
+          "./commands/sync-project.md"
         ],
         "agents": [
-          "./agents/docs-architect.md",
-          "./agents/tutorial-engineer.md",
-          "./agents/code-reviewer.md"
+          "./agents/sync-manager.md"
         ]
       },
       {
