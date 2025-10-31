@@ -32,20 +32,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
-# Build gh issue create command
-gh_cmd="gh issue create --title \"$TITLE\""
+# Build gh issue create command arguments as array
+gh_args=("issue" "create" "--title" "$TITLE")
 
 if [ -n "$DESCRIPTION" ]; then
-    gh_cmd="$gh_cmd --body \"$DESCRIPTION\""
+    gh_args+=("--body" "$DESCRIPTION")
 fi
 
 if [ -n "$LABELS" ]; then
     # Convert comma-separated to multiple --label flags
     IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
-    for label in "${LABEL_ARRAY[@]}"; then
+    for label in "${LABEL_ARRAY[@]}"; do
         label_trimmed="$(echo "$label" | xargs)"
         if [ -n "$label_trimmed" ]; then
-            gh_cmd="$gh_cmd --label \"$label_trimmed\""
+            gh_args+=("--label" "$label_trimmed")
         fi
     done
 fi
@@ -53,21 +53,19 @@ fi
 if [ -n "$ASSIGNEES" ]; then
     # Convert comma-separated to multiple --assignee flags
     IFS=',' read -ra ASSIGNEE_ARRAY <<< "$ASSIGNEES"
-    for assignee in "${ASSIGNEE_ARRAY[@]}"; then
+    for assignee in "${ASSIGNEE_ARRAY[@]}"; do
         assignee_trimmed="$(echo "$assignee" | xargs)"
         if [ -n "$assignee_trimmed" ]; then
-            gh_cmd="$gh_cmd --assignee \"$assignee_trimmed\""
+            gh_args+=("--assignee" "$assignee_trimmed")
         fi
     done
 fi
 
-# Execute and capture URL
-issue_url=$(eval "$gh_cmd" 2>&1)
-
-if [ $? -ne 0 ]; then
+# Execute and capture output
+if ! issue_url=$(gh "${gh_args[@]}" 2>&1); then
     echo "Error: Failed to create issue" >&2
     echo "$issue_url" >&2
-    exit 1
+    exit 10
 fi
 
 # Extract issue number from URL
