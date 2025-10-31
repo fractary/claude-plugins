@@ -30,7 +30,7 @@ You receive JSON requests with:
 ### Request Format
 ```json
 {
-  "operation": "fetch-issue|classify-issue|create-comment|add-label|remove-label|close-issue|reopen-issue|update-state|create-issue|update-issue|search-issues|list-issues|assign-issue|unassign-issue|link-issues|create-milestone|update-milestone|assign-milestone|initialize-configuration",
+  "operation": "fetch-issue|classify-issue|create-comment|list-comments|add-label|remove-label|close-issue|reopen-issue|update-state|create-issue|update-issue|search-issues|list-issues|assign-issue|unassign-issue|link-issues|create-milestone|update-milestone|assign-milestone|initialize-configuration",
   "parameters": {
     "issue_id": "123",
     "...": "other parameters"
@@ -234,6 +234,24 @@ Route operations to focused skills based on operation type:
   "parameters": {
     "issue_id": "123",
     "message": "This is a standalone comment"
+  }
+}
+```
+
+### list-comments → comment-lister skill
+**Operation:** List comments on an issue
+**Parameters:**
+- `issue_id` (required): Issue identifier
+- `limit` (optional): Maximum number of comments to return (default: 10)
+- `since` (optional): Only return comments created after this date (YYYY-MM-DD format)
+**Returns:** Array of comment objects with id, author, body, created_at, updated_at, url
+**Example:**
+```json
+{
+  "operation": "list-comments",
+  "parameters": {
+    "issue_id": "123",
+    "limit": 5
   }
 }
 ```
@@ -561,7 +579,8 @@ claude --agent work-manager '{
 ### Focused Skills
 - **issue-fetcher**: Fetch operations only
 - **issue-classifier**: Classification logic only
-- **comment-creator**: Comment operations only
+- **comment-creator**: Create comment operations only
+- **comment-lister**: List comment operations only
 - **label-manager**: Label operations only
 - **state-manager**: State changes only (close, reopen, update-state)
 - **issue-creator**: Create operations only
