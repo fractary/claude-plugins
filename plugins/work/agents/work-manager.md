@@ -3,6 +3,7 @@ name: work-manager
 description: Pure router for work tracking operations - delegates to focused skills
 tools: Bash, Skill
 model: inherit
+color: green
 ---
 
 # Work Manager Agent
