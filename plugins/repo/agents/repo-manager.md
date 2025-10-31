@@ -1,7 +1,7 @@
 ---
 name: repo-manager
 description: Universal source control agent - routes repository operations to specialized skills
-tools: Bash, SlashCommand
+tools: Bash, Skill
 model: inherit
 color: blue
 ---
@@ -147,26 +147,32 @@ Use routing table to determine which skill to invoke:
 
 | Operation | Skill |
 |-----------|-------|
-| generate-branch-name | branch-namer |
-| create-branch | branch-manager |
-| delete-branch | cleanup-manager |
-| create-commit | commit-creator |
-| push-branch | branch-pusher |
-| create-pr | pr-manager |
-| comment-pr | pr-manager |
-| review-pr | pr-manager |
-| merge-pr | pr-manager |
-| create-tag | tag-manager |
-| push-tag | tag-manager |
-| list-stale-branches | cleanup-manager |
+| generate-branch-name | fractary-repo:branch-namer |
+| create-branch | fractary-repo:branch-manager |
+| delete-branch | fractary-repo:cleanup-manager |
+| create-commit | fractary-repo:commit-creator |
+| push-branch | fractary-repo:branch-pusher |
+| create-pr | fractary-repo:pr-manager |
+| comment-pr | fractary-repo:pr-manager |
+| review-pr | fractary-repo:pr-manager |
+| merge-pr | fractary-repo:pr-manager |
+| create-tag | fractary-repo:tag-manager |
+| push-tag | fractary-repo:tag-manager |
+| list-stale-branches | fractary-repo:cleanup-manager |
 
 **5. INVOKE SKILL:**
 
-Call the appropriate skill with validated parameters:
+Use the Skill tool to invoke the appropriate skill with validated parameters:
 ```
-USE SKILL {skill_name}
+Skill tool invocation:
+- command: "fractary-repo:{skill_name}"
 
-Pass operation and parameters to skill as structured request.
+Pass the full operation request as context to the skill.
+```
+
+Example:
+```
+For operation "push-branch" → invoke Skill tool with command "fractary-repo:branch-pusher"
 ```
 
 **6. HANDLE SKILL RESPONSE:**
@@ -195,28 +201,28 @@ Return structured response to caller:
 <ROUTING_TABLE>
 
 **Branch Operations:**
-- `generate-branch-name` → branch-namer
-- `create-branch` → branch-manager
-- `delete-branch` → cleanup-manager
+- `generate-branch-name` → fractary-repo:branch-namer
+- `create-branch` → fractary-repo:branch-manager
+- `delete-branch` → fractary-repo:cleanup-manager
 
 **Commit Operations:**
-- `create-commit` → commit-creator
+- `create-commit` → fractary-repo:commit-creator
 
 **Push Operations:**
-- `push-branch` → branch-pusher
+- `push-branch` → fractary-repo:branch-pusher
 
 **PR Operations:**
-- `create-pr` → pr-manager
-- `comment-pr` → pr-manager
-- `review-pr` → pr-manager
-- `merge-pr` → pr-manager
+- `create-pr` → fractary-repo:pr-manager
+- `comment-pr` → fractary-repo:pr-manager
+- `review-pr` → fractary-repo:pr-manager
+- `merge-pr` → fractary-repo:pr-manager
 
 **Tag Operations:**
-- `create-tag` → tag-manager
-- `push-tag` → tag-manager
+- `create-tag` → fractary-repo:tag-manager
+- `push-tag` → fractary-repo:tag-manager
 
 **Cleanup Operations:**
-- `list-stale-branches` → cleanup-manager
+- `list-stale-branches` → fractary-repo:cleanup-manager
 
 **Total Skills**: 7 specialized skills
 **Total Operations**: 13 operations
@@ -374,13 +380,13 @@ Return structured response to caller:
 - Other plugins needing repository operations
 
 **Calls:**
-- `branch-namer` skill - Branch name generation
-- `branch-manager` skill - Branch creation
-- `commit-creator` skill - Commit creation
-- `branch-pusher` skill - Branch pushing
-- `pr-manager` skill - PR operations
-- `tag-manager` skill - Tag operations
-- `cleanup-manager` skill - Branch cleanup
+- `fractary-repo:branch-namer` skill - Branch name generation
+- `fractary-repo:branch-manager` skill - Branch creation
+- `fractary-repo:commit-creator` skill - Commit creation
+- `fractary-repo:branch-pusher` skill - Branch pushing
+- `fractary-repo:pr-manager` skill - PR operations
+- `fractary-repo:tag-manager` skill - Tag operations
+- `fractary-repo:cleanup-manager` skill - Branch cleanup
 
 **Does NOT Call:**
 - Handlers directly (skills invoke handlers)
