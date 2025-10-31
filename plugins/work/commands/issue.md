@@ -43,9 +43,9 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Package parameters
 
 3. **Invoke agent**
-   - Write a declarative statement using the @agent-fractary-work:work-manager reference
-   - Include the structured JSON request
-   - Example: "Create a new issue using the @agent-fractary-work:work-manager agent with the following request: {JSON}"
+   - Use the Task tool with subagent_type="fractary-work:work-manager"
+   - Pass the structured JSON request in the prompt parameter
+   - Example: Task tool with prompt containing the operation request
 
 4. **Return response**
    - The work-manager agent will handle the operation and return results
@@ -194,32 +194,40 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the work-manager agent using declarative syntax.
+After parsing arguments, invoke the work-manager agent using the Task tool.
 
-**Agent**: @agent-fractary-work:work-manager
+**Agent**: fractary-work:work-manager
 
 **How to invoke**:
-State that you're using the agent in natural language:
+Use the Task tool with the agent as subagent_type:
 
 ```
-Use the @agent-fractary-work:work-manager agent to create an issue with the following request:
-{
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Add dark mode support",
-    "description": "Implement dark mode theme with user toggle",
-    "labels": "feature,ui",
-    "assignees": "johndoe"
-  }
-}
+Task tool invocation:
+- subagent_type: "fractary-work:work-manager"
+- description: Brief description of operation
+- prompt: JSON request containing operation and parameters
 ```
 
-The plugin system routes declarative agent references automatically.
+**Example invocation**:
+```
+Task(
+  subagent_type="fractary-work:work-manager",
+  description="Create new issue",
+  prompt='{
+    "operation": "create-issue",
+    "parameters": {
+      "title": "Add dark mode support",
+      "description": "Implement dark mode theme with user toggle",
+      "labels": "feature,ui",
+      "assignees": "johndoe"
+    }
+  }'
+)
+```
 
 **CRITICAL - DO NOT**:
-- ❌ Use Skill tool to invoke agents
-- ❌ Use Task tool to invoke agents
 - ❌ Invoke skills directly (issue-creator, issue-fetcher, etc.) - let the agent route
+- ❌ Write declarative text about using the agent - actually invoke it
 
 **The agent will**:
 - Validate the request
@@ -251,106 +259,107 @@ The plugin system routes declarative agent references automatically.
 <INVOCATION_TEMPLATE>
 ## How to Actually Invoke the Agent
 
-After parsing the command arguments, write a declarative statement that invokes the agent. This is the ACTUAL invocation, not just documentation.
+After parsing the command arguments, use the Task tool to invoke the agent.
 
 **Template for all operations:**
 ```
-[Operation verb] using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "operation-name",
-  "parameters": {
-    "param1": "value1",
-    "param2": "value2"
-  }
-}
+Task tool with:
+- subagent_type: "fractary-work:work-manager"
+- description: "Brief operation description"
+- prompt: JSON request with operation and parameters
 ```
 
 **Concrete examples for each operation:**
 
 ### Create Issue
 ```
-Create a new issue using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Add CSV export feature",
-    "type": "feature",
-    "body": "Allow users to export data as CSV"
-  }
-}
+Invoke Task tool:
+  subagent_type="fractary-work:work-manager"
+  description="Create new issue"
+  prompt='{
+    "operation": "create-issue",
+    "parameters": {
+      "title": "Add CSV export feature",
+      "type": "feature",
+      "body": "Allow users to export data as CSV"
+    }
+  }'
 ```
 
 ### Fetch Issue
 ```
-Fetch issue details using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "fetch-issue",
-  "parameters": {
-    "issue_number": "123"
-  }
-}
+Invoke Task tool:
+  subagent_type="fractary-work:work-manager"
+  description="Fetch issue details"
+  prompt='{
+    "operation": "fetch-issue",
+    "parameters": {
+      "issue_number": "123"
+    }
+  }'
 ```
 
 ### List Issues
 ```
-List issues using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "list-issues",
-  "parameters": {
-    "state": "open",
-    "labels": ["bug"]
-  }
-}
+Invoke Task tool:
+  subagent_type="fractary-work:work-manager"
+  description="List issues"
+  prompt='{
+    "operation": "list-issues",
+    "parameters": {
+      "state": "open",
+      "labels": ["bug"]
+    }
+  }'
 ```
 
 ### Update Issue
 ```
-Update issue using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "update-issue",
-  "parameters": {
-    "issue_number": "123",
-    "title": "New title"
-  }
-}
+Invoke Task tool:
+  subagent_type="fractary-work:work-manager"
+  description="Update issue"
+  prompt='{
+    "operation": "update-issue",
+    "parameters": {
+      "issue_number": "123",
+      "title": "New title"
+    }
+  }'
 ```
 
 ### Assign Issue
 ```
-Assign issue using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "assign-issue",
-  "parameters": {
-    "issue_number": "123",
-    "assignee": "johndoe"
-  }
-}
+Invoke Task tool:
+  subagent_type="fractary-work:work-manager"
+  description="Assign issue"
+  prompt='{
+    "operation": "assign-issue",
+    "parameters": {
+      "issue_number": "123",
+      "assignee": "johndoe"
+    }
+  }'
 ```
 
 ### Search Issues
 ```
-Search issues using the @agent-fractary-work:work-manager agent with the following request:
-
-{
-  "operation": "search-issues",
-  "parameters": {
-    "query": "authentication",
-    "state": "all"
-  }
-}
+Invoke Task tool:
+  subagent_type="fractary-work:work-manager"
+  description="Search issues"
+  prompt='{
+    "operation": "search-issues",
+    "parameters": {
+      "query": "authentication",
+      "state": "all"
+    }
+  }'
 ```
 
 **Key points:**
-- The declarative statement with @agent- prefix IS the invocation
-- The plugin system automatically routes when it sees the @agent- reference
-- You don't need to call any tools - just write the statement
-- The agent will receive the request and handle routing to skills
+- Actually invoke the Task tool - don't just write text about it
+- The work-manager agent will receive the request
+- The agent will route to the appropriate skill
+- Display the agent's response to the user
 </INVOCATION_TEMPLATE>
 
 <ERROR_HANDLING>
