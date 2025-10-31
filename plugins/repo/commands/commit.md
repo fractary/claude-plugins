@@ -58,6 +58,48 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--description "Optimized database queries"` ✅
+- **Wrong**: `--description Optimized database queries` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /repo:commit "Add CSV export feature" --type feat
+✅ /repo:commit "Fix authentication bug" --work-id 123 --scope auth
+✅ /repo:commit "Improve performance" --description "Optimized database queries"
+
+❌ /repo:commit Add CSV export feature --type feat
+❌ /repo:commit Fix authentication bug --work-id 123
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /repo:commit "Add feature" --type feat
+✅ /repo:commit "Fix bug" --work-id 123
+✅ /repo:commit "Update docs" --scope api
+```
+
+**Boolean flags have no value:**
+```bash
+✅ /repo:commit "Breaking change" --breaking
+✅ /repo:commit "Remove old API" --type feat --breaking
+
+❌ /repo:commit "Breaking change" --breaking true
+❌ /repo:commit "Remove old API" --breaking=true
+```
+
+**Commit types are exact keywords:**
+- Use exactly: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`
+- NOT: `feature`, `bugfix`, `documentation`
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Arguments
 
@@ -65,12 +107,12 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Create semantic commit with conventional commit format
 
 **Optional Arguments**:
-- `message`: Commit message (if not provided, will be generated)
-- `--type`: Commit type (feat|fix|chore|docs|style|refactor|perf|test, default: feat)
-- `--work-id`: Associated work item ID
-- `--scope`: Scope of changes
-- `--breaking`: Mark as breaking change
-- `--description`: Extended commit description
+- `message` (string): Commit message summary, use quotes if multi-word (if not provided, will be auto-generated)
+- `--type` (enum): Commit type following Conventional Commits. Must be one of: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test` (default: feat)
+- `--work-id` (string or number): Associated work item ID for tracking (e.g., "123", "PROJ-456")
+- `--scope` (string): Scope/component of changes (e.g., "auth", "api", "ui"). Single word, no quotes needed
+- `--breaking` (boolean flag): Mark as breaking change (adds BREAKING CHANGE footer). No value needed, just include the flag
+- `--description` (string): Extended commit description/body, use quotes if multi-word
 
 **Maps to**: create-commit
 

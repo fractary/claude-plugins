@@ -58,6 +58,46 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes (though branch names rarely have spaces)
+- **Example**: `--remote origin` ✅
+- **Wrong**: `--remote=origin` ❌
+
+### Quote Usage
+
+**Branch names with spaces (rare but possible):**
+```bash
+✅ /repo:push "feature/some branch name" --set-upstream
+❌ /repo:push feature/some branch name --set-upstream
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /repo:push feature/123-add-export
+✅ /repo:push main --remote upstream
+✅ /repo:push --set-upstream
+```
+
+**Boolean flags have no value:**
+```bash
+✅ /repo:push --set-upstream
+✅ /repo:push feature/branch --force
+✅ /repo:push --set-upstream --force
+
+❌ /repo:push --set-upstream true
+❌ /repo:push --force=true
+```
+
+**Important safety notes:**
+- `--force` should be used with extreme caution
+- Force push to main/master is blocked for safety
+- Always review changes before force pushing
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Arguments
 
@@ -65,10 +105,10 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Push branch to remote repository
 
 **Optional Arguments**:
-- `branch_name`: Branch to push (default: current branch)
-- `--remote`: Remote name (default: origin)
-- `--set-upstream`: Set upstream tracking
-- `--force`: Force push (use with caution)
+- `branch_name` (string): Branch name to push (default: current branch). Example: "feature/123-add-export"
+- `--remote` (string): Remote repository name (default: origin). Examples: "origin", "upstream", "fork"
+- `--set-upstream` (boolean flag): Set upstream tracking relationship for the branch. No value needed, just include the flag. Useful for first push of new branch
+- `--force` (boolean flag): Force push, overwriting remote history (use with extreme caution!). No value needed, just include the flag. Blocked for main/master branches
 
 **Maps to**: push-branch
 

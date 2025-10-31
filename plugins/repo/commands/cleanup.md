@@ -41,6 +41,49 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--exclude "release/*"` ✅
+- **Wrong**: `--exclude release/*` ❌ (might work but inconsistent)
+
+### Quote Usage
+
+**Pattern values should use quotes for safety:**
+```bash
+✅ /repo:cleanup --exclude "release/*"
+✅ /repo:cleanup --exclude "hotfix/*"
+
+❌ /repo:cleanup --exclude release/*  # May work but inconsistent
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /repo:cleanup --days 60
+✅ /repo:cleanup --location remote
+✅ /repo:cleanup --merged --inactive
+```
+
+**Boolean flags have no value:**
+```bash
+✅ /repo:cleanup --delete
+✅ /repo:cleanup --merged --inactive
+✅ /repo:cleanup --merged --delete --location both
+
+❌ /repo:cleanup --delete true
+❌ /repo:cleanup --merged=true
+```
+
+**Important safety notes:**
+- **Dry-run by default**: Without `--delete`, only lists branches (no deletion)
+- **Always run without `--delete` first** to preview what will be removed
+- **Protected branches**: main/master/develop are never deleted
+- **Use `--exclude`** to protect important branch patterns
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Arguments
 
@@ -48,12 +91,12 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Clean up stale and merged branches
 
 **Optional Arguments**:
-- `--delete`: Actually delete branches (default: dry-run, just list)
-- `--merged`: Include merged branches
-- `--inactive`: Include inactive branches
-- `--days`: Consider branches inactive after N days (default: 30)
-- `--location`: Where to clean (local|remote|both, default: local)
-- `--exclude`: Pattern of branches to exclude (e.g., "release/*")
+- `--delete` (boolean flag): Actually delete branches. No value needed, just include the flag. **Default is dry-run** (only lists branches without deleting). ALWAYS run without this flag first to preview
+- `--merged` (boolean flag): Include branches that are fully merged into the default branch. No value needed, just include the flag. Safe to delete
+- `--inactive` (boolean flag): Include branches with no commits in N days (see `--days`). No value needed, just include the flag. Review carefully before deleting
+- `--days` (number): Number of days of inactivity to consider a branch stale (default: 30). Example: `--days 60` for 60 days. Only applies when `--inactive` is used
+- `--location` (enum): Where to clean branches. Must be one of: `local` (only local branches), `remote` (only remote branches), `both` (local and remote) (default: local)
+- `--exclude` (string): Glob pattern of branches to exclude from cleanup (e.g., "release/*", "hotfix/*"). Use quotes for patterns with wildcards
 
 **Maps to**: cleanup-branches
 

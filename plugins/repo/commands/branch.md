@@ -42,6 +42,43 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--base "feature branch"` ✅
+- **Wrong**: `--base feature branch` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /repo:branch create 123 "add CSV export feature"
+✅ /repo:branch create 123 "fix authentication bug" --base develop
+✅ /repo:branch delete "feature/old branch name"
+
+❌ /repo:branch create 123 add CSV export feature
+❌ /repo:branch create 123 fix authentication bug --base develop
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /repo:branch create 123 add-csv-export
+✅ /repo:branch create 123 fix-bug --prefix bugfix
+✅ /repo:branch delete feature/123-old-feature
+```
+
+**Branch names and descriptions:**
+- **Hyphenated descriptions** (recommended): Use hyphens, no quotes needed
+  - `add-csv-export` ✅
+  - `fix-authentication-bug` ✅
+- **Multi-word descriptions**: Must use quotes
+  - `"add CSV export"` ✅
+  - `"fix authentication bug"` ✅
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -49,12 +86,12 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Create a new Git branch with semantic naming
 
 **Required Arguments**:
-- `work_id`: Work item ID
-- `description`: Branch description
+- `work_id` (string or number): Work item ID from your work tracking system (e.g., "123", "PROJ-456")
+- `description` (string): Branch description, use quotes if multi-word (e.g., "add-csv-export" or "add CSV export")
 
 **Optional Arguments**:
-- `--base`: Base branch (default: main/master)
-- `--prefix`: Branch prefix (feature/bugfix/hotfix, default: auto-detect from work type)
+- `--base` (string): Base branch name to create from (default: main/master). Examples: "main", "develop", "release/v1.0"
+- `--prefix` (string): Branch prefix type. Must be one of: `feature`, `bugfix`, `hotfix`, `chore` (default: auto-detect from work item type)
 
 **Maps to**: create-branch
 
@@ -68,11 +105,11 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Delete a Git branch
 
 **Required Arguments**:
-- `branch_name`: Branch name to delete
+- `branch_name` (string): Full branch name to delete (e.g., "feature/123-add-export", use quotes if contains spaces)
 
 **Optional Arguments**:
-- `--location`: Where to delete (local|remote|both, default: local)
-- `--force`: Force delete unmerged branch
+- `--location` (enum): Where to delete the branch. Must be one of: `local`, `remote`, `both` (default: local)
+- `--force` (boolean flag): Force delete unmerged branch. No value needed, just include the flag
 
 **Maps to**: delete-branch
 
@@ -86,10 +123,10 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: List branches with optional filtering
 
 **Optional Arguments**:
-- `--stale`: Show only stale branches
-- `--merged`: Show only merged branches
-- `--days`: Consider branches older than N days as stale (default: 30)
-- `--pattern`: Filter branches by pattern
+- `--stale` (boolean flag): Show only stale branches (branches with no commits in N days). No value needed, just include the flag
+- `--merged` (boolean flag): Show only merged branches (branches fully merged into main). No value needed, just include the flag
+- `--days` (number): Number of days to consider a branch stale (default: 30). Example: `--days 60` for 60 days
+- `--pattern` (string): Glob pattern to filter branch names (e.g., "feature/*", "bugfix/123-*")
 
 **Maps to**: list-branches
 

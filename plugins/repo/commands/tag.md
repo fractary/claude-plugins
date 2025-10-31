@@ -42,6 +42,47 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--message "Release version 1.0.0"` ✅
+- **Wrong**: `--message Release version 1.0.0` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /repo:tag create v1.0.0 --message "Release version 1.0.0"
+✅ /repo:tag create v1.0.0 --message "Major release with breaking changes"
+
+❌ /repo:tag create v1.0.0 --message Release version 1.0.0
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /repo:tag create v1.0.0
+✅ /repo:tag push v1.0.0
+✅ /repo:tag list --latest 10
+```
+
+**Boolean flags have no value:**
+```bash
+✅ /repo:tag create v1.0.0 --sign
+✅ /repo:tag create v1.0.0 --force
+
+❌ /repo:tag create v1.0.0 --sign true
+❌ /repo:tag create v1.0.0 --force=true
+```
+
+**Tag naming conventions:**
+- Use semantic versioning: `v1.0.0`, `v2.1.3`, `v0.9.0-beta`
+- Tags are typically single words (no quotes needed)
+- Example: `v1.0.0`, `v2.0.0-rc1`, `release-2024`
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -49,13 +90,13 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Create a new Git tag
 
 **Required Arguments**:
-- `tag_name`: Tag name (e.g., v1.0.0)
+- `tag_name` (string): Tag name following semantic versioning (e.g., "v1.0.0", "v2.1.3", "v0.9.0-beta")
 
 **Optional Arguments**:
-- `--message`: Tag annotation message
-- `--commit`: Commit SHA to tag (default: HEAD)
-- `--sign`: GPG sign the tag
-- `--force`: Force create/update tag
+- `--message` (string): Tag annotation message, use quotes if multi-word (e.g., "Release version 1.0.0"). Creates an annotated tag (recommended for releases)
+- `--commit` (string): Commit SHA to tag (default: HEAD). Example: "abc123def" or full SHA
+- `--sign` (boolean flag): GPG sign the tag for verification. No value needed, just include the flag. Requires GPG key configured
+- `--force` (boolean flag): Force create/update existing tag. No value needed, just include the flag. Use with caution
 
 **Maps to**: create-tag
 
@@ -69,10 +110,10 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Push tag(s) to remote
 
 **Required Arguments**:
-- `tag_name`: Tag to push, or "all" for all tags
+- `tag_name` (string or keyword): Tag name to push (e.g., "v1.0.0"), or the literal keyword `all` to push all tags
 
 **Optional Arguments**:
-- `--remote`: Remote name (default: origin)
+- `--remote` (string): Remote repository name (default: origin). Examples: "origin", "upstream"
 
 **Maps to**: push-tag
 
@@ -86,8 +127,8 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: List tags
 
 **Optional Arguments**:
-- `--pattern`: Filter by pattern (e.g., v1.*)
-- `--latest`: Show only latest N tags
+- `--pattern` (string): Glob pattern to filter tags (e.g., "v1.*" for all v1.x.x tags, "v2.0.*" for v2.0.x)
+- `--latest` (number): Show only the latest N tags (e.g., `--latest 10` for 10 most recent tags)
 
 **Maps to**: list-tags
 

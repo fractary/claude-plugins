@@ -60,6 +60,52 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--body "Implements CSV export functionality"` ✅
+- **Wrong**: `--body Implements CSV export functionality` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /repo:pr create "Add CSV export feature" --body "Implements user data export"
+✅ /repo:pr comment 456 "Looks good to me!"
+✅ /repo:pr review 456 approve --comment "Great work on this feature!"
+
+❌ /repo:pr create Add CSV export feature --body Implements export
+❌ /repo:pr comment 456 Looks good to me!
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /repo:pr create "Title" --work-id 123
+✅ /repo:pr review 456 approve
+✅ /repo:pr merge 456 --strategy squash
+```
+
+**Boolean flags have no value:**
+```bash
+✅ /repo:pr create "WIP: Feature" --draft
+✅ /repo:pr merge 456 --delete-branch
+
+❌ /repo:pr create "WIP: Feature" --draft true
+❌ /repo:pr merge 456 --delete-branch=true
+```
+
+**Review actions are exact keywords:**
+- Use exactly: `approve`, `request_changes`, `comment`
+- NOT: `approved`, `request-changes`, `add-comment`
+
+**Merge strategies are exact keywords:**
+- Use exactly: `merge`, `squash`, `rebase`
+- NOT: `merge-commit`, `squash-merge`, `rebase-merge`
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -67,14 +113,14 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Create a new pull request
 
 **Required Arguments**:
-- `title`: PR title
+- `title` (string): PR title, use quotes if multi-word (e.g., "Add CSV export feature")
 
 **Optional Arguments**:
-- `--body`: PR description
-- `--base`: Base branch (default: main/master)
-- `--head`: Head branch (default: current branch)
-- `--work-id`: Associated work item ID
-- `--draft`: Create as draft PR
+- `--body` (string): PR description/body text, use quotes if multi-word (e.g., "Implements user data export functionality")
+- `--base` (string): Base branch to merge into (default: main/master). Examples: "main", "develop", "release/v1.0"
+- `--head` (string): Head branch to merge from (default: current branch). Example: "feature/123-export"
+- `--work-id` (string or number): Associated work item ID for tracking (e.g., "123", "PROJ-456")
+- `--draft` (boolean flag): Create as draft PR (not ready for review). No value needed, just include the flag
 
 **Maps to**: create-pr
 
@@ -88,8 +134,8 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Add a comment to a pull request
 
 **Required Arguments**:
-- `pr_number`: PR number
-- `comment`: Comment text
+- `pr_number` (number): PR number (e.g., 456, not "#456")
+- `comment` (string): Comment text, use quotes if multi-word (e.g., "Looks great! Approving now.")
 
 **Maps to**: comment-pr
 
@@ -103,11 +149,11 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Review a pull request
 
 **Required Arguments**:
-- `pr_number`: PR number
-- `action`: Review action (approve|request_changes|comment)
+- `pr_number` (number): PR number (e.g., 456, not "#456")
+- `action` (enum): Review action. Must be one of: `approve`, `request_changes`, `comment`
 
 **Optional Arguments**:
-- `--comment`: Review comment
+- `--comment` (string): Review comment/feedback, use quotes if multi-word (e.g., "Please add tests for edge cases")
 
 **Maps to**: review-pr
 
@@ -121,11 +167,11 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 **Purpose**: Merge a pull request
 
 **Required Arguments**:
-- `pr_number`: PR number
+- `pr_number` (number): PR number (e.g., 456, not "#456")
 
 **Optional Arguments**:
-- `--strategy`: Merge strategy (merge|squash|rebase, default: merge)
-- `--delete-branch`: Delete branch after merge
+- `--strategy` (enum): Merge strategy. Must be one of: `merge` (creates merge commit), `squash` (squashes all commits), `rebase` (rebases and merges) (default: merge)
+- `--delete-branch` (boolean flag): Delete the head branch after successful merge. No value needed, just include the flag
 
 **Maps to**: merge-pr
 
