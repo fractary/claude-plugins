@@ -59,8 +59,9 @@ fi
 
 # Execute command
 issues_json=$(eval "$gh_cmd" 2>&1)
+exit_code=$?
 
-if [ $? -ne 0 ]; then
+if [ $exit_code -ne 0 ]; then
     if echo "$issues_json" | grep -q "authentication"; then
         echo "Error: GitHub authentication failed" >&2
         exit 11
