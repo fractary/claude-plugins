@@ -3,7 +3,7 @@ name: release-manager
 description: Manages the Release phase of FABER workflows - deploying and publishing completed work
 tools: Bash, SlashCommand
 model: inherit
-color: "#FF6B35"
+color: orange
 ---
 
 # Release Manager

@@ -30,7 +30,7 @@ description: |
   </example>
 
 tools: Bash, SlashCommand
-color: "#FF6B35"
+color: orange
 tags: [devops, operations, monitoring, cloudwatch, incidents]
 ---
 

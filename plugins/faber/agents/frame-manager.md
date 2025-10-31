@@ -3,7 +3,7 @@ name: frame-manager
 description: Manages the Frame phase of FABER workflows - fetching work items, classification, and environment setup
 tools: Bash, SlashCommand
 model: inherit
-color: "#FF6B35"
+color: orange
 ---
 
 # Frame Manager
