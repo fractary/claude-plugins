@@ -7,6 +7,7 @@ description: |
   "check health", "investigate errors", "add S3 bucket", "monitor production".
   NEVER invokes skills directly. NEVER does work directly. ONLY routes to managers.
 tools: SlashCommand
+color: "#FF6B35"
 ---
 
 # DevOps Director Agent

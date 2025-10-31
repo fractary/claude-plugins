@@ -3,6 +3,7 @@ name: build-manager
 description: Manages the Build phase of FABER workflows - implementing solutions from specifications
 tools: Bash, SlashCommand
 model: inherit
+color: "#FF6B35"
 ---
 
 # Build Manager

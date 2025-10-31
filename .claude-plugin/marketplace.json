@@ -7,7 +7,7 @@
     },
     "metadata": {
       "description": "Production-ready workflow orchestration and platform integrations with Claude Code agents, commands, skills and hooks.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "pluginRoot": "./plugins"
     },
     "plugins": [
@@ -15,7 +15,7 @@
         "name": "fractary-codex",
         "source": "./plugins/codex",
         "description": "Project documentation and org-wide synchronization to and from organization central codex",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
@@ -39,7 +39,7 @@
         "name": "fractary-repo",
         "source": "./plugins/repo",
         "description": "Universal source control operations across GitHub, GitLab, and Bitbucket with modular handler architecture",
-        "version": "2.0.0",
+        "version": "2.0.1",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
@@ -80,7 +80,7 @@
         "name": "fractary-work",
         "source": "./plugins/work",
         "description": "Universal work item management across GitHub Issues, Jira Cloud, and Linear with 100% feature parity and handler-based architecture",
-        "version": "2.1.0",
+        "version": "2.1.1",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
@@ -115,7 +115,7 @@
         "name": "fractary-faber-cloud",
         "source": "./plugins/faber-cloud",
         "description": "Comprehensive infrastructure and operations management for Claude Code - design, deploy, and monitor cloud infrastructure with AI assistance",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"

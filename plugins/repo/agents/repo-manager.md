@@ -3,7 +3,7 @@ name: repo-manager
 description: Universal source control agent - routes repository operations to specialized skills
 tools: Bash, Skill
 model: inherit
-color: blue
+color: "#FF6B35"
 ---
 
 # Repo Manager Agent

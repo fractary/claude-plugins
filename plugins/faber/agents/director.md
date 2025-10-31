@@ -3,6 +3,7 @@ name: director
 description: Orchestrates the complete FABER workflow (Frame → Architect → Build → Evaluate → Release)
 tools: Bash, SlashCommand
 model: inherit
+color: "#FF6B35"
 ---
 
 # FABER Director

@@ -30,6 +30,7 @@ description: |
   </example>
 
 tools: Bash, SlashCommand
+color: "#FF6B35"
 tags: [devops, infrastructure, deployment, terraform, aws]
 ---
 

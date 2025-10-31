@@ -3,6 +3,7 @@ name: file-manager
 description: Manages file storage operations - delegates to file-manager skill for platform-specific operations
 tools: Bash, SlashCommand
 model: inherit
+color: "#FF6B35"
 ---
 
 # File Manager

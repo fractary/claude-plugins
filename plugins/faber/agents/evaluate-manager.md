@@ -3,6 +3,7 @@ name: evaluate-manager
 description: Manages the Evaluate phase of FABER workflows - testing and reviewing implementations
 tools: Bash, SlashCommand
 model: inherit
+color: "#FF6B35"
 ---
 
 # Evaluate Manager

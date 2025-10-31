@@ -3,6 +3,7 @@ name: architect-manager
 description: Manages the Architect phase of FABER workflows - generating implementation specifications
 tools: Bash, SlashCommand
 model: inherit
+color: "#FF6B35"
 ---
 
 # Architect Manager

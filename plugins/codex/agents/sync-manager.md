@@ -55,7 +55,7 @@ description: |
   </commentary>
   </example>
 
-color: blue
+color: "#FF6B35"
 agent-type: claude-code
 codex_sync_include: [*]
 codex_sync_exclude: []
