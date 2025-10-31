@@ -107,10 +107,10 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax.
 **Agent**: @agent-fractary-repo:repo-manager
 
 **How to invoke**:
-State that you're using the agent in natural language:
+State the action and agent in natural language:
 
 ```
-Use the @agent-fractary-repo:repo-manager agent to push a branch with the following request:
+Push the branch using the @agent-fractary-repo:repo-manager agent with the following request:
 {
   "operation": "push-branch",
   "parameters": {
