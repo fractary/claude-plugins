@@ -5,14 +5,20 @@
 set -euo pipefail
 
 # Check arguments
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 <branch_name> [force] [set_upstream]" >&2
-    exit 2
+# If branch name not provided, use current branch
+if [ $# -lt 1 ] || [ -z "$1" ]; then
+    BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    if [ -z "$BRANCH_NAME" ] || [ "$BRANCH_NAME" = "HEAD" ]; then
+        echo "Error: Not on a branch and no branch name provided" >&2
+        exit 2
+    fi
+    FORCE="${1:-false}"
+    SET_UPSTREAM="${2:-false}"
+else
+    BRANCH_NAME="$1"
+    FORCE="${2:-false}"
+    SET_UPSTREAM="${3:-false}"
 fi
-
-BRANCH_NAME="$1"
-FORCE="${2:-false}"
-SET_UPSTREAM="${3:-false}"
 
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then

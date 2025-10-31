@@ -70,10 +70,8 @@ You receive structured operation requests:
 }
 ```
 
-**Required Parameters**:
-- `branch_name` (string) - Name of branch to push
-
 **Optional Parameters**:
+- `branch_name` (string) - Name of branch to push (default: current branch)
 - `remote` (string) - Remote name (default: "origin")
 - `set_upstream` (boolean) - Set upstream tracking (default: false)
 - `force` (boolean) - Force push with lease (default: false)
@@ -107,6 +105,7 @@ Use repo-common skill to load configuration.
 **3. VALIDATE INPUTS:**
 
 **Branch Validation:**
+- If branch_name not provided, use current branch (git rev-parse --abbrev-ref HEAD)
 - Check branch_name exists locally
 - Verify branch has commits to push
 - Validate branch is checked out or exists
@@ -242,10 +241,9 @@ The active handler is determined by configuration: `config.handlers.source_contr
 <ERROR_HANDLING>
 
 **Invalid Inputs** (Exit Code 2):
-- Missing branch_name: "Error: branch_name is required"
+- Not on a branch: "Error: Not on a branch and no branch name provided"
 - Branch doesn't exist: "Error: Branch does not exist: {branch_name}"
 - Invalid remote: "Error: Remote does not exist: {remote}"
-- Empty branch name: "Error: branch_name cannot be empty"
 
 **Protected Branch Violation** (Exit Code 10):
 - Force push to protected: "CRITICAL: Cannot force push to protected branch: {branch_name}"
@@ -277,7 +275,30 @@ The active handler is determined by configuration: `config.handlers.source_contr
 
 <USAGE_EXAMPLES>
 
-**Example 1: First Push with Upstream Tracking**
+**Example 1: Push Current Branch (No Branch Name Specified)**
+```
+INPUT:
+{
+  "operation": "push-branch",
+  "parameters": {
+    "remote": "origin",
+    "set_upstream": true
+  }
+}
+
+# Assuming current branch is feat/123-user-export
+OUTPUT:
+{
+  "status": "success",
+  "operation": "push-branch",
+  "branch_name": "feat/123-user-export",
+  "remote": "origin",
+  "upstream_set": true,
+  "commits_pushed": 3
+}
+```
+
+**Example 2: First Push with Upstream Tracking**
 ```
 INPUT:
 {
