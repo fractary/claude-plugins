@@ -30,6 +30,351 @@ Extract from invocation:
 - `work_domain` (required): Domain (engineering, design, writing, data)
 - `auto_merge` (optional): Auto-merge on release (true/false, default from config)
 
+## Intent Parsing (GitHub Mentions)
+
+<INTENT_PARSING>
+
+### Purpose
+When invoked from GitHub mentions, parse the user's intent and route to the appropriate workflow execution path.
+
+### Context Detection
+Check if this is a GitHub mention invocation:
+- Look for `FABER_GITHUB_CONTEXT` environment variable
+- If present, this is a GitHub mention → parse intent
+- If not present, skip to workflow orchestration (direct CLI invocation)
+
+### Intent Types
+
+#### 1. Full Workflow Intent
+**Patterns:** "run", "work on", "handle", "process", "do", "complete", "execute", "go", "start"
+
+**Examples:**
+- "@faber run this issue"
+- "@faber work on this"
+- "@faber handle this"
+- "@faber do this"
+- "@faber"
+
+**Action:** Execute complete Frame → Architect → Build → Evaluate → Release workflow
+
+**Implementation:** Proceed to workflow orchestration section (execute all five phases)
+
+#### 2. Single Phase Intent
+**Patterns:** Phase names or phase-specific verbs
+
+**Frame Phase:**
+- "frame", "setup", "initialize", "fetch", "prepare"
+- Example: "@faber just frame this"
+- Action: Execute frame-manager only, stop
+
+**Architect Phase:**
+- "design", "architect", "spec", "plan", "architecture"
+- Example: "@faber just design this, don't implement"
+- Action: Execute frame-manager → architect-manager, stop
+- Note: Requires frame to complete first
+
+**Build Phase:**
+- "build", "implement", "code", "develop", "write"
+- Example: "@faber only implement this"
+- Action: Execute frame-manager → architect-manager → build-manager, stop
+- Note: Requires frame + architect first
+
+**Evaluate Phase:**
+- "test", "evaluate", "check", "verify", "validate", "review"
+- Example: "@faber run tests on this"
+- Action: Execute evaluate-manager on current state, stop
+- Note: Requires existing build artifacts
+
+**Release Phase:**
+- "release", "deploy", "ship", "publish", "create pr"
+- Example: "@faber release this"
+- Action: Execute release-manager only (requires completed work)
+- Safety: Requires guarded or autonomous mode confirmation
+
+**Implementation:**
+- Route to specific phase manager(s)
+- Respect dependencies (can't architect without frame)
+- Stop execution after requested phase(s)
+- Post status card with phase-specific information
+
+#### 3. Status Query Intent
+**Patterns:** "status", "progress", "where", "what's happening", "show me", "current state", "check"
+
+**Examples:**
+- "@faber status"
+- "@faber what's the progress on this?"
+- "@faber where are we?"
+- "@faber show me progress"
+
+**Action:** Retrieve and report session status without executing workflow
+
+**Implementation:**
+```bash
+# Read session state
+SESSION_JSON=$("$CORE_SKILL/session-status.sh" "$WORK_ID")
+
+if [ $? -ne 0 ] || [ -z "$SESSION_JSON" ]; then
+    echo "No active workflow session found for this issue."
+    gh issue comment "$SOURCE_ID" --body "📊 **No Active FABER Workflow**
+
+No workflow session found. To start a workflow:
+\`\`\`
+@faber run this issue
+\`\`\`"
+    exit 0
+fi
+
+# Extract current status
+CURRENT_PHASE=$(echo "$SESSION_JSON" | jq -r '.current_phase // "unknown"')
+FRAME_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.frame.status // "pending"')
+ARCHITECT_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.architect.status // "pending"')
+BUILD_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.build.status // "pending"')
+EVALUATE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.evaluate.status // "pending"')
+RELEASE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.release.status // "pending"')
+
+# Post status card
+gh issue comment "$SOURCE_ID" --body "📊 **FABER Workflow Status**
+
+**Work ID:** \`$WORK_ID\`
+**Current Phase:** $CURRENT_PHASE
+
+**Progress:**
+- Frame: $FRAME_STATUS
+- Architect: $ARCHITECT_STATUS
+- Build: $BUILD_STATUS
+- Evaluate: $EVALUATE_STATUS
+- Release: $RELEASE_STATUS
+
+**Session File:** \`.faber/sessions/$WORK_ID.json\`"
+
+exit 0
+```
+
+#### 4. Control Command Intent
+**Patterns:** Workflow control actions
+
+**Approve:**
+- "approve", "approve release", "looks good", "LGTM", "proceed", "yes", "continue"
+- Example: "@faber approve release"
+- Action: If workflow is paused at release gate, proceed with release
+
+**Retry:**
+- "retry", "try again", "retry evaluate", "retry build"
+- Example: "@faber retry evaluation"
+- Action: Re-run last failed phase
+
+**Cancel:**
+- "cancel", "stop", "abort", "nevermind"
+- Example: "@faber cancel this workflow"
+- Action: Mark session as cancelled, post status
+
+**Skip:**
+- "skip", "skip evaluation", "bypass", "skip tests"
+- Example: "@faber skip tests" (only in dry-run or assist mode)
+- Action: Skip current phase and proceed
+- Safety: Only allowed in dry-run or assist mode
+
+**Implementation:**
+```bash
+# Read session state
+SESSION_JSON=$("$CORE_SKILL/session-status.sh" "$WORK_ID")
+CURRENT_STATE=$(echo "$SESSION_JSON" | jq -r '.state // "unknown"')
+
+case "$INTENT_TYPE" in
+    approve)
+        if [ "$CURRENT_STATE" = "awaiting_release_approval" ]; then
+            echo "✅ Approval received - proceeding with release"
+            # Proceed to release phase
+            SKIP_TO_RELEASE=true
+        else
+            echo "⚠️  No workflow awaiting approval"
+            gh issue comment "$SOURCE_ID" --body "⚠️  **No Approval Needed**
+
+The workflow is not currently awaiting approval.
+
+Current state: $CURRENT_STATE"
+            exit 0
+        fi
+        ;;
+    retry)
+        FAILED_PHASE=$(echo "$SESSION_JSON" | jq -r '.failed_phase // "unknown"')
+        echo "🔄 Retrying $FAILED_PHASE phase"
+        # Set retry flag
+        RETRY_FROM_PHASE="$FAILED_PHASE"
+        ;;
+    cancel)
+        echo "🛑 Cancelling workflow"
+        "$CORE_SKILL/session-update.sh" "$WORK_ID" "cancelled" "cancelled"
+        gh issue comment "$SOURCE_ID" --body "🛑 **Workflow Cancelled**
+
+Workflow \`$WORK_ID\` has been cancelled by @$COMMENTER."
+        exit 0
+        ;;
+esac
+```
+
+### Fallback Logic
+
+#### Intent Unclear
+If mention text doesn't match any pattern:
+- Default to full workflow execution
+- Post comment: "Interpreting this as a full workflow request. Starting Frame → Architect → Build → Evaluate → Release."
+
+#### Empty Mention
+If mention is just "@faber" with no additional text:
+- Check for existing session:
+  - If session exists: Default to status query
+  - If no session: Default to full workflow
+
+#### Ambiguous Intent
+If multiple intents detected:
+- Prioritize in order: Control > Status > Single Phase > Full Workflow
+- Post comment explaining interpretation
+
+### Error Handling
+
+#### Invalid Phase for Current State
+- "Can't architect without framing first"
+- "No work to release yet"
+- Post clear error message and suggest correct command
+
+#### Invalid Control Command
+- "No workflow to approve"
+- "Nothing to retry"
+- Post status and available actions
+
+### Intent Detection Implementation
+
+Add this at the beginning of the initialization section:
+
+```bash
+# Check for GitHub mention context
+if [ -n "$FABER_GITHUB_CONTEXT" ]; then
+    echo "🔍 Detected GitHub mention - parsing intent"
+
+    # Extract mention text from context
+    MENTION_TEXT=$(echo "$FABER_GITHUB_CONTEXT" | jq -r '.mention_text // ""')
+    COMMENTER=$(echo "$FABER_GITHUB_CONTEXT" | jq -r '.commenter // ""')
+
+    # Convert to lowercase for matching
+    INTENT_LOWER=$(echo "$MENTION_TEXT" | tr '[:upper:]' '[:lower:]')
+
+    # Determine intent type
+    INTENT_TYPE="full_workflow"  # default
+
+    # Control commands (highest priority)
+    if echo "$INTENT_LOWER" | grep -qE '\b(approve|lgtm|looks good|proceed|yes|continue)\b'; then
+        INTENT_TYPE="approve"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(retry|try again)\b'; then
+        INTENT_TYPE="retry"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(cancel|stop|abort|nevermind)\b'; then
+        INTENT_TYPE="cancel"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(skip|bypass)\b'; then
+        INTENT_TYPE="skip"
+
+    # Status queries
+    elif echo "$INTENT_LOWER" | grep -qE '\b(status|progress|where|what.*happening|show me|check)\b'; then
+        INTENT_TYPE="status"
+
+    # Single phase execution
+    elif echo "$INTENT_LOWER" | grep -qE '\b(just|only)\b.*(frame|setup|initialize)\b'; then
+        INTENT_TYPE="phase_frame"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(just|only)?\s*(design|architect|spec|plan)\b'; then
+        INTENT_TYPE="phase_architect"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(just|only)?\s*(build|implement|code|develop)\b'; then
+        INTENT_TYPE="phase_build"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(just|only)?\s*(test|evaluate|check|verify)\b'; then
+        INTENT_TYPE="phase_evaluate"
+    elif echo "$INTENT_LOWER" | grep -qE '\b(just|only)?\s*(release|deploy|ship|publish|create pr)\b'; then
+        INTENT_TYPE="phase_release"
+
+    # Full workflow patterns
+    elif echo "$INTENT_LOWER" | grep -qE '\b(run|work on|handle|process|do|complete|execute|go|start)\b'; then
+        INTENT_TYPE="full_workflow"
+
+    # Empty mention (just @faber)
+    elif [ -z "$MENTION_TEXT" ] || [ "$MENTION_TEXT" = "faber" ]; then
+        # Check if session exists
+        if [ -f ".faber/sessions/$WORK_ID.json" ]; then
+            INTENT_TYPE="status"
+        else
+            INTENT_TYPE="full_workflow"
+        fi
+    fi
+
+    echo "📝 Parsed intent: $INTENT_TYPE"
+    echo ""
+
+    # Route based on intent type
+    case "$INTENT_TYPE" in
+        status)
+            # Execute status query (implemented above)
+            # ... status implementation ...
+            exit 0
+            ;;
+        approve|retry|cancel|skip)
+            # Execute control command (implemented above)
+            # ... control implementation ...
+            ;;
+        phase_*)
+            # Single phase execution - set flags
+            SINGLE_PHASE_MODE=true
+            STOP_AFTER_PHASE="${INTENT_TYPE#phase_}"
+            echo "🎯 Single phase mode: $STOP_AFTER_PHASE"
+            echo ""
+            ;;
+        full_workflow)
+            # Continue to normal orchestration
+            echo "🎯 Full workflow mode"
+            echo ""
+            ;;
+    esac
+fi
+```
+
+### Output After Intent Parsing
+
+Post acknowledgment comment explaining interpretation:
+
+```bash
+if [ -n "$FABER_GITHUB_CONTEXT" ]; then
+    ACKNOWLEDGMENT="🎯 **FABER: $INTENT_TYPE**
+
+**Mention:** $MENTION_TEXT
+**Interpretation:** "
+
+    case "$INTENT_TYPE" in
+        full_workflow)
+            ACKNOWLEDGMENT+="Executing complete Frame → Architect → Build → Evaluate → Release workflow"
+            ;;
+        phase_*)
+            ACKNOWLEDGMENT+="Executing up to $STOP_AFTER_PHASE phase only"
+            ;;
+        status)
+            ACKNOWLEDGMENT+="Checking workflow status"
+            ;;
+        approve)
+            ACKNOWLEDGMENT+="Approving and proceeding with release"
+            ;;
+        retry)
+            ACKNOWLEDGMENT+="Retrying failed phase"
+            ;;
+        cancel)
+            ACKNOWLEDGMENT+="Cancelling workflow"
+            ;;
+    esac
+
+    ACKNOWLEDGMENT+="
+
+**Work ID:** \`$WORK_ID\`
+**Autonomy:** $AUTONOMY"
+
+    gh issue comment "$SOURCE_ID" --body "$ACKNOWLEDGMENT" 2>/dev/null || true
+fi
+```
+
+</INTENT_PARSING>
+
 ## Workflow Orchestration
 
 ### Initialization

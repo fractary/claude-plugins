@@ -124,7 +124,27 @@ See [`config/faber.example.toml`](config/faber.example.toml) for all available o
 
 ## Usage
 
-### Basic Commands
+### GitHub Integration (NEW in v1.1.0)
+
+**Trigger FABER directly from GitHub issues** using `@faber` mentions:
+
+```
+@faber run this issue        # Execute full workflow
+@faber just design this      # Design only, no implementation
+@faber test this             # Run tests only
+@faber status                # Check workflow status
+@faber approve               # Approve release (guarded mode)
+```
+
+**Setup** (one-time):
+1. Add `.github/workflows/faber.yml` to your repository
+2. Add `CLAUDE_CODE_OAUTH_TOKEN` secret
+3. Create `.faber.config.toml` in repository root
+4. Mention `@faber` in any issue!
+
+Status updates post automatically to GitHub issues. See [GitHub Integration Guide](docs/github-integration.md) for complete setup instructions and examples.
+
+### CLI Commands
 
 ```bash
 # Initialize FABER in a project
@@ -560,19 +580,21 @@ MIT License - see LICENSE file for details
 
 ## Roadmap
 
-### v1.0 (Current)
+### v1.1.0 (Current - 2025-10-31)
 - ✅ Core FABER workflow
-- ✅ GitHub integration
+- ✅ **GitHub `@faber` mention integration**
+- ✅ **Intent parsing** (full workflow, single phase, status, control)
+- ✅ **Status card posting** to GitHub issues
 - ✅ Cloudflare R2 storage
 - ✅ Engineering domain
 - ✅ Configuration presets
-- ✅ Autonomy levels
+- ✅ Autonomy levels (dry-run, assist, guarded, autonomous)
 
-### v1.1 (Planned)
+### v1.2 (Planned)
 - 🚧 Jira integration
 - 🚧 Linear integration
 - 🚧 AWS S3 storage
-- 🚧 Approve/retry commands
+- 🚧 GitLab mention integration
 
 ### v2.0 (Future)
 - 🚧 Design domain
