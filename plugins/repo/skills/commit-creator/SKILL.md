@@ -198,7 +198,7 @@ Commit SHA: {commit_sha}
 Work Item: #{work_id}
 Message: {message}
 ───────────────────────────────────────
-Next: Use branch-pusher to push changes or continue making changes
+Next: Run /repo:push to push changes when ready
 ```
 
 </WORKFLOW>

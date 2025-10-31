@@ -185,7 +185,7 @@ Branch Pushed: {branch_name} → {remote}/{branch_name}
 Upstream Set: {upstream_set}
 Commits Pushed: {commit_count}
 ───────────────────────────────────────
-Next: Create PR with pr-manager or continue development
+Next: Run /repo:pr create to open pull request when ready
 ```
 
 </WORKFLOW>

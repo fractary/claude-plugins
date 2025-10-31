@@ -21,6 +21,14 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 - Invoke skills directly (the repo-manager agent handles skill invocation)
 - Execute platform-specific logic (that's the agent's job)
 
+**COMMAND ISOLATION:**
+- This command ONLY creates commits locally
+- NEVER push to remote after committing
+- NEVER create pull requests after committing
+- NEVER chain other git operations
+- User must explicitly run /repo:push to push changes
+- EXCEPTION: If explicit continuation flags exist (not currently implemented)
+
 **THIS COMMAND IS ONLY A ROUTER.**
 </CRITICAL_RULES>
 

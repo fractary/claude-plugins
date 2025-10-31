@@ -21,6 +21,15 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 - Invoke skills directly (the repo-manager agent handles skill invocation)
 - Execute platform-specific logic (that's the agent's job)
 
+**COMMAND ISOLATION:**
+- This command ONLY manages pull requests (create, comment, review, merge)
+- NEVER push branches before creating PR (assume already pushed)
+- NEVER commit changes before creating PR
+- NEVER chain other git operations
+- For create: User must have already pushed branch with /repo:push
+- For merge: ONLY merge the PR, do not perform post-merge operations
+- EXCEPTION: If explicit continuation flags exist (not currently implemented)
+
 **THIS COMMAND IS ONLY A ROUTER.**
 </CRITICAL_RULES>
 
