@@ -9,10 +9,7 @@
 *.zsh text eol=lf
 *.fish text eol=lf
 
-# Default to LF for all text files
-* text=auto eol=lf
-
-# Explicitly declare text files
+# Explicitly declare text files (without forced line endings)
 *.md text
 *.json text
 *.toml text
