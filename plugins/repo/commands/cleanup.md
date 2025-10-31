@@ -4,437 +4,190 @@ description: Clean up stale and merged branches safely
 argument-hint: [--delete] [--merged] [--inactive] [--days <n>] [--location <where>] [--exclude <pattern>]
 ---
 
-# /repo:cleanup - Branch Cleanup Command
+<CONTEXT>
+You are the repo:cleanup command router for the fractary-repo plugin.
+Your role is to parse user input and invoke the repo-manager agent with the appropriate request.
+</CONTEXT>
 
-Identify and safely delete stale, merged, or inactive branches to keep repositories clean.
+<CRITICAL_RULES>
+**YOU MUST:**
+- Parse the command arguments from user input
+- Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager)
+- Pass structured request to the agent
+- Return the agent's response to the user
 
-## Usage
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Invoke skills directly (the repo-manager agent handles skill invocation)
+- Execute platform-specific logic (that's the agent's job)
 
-```bash
-# List stale branches (dry run)
-/repo:cleanup [options]
+**THIS COMMAND IS ONLY A ROUTER.**
+</CRITICAL_RULES>
 
-# Delete stale branches
-/repo:cleanup --delete [options]
+<WORKFLOW>
+1. **Parse user input**
+   - Extract cleanup options
+   - Parse optional flags (delete, merged, inactive, days, location, exclude)
+   - Validate arguments
+
+2. **Build structured request**
+   - Package parameters for cleanup operation
+
+3. **Invoke agent**
+   - Invoke fractary-repo:repo-manager agent with the request
+
+4. **Return response**
+   - The repo-manager agent will handle the operation and return results
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Arguments
+
+### [--delete] [--merged] [--inactive] [--days <n>] [--location <where>] [--exclude <pattern>]
+**Purpose**: Clean up stale and merged branches
+
+**Optional Arguments**:
+- `--delete`: Actually delete branches (default: dry-run, just list)
+- `--merged`: Include merged branches
+- `--inactive`: Include inactive branches
+- `--days`: Consider branches inactive after N days (default: 30)
+- `--location`: Where to clean (local|remote|both, default: local)
+- `--exclude`: Pattern of branches to exclude (e.g., "release/*")
+
+**Maps to**: cleanup-branches
+
+**Example**:
 ```
+/repo:cleanup --merged --inactive --days 60
+→ Invoke agent with {"operation": "cleanup-branches", "parameters": {"merged": true, "inactive": true, "days": 60}}
+```
+</ARGUMENT_PARSING>
 
-## Optional Flags
-
-- `--delete`: Actually delete branches (default: dry-run/list only)
-- `--merged`: Include fully merged branches
-- `--inactive`: Include inactive branches (no commits in N days)
-- `--days <n>`: Inactivity threshold in days (default: 30)
-- `--location <where>`: Where to clean: local|remote|both (default: local)
-- `--exclude <pattern>`: Exclude branches matching pattern
-
-## Examples
+<EXAMPLES>
+## Usage Examples
 
 ```bash
-# Dry run - list stale branches
-/repo:cleanup --merged --inactive --days 30
+# List stale branches (dry-run)
+/repo:cleanup
 
-# Delete merged branches locally
-/repo:cleanup --delete --merged
+# List merged branches
+/repo:cleanup --merged
 
-# Delete inactive branches (60+ days)
-/repo:cleanup --delete --inactive --days 60
+# List inactive branches (older than 60 days)
+/repo:cleanup --inactive --days 60
+
+# List merged and inactive branches
+/repo:cleanup --merged --inactive --days 90
+
+# Actually delete merged branches
+/repo:cleanup --merged --delete
+
+# Clean up remote branches
+/repo:cleanup --merged --delete --location remote
+
+# Clean up excluding certain branches
+/repo:cleanup --merged --delete --exclude "release/*"
 
 # Clean up both local and remote
-/repo:cleanup --delete --merged --location both
-
-# Exclude release branches
-/repo:cleanup --delete --merged --exclude "release/*"
+/repo:cleanup --merged --inactive --delete --location both
 ```
+</EXAMPLES>
 
-## Command Implementation
+<AGENT_INVOCATION>
+## Invoking the Agent
 
-This command identifies and optionally deletes stale branches.
+After parsing arguments, invoke the repo-manager agent using declarative syntax:
 
-### Default Behavior (Dry Run)
+**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
 
-By default, the command lists stale branches WITHOUT deleting:
-
-```bash
-/repo:cleanup --merged
-```
-
-Result:
-```
-🔍 Scanning for stale branches...
-
-Stale Branches Report
-───────────────────────────────────────
-
-Fully Merged (3):
-  ✓ feat/123-old-feature
-    Last commit: 2024-09-15 (45 days ago)
-    Author: developer@example.com
-    Status: Merged to main
-
-  ✓ fix/456-auth-bug
-    Last commit: 2024-08-31 (60 days ago)
-    Author: developer@example.com
-    Status: Merged to main
-
-  ✓ chore/789-update-deps
-    Last commit: 2024-08-01 (90 days ago)
-    Author: developer@example.com
-    Status: Merged to main
-
-Inactive (1):
-  ⚠ feat/999-experiment
-    Last commit: 2024-07-01 (120 days ago)
-    Author: developer@example.com
-    Status: Unmerged (has unique commits)
-
-Total: 4 stale branches
-Safe to delete: 3 merged branches
-
-To delete: /repo:cleanup --delete --merged
-```
-
-### Delete Mode
-
-With `--delete` flag, the command actually removes branches:
-
-```bash
-/repo:cleanup --delete --merged
-```
-
-Result:
-```
-⚠️  DELETE MODE ACTIVE
-
-Branches to delete (3):
-  • feat/123-old-feature (merged)
-  • fix/456-auth-bug (merged)
-  • chore/789-update-deps (merged)
-
-Protected branches excluded: main, master, production
-
-⚠️  This action cannot be undone.
-Continue? (yes/no): yes
-
-🗑️  Deleting branches...
-
-✓ Deleted: feat/123-old-feature (local)
-✓ Deleted: fix/456-auth-bug (local)
-✓ Deleted: chore/789-update-deps (local)
-
-✅ Cleanup complete
-Deleted: 3 branches
-Kept: 1 unmerged branch
-
-Tip: Run with --location both to also delete remote branches
-```
-
-## Cleanup Strategies
-
-### Strategy 1: Conservative (Merged Only)
-
-Delete only fully merged branches:
-
-```bash
-/repo:cleanup --delete --merged
-```
-
-**Pros**:
-- Safest approach
-- No risk of losing work
-- Cleans up completed features
-
-**Use when**:
-- Regular maintenance
-- Unsure about branch status
-- Team has active development
-
-### Strategy 2: Time-Based (Inactive)
-
-Delete branches with no activity for N days:
-
-```bash
-/repo:cleanup --delete --inactive --days 60
-```
-
-**Pros**:
-- Removes abandoned work
-- Clears up stale experiments
-
-**Cons**:
-- May delete unmerged work
-- Requires careful threshold selection
-
-**Use when**:
-- Long-term cleanup
-- Known abandoned branches
-- After communicating with team
-
-### Strategy 3: Combined (Merged + Old Inactive)
-
-Delete merged branches immediately, very old inactive branches:
-
-```bash
-# Delete merged branches
-/repo:cleanup --delete --merged
-
-# Then delete very old unmerged branches (with caution)
-/repo:cleanup --delete --inactive --days 90
-```
-
-**Use when**:
-- Comprehensive cleanup
-- Regular maintenance schedule
-
-### Strategy 4: Pattern-Based
-
-Clean up specific branch types:
-
-```bash
-# Clean up old feature branches
-/repo:cleanup --delete --merged --pattern "feat/*"
-
-# Clean up old fix branches
-/repo:cleanup --delete --merged --pattern "fix/*"
-```
-
-## Workflow
-
-**1. Parse Arguments**:
-- Extract --delete flag (default: false)
-- Parse filter flags (--merged, --inactive, --days)
-- Parse --location (default: local)
-- Parse --exclude patterns
-
-**2. Scan for Stale Branches**:
+**Request structure**:
 ```json
 {
-  "operation": "list-stale-branches",
+  "operation": "cleanup-branches",
   "parameters": {
-    "merged": true,
-    "inactive_days": 30,
-    "exclude_protected": true,
-    "location": "local"
+    "delete": true|false,
+    "merged": true|false,
+    "inactive": true|false,
+    "days": 30,
+    "location": "local|remote|both",
+    "exclude": "pattern"
   }
 }
 ```
 
-**3. Display Report**:
-- Group by status (merged vs unmerged)
-- Show last commit date and author
-- Calculate days inactive
-- Display safe vs risky deletions
+The repo-manager agent will:
+1. Receive the request
+2. Route to appropriate skill based on operation
+3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
+4. Return structured response
 
-**4. If --delete Flag Present**:
-- Show branches to be deleted
-- Require explicit confirmation
-- Delete branches one by one
-- Report results
+## Supported Operations
 
-**5. Display Summary**:
-- Count deleted branches
-- List any errors
-- Suggest next steps
+- `cleanup-branches` - Clean up stale and merged branches with safety checks
+</AGENT_INVOCATION>
 
+<ERROR_HANDLING>
+Common errors to handle:
+
+**No branches to clean**:
+```
+Info: No branches match cleanup criteria
+All branches are active and unmerged
+```
+
+**Protected branch in cleanup list**:
+```
+Warning: Skipping protected branch: main
+Protected branches cannot be deleted
+```
+</ERROR_HANDLING>
+
+<NOTES>
 ## Safety Features
 
-### Protected Branches
+The cleanup command includes multiple safety features:
+- **Dry-run by default**: Lists branches without deleting
+- **Protected branch detection**: Never deletes main/master/develop
+- **Exclude patterns**: Skip branches matching patterns
+- **Confirmation prompts**: Asks before deleting (when --delete is used)
+- **Detailed reporting**: Shows what will be/was deleted
 
-Protected branches are NEVER deleted:
-- main
-- master
-- production
-- staging
-- (configured in repo.example.json)
+## Cleanup Criteria
 
-### Confirmation Prompt
+**Merged branches**:
+- Branch has been merged into default branch
+- No unique commits remaining
+- Safe to delete
 
-Delete mode requires explicit confirmation:
-```
-⚠️  About to delete 5 branches
-Protected branches excluded: main, master
-Continue? (yes/no):
-```
-
-### Merge Status Check
-
-Unmerged branches show warning:
-```
-⚠ feat/999-experiment
-  Status: Unmerged (has 3 unique commits)
-  ⚠️  Deleting this will LOSE WORK
-```
-
-### Dry Run First
-
-Always run without --delete first to preview:
-```bash
-# 1. Preview
-/repo:cleanup --merged
-
-# 2. Review output
-
-# 3. Delete if safe
-/repo:cleanup --delete --merged
-```
-
-## Error Handling
-
-**No Stale Branches**:
-```
-✅ Repository is clean
-No stale branches found
-
-Filters:
-- Merged: yes
-- Inactive: no
-- Protected excluded: yes
-```
-
-**Protected Branch Attempted**:
-```
-Error: Cannot delete protected branch: main
-Protected branches: main, master, production, staging
-```
-
-**Unmerged Branch Warning**:
-```
-⚠️  Warning: feat/999-experiment has unmerged commits
-
-This branch has 3 commits not in main:
-- abc123: WIP: New feature
-- def456: Add tests
-- ghi789: Fix bugs
-
-Deleting will LOSE this work.
-Skip this branch? (yes/no):
-```
-
-**Network Error (Remote Cleanup)**:
-```
-Error: Failed to delete remote branch: feat/old
-Could not connect to remote: origin
-Check network and authentication
-```
-
-## Advanced Usage
-
-### Clean Up Specific Patterns
-
-```bash
-# Old feature branches only
-/repo:cleanup --delete --merged --pattern "feat/*"
-
-# Experimental branches
-/repo:cleanup --delete --inactive --days 45 --pattern "experiment/*"
-```
-
-### Remote Cleanup
-
-Clean up remote branches (requires authentication):
-
-```bash
-# Delete remote merged branches
-/repo:cleanup --delete --merged --location remote
-
-# Clean up both local and remote
-/repo:cleanup --delete --merged --location both
-```
-
-### Exclude Patterns
-
-Keep certain branches:
-
-```bash
-# Keep release branches
-/repo:cleanup --delete --merged --exclude "release/*"
-
-# Keep multiple patterns
-/repo:cleanup --delete --merged \
-  --exclude "release/*" \
-  --exclude "hotfix/*" \
-  --exclude "v*"
-```
-
-## Automation
-
-### Scheduled Cleanup
-
-Set up regular cleanup with cron:
-
-```bash
-# Weekly cleanup of merged branches
-0 0 * * 0 /repo:cleanup --delete --merged --location local
-
-# Monthly aggressive cleanup
-0 0 1 * * /repo:cleanup --delete --inactive --days 90
-```
-
-### CI/CD Integration
-
-Add to CI pipeline:
-
-```yaml
-cleanup:
-  schedule:
-    - cron: '0 0 * * 0'  # Weekly
-  script:
-    - /repo:cleanup --delete --merged --location both
-```
-
-## Report Details
-
-The report shows for each branch:
-
-**Branch Information**:
-- Branch name
-- Last commit date
-- Days since last activity
-- Last author
-- Merge status
-
-**Status Indicators**:
-- ✓ Merged (safe to delete)
-- ⚠ Unmerged (review before deleting)
-- 🔒 Protected (never deleted)
-
-**Grouping**:
-- Fully Merged Branches
-- Inactive But Unmerged Branches
-- Protected Branches (excluded)
-
-## FABER Integration
-
-When used within FABER workflows:
-- Automatically cleans up after PR merges
-- Respects FABER branch naming
-- Excludes active workflow branches
-- Logs cleanup operations
-
-## Integration
-
-**Called By**: User via CLI
-
-**Calls**: repo-manager agent with operations:
-- list-stale-branches
-- delete-branch (when --delete used)
-
-**Returns**: Human-readable report with deletion results
+**Inactive branches**:
+- No commits in last N days (default: 30)
+- May still contain unmerged work
+- Review before deleting
 
 ## Best Practices
 
-1. **Always dry run first**: Preview before deleting
-2. **Regular schedule**: Clean weekly or monthly
-3. **Communicate with team**: Warn before major cleanup
-4. **Keep protected list updated**: Add important branches to config
-5. **Use conservative thresholds**: Start with 60+ days for inactive
-6. **Back up important work**: Ensure unmerged work is pushed or saved
-7. **Clean local and remote**: Use --location both for complete cleanup
+1. **Run dry-run first**: Always run without `--delete` to see what would be cleaned
+2. **Use exclude patterns**: Protect important branches (release/*, hotfix/*)
+3. **Start with merged**: Clean merged branches first (safest)
+4. **Check inactive carefully**: Inactive branches may have valuable work
+5. **Clean regularly**: Run cleanup monthly to keep repo tidy
 
-## Notes
+## Platform Support
 
-- Deleted branches can sometimes be recovered (contact admin)
-- Protected branches list is configurable
-- Merge status is checked against default branch
-- Remote cleanup requires authentication
-- All operations are logged for audit
-- Dry run mode is the default for safety
+This command works with:
+- GitHub
+- GitLab
+- Bitbucket
+
+Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/config.json`.
+
+## See Also
+
+For detailed documentation, see: [/docs/commands/repo-cleanup.md](../../../docs/commands/repo-cleanup.md)
+
+Related commands:
+- `/repo:branch` - Manage branches
+- `/repo:branch list --stale` - List stale branches only
+- `/repo:init` - Configure repo plugin
+</NOTES>

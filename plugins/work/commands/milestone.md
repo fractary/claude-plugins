@@ -4,30 +4,130 @@ description: Create, list, and manage milestones for release planning
 argument-hint: create <title> [--due <date>] [--description <text>] | list [--state <state>] | set <issue_number> <milestone> | remove <issue_number>
 ---
 
-# /work:milestone - Milestone Management Command
+<CONTEXT>
+You are the work:milestone command router for the fractary-work plugin.
+Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+</CONTEXT>
 
-Create, list, and manage milestones for release planning and sprint management across GitHub, Jira, and Linear.
+<CRITICAL_RULES>
+**YOU MUST:**
+- Parse the command arguments from user input
+- Invoke the fractary-work:work-manager agent (or @agent-fractary-work:work-manager)
+- Pass structured request to the agent
+- Return the agent's response to the user
 
-## Usage
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Invoke skills directly (the work-manager agent handles skill invocation)
+- Execute platform-specific logic (that's the agent's job)
 
-```bash
-# Create a milestone
-/work:milestone create <title> [--due <date>] [--description <text>]
+**THIS COMMAND IS ONLY A ROUTER.**
+</CRITICAL_RULES>
 
-# List milestones
-/work:milestone list [--state <state>]
+<WORKFLOW>
+1. **Parse user input**
+   - Extract subcommand (create, list, set, remove, close)
+   - Parse required and optional arguments
+   - Validate required arguments are present
 
-# Set milestone on an issue
-/work:milestone set <issue_number> <milestone>
+2. **Build structured request**
+   - Map subcommand to operation name
+   - Package parameters
 
-# Remove milestone from an issue
-/work:milestone remove <issue_number>
+3. **Invoke agent**
+   - Invoke fractary-work:work-manager agent with the request
 
-# Close a milestone
-/work:milestone close <milestone_id>
+4. **Return response**
+   - The work-manager agent will handle the operation and return results
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Subcommands
+
+### create <title> [--due <date>] [--description <text>] [--state <state>]
+**Purpose**: Create a new milestone
+
+**Required Arguments**:
+- `title`: Milestone title
+
+**Optional Arguments**:
+- `--due`: Due date (YYYY-MM-DD format)
+- `--description`: Milestone description
+- `--state`: Initial state (open|closed, default: open)
+
+**Maps to**: create-milestone
+
+**Example**:
+```
+/work:milestone create "v2.0 Release" --due 2025-12-31 --description "Major release"
+→ Invoke agent with {"operation": "create-milestone", "parameters": {"title": "v2.0 Release", "due_date": "2025-12-31", "description": "Major release"}}
 ```
 
-## Examples
+### list [--state <state>] [--sort <sort>]
+**Purpose**: List milestones with optional filtering
+
+**Optional Arguments**:
+- `--state`: Filter by state (open|closed|all, default: open)
+- `--sort`: Sort order (due_date|completeness|title, default: due_date)
+
+**Maps to**: list-milestones
+
+**Example**:
+```
+/work:milestone list
+→ Invoke agent with {"operation": "list-milestones", "parameters": {"state": "open"}}
+```
+
+### set <issue_number> <milestone>
+**Purpose**: Set milestone on an issue
+
+**Required Arguments**:
+- `issue_number`: Issue number
+- `milestone`: Milestone title or number
+
+**Maps to**: set-milestone
+
+**Example**:
+```
+/work:milestone set 123 "v1.0 Release"
+→ Invoke agent with {"operation": "set-milestone", "parameters": {"issue_number": "123", "milestone": "v1.0 Release"}}
+```
+
+### remove <issue_number>
+**Purpose**: Remove milestone from an issue
+
+**Required Arguments**:
+- `issue_number`: Issue number
+
+**Maps to**: remove-milestone
+
+**Example**:
+```
+/work:milestone remove 123
+→ Invoke agent with {"operation": "remove-milestone", "parameters": {"issue_number": "123"}}
+```
+
+### close <milestone_id> [--comment <text>]
+**Purpose**: Close a completed milestone
+
+**Required Arguments**:
+- `milestone_id`: Milestone ID or title
+
+**Optional Arguments**:
+- `--comment`: Comment to add when closing
+
+**Maps to**: close-milestone
+
+**Example**:
+```
+/work:milestone close "v1.0 Release"
+→ Invoke agent with {"operation": "close-milestone", "parameters": {"milestone": "v1.0 Release"}}
+```
+</ARGUMENT_PARSING>
+
+<EXAMPLES>
+## Usage Examples
 
 ```bash
 # Create a milestone
@@ -49,479 +149,99 @@ Create, list, and manage milestones for release planning and sprint management a
 /work:milestone remove 123
 
 # Close completed milestone
-/work:milestone close 5
-```
-
-## Command Implementation
-
-This command parses user input and invokes the work-manager agent with appropriate operations.
-
-### Subcommand: create
-
-**Purpose**: Create a new milestone
-
-**Arguments**:
-- `title` (required): Milestone title
-- `--due` (optional): Due date (YYYY-MM-DD format)
-- `--description` (optional): Milestone description
-- `--state` (optional): Initial state (open|closed, default: open)
-
-**Workflow**:
-1. Parse milestone title and options
-2. Validate title is non-empty
-3. Parse and validate due date if provided
-4. Invoke agent: create-milestone operation
-5. Display created milestone details
-
-**Example Flow**:
-```
-User: /work:milestone create "v2.0 Release" --due 2025-12-31 --description "Major release with new features"
-
-1. Create milestone:
-   {
-     "operation": "create-milestone",
-     "parameters": {
-       "title": "v2.0 Release",
-       "due_date": "2025-12-31",
-       "description": "Major release with new features"
-     }
-   }
-
-2. Display:
-   ✅ Milestone created successfully
-
-   Milestone: v2.0 Release
-   Due date: December 31, 2025
-   State: open
-   Issues: 0 / 0 (0% complete)
-
-   Description:
-   Major release with new features
-
-   URL: https://github.com/owner/repo/milestone/5
-
-   Add issues: /work:milestone set <issue_number> "v2.0 Release"
-```
-
-### Subcommand: list
-
-**Purpose**: List milestones with optional filtering
-
-**Arguments**:
-- `--state` (optional): Filter by state (open|closed|all, default: open)
-- `--sort` (optional): Sort order (due_date|completeness|title, default: due_date)
-
-**Workflow**:
-1. Parse filter options
-2. Invoke agent: list-milestones operation
-3. Format and display milestone table
-
-**Example Flow**:
-```
-User: /work:milestone list
-
-1. List milestones:
-   {
-     "operation": "list-milestones",
-     "parameters": {
-       "state": "open"
-     }
-   }
-
-2. Display:
-   Open Milestones (3 found):
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-   v1.0 Release        Due: 2025-11-30    12/15 (80%)
-   Sprint 5            Due: 2025-11-15     3/5  (60%)
-   v2.0 Release        Due: 2025-12-31     0/0  (0%)
-
-   Set milestone: /work:milestone set <issue> <milestone>
-   View details: /work:milestone show <milestone>
-```
-
-### Subcommand: set
-
-**Purpose**: Set milestone on an issue
-
-**Arguments**:
-- `issue_number` (required): Issue number
-- `milestone` (required): Milestone title or number
-
-**Workflow**:
-1. Parse issue number and milestone identifier
-2. Resolve milestone title to milestone ID
-3. Invoke agent: set-milestone operation
-4. Display success message
-
-**Example Flow**:
-```
-User: /work:milestone set 123 "v1.0 Release"
-
-1. Set milestone:
-   {
-     "operation": "set-milestone",
-     "parameters": {
-       "issue_number": "123",
-       "milestone": "v1.0 Release"
-     }
-   }
-
-2. Display:
-   ✅ Milestone set successfully
-
-   Issue #123: Add CSV export feature
-   Milestone: v1.0 Release (Due: 2025-11-30)
-   Progress: 13/15 issues (87%)
-
-   View issue: /work:issue fetch 123
-   View milestone: /work:milestone show "v1.0 Release"
-```
-
-### Subcommand: remove
-
-**Purpose**: Remove milestone from an issue
-
-**Arguments**:
-- `issue_number` (required): Issue number
-
-**Workflow**:
-1. Parse issue number
-2. Invoke agent: remove-milestone operation
-3. Display success message
-
-**Example Flow**:
-```
-User: /work:milestone remove 123
-
-1. Remove milestone:
-   {
-     "operation": "remove-milestone",
-     "parameters": {
-       "issue_number": "123"
-     }
-   }
-
-2. Display:
-   ✅ Milestone removed successfully
-
-   Issue #123: Add CSV export feature
-   Previous milestone: v1.0 Release
-   Current milestone: (none)
-
-   View issue: /work:issue fetch 123
-```
-
-### Subcommand: close
-
-**Purpose**: Close a completed milestone
-
-**Arguments**:
-- `milestone_id` (required): Milestone ID or title
-- `--comment` (optional): Comment to add when closing
-
-**Workflow**:
-1. Parse milestone identifier
-2. Validate milestone exists
-3. Invoke agent: close-milestone operation
-4. Display closure summary
-
-**Example Flow**:
-```
-User: /work:milestone close "v1.0 Release"
-
-1. Close milestone:
-   {
-     "operation": "close-milestone",
-     "parameters": {
-       "milestone": "v1.0 Release"
-     }
-   }
-
-2. Display:
-   ✅ Milestone closed successfully
-
-   Milestone: v1.0 Release
-   Due date: 2025-11-30
-   Completed: 2025-11-28 (2 days early)
-   Final stats: 15/15 issues (100%)
-
-   All issues in this milestone are now complete!
-```
-
-## Use Cases
-
-### Release Planning
-
-Milestones are ideal for tracking releases:
-
-```bash
-# Create release milestone
-/work:milestone create "v1.0 Release" --due 2025-12-31 --description "First major release"
-
-# Add issues to release
-/work:milestone set 123 "v1.0 Release"
-/work:milestone set 124 "v1.0 Release"
-/work:milestone set 125 "v1.0 Release"
-
-# Track progress
-/work:milestone list
-
-# Close when done
 /work:milestone close "v1.0 Release"
 ```
+</EXAMPLES>
 
-### Sprint Management
+<AGENT_INVOCATION>
+## Invoking the Agent
 
-Track sprint work with milestones:
+After parsing arguments, invoke the work-manager agent using declarative syntax:
 
-```bash
-# Create sprint
-/work:milestone create "Sprint 5" --due 2025-11-15 --description "Two-week sprint: Nov 1-15"
+**Agent**: fractary-work:work-manager (or @agent-fractary-work:work-manager)
 
-# Add sprint work
-/work:milestone set 200 "Sprint 5"
-/work:milestone set 201 "Sprint 5"
-/work:milestone set 202 "Sprint 5"
-
-# Review progress
-/work:milestone list --state open
-
-# Close sprint
-/work:milestone close "Sprint 5"
+**Request structure**:
+```json
+{
+  "operation": "operation-name",
+  "parameters": {
+    "param1": "value1",
+    "param2": "value2"
+  }
+}
 ```
 
-### Feature Tracking
+The work-manager agent will:
+1. Receive the request
+2. Route to appropriate skill based on operation
+3. Execute platform-specific logic (GitHub/Jira/Linear)
+4. Return structured response
 
-Group related features:
+## Supported Operations
 
-```bash
-# Create feature milestone
-/work:milestone create "Authentication System" --description "Complete auth overhaul"
+- `create-milestone` - Create new milestone
+- `list-milestones` - List milestones with filtering
+- `set-milestone` - Set milestone on issue
+- `remove-milestone` - Remove milestone from issue
+- `close-milestone` - Close completed milestone
+</AGENT_INVOCATION>
 
-# Add all auth issues
-/work:milestone set 300 "Authentication System"
-/work:milestone set 301 "Authentication System"
-/work:milestone set 302 "Authentication System"
-```
+<ERROR_HANDLING>
+Common errors to handle:
 
-## Error Handling
-
-**Missing Title**:
+**Missing title**:
 ```
 Error: milestone title is required
 Usage: /work:milestone create <title>
 ```
 
-**Invalid Date Format**:
+**Invalid date format**:
 ```
 Error: Invalid date format: 2025/12/31
 Use YYYY-MM-DD format (e.g., 2025-12-31)
 ```
 
-**Milestone Not Found**:
+**Milestone not found**:
 ```
 Error: Milestone not found: "v3.0 Release"
 List milestones: /work:milestone list --state all
 ```
+</ERROR_HANDLING>
 
-**Issue Not Found**:
-```
-Error: Issue not found: #999
-Verify the issue number and try again
-```
+<NOTES>
+## Use Cases
 
-**Milestone Already Exists**:
-```
-Error: Milestone already exists: "v1.0 Release"
-Choose a different title or use existing milestone
-```
+Milestones are ideal for:
+- **Release Planning**: Track releases (v1.0, v2.0)
+- **Sprint Management**: Manage sprints (Sprint 5, Sprint 6)
+- **Feature Tracking**: Group related features
 
-**Permission Denied**:
-```
-Error: Permission denied
-You may not have permission to create/modify milestones
-```
+## Naming Conventions
 
-## Integration
+**Semantic Versioning**: v1.0.0, v1.1.0, v1.0.1
+**Time-Based**: Sprint 5, Q4 2025, November 2025
+**Feature-Based**: Authentication Overhaul, Mobile App Launch
 
-**Called By**: User via CLI, FABER workflows
+## Platform Support
 
-**Calls**: work-manager agent with operations:
-- create-milestone
-- list-milestones
-- set-milestone
-- remove-milestone
-- close-milestone
+This command works with:
+- GitHub (repository-specific milestones)
+- Jira (maps to Versions or Sprints)
+- Linear (maps to Projects or Cycles)
 
-**Returns**: Human-readable output formatted for terminal display
-
-## Platform-Specific Behavior
-
-### GitHub
-
-- Milestones are repository-specific
-- Due dates optional
-- Track open/closed issue counts automatically
-- Completion percentage calculated automatically
-- Can be sorted by due date, completeness, or name
-
-### Jira
-
-- Milestones map to "Versions" or "Sprints"
-- Versions used for release planning
-- Sprints used for agile workflows
-- Due dates and start dates supported
-- Release notes can be attached
-
-### Linear
-
-- Milestones map to "Projects" or "Cycles"
-- Projects for long-term goals
-- Cycles for sprint-like iterations
-- Start and end dates both tracked
-- Progress visualization available
+Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
 
 ## FABER Integration
 
-FABER workflows can automatically manage milestones:
-
-**Release Phase**:
-- Assigns issues to release milestone
-- Updates milestone progress
-- Closes milestone when all issues complete
-
-**Example FABER Milestone Usage**:
-```bash
-# FABER automatically:
-# 1. Detects release milestone from config
-# 2. Assigns completed work to milestone
-# 3. Updates milestone progress
-# 4. Closes milestone when release complete
-```
-
-## Advanced Usage
-
-**Create Milestone Series**:
-```bash
-# Create quarterly milestones
-/work:milestone create "Q1 2025" --due 2025-03-31
-/work:milestone create "Q2 2025" --due 2025-06-30
-/work:milestone create "Q3 2025" --due 2025-09-30
-/work:milestone create "Q4 2025" --due 2025-12-31
-```
-
-**Bulk Milestone Assignment**:
-```bash
-# Assign multiple issues to sprint
-/work:milestone set 100 "Sprint 5"
-/work:milestone set 101 "Sprint 5"
-/work:milestone set 102 "Sprint 5"
-/work:milestone set 103 "Sprint 5"
-```
-
-**Track Multiple Releases**:
-```bash
-# List all releases
-/work:milestone list --state all
-
-# Show progress on current release
-/work:milestone list --state open
-```
-
-**Milestone Cleanup**:
-```bash
-# Remove issues from old milestone
-/work:milestone remove 200
-/work:milestone remove 201
-
-# Reassign to new milestone
-/work:milestone set 200 "v2.0 Release"
-/work:milestone set 201 "v2.0 Release"
-```
-
-## Best Practices
-
-1. **Use clear naming**: Include version or sprint number
-2. **Set due dates**: Helps with planning and tracking
-3. **Add descriptions**: Explain milestone goals and scope
-4. **Group related work**: Keep milestone focused and coherent
-5. **Close completed milestones**: Keep active list manageable
-6. **Track progress regularly**: Review milestone completion
-7. **Plan ahead**: Create future milestones early
-8. **Don't overload**: Keep milestone scope reasonable
-
-## Milestone Naming Conventions
-
-**Semantic Versioning**:
-- `v1.0.0` - Major release
-- `v1.1.0` - Minor release
-- `v1.0.1` - Patch release
-
-**Time-Based**:
-- `Sprint 5` - Sprint number
-- `Q4 2025` - Quarterly milestone
-- `November 2025` - Monthly milestone
-
-**Feature-Based**:
-- `Authentication Overhaul`
-- `Mobile App Launch`
-- `API v2 Migration`
-
-## Common Workflows
-
-### Plan New Release
-```bash
-# Create milestone
-/work:milestone create "v2.0" --due 2026-01-31 --description "Major feature release"
-
-# Add planned features
-/work:issue create "New dashboard" --type feature
-/work:milestone set <new_issue> "v2.0"
-
-# Track progress
-/work:milestone list
-```
-
-### Sprint Planning
-```bash
-# Create sprint
-/work:milestone create "Sprint 6" --due 2025-11-30
-
-# Move issues from backlog
-/work:milestone set 300 "Sprint 6"
-/work:milestone set 301 "Sprint 6"
-
-# Review sprint scope
-/work:milestone list --state open
-```
-
-### Close Completed Milestone
-```bash
-# Verify all issues closed
-/work:milestone list --state open
-
-# Close milestone
-/work:milestone close "v1.0"
-
-# Create next milestone
-/work:milestone create "v1.1" --due 2026-02-28
-```
-
-## Notes
-
-- Milestones group related issues for tracking
-- Completion percentage calculated from open/closed issues
-- Due dates are optional but recommended
-- Closed milestones remain visible for reference
-- Some platforms support start dates in addition to due dates
-- Milestone progress visible in issue lists
-- FABER can automate milestone management
-- API rate limits may apply to bulk operations
+FABER workflows can automatically assign issues to release milestones and update milestone progress during the Release phase.
 
 ## See Also
 
-- [/work:issue](issue.md) - Manage issues
-- [/work:label](label.md) - Manage labels
-- [/work:state](state.md) - Manage issue states
-- [Work Plugin README](../README.md) - Complete documentation
+For detailed documentation, see: [/docs/commands/work-milestone.md](../../../docs/commands/work-milestone.md)
+
+Related commands:
+- `/work:issue` - Manage issues
+- `/work:label` - Manage labels
+- `/work:state` - Manage issue states
+- `/work:init` - Configure work plugin
+</NOTES>

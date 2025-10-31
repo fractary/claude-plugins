@@ -4,28 +4,93 @@ description: Create and manage comments on work items
 argument-hint: create <issue_number> <text> | list <issue_number> [--limit <n>]
 ---
 
-# /work:comment - Comment Management Command
+<CONTEXT>
+You are the work:comment command router for the fractary-work plugin.
+Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+</CONTEXT>
 
-Create and manage comments on work items across GitHub Issues, Jira, and Linear.
+<CRITICAL_RULES>
+**YOU MUST:**
+- Parse the command arguments from user input
+- Invoke the fractary-work:work-manager agent (or @agent-fractary-work:work-manager)
+- Pass structured request to the agent
+- Return the agent's response to the user
 
-## Usage
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Invoke skills directly (the work-manager agent handles skill invocation)
+- Execute platform-specific logic (that's the agent's job)
 
-```bash
-# Create a comment
-/work:comment create <issue_number> <text>
+**THIS COMMAND IS ONLY A ROUTER.**
+</CRITICAL_RULES>
 
-# List comments on an issue
-/work:comment list <issue_number> [--limit <n>]
+<WORKFLOW>
+1. **Parse user input**
+   - Extract subcommand (create, list)
+   - Parse required and optional arguments
+   - Validate required arguments are present
+
+2. **Build structured request**
+   - Map subcommand to operation name
+   - Package parameters
+
+3. **Invoke agent**
+   - Invoke fractary-work:work-manager agent with the request
+
+4. **Return response**
+   - The work-manager agent will handle the operation and return results
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Subcommands
+
+### create <issue_number> <text> [--faber-context <context>]
+**Purpose**: Add a comment to an issue
+
+**Required Arguments**:
+- `issue_number`: Issue number
+- `text`: Comment text
+
+**Optional Arguments**:
+- `--faber-context`: FABER workflow context (internal use)
+
+**Maps to**: create-comment
+
+**Example**:
+```
+/work:comment create 123 "Working on this now"
+→ Invoke agent with {"operation": "create-comment", "parameters": {"issue_number": "123", "comment": "Working on this now"}}
 ```
 
-## Examples
+### list <issue_number> [--limit <n>] [--since <date>]
+**Purpose**: List comments on an issue
+
+**Required Arguments**:
+- `issue_number`: Issue number
+
+**Optional Arguments**:
+- `--limit`: Maximum number of comments (default: 10)
+- `--since`: Show comments since date (YYYY-MM-DD)
+
+**Maps to**: list-comments
+
+**Example**:
+```
+/work:comment list 123
+→ Invoke agent with {"operation": "list-comments", "parameters": {"issue_number": "123", "limit": 10}}
+```
+</ARGUMENT_PARSING>
+
+<EXAMPLES>
+## Usage Examples
 
 ```bash
 # Add a comment
 /work:comment create 123 "Starting work on this issue"
 
 # Add a longer comment
-/work:comment create 123 "Investigated the bug - it's caused by a race condition in the auth middleware. Working on a fix."
+/work:comment create 123 "Investigated the bug - it's caused by a race condition"
 
 # List comments
 /work:comment list 123
@@ -33,329 +98,84 @@ Create and manage comments on work items across GitHub Issues, Jira, and Linear.
 # List recent comments only
 /work:comment list 123 --limit 5
 ```
+</EXAMPLES>
 
-## Command Implementation
+<AGENT_INVOCATION>
+## Invoking the Agent
 
-This command parses user input and invokes the work-manager agent with appropriate operations.
+After parsing arguments, invoke the work-manager agent using declarative syntax:
 
-### Subcommand: create
+**Agent**: fractary-work:work-manager (or @agent-fractary-work:work-manager)
 
-**Purpose**: Add a comment to an issue
-
-**Arguments**:
-- `issue_number` (required): Issue number
-- `text` (required): Comment text
-- `--faber-context` (optional): FABER workflow context (internal use)
-
-**Workflow**:
-1. Parse issue number and comment text
-2. Validate both are provided
-3. Invoke agent: create-comment operation
-4. Display success message with comment URL
-
-**Example Flow**:
-```
-User: /work:comment create 123 "Working on this now"
-
-1. Create comment:
-   {
-     "operation": "create-comment",
-     "parameters": {
-       "issue_number": "123",
-       "comment": "Working on this now"
-     }
-   }
-
-2. Display:
-   ✅ Comment posted successfully
-
-   Issue #123: Add CSV export feature
-   Comment by: @username
-   Posted: 2025-10-30 14:35
-
-   "Working on this now"
-
-   URL: https://github.com/owner/repo/issues/123#issuecomment-123456
+**Request structure**:
+```json
+{
+  "operation": "operation-name",
+  "parameters": {
+    "param1": "value1",
+    "param2": "value2"
+  }
+}
 ```
 
-### Subcommand: list
+The work-manager agent will:
+1. Receive the request
+2. Route to appropriate skill based on operation
+3. Execute platform-specific logic (GitHub/Jira/Linear)
+4. Return structured response
 
-**Purpose**: List comments on an issue
+## Supported Operations
 
-**Arguments**:
-- `issue_number` (required): Issue number
-- `--limit` (optional): Maximum number of comments to show (default: 10)
-- `--since` (optional): Show comments since date (YYYY-MM-DD)
+- `create-comment` - Add comment to issue
+- `list-comments` - List comments on issue
+</AGENT_INVOCATION>
 
-**Workflow**:
-1. Parse issue number and filters
-2. Invoke agent: list-comments operation
-3. Format and display comments
+<ERROR_HANDLING>
+Common errors to handle:
 
-**Example Flow**:
-```
-User: /work:comment list 123
-
-1. List comments:
-   {
-     "operation": "list-comments",
-     "parameters": {
-       "issue_number": "123",
-       "limit": 10
-     }
-   }
-
-2. Display:
-   Comments on Issue #123 (3 total):
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-   @alice - 2025-10-28 10:15
-   "I'll take a look at this today"
-
-   @bob - 2025-10-29 14:30
-   "Found the root cause - it's in the auth module"
-
-   @alice - 2025-10-30 09:45
-   "Fix is ready for review. PR #456 submitted."
-
-   Add comment: /work:comment create 123 "your message"
-```
-
-## Comment Formatting
-
-Comments support markdown formatting on most platforms:
-
-```bash
-# Bold and italic
-/work:comment create 123 "**Important:** This is *critical*"
-
-# Code blocks
-/work:comment create 123 "Fixed by updating \`auth.js\`"
-
-# Lists
-/work:comment create 123 "TODO:
-- Test login flow
-- Test logout flow
-- Update docs"
-
-# Links
-/work:comment create 123 "Related to #456 and fixed in PR #789"
-```
-
-## Error Handling
-
-**Missing Issue Number**:
+**Missing issue number**:
 ```
 Error: issue_number is required
 Usage: /work:comment create <issue_number> <text>
 ```
 
-**Missing Comment Text**:
+**Missing comment text**:
 ```
 Error: comment text is required
 Usage: /work:comment create <issue_number> <text>
 ```
 
-**Invalid Issue Number**:
+**Invalid issue number**:
 ```
 Error: Issue not found: #999
 Verify the issue number and try again
 ```
+</ERROR_HANDLING>
 
-**Empty Comment**:
-```
-Error: Comment text cannot be empty
-Provide comment text after the issue number
-```
+<NOTES>
+## Comment Formatting
 
-**Authentication Failed**:
-```
-Error: Authentication failed
-Check your token configuration: /work:init
-```
+Comments support markdown formatting on most platforms (GitHub Flavored Markdown, Jira wiki markup, Linear markdown).
 
-**Permission Denied**:
-```
-Error: Permission denied for issue #123
-You may not have permission to comment on this issue
-```
+## Platform Support
 
-## Integration
+This command works with:
+- GitHub Issues
+- Jira Cloud
+- Linear
 
-**Called By**: User via CLI, FABER workflows
-
-**Calls**: work-manager agent with operations:
-- create-comment
-- list-comments
-
-**Returns**: Human-readable output formatted for terminal display
-
-## Platform-Specific Behavior
-
-### GitHub Issues
-
-- Comments support full GitHub Flavored Markdown
-- @mentions notify users
-- Issue and PR references auto-link (#123, owner/repo#456)
-- Reactions available (👍, ❤️, etc.) via web UI
-- Comments can be edited/deleted via web UI
-
-### Jira
-
-- Comments support Jira wiki markup or markdown (depending on configuration)
-- @mentions use Jira user format
-- Issue references auto-link (PROJ-123)
-- Comments can be internal (restricted visibility)
-- Edit history tracked automatically
-
-### Linear
-
-- Comments support Linear markdown
-- @mentions notify team members
-- Issue references auto-link (TEAM-123)
-- Comments appear in Linear activity feed
-- Inline reactions supported
+Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
 
 ## FABER Integration
 
-When used within FABER workflows, comments automatically include:
-- Phase information (Frame, Architect, Build, Evaluate, Release)
-- Workflow progress updates
-- Links to commits and PRs
-- Test results and validation status
-
-**Example FABER Comment**:
-```
-🏗️ FABER Phase: Build
-
-Implementation completed for CSV export feature.
-
-Changes:
-- Added export service (src/services/export.js)
-- Created API endpoint (/api/export)
-- Added unit tests (95% coverage)
-
-Commit: abc123
-Status: Ready for review
-
-Next: Moving to Evaluate phase
-```
-
-These comments are posted automatically by FABER workflows when:
-- Phase transitions occur
-- Important milestones are reached
-- Errors or blockers are encountered
-- Workflow completes successfully
-
-## Advanced Usage
-
-**Multi-line Comments**:
-```bash
-/work:comment create 123 "Investigation results:
-
-Root cause: Race condition in auth middleware
-Impact: Login failures during high load
-Solution: Add mutex lock in validateToken()
-
-PR coming soon."
-```
-
-**Reference Other Issues**:
-```bash
-/work:comment create 123 "This is related to #456 and blocks #789"
-```
-
-**Mention Users**:
-```bash
-/work:comment create 123 "@alice can you review? @bob FYI"
-```
-
-**Code Snippets**:
-```bash
-/work:comment create 123 "The fix:
-\`\`\`javascript
-async function validateToken(token) {
-  await mutex.acquire();
-  try {
-    return await verify(token);
-  } finally {
-    mutex.release();
-  }
-}
-\`\`\`"
-```
-
-## Best Practices
-
-1. **Be specific**: Provide clear, actionable information in comments
-2. **Use formatting**: Leverage markdown for readability
-3. **Reference related work**: Link to issues, PRs, and commits
-4. **Tag relevant people**: @mention users who need to see the comment
-5. **Update on progress**: Keep stakeholders informed with regular updates
-6. **Include context**: Add debugging info, test results, or reproduction steps
-7. **Be professional**: Comments are part of project history
-
-## Common Use Cases
-
-### Progress Update
-```bash
-/work:comment create 123 "**Progress Update**
-- ✅ Implemented core logic
-- ✅ Added unit tests
-- 🔄 Working on integration tests
-- ⏳ Documentation pending
-
-ETA: End of day"
-```
-
-### Bug Investigation
-```bash
-/work:comment create 456 "**Investigation Results**
-
-Reproduced the issue in staging. Occurs when:
-1. User has multiple sessions
-2. Token refresh happens simultaneously
-3. Race condition in token validation
-
-Root cause: Missing lock in \`auth.validateToken()\`
-Fix in progress."
-```
-
-### Review Request
-```bash
-/work:comment create 789 "PR #234 is ready for review
-
-Changes:
-- Refactored user service
-- Added caching layer
-- Updated API docs
-
-Tests passing, coverage at 92%
-@reviewerteam please review"
-```
-
-### Blocked Status
-```bash
-/work:comment create 321 "⚠️ **Blocked**
-
-Waiting on infrastructure team to provision database.
-Ticket: OPS-456
-
-Cannot proceed until this is resolved."
-```
-
-## Notes
-
-- Comments are immutable once posted (platform-dependent editing)
-- All comments are visible to users with access to the issue
-- Markdown support varies by platform
-- Some platforms support internal/private comments
-- Comment notifications depend on platform settings
-- FABER workflows post automated comments for tracking
-- Long comments may be truncated in list view
+When used within FABER workflows, comments automatically include phase information, workflow progress updates, links to commits and PRs, and test results.
 
 ## See Also
 
-- [/work:issue](issue.md) - Manage issues
-- [/work:state](state.md) - Manage issue states
-- [Work Plugin README](../README.md) - Complete documentation
+For detailed documentation, see: [/docs/commands/work-comment.md](../../../docs/commands/work-comment.md)
+
+Related commands:
+- `/work:issue` - Manage issues
+- `/work:state` - Manage issue states
+- `/work:init` - Configure work plugin
+</NOTES>

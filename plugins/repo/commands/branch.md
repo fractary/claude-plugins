@@ -4,209 +4,219 @@ description: Create, delete, and manage Git branches
 argument-hint: create <work_id> <description> [--base <branch>] [--prefix <prefix>] | delete <branch_name> [--location <where>] [--force] | list [--stale] [--merged] [--days <n>] [--pattern <pattern>]
 ---
 
-# /repo:branch - Branch Management Command
+<CONTEXT>
+You are the repo:branch command router for the fractary-repo plugin.
+Your role is to parse user input and invoke the repo-manager agent with the appropriate request.
+</CONTEXT>
 
-Manage Git branches: create feature branches, delete old branches, and list branch status.
+<CRITICAL_RULES>
+**YOU MUST:**
+- Parse the command arguments from user input
+- Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager)
+- Pass structured request to the agent
+- Return the agent's response to the user
 
-## Usage
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Invoke skills directly (the repo-manager agent handles skill invocation)
+- Execute platform-specific logic (that's the agent's job)
+
+**THIS COMMAND IS ONLY A ROUTER.**
+</CRITICAL_RULES>
+
+<WORKFLOW>
+1. **Parse user input**
+   - Extract subcommand (create, delete, list)
+   - Parse required and optional arguments
+   - Validate required arguments are present
+
+2. **Build structured request**
+   - Map subcommand to operation name
+   - Package parameters
+
+3. **Invoke agent**
+   - Invoke fractary-repo:repo-manager agent with the request
+
+4. **Return response**
+   - The repo-manager agent will handle the operation and return results
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Subcommands
+
+### create <work_id> <description> [--base <branch>] [--prefix <prefix>]
+**Purpose**: Create a new Git branch with semantic naming
+
+**Required Arguments**:
+- `work_id`: Work item ID
+- `description`: Branch description
+
+**Optional Arguments**:
+- `--base`: Base branch (default: main/master)
+- `--prefix`: Branch prefix (feature/bugfix/hotfix, default: auto-detect from work type)
+
+**Maps to**: create-branch
+
+**Example**:
+```
+/repo:branch create 123 "add-csv-export"
+→ Invoke agent with {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add-csv-export"}}
+```
+
+### delete <branch_name> [--location <where>] [--force]
+**Purpose**: Delete a Git branch
+
+**Required Arguments**:
+- `branch_name`: Branch name to delete
+
+**Optional Arguments**:
+- `--location`: Where to delete (local|remote|both, default: local)
+- `--force`: Force delete unmerged branch
+
+**Maps to**: delete-branch
+
+**Example**:
+```
+/repo:branch delete feature/123-add-csv-export --location both
+→ Invoke agent with {"operation": "delete-branch", "parameters": {"branch_name": "feature/123-add-csv-export", "location": "both"}}
+```
+
+### list [--stale] [--merged] [--days <n>] [--pattern <pattern>]
+**Purpose**: List branches with optional filtering
+
+**Optional Arguments**:
+- `--stale`: Show only stale branches
+- `--merged`: Show only merged branches
+- `--days`: Consider branches older than N days as stale (default: 30)
+- `--pattern`: Filter branches by pattern
+
+**Maps to**: list-branches
+
+**Example**:
+```
+/repo:branch list --stale --days 60
+→ Invoke agent with {"operation": "list-branches", "parameters": {"stale": true, "days": 60}}
+```
+</ARGUMENT_PARSING>
+
+<EXAMPLES>
+## Usage Examples
 
 ```bash
-# Create a new branch
-/repo:branch create <work_id> <description> [--base <branch>]
+# Create feature branch
+/repo:branch create 123 "add-csv-export"
 
-# Delete a branch
-/repo:branch delete <branch_name> [--location local|remote|both] [--force]
+# Create with specific base
+/repo:branch create 123 "fix-auth-bug" --base develop
+
+# Create bugfix branch
+/repo:branch create 456 "fix-login" --prefix bugfix
+
+# Delete local branch
+/repo:branch delete feature/123-add-csv-export
+
+# Delete from both local and remote
+/repo:branch delete feature/123-add-csv-export --location both
+
+# Force delete unmerged branch
+/repo:branch delete feature/abandoned --force
+
+# List all branches
+/repo:branch list
 
 # List stale branches
-/repo:branch list [--stale] [--merged]
+/repo:branch list --stale --days 90
+
+# List merged branches
+/repo:branch list --merged
+```
+</EXAMPLES>
+
+<AGENT_INVOCATION>
+## Invoking the Agent
+
+After parsing arguments, invoke the repo-manager agent using declarative syntax:
+
+**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+
+**Request structure**:
+```json
+{
+  "operation": "operation-name",
+  "parameters": {
+    "param1": "value1",
+    "param2": "value2"
+  }
+}
 ```
 
-## Examples
+The repo-manager agent will:
+1. Receive the request
+2. Route to appropriate skill based on operation
+3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
+4. Return structured response
 
-```bash
-# Create feature branch from work item
-/repo:branch create 123 "add user export feature"
-/repo:branch create 456 "fix authentication bug" --base develop
+## Supported Operations
 
-# Delete merged feature branch
-/repo:branch delete feat/old-feature
-/repo:branch delete feat/123-export --location both
+- `create-branch` - Create new branch with semantic naming
+- `delete-branch` - Delete branch (local/remote/both)
+- `list-branches` - List branches with filtering
+</AGENT_INVOCATION>
 
-# List stale branches
-/repo:branch list --stale --merged
-```
+<ERROR_HANDLING>
+Common errors to handle:
 
-## Command Implementation
-
-This command parses user input and invokes the repo-manager agent with appropriate operations.
-
-### Subcommand: create
-
-**Purpose**: Generate semantic branch name and create branch
-
-**Arguments**:
-- `work_id` (required): Work item identifier
-- `description` (required): Brief feature description
-- `--base` (optional): Base branch name (default: from config)
-- `--prefix` (optional): Branch prefix override (feat|fix|chore|docs|test|refactor|style|perf)
-
-**Workflow**:
-1. Parse arguments
-2. Determine branch prefix from description or --prefix flag
-3. Invoke agent: generate-branch-name operation
-4. Invoke agent: create-branch operation
-5. Display created branch name and commit SHA
-
-**Example Flow**:
-```
-User: /repo:branch create 123 "add CSV export"
-
-1. Generate name:
-   {
-     "operation": "generate-branch-name",
-     "parameters": {
-       "work_id": "123",
-       "prefix": "feat",
-       "description": "add CSV export"
-     }
-   }
-   Result: "feat/123-add-csv-export"
-
-2. Create branch:
-   {
-     "operation": "create-branch",
-     "parameters": {
-       "branch_name": "feat/123-add-csv-export",
-       "base_branch": "main"
-     }
-   }
-
-3. Display:
-   ✅ Branch created: feat/123-add-csv-export
-   Base branch: main
-   Commit SHA: abc123...
-```
-
-### Subcommand: delete
-
-**Purpose**: Delete branches locally and/or remotely
-
-**Arguments**:
-- `branch_name` (required): Branch to delete
-- `--location` (optional): Where to delete: local|remote|both (default: local)
-- `--force` (optional): Force delete even if unmerged
-
-**Workflow**:
-1. Parse arguments
-2. Validate branch name
-3. Invoke agent: delete-branch operation
-4. Display deletion status
-
-**Safety Checks**:
-- Protected branches are rejected
-- Unmerged branches require --force
-- Confirmation prompt shown
-
-**Example Flow**:
-```
-User: /repo:branch delete feat/old-feature --location both
-
-1. Delete branch:
-   {
-     "operation": "delete-branch",
-     "parameters": {
-       "branch_name": "feat/old-feature",
-       "location": "both",
-       "force": false
-     }
-   }
-
-2. Display:
-   ✅ Branch deleted: feat/old-feature
-   Deleted locally: true
-   Deleted remotely: true
-```
-
-### Subcommand: list
-
-**Purpose**: List stale or merged branches
-
-**Arguments**:
-- `--stale` (optional): Show branches with no recent activity
-- `--merged` (optional): Show fully merged branches
-- `--days` (optional): Inactivity threshold in days (default: 30)
-
-**Workflow**:
-1. Parse arguments
-2. Invoke agent: list-stale-branches operation
-3. Format and display results
-
-**Example Flow**:
-```
-User: /repo:branch list --merged
-
-1. List stale:
-   {
-     "operation": "list-stale-branches",
-     "parameters": {
-       "merged": true,
-       "exclude_protected": true
-     }
-   }
-
-2. Display:
-   Stale Branches (3 found):
-
-   Fully Merged:
-   - feat/123-old-feature (merged 45 days ago)
-   - fix/456-bug (merged 60 days ago)
-   - chore/789-deps (merged 90 days ago)
-
-   Use /repo:branch delete <name> to clean up
-```
-
-## Error Handling
-
-**Invalid Arguments**:
+**Missing work ID**:
 ```
 Error: work_id is required
 Usage: /repo:branch create <work_id> <description>
 ```
 
-**Protected Branch**:
+**Branch already exists**:
 ```
-Error: Cannot delete protected branch: main
-Protected branches: main, master, production
-```
-
-**Branch Not Found**:
-```
-Error: Branch not found: feat/nonexistent
-Use /repo:branch list to see available branches
+Error: Branch already exists: feature/123-add-csv-export
+Use a different name or delete the existing branch
 ```
 
-**Unmerged Commits**:
+**Branch not found**:
 ```
-Warning: Branch has unmerged commits: feat/123-work
-Use --force to delete anyway (this will lose changes)
+Error: Branch not found: feature/nonexistent
+List branches: /repo:branch list
 ```
+</ERROR_HANDLING>
 
-## Integration
+<NOTES>
+## Branch Naming Convention
 
-**Called By**: User via CLI
+Branches follow the pattern: `<prefix>/<work-id>-<description>`
 
-**Calls**: repo-manager agent with operations:
-- generate-branch-name
-- create-branch
-- delete-branch
-- list-stale-branches
+Example: `feature/123-add-csv-export`
 
-**Returns**: Human-readable output formatted for terminal display
+## Branch Prefixes
 
-## Notes
+- **feature/**: New features
+- **bugfix/**: Bug fixes
+- **hotfix/**: Urgent production fixes
+- **chore/**: Maintenance tasks
 
-- Branch names follow semantic conventions automatically
-- Protected branches (main, master, production) cannot be deleted
-- Default base branch comes from configuration
-- Stale branch detection respects configuration thresholds
-- All operations respect FABER workflow context if present
+## Platform Support
+
+This command works with:
+- GitHub
+- GitLab
+- Bitbucket
+
+Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/config.json`.
+
+## See Also
+
+For detailed documentation, see: [/docs/commands/repo-branch.md](../../../docs/commands/repo-branch.md)
+
+Related commands:
+- `/repo:commit` - Create commits
+- `/repo:push` - Push branches
+- `/repo:pr` - Create pull requests
+- `/repo:cleanup` - Clean up stale branches
+- `/repo:init` - Configure repo plugin
+</NOTES>

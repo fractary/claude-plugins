@@ -453,49 +453,166 @@ Arguments: [arguments]
 
 ### Command Structure
 
-```yaml
+Commands are **router files** that parse user input and declaratively invoke manager agents. They do NOT execute operations themselves.
+
+```markdown
 ---
-name: command-name
-description: [Command purpose] - routes to [agent-name] agent
-examples:
-  - trigger: "[natural language]"
-    action: "Invoke [agent-name] agent"
+name: plugin-name:command-name
+description: Brief description of what the command does
+argument-hint: subcommand <args> [options] | subcommand2 <args>
 ---
 
-# Command Name
+<CONTEXT>
+You are the [command-name] command router for the [plugin-name] plugin.
+Your role is to parse user input and invoke the [agent-name] agent with the appropriate request.
+</CONTEXT>
 
 <CRITICAL_RULES>
 **YOU MUST:**
-- Invoke the [agent-name] agent immediately
-- Pass all arguments to the agent
-- Do NOT perform any work yourself
+- Parse the command arguments from user input
+- Invoke the [plugin-name:agent-name] agent (or @agent-[plugin-name]:[agent-name])
+- Pass structured request to the agent
+- Return the agent's response to the user
 
-**THIS COMMAND IS ONLY AN ENTRY POINT.**
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Invoke skills directly (the agent handles skill invocation)
+- Execute platform-specific logic (that's the agent's job)
+
+**THIS COMMAND IS ONLY A ROUTER.**
 </CRITICAL_RULES>
 
-<ROUTING>
-Parse user input and invoke agent:
+<WORKFLOW>
+1. **Parse user input**
+   - Extract subcommand and arguments
+   - Parse required and optional arguments
+   - Validate required arguments are present
 
-```bash
-# Example: /plugin:command arg1 --flag=value
+2. **Build structured request**
+   - Map subcommand to operation name
+   - Package parameters
 
-# YOU MUST INVOKE AGENT:
-[Invoke agent-name with parsed arguments]
+3. **Invoke agent**
+   - Invoke [plugin-name:agent-name] agent with the request
 
-# DO NOT:
-# - Read files yourself
-# - Execute commands yourself
-# - Try to solve the problem yourself
+4. **Return response**
+   - The agent will handle the operation and return results
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Subcommands
+
+### subcommand <arg1> [--option <value>]
+**Purpose**: What this subcommand does
+
+**Required Arguments**:
+- `arg1`: Description
+
+**Optional Arguments**:
+- `--option`: Description (default: value)
+
+**Maps to**: operation-name
+
+**Example**:
 ```
-</ROUTING>
+/plugin:command subcommand "value" --option foo
+→ Invoke agent with {"operation": "operation-name", "parameters": {"arg1": "value", "option": "foo"}}
+```
+</ARGUMENT_PARSING>
 
 <EXAMPLES>
-<example>
-User: /plugin:command [args]
-Action: Invoke agent with: [agent] [parsed-args]
-</example>
-</EXAMPLES>
+## Usage Examples
+
+```bash
+# Example 1
+/plugin:command subcommand "arg"
+
+# Example 2
+/plugin:command subcommand "arg" --option value
 ```
+</EXAMPLES>
+
+<AGENT_INVOCATION>
+## Invoking the Agent
+
+After parsing arguments, invoke the agent using **declarative syntax**:
+
+**Agent**: [plugin-name:agent-name] (or @agent-[plugin-name]:[agent-name])
+
+**Request structure**:
+```json
+{
+  "operation": "operation-name",
+  "parameters": {
+    "param1": "value1",
+    "param2": "value2"
+  }
+}
+```
+
+The agent will:
+1. Receive the request
+2. Route to appropriate skill based on operation
+3. Execute platform-specific logic
+4. Return structured response
+
+## Supported Operations
+
+- `operation-name` - Description of operation
+</AGENT_INVOCATION>
+
+<ERROR_HANDLING>
+Common errors to handle:
+
+**Missing required argument**:
+```
+Error: <arg> is required
+Usage: /plugin:command subcommand <arg>
+```
+
+**Invalid subcommand**:
+```
+Error: Unknown subcommand: invalid
+Available: subcommand1, subcommand2
+```
+</ERROR_HANDLING>
+
+<NOTES>
+Brief notes about platform support, integration, related commands, etc.
+
+## See Also
+
+For detailed documentation, see: [/docs/commands/plugin-command.md](...)
+
+Related commands:
+- `/plugin:other-command` - Description
+</NOTES>
+```
+
+### Agent Invocation Syntax
+
+Commands invoke agents using **declarative statements** in markdown. Claude Code automatically routes to registered agents in `marketplace.json`.
+
+**Correct invocation patterns:**
+- `Invoke fractary-work:work-manager agent`
+- `Invoke @agent-fractary-work:work-manager`
+
+**Agent registration** (in `.claude-plugin/marketplace.json`):
+```json
+{
+  "name": "fractary-work",
+  "agents": [
+    "./agents/work-manager.md"
+  ]
+}
+```
+
+**Important:**
+- Commands do NOT use `tools:` frontmatter (that's for agents/skills)
+- Commands do NOT invoke skills directly
+- Commands do NOT execute bash scripts
+- Commands are pure routers that expand instructions for agent invocation
 
 ---
 

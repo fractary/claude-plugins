@@ -4,286 +4,163 @@ description: Push branches to remote repository with safety checks
 argument-hint: [branch_name] [--remote <name>] [--set-upstream] [--force]
 ---
 
-# /repo:push - Branch Push Command
+<CONTEXT>
+You are the repo:push command router for the fractary-repo plugin.
+Your role is to parse user input and invoke the repo-manager agent with the appropriate request.
+</CONTEXT>
 
-Push branches to remote repository with safety checks and upstream tracking.
+<CRITICAL_RULES>
+**YOU MUST:**
+- Parse the command arguments from user input
+- Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager)
+- Pass structured request to the agent
+- Return the agent's response to the user
 
-## Usage
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Invoke skills directly (the repo-manager agent handles skill invocation)
+- Execute platform-specific logic (that's the agent's job)
+
+**THIS COMMAND IS ONLY A ROUTER.**
+</CRITICAL_RULES>
+
+<WORKFLOW>
+1. **Parse user input**
+   - Extract branch name and options
+   - Parse optional flags (remote, set-upstream, force)
+   - Validate arguments
+
+2. **Build structured request**
+   - Package parameters for push operation
+
+3. **Invoke agent**
+   - Invoke fractary-repo:repo-manager agent with the request
+
+4. **Return response**
+   - The repo-manager agent will handle the operation and return results
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Arguments
+
+### [branch_name] [--remote <name>] [--set-upstream] [--force]
+**Purpose**: Push branch to remote repository
+
+**Optional Arguments**:
+- `branch_name`: Branch to push (default: current branch)
+- `--remote`: Remote name (default: origin)
+- `--set-upstream`: Set upstream tracking
+- `--force`: Force push (use with caution)
+
+**Maps to**: push-branch
+
+**Example**:
+```
+/repo:push feature/123-add-csv-export --set-upstream
+→ Invoke agent with {"operation": "push-branch", "parameters": {"branch": "feature/123-add-csv-export", "set_upstream": true}}
+```
+</ARGUMENT_PARSING>
+
+<EXAMPLES>
+## Usage Examples
 
 ```bash
 # Push current branch
 /repo:push
 
 # Push specific branch
-/repo:push <branch_name> [options]
+/repo:push feature/123-add-csv-export
+
+# Push and set upstream
+/repo:push feature/123-add-csv-export --set-upstream
+
+# Push to specific remote
+/repo:push main --remote upstream
+
+# Force push (use carefully!)
+/repo:push feature/rebased-branch --force
 ```
+</EXAMPLES>
 
-## Optional Flags
+<AGENT_INVOCATION>
+## Invoking the Agent
 
-- `--remote <name>`: Remote name (default: origin)
-- `--set-upstream`: Set upstream tracking branch
-- `--force`: Force push with lease (safe force push)
+After parsing arguments, invoke the repo-manager agent using declarative syntax:
 
-## Examples
+**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
 
-```bash
-# Push current branch
-/repo:push
-
-# Push specific branch with upstream tracking
-/repo:push feat/123-add-export --set-upstream
-
-# Push to different remote
-/repo:push feat/456-fix --remote upstream
-
-# Force push (safe)
-/repo:push feat/789-refactor --force
-```
-
-## Command Implementation
-
-This command pushes branches safely to remote repositories.
-
-### Workflow
-
-**1. Parse Arguments**:
-- Extract branch_name (optional, defaults to current branch)
-- Parse --remote flag (default: "origin")
-- Parse --set-upstream flag (boolean)
-- Parse --force flag (boolean)
-
-**2. Validate Inputs**:
-- Check branch exists locally
-- Verify remote exists
-- Check authentication
-- Validate not force pushing to protected branch
-
-**3. Protected Branch Check**:
-```
-If branch is protected (main, master, production) AND force=true:
-  ERROR: Cannot force push to protected branch
-  Exit with error
-```
-
-**4. Invoke Agent**:
+**Request structure**:
 ```json
 {
   "operation": "push-branch",
   "parameters": {
-    "branch_name": "feat/123-add-export",
+    "branch": "branch-name",
     "remote": "origin",
-    "set_upstream": true,
-    "force": false
+    "set_upstream": true|false,
+    "force": true|false
   }
 }
 ```
 
-**5. Display Result**:
+The repo-manager agent will:
+1. Receive the request
+2. Route to appropriate skill based on operation
+3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
+4. Return structured response
+
+## Supported Operations
+
+- `push-branch` - Push branch to remote with safety checks
+</AGENT_INVOCATION>
+
+<ERROR_HANDLING>
+Common errors to handle:
+
+**Branch not found**:
 ```
-✅ Branch pushed successfully
-
-Branch: feat/123-add-export
-Remote: origin
-Upstream: origin/feat/123-add-export (tracking enabled)
-Commits pushed: 3
-
-Next: /repo:pr to create pull request
-```
-
-## Force Push Safety
-
-The command uses **--force-with-lease** instead of bare --force:
-
-### What is force-with-lease?
-
-- Checks if remote ref matches your last fetch
-- Only proceeds if remote hasn't changed
-- Prevents accidentally overwriting others' work
-- Fails gracefully if remote was updated
-
-### When to Use Force Push
-
-✅ **Safe scenarios**:
-- Rebasing feature branches
-- Amending commits after review
-- Cleaning up commit history on your branch
-
-❌ **Never force push**:
-- Protected branches (main, master, production)
-- Shared branches with multiple developers
-- Without communicating to team
-
-### Example Force Push Flow
-
-```
-User: /repo:push feat/123-cleanup --force
-
-1. Safety checks:
-   - Branch not protected ✓
-   - Using --force-with-lease ✓
-   - Remote ref up to date ✓
-
-2. Push with lease:
-   {
-     "operation": "push-branch",
-     "parameters": {
-       "branch_name": "feat/123-cleanup",
-       "force": true
-     }
-   }
-
-3. Display:
-   ⚠️  Force push completed
-   Branch: feat/123-cleanup
-   Strategy: force-with-lease
-   Previous commits were overwritten
+Error: Branch not found: feature/nonexistent
+Check branch name: git branch -a
 ```
 
-## Error Handling
-
-**Authentication Error**:
+**No upstream configured**:
 ```
-Error: Authentication failed
-Check your Git credentials: git credential fill
-Or set GITHUB_TOKEN environment variable
+Error: No upstream branch configured
+Use --set-upstream to configure: /repo:push --set-upstream
 ```
 
-**Protected Branch**:
+**Force push to protected branch**:
 ```
 Error: Cannot force push to protected branch: main
-Protected branches: main, master, production, staging
+Force push is blocked for safety
 ```
+</ERROR_HANDLING>
 
-**Network Error**:
-```
-Error: Failed to connect to remote: origin
-Check your network connection and remote URL
-View remotes: git remote -v
-```
+<NOTES>
+## Safety Checks
 
-**Branch Doesn't Exist**:
-```
-Error: Branch not found: feat/nonexistent
-Current branch: develop
-Use /repo:branch list to see available branches
-```
+The push command includes safety checks:
+- Warns before force pushing
+- Blocks force push to main/master
+- Checks if branch has upstream tracking
+- Validates remote exists
 
-**Remote Ref Changed**:
-```
-Error: Remote branch has new commits
-Someone else pushed to feat/123-work since your last fetch
+## Platform Support
 
-Options:
-1. Pull latest changes: git pull
-2. Force push anyway: /repo:push feat/123-work --force
-```
+This command works with:
+- GitHub
+- GitLab
+- Bitbucket
 
-**No Commits to Push**:
-```
-Branch is up to date with remote
-No new commits to push
-```
+Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/config.json`.
 
-## Upstream Tracking
+## See Also
 
-### First Push (No Upstream)
+For detailed documentation, see: [/docs/commands/repo-push.md](../../../docs/commands/repo-push.md)
 
-```bash
-/repo:push feat/123-new-feature --set-upstream
-```
-
-Result:
-```
-✅ Branch pushed and tracking enabled
-
-Branch: feat/123-new-feature → origin/feat/123-new-feature
-You can now use: git push (without arguments)
-```
-
-### Subsequent Pushes
-
-```bash
-/repo:push
-```
-
-Result:
-```
-✅ Branch pushed
-
-Branch: feat/123-new-feature
-Remote: origin (tracking already set)
-Commits pushed: 2
-```
-
-## FABER Integration
-
-When used within FABER workflows:
-- Automatically pushes before PR creation in Release phase
-- Sets upstream tracking on first push
-- Respects autonomy settings for force push
-- Includes push status in workflow documentation
-
-## Advanced Usage
-
-**Push Multiple Branches**:
-```bash
-# Push main branch
-/repo:push main
-
-# Push feature branch
-/repo:push feat/123-export --set-upstream
-
-# Push fix branch
-/repo:push fix/456-bug
-```
-
-**Push to Fork**:
-```bash
-# Add fork remote
-git remote add fork https://github.com/username/repo.git
-
-# Push to fork
-/repo:push feat/123-contrib --remote fork --set-upstream
-```
-
-**Force Push After Rebase**:
-```bash
-# After rebasing feature branch
-git rebase main
-
-# Safe force push
-/repo:push feat/123-rebased --force
-```
-
-## Integration
-
-**Called By**: User via CLI
-
-**Calls**: repo-manager agent with operation:
-- push-branch
-
-**Returns**: Human-readable output with push status
-
-## Best Practices
-
-1. **Always fetch first**: `git fetch` before pushing to avoid conflicts
-2. **Use --set-upstream**: On first push to enable simple `git push` later
-3. **Communicate force pushes**: Tell team members before force pushing shared branches
-4. **Check branch status**: `git status` to see if you're ahead/behind remote
-5. **Avoid bare --force**: Always use the command's safe force-with-lease
-
-## Safety Features
-
-- **Protected branch blocking**: Cannot force push to main, master, production
-- **Force-with-lease**: Prevents overwriting others' work
-- **Authentication check**: Verifies credentials before attempting push
-- **Network validation**: Tests remote connectivity
-- **Confirmation prompts**: For destructive operations (when not in autonomous mode)
-
-## Notes
-
-- Default remote is "origin" (configurable)
-- Upstream tracking persists after being set
-- Force push uses --force-with-lease for safety
-- All operations respect FABER workflow context
-- Push status is logged for audit trail
+Related commands:
+- `/repo:branch` - Manage branches
+- `/repo:commit` - Create commits
+- `/repo:pr` - Create pull requests
+- `/repo:init` - Configure repo plugin
+</NOTES>
