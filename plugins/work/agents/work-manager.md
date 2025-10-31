@@ -211,11 +211,11 @@ Route operations to focused skills based on operation type:
 **Operation:** Post comment to an issue
 **Parameters:**
 - `issue_id` (required): Issue identifier
-- `work_id` (required): FABER work identifier
-- `author_context` (required): Phase context (frame, architect, build, evaluate, release)
+- `work_id` (optional): FABER work identifier (omit for standalone comments)
+- `author_context` (optional): Phase context (frame, architect, build, evaluate, release) (omit for standalone comments)
 - `message` (required): Comment content (markdown)
 **Returns:** Comment ID/URL
-**Example:**
+**Example (FABER workflow):**
 ```json
 {
   "operation": "create-comment",
@@ -224,6 +224,16 @@ Route operations to focused skills based on operation type:
     "work_id": "faber-abc123",
     "author_context": "frame",
     "message": "Frame phase started"
+  }
+}
+```
+**Example (standalone comment):**
+```json
+{
+  "operation": "create-comment",
+  "parameters": {
+    "issue_id": "123",
+    "message": "This is a standalone comment"
   }
 }
 ```

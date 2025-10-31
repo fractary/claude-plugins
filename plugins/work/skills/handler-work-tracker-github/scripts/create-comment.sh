@@ -1,19 +1,20 @@
 #!/bin/bash
 # Work Manager: GitHub Create Comment
 # Posts a comment to a GitHub issue
+# Supports both FABER workflow comments (with metadata) and standalone comments
 
 set -euo pipefail
 
-# Check arguments
-if [ $# -lt 4 ]; then
-    echo "Usage: $0 <issue_id> <work_id> <author> <message>" >&2
+# Check arguments - minimum 2 required (issue_id, message)
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <issue_id> <message> [work_id] [author]" >&2
     exit 2
 fi
 
 ISSUE_ID="$1"
-WORK_ID="$2"
-AUTHOR="$3"
-MESSAGE="$4"
+MESSAGE="$2"
+WORK_ID="${3:-}"
+AUTHOR="${4:-}"
 
 # Check if gh CLI is available
 if ! command -v gh &> /dev/null; then
@@ -21,11 +22,17 @@ if ! command -v gh &> /dev/null; then
     exit 3
 fi
 
-# Format comment with FABER context
-FORMATTED_COMMENT="$MESSAGE
+# Format comment based on whether FABER context is provided
+if [ -n "$WORK_ID" ] && [ -n "$AUTHOR" ]; then
+    # FABER workflow comment - include metadata footer
+    FORMATTED_COMMENT="$MESSAGE
 
 ---
 _FABER Work ID: \`$WORK_ID\` | Author: $AUTHOR_"
+else
+    # Standalone comment - no metadata footer
+    FORMATTED_COMMENT="$MESSAGE"
+fi
 
 # Post comment using gh CLI
 result=$(gh issue comment "$ISSUE_ID" --body "$FORMATTED_COMMENT" 2>&1)
