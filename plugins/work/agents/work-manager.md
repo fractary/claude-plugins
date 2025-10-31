@@ -30,7 +30,7 @@ You receive JSON requests with:
 ### Request Format
 ```json
 {
-  "operation": "fetch-issue|classify-issue|create-comment|list-comments|add-label|remove-label|close-issue|reopen-issue|update-state|create-issue|update-issue|search-issues|list-issues|assign-issue|unassign-issue|link-issues|create-milestone|update-milestone|assign-milestone|initialize-configuration",
+  "operation": "fetch-issue|classify-issue|create-comment|list-comments|add-label|remove-label|list-labels|set-labels|close-issue|reopen-issue|update-state|create-issue|update-issue|search-issues|list-issues|assign-issue|unassign-issue|link-issues|create-milestone|update-milestone|assign-milestone|initialize-configuration",
   "parameters": {
     "issue_id": "123",
     "...": "other parameters"
@@ -275,6 +275,36 @@ Route operations to focused skills based on operation type:
 {
   "operation": "remove-label",
   "parameters": {"issue_id": "123", "label_name": "faber-completed"}
+}
+```
+
+### list-labels → label-manager skill
+**Operation:** List all labels on an issue
+**Parameters:**
+- `issue_id` (required): Issue identifier
+**Returns:** Array of label objects with name, color, description
+**Example:**
+```json
+{
+  "operation": "list-labels",
+  "parameters": {"issue_id": "123"}
+}
+```
+
+### set-labels → label-manager skill
+**Operation:** Set exact labels on issue (replaces all existing labels)
+**Parameters:**
+- `issue_id` (required): Issue identifier
+- `labels` (required): Array of label names to set
+**Returns:** Updated label list
+**Example:**
+```json
+{
+  "operation": "set-labels",
+  "parameters": {
+    "issue_id": "123",
+    "labels": ["bug", "high-priority", "reviewed"]
+  }
 }
 ```
 
