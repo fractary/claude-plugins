@@ -43,7 +43,9 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Package parameters
 
 3. **Invoke agent**
-   - Invoke fractary-work:work-manager agent with the request
+   - Write a declarative statement using the @agent-fractary-work:work-manager reference
+   - Include the structured JSON request
+   - Example: "Create a new issue using the @agent-fractary-work:work-manager agent with the following request: {JSON}"
 
 4. **Return response**
    - The work-manager agent will handle the operation and return results
@@ -245,6 +247,111 @@ The plugin system routes declarative agent references automatically.
 - `assign-issue` - Assign issue to user
 - `search-issues` - Search issues by keyword
 </AGENT_INVOCATION>
+
+<INVOCATION_TEMPLATE>
+## How to Actually Invoke the Agent
+
+After parsing the command arguments, write a declarative statement that invokes the agent. This is the ACTUAL invocation, not just documentation.
+
+**Template for all operations:**
+```
+[Operation verb] using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "operation-name",
+  "parameters": {
+    "param1": "value1",
+    "param2": "value2"
+  }
+}
+```
+
+**Concrete examples for each operation:**
+
+### Create Issue
+```
+Create a new issue using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "create-issue",
+  "parameters": {
+    "title": "Add CSV export feature",
+    "type": "feature",
+    "body": "Allow users to export data as CSV"
+  }
+}
+```
+
+### Fetch Issue
+```
+Fetch issue details using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "fetch-issue",
+  "parameters": {
+    "issue_number": "123"
+  }
+}
+```
+
+### List Issues
+```
+List issues using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "list-issues",
+  "parameters": {
+    "state": "open",
+    "labels": ["bug"]
+  }
+}
+```
+
+### Update Issue
+```
+Update issue using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "update-issue",
+  "parameters": {
+    "issue_number": "123",
+    "title": "New title"
+  }
+}
+```
+
+### Assign Issue
+```
+Assign issue using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "assign-issue",
+  "parameters": {
+    "issue_number": "123",
+    "assignee": "johndoe"
+  }
+}
+```
+
+### Search Issues
+```
+Search issues using the @agent-fractary-work:work-manager agent with the following request:
+
+{
+  "operation": "search-issues",
+  "parameters": {
+    "query": "authentication",
+    "state": "all"
+  }
+}
+```
+
+**Key points:**
+- The declarative statement with @agent- prefix IS the invocation
+- The plugin system automatically routes when it sees the @agent- reference
+- You don't need to call any tools - just write the statement
+- The agent will receive the request and handle routing to skills
+</INVOCATION_TEMPLATE>
 
 <ERROR_HANDLING>
 Common errors to handle:
