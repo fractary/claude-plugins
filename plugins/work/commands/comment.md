@@ -42,6 +42,38 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--comment "Working on this issue"` ✅
+- **Wrong**: `--comment Working on this issue` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /work:comment create 123 "Working on this now"
+✅ /work:comment create 123 "Investigated the bug - found the root cause"
+
+❌ /work:comment create 123 Working on this now
+❌ /work:comment create 123 Investigated the bug
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /work:comment create 123 LGTM
+✅ /work:comment list 123 --limit 5
+```
+
+**Comment text guidelines:**
+- Multi-word comments MUST use quotes
+- Single word comments (e.g., "LGTM", "Done") don't need quotes
+- Comments can include markdown formatting
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -49,11 +81,11 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Add a comment to an issue
 
 **Required Arguments**:
-- `issue_number`: Issue number
-- `text`: Comment text
+- `issue_number` (number): Issue number (e.g., 123, not "#123")
+- `text` (string): Comment text, use quotes if multi-word (e.g., "Working on this now"). Supports markdown formatting
 
 **Optional Arguments**:
-- `--faber-context`: FABER workflow context (internal use)
+- `--faber-context` (string): FABER workflow context metadata (internal use, typically set automatically by FABER workflows)
 
 **Maps to**: create-comment
 
@@ -67,11 +99,11 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: List comments on an issue
 
 **Required Arguments**:
-- `issue_number`: Issue number
+- `issue_number` (number): Issue number (e.g., 123, not "#123")
 
 **Optional Arguments**:
-- `--limit`: Maximum number of comments (default: 10)
-- `--since`: Show comments since date (YYYY-MM-DD)
+- `--limit` (number): Maximum number of comments to return (default: 10). Example: `--limit 20` for 20 most recent comments
+- `--since` (string): Show only comments since date in YYYY-MM-DD format (e.g., "2025-01-01"). Use quotes for the date
 
 **Maps to**: list-comments
 

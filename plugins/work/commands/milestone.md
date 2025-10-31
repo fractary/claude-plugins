@@ -42,6 +42,42 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--description "Major release with new features"` ✅
+- **Wrong**: `--description Major release with new features` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /work:milestone create "v2.0 Release" --due 2025-12-31
+✅ /work:milestone create "Sprint 5" --description "November sprint goals"
+✅ /work:milestone set 123 "v1.0 Release"
+
+❌ /work:milestone create v2.0 Release --due 2025-12-31
+❌ /work:milestone set 123 v1.0 Release
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /work:milestone create v1.0 --due 2025-12-31
+✅ /work:milestone list --state open
+```
+
+**Date format:**
+- Use YYYY-MM-DD format: "2025-12-31" ✅
+- NOT: "12/31/2025" ❌ or "Dec 31 2025" ❌
+
+**State values are exact keywords:**
+- Use exactly: `open`, `closed`, `all`
+- NOT: `active`, `completed`, `finished`
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -49,12 +85,12 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Create a new milestone
 
 **Required Arguments**:
-- `title`: Milestone title
+- `title` (string): Milestone title, use quotes if multi-word (e.g., "v2.0 Release", "Sprint 5")
 
 **Optional Arguments**:
-- `--due`: Due date (YYYY-MM-DD format)
-- `--description`: Milestone description
-- `--state`: Initial state (open|closed, default: open)
+- `--due` (string): Due date in YYYY-MM-DD format (e.g., "2025-12-31"). Use quotes for the date
+- `--description` (string): Milestone description, use quotes if multi-word (e.g., "Major release with breaking changes")
+- `--state` (enum): Initial state. Must be one of: `open`, `closed` (default: open)
 
 **Maps to**: create-milestone
 
@@ -68,8 +104,8 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: List milestones with optional filtering
 
 **Optional Arguments**:
-- `--state`: Filter by state (open|closed|all, default: open)
-- `--sort`: Sort order (due_date|completeness|title, default: due_date)
+- `--state` (enum): Filter by state. Must be one of: `open`, `closed`, `all` (default: open)
+- `--sort` (enum): Sort order. Must be one of: `due_date` (by due date), `completeness` (by completion %), `title` (alphabetically) (default: due_date)
 
 **Maps to**: list-milestones
 
@@ -83,8 +119,8 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Set milestone on an issue
 
 **Required Arguments**:
-- `issue_number`: Issue number
-- `milestone`: Milestone title or number
+- `issue_number` (number): Issue number (e.g., 123, not "#123")
+- `milestone` (string or number): Milestone title or number, use quotes if multi-word (e.g., "v1.0 Release" or just "1" for milestone #1)
 
 **Maps to**: set-milestone
 
@@ -98,7 +134,7 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Remove milestone from an issue
 
 **Required Arguments**:
-- `issue_number`: Issue number
+- `issue_number` (number): Issue number (e.g., 123, not "#123")
 
 **Maps to**: remove-milestone
 
@@ -112,10 +148,10 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Close a completed milestone
 
 **Required Arguments**:
-- `milestone_id`: Milestone ID or title
+- `milestone_id` (string or number): Milestone ID or title, use quotes if multi-word (e.g., "v1.0 Release" or "1" for milestone #1)
 
 **Optional Arguments**:
-- `--comment`: Comment to add when closing
+- `--comment` (string): Comment to add when closing, use quotes if multi-word (e.g., "All issues completed successfully")
 
 **Maps to**: close-milestone
 

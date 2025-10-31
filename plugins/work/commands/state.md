@@ -42,6 +42,39 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--comment "Fixed in PR #456"` ✅
+- **Wrong**: `--comment Fixed in PR #456` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /work:state close 123 --comment "Fixed in PR #456"
+✅ /work:state reopen 123 --comment "Bug still present in production"
+
+❌ /work:state close 123 --comment Fixed in PR #456
+❌ /work:state reopen 123 --comment Bug still present
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /work:state close 123
+✅ /work:state transition 123 in_progress
+✅ /work:state reopen 123 --reason regression
+```
+
+**State values are exact keywords:**
+- For transition, use exactly: `open`, `in_progress`, `in_review`, `done`, `closed`
+- For close reason, use exactly: `completed`, `duplicate`, `wontfix`
+- NOT: `in-progress`, `inProgress`, `in progress` (underscores, not hyphens or spaces)
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -49,11 +82,11 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Close an issue and optionally post a comment
 
 **Required Arguments**:
-- `number`: Issue number
+- `number` (number): Issue number (e.g., 123, not "#123")
 
 **Optional Arguments**:
-- `--comment`: Comment to post when closing
-- `--reason`: Reason for closing (completed|duplicate|wontfix)
+- `--comment` (string): Comment to post when closing, use quotes if multi-word (e.g., "Fixed in PR #456")
+- `--reason` (enum): Reason for closing. Must be one of: `completed` (work finished), `duplicate` (duplicate issue), `wontfix` (will not address) (default: completed)
 
 **Maps to**: close-issue
 
@@ -67,10 +100,10 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Reopen a closed issue
 
 **Required Arguments**:
-- `number`: Issue number
+- `number` (number): Issue number (e.g., 123, not "#123")
 
 **Optional Arguments**:
-- `--comment`: Comment explaining why reopening
+- `--comment` (string): Comment explaining why reopening, use quotes if multi-word (e.g., "Bug still present in v2.0")
 
 **Maps to**: reopen-issue
 
@@ -84,11 +117,11 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Transition issue to a specific workflow state
 
 **Required Arguments**:
-- `number`: Issue number
-- `state`: Target state (open|in_progress|in_review|done|closed)
+- `number` (number): Issue number (e.g., 123, not "#123")
+- `state` (enum): Target workflow state. Must be one of: `open`, `in_progress`, `in_review`, `done`, `closed` (note: use underscores)
 
 **Optional Arguments**:
-- `--comment`: Comment to post with transition
+- `--comment` (string): Comment to post with transition, use quotes if multi-word (e.g., "Moving to in_progress")
 
 **Maps to**: transition-state
 

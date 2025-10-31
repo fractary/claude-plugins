@@ -42,6 +42,44 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--description "High priority items"` ✅
+- **Wrong**: `--description High priority items` ❌
+
+### Quote Usage
+
+**Label names cannot contain spaces:**
+```bash
+✅ /work:label add 123 high-priority
+✅ /work:label add 123 urgent
+✅ /work:label set 123 bug high-priority reviewed
+
+❌ /work:label add 123 "high priority"  # Spaces not supported in label names
+```
+
+**Use hyphens or underscores instead:**
+- `high-priority` ✅
+- `high_priority` ✅
+- `high priority` ❌
+
+**Multi-word descriptions need quotes:**
+```bash
+✅ /work:label add 123 urgent --description "Requires immediate attention"
+❌ /work:label add 123 urgent --description Requires immediate attention
+```
+
+**The set subcommand takes multiple space-separated labels:**
+```bash
+✅ /work:label set 123 bug high-priority security
+✅ /work:label set 123 feature enhancement
+```
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -49,12 +87,12 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Add a label to an issue
 
 **Required Arguments**:
-- `number`: Issue number
-- `label`: Label name to add
+- `number` (number): Issue number (e.g., 123, not "#123")
+- `label` (string): Label name to add (no spaces, use hyphens/underscores). Examples: "bug", "high-priority", "needs_review"
 
 **Optional Arguments**:
-- `--color`: Label color (hex code, for label creation)
-- `--description`: Label description (for label creation)
+- `--color` (string): Label color as hex code for label creation if label doesn't exist (e.g., "ff0000" for red, "00ff00" for green). No # prefix needed
+- `--description` (string): Label description for label creation if label doesn't exist, use quotes if multi-word (e.g., "High priority items")
 
 **Maps to**: add-label
 
@@ -68,8 +106,8 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Remove a label from an issue
 
 **Required Arguments**:
-- `number`: Issue number
-- `label`: Label name to remove
+- `number` (number): Issue number (e.g., 123, not "#123")
+- `label` (string): Label name to remove (exact match required). Examples: "wontfix", "duplicate"
 
 **Maps to**: remove-label
 
@@ -83,7 +121,7 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: List all labels on an issue
 
 **Required Arguments**:
-- `number`: Issue number
+- `number` (number): Issue number (e.g., 123, not "#123")
 
 **Maps to**: list-labels
 
@@ -97,8 +135,8 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 **Purpose**: Set exact labels on an issue (replaces all existing labels)
 
 **Required Arguments**:
-- `number`: Issue number
-- `labels`: Space-separated list of labels
+- `number` (number): Issue number (e.g., 123, not "#123")
+- `labels` (string...): Space-separated list of label names (no spaces in individual labels). Example: `bug high-priority reviewed`
 
 **Maps to**: set-labels
 
