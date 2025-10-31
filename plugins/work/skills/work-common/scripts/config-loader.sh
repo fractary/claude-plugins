@@ -4,8 +4,27 @@
 
 set -euo pipefail
 
-# Configuration file location (relative to project root)
-CONFIG_FILE=".fractary/plugins/work/config.json"
+# Find project root by locating .git directory
+# This ensures we can find config regardless of current working directory
+if command -v git >/dev/null 2>&1; then
+    PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+else
+    # If git not available, try to find .fractary directory in parent directories
+    PROJECT_ROOT="$(pwd)"
+    while [ "$PROJECT_ROOT" != "/" ]; do
+        if [ -d "$PROJECT_ROOT/.fractary" ] || [ -d "$PROJECT_ROOT/.git" ]; then
+            break
+        fi
+        PROJECT_ROOT="$(dirname "$PROJECT_ROOT")"
+    done
+    # If we reached root without finding markers, use current directory
+    if [ "$PROJECT_ROOT" = "/" ]; then
+        PROJECT_ROOT="$(pwd)"
+    fi
+fi
+
+# Configuration file location (absolute path from project root)
+CONFIG_FILE="$PROJECT_ROOT/.fractary/plugins/work/config.json"
 
 # Check if config file exists
 if [ ! -f "$CONFIG_FILE" ]; then
