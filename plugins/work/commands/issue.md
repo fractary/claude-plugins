@@ -41,6 +41,13 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 2. **Build structured request**
    - Map subcommand to operation name
    - Package parameters
+   - **For create subcommand**: Convert `--type` to label format
+     - If `--type feature` provided, add "type: feature" to labels
+     - If `--type bug` provided, add "type: bug" to labels
+     - If `--type chore` provided, add "type: chore" to labels
+     - If `--type patch` provided, add "type: patch" to labels
+     - Merge with any additional `--label` flags into comma-separated string
+     - Remove the "type" parameter - only pass "labels" to agent
 
 3. **Invoke agent**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
@@ -52,6 +59,43 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Display results to the user
 </WORKFLOW>
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the **space-separated** argument syntax (consistent with work/repo plugin family):
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in quotes
+- **Example**: `--body "This is a description"` ✅
+- **Wrong**: `--body This is a description` ❌
+
+### Quote Usage
+
+**Always use quotes for multi-word values:**
+```bash
+✅ /work:issue create "Title with spaces" --body "Description with spaces"
+✅ /work:issue update 123 --title "New title here"
+✅ /work:issue create "Bug fix" --type bug --label high-priority
+
+❌ /work:issue create Title with spaces --body Description with spaces
+❌ /work:issue update 123 --title New title here
+```
+
+**Single-word values don't require quotes:**
+```bash
+✅ /work:issue create "Title" --type feature
+✅ /work:issue list --state open
+✅ /work:issue fetch 123
+```
+
+**Labels cannot contain spaces:**
+```bash
+✅ /work:issue create "Title" --label urgent --label high-priority
+❌ /work:issue create "Title" --label "high priority"  # Spaces not supported in label values
+```
+
+Use hyphens or underscores instead: `high-priority`, `high_priority`
+</ARGUMENT_SYNTAX>
+
 <ARGUMENT_PARSING>
 ## Subcommands
 
@@ -62,18 +106,26 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 - `title`: Issue title
 
 **Optional Arguments**:
-- `--type`: Issue type (feature|bug|chore|patch, default: feature)
+- `--type`: Issue type (feature|bug|chore|patch, default: feature) - Automatically converted to "type: <value>" label
 - `--body`: Issue description
-- `--label`: Additional labels (can be repeated)
+- `--label`: Additional labels (can be repeated, space-separated values not allowed)
 - `--milestone`: Milestone name or number
 - `--assignee`: User to assign (use @me for yourself)
 
 **Maps to**: create-issue
 
+**Type Conversion**: The `--type` flag is automatically converted to a label in the format "type: <value>". For example, `--type feature` becomes the label `"type: feature"`. This label is then merged with any additional `--label` flags.
+
 **Example**:
 ```
 /work:issue create "Add CSV export" --type feature --body "Allow users to export data"
-→ Invoke agent with {"operation": "create-issue", "parameters": {"title": "Add CSV export", "type": "feature", "body": "Allow users to export data"}}
+→ Invoke agent with {"operation": "create-issue", "parameters": {"title": "Add CSV export", "description": "Allow users to export data", "labels": "type: feature"}}
+```
+
+**Example with additional labels**:
+```
+/work:issue create "Fix login bug" --type bug --label urgent --label security
+→ Invoke agent with {"operation": "create-issue", "parameters": {"title": "Fix login bug", "labels": "type: bug,urgent,security"}}
 ```
 
 ### fetch <number>
@@ -272,6 +324,15 @@ Task tool with:
 **Concrete examples for each operation:**
 
 ### Create Issue
+
+**IMPORTANT**: Convert `--type` to label format before sending to agent!
+
+**Input from user**:
+```
+/work:issue create "Add CSV export feature" --type feature --body "Allow users to export data as CSV"
+```
+
+**After type conversion, invoke Task tool**:
 ```
 Invoke Task tool:
   subagent_type="fractary-work:work-manager"
@@ -280,10 +341,16 @@ Invoke Task tool:
     "operation": "create-issue",
     "parameters": {
       "title": "Add CSV export feature",
-      "type": "feature",
-      "body": "Allow users to export data as CSV"
+      "description": "Allow users to export data as CSV",
+      "labels": "type: feature"
     }
   }'
+```
+
+**With additional labels**:
+```
+Input: /work:issue create "Fix bug" --type bug --label urgent --label security
+Output to agent: {"operation": "create-issue", "parameters": {"title": "Fix bug", "labels": "type: bug,urgent,security"}}
 ```
 
 ### Fetch Issue

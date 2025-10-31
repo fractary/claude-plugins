@@ -30,7 +30,7 @@ You receive JSON requests with:
 ### Request Format
 ```json
 {
-  "operation": "fetch|classify|comment|label|close|reopen|update-state|create|update|search|list|assign|unassign|link|create-milestone|update-milestone|assign-milestone|initialize-configuration",
+  "operation": "fetch-issue|classify-issue|create-comment|add-label|remove-label|close-issue|reopen-issue|update-state|create-issue|update-issue|search-issues|list-issues|assign-issue|unassign-issue|link-issues|create-milestone|update-milestone|assign-milestone|initialize-configuration",
   "parameters": {
     "issue_id": "123",
     "...": "other parameters"
@@ -40,7 +40,7 @@ You receive JSON requests with:
 
 ### Legacy String Format (DEPRECATED)
 For backward compatibility during migration, you MAY receive string-based requests:
-- `"fetch 123"` → Convert to `{"operation": "fetch", "parameters": {"issue_id": "123"}}`
+- `"fetch 123"` → Convert to `{"operation": "fetch-issue", "parameters": {"issue_id": "123"}}`
 - However, this is DEPRECATED and will be removed in v2.2
 
 </INPUTS>
@@ -61,31 +61,31 @@ Route operations to focused skills based on operation type:
 
 ## Read Operations
 
-### fetch → issue-fetcher skill
+### fetch-issue → issue-fetcher skill
 **Operation:** Fetch issue details from tracking system
 **Parameters:** `issue_id` (required)
 **Returns:** Normalized issue JSON with full metadata
 **Example:**
 ```json
 {
-  "operation": "fetch",
+  "operation": "fetch-issue",
   "parameters": {"issue_id": "123"}
 }
 ```
 
-### classify → issue-classifier skill
+### classify-issue → issue-classifier skill
 **Operation:** Determine work type from issue metadata
-**Parameters:** `issue_json` (required) - Full issue JSON from fetch
+**Parameters:** `issue_json` (required) - Full issue JSON from fetch-issue
 **Returns:** Work type: `/bug`, `/feature`, `/chore`, or `/patch`
 **Example:**
 ```json
 {
-  "operation": "classify",
+  "operation": "classify-issue",
   "parameters": {"issue_json": "{...}"}
 }
 ```
 
-### list → issue-searcher skill
+### list-issues → issue-searcher skill
 **Operation:** List/filter issues by criteria
 **Parameters:**
 - `state` (optional): "all", "open", "closed"
@@ -96,12 +96,12 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "list",
+  "operation": "list-issues",
   "parameters": {"state": "open", "labels": "bug,urgent", "limit": 20}
 }
 ```
 
-### search → issue-searcher skill
+### search-issues → issue-searcher skill
 **Operation:** Full-text search across issues
 **Parameters:**
 - `query_text` (required): Search query
@@ -110,14 +110,14 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "search",
+  "operation": "search-issues",
   "parameters": {"query_text": "login crash", "limit": 10}
 }
 ```
 
 ## Create Operations
 
-### create → issue-creator skill
+### create-issue → issue-creator skill
 **Operation:** Create new issue in tracking system
 **Parameters:**
 - `title` (required): Issue title
@@ -128,7 +128,7 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "create",
+  "operation": "create-issue",
   "parameters": {
     "title": "Fix login bug",
     "description": "Users report crash...",
@@ -140,7 +140,7 @@ Route operations to focused skills based on operation type:
 
 ## Update Operations
 
-### update → issue-updater skill
+### update-issue → issue-updater skill
 **Operation:** Update issue title and/or description
 **Parameters:**
 - `issue_id` (required): Issue identifier
@@ -150,14 +150,14 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "update",
+  "operation": "update-issue",
   "parameters": {"issue_id": "123", "title": "New title"}
 }
 ```
 
 ## State Operations
 
-### close → state-manager skill
+### close-issue → state-manager skill
 **Operation:** Close an issue (CRITICAL for Release phase)
 **Parameters:**
 - `issue_id` (required): Issue identifier
@@ -167,7 +167,7 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "close",
+  "operation": "close-issue",
   "parameters": {
     "issue_id": "123",
     "close_comment": "Fixed in PR #456",
@@ -176,7 +176,7 @@ Route operations to focused skills based on operation type:
 }
 ```
 
-### reopen → state-manager skill
+### reopen-issue → state-manager skill
 **Operation:** Reopen a closed issue
 **Parameters:**
 - `issue_id` (required): Issue identifier
@@ -186,7 +186,7 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "reopen",
+  "operation": "reopen-issue",
   "parameters": {"issue_id": "123", "reopen_comment": "Needs more work"}
 }
 ```
@@ -207,7 +207,7 @@ Route operations to focused skills based on operation type:
 
 ## Communication Operations
 
-### comment → comment-creator skill
+### create-comment → comment-creator skill
 **Operation:** Post comment to an issue
 **Parameters:**
 - `issue_id` (required): Issue identifier
@@ -218,7 +218,7 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "comment",
+  "operation": "create-comment",
   "parameters": {
     "issue_id": "123",
     "work_id": "faber-abc123",
@@ -230,22 +230,27 @@ Route operations to focused skills based on operation type:
 
 ## Metadata Operations
 
-### label → label-manager skill
+### add-label / remove-label → label-manager skill
 **Operation:** Add or remove labels on issue
 **Parameters:**
 - `issue_id` (required): Issue identifier
 - `label_name` (required): Label to add/remove
-- `action` (required): "add" or "remove"
 **Returns:** Success confirmation
-**Example:**
+**Examples:**
 ```json
 {
-  "operation": "label",
-  "parameters": {"issue_id": "123", "label_name": "faber-in-progress", "action": "add"}
+  "operation": "add-label",
+  "parameters": {"issue_id": "123", "label_name": "faber-in-progress"}
+}
+```
+```json
+{
+  "operation": "remove-label",
+  "parameters": {"issue_id": "123", "label_name": "faber-completed"}
 }
 ```
 
-### assign → issue-assigner skill
+### assign-issue → issue-assigner skill
 **Operation:** Assign issue to user
 **Parameters:**
 - `issue_id` (required): Issue identifier
@@ -254,12 +259,12 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "assign",
+  "operation": "assign-issue",
   "parameters": {"issue_id": "123", "assignee_username": "johndoe"}
 }
 ```
 
-### unassign → issue-assigner skill
+### unassign-issue → issue-assigner skill
 **Operation:** Remove assignee from issue
 **Parameters:**
 - `issue_id` (required): Issue identifier
@@ -268,14 +273,14 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "unassign",
+  "operation": "unassign-issue",
   "parameters": {"issue_id": "123", "assignee_username": "johndoe"}
 }
 ```
 
 ## Relationship Operations
 
-### link → issue-linker skill
+### link-issues → issue-linker skill
 **Operation:** Create relationship between issues for dependency tracking
 **Parameters:**
 - `issue_id` (required): Source issue identifier
@@ -289,7 +294,7 @@ Route operations to focused skills based on operation type:
 **Example:**
 ```json
 {
-  "operation": "link",
+  "operation": "link-issues",
   "parameters": {
     "issue_id": "123",
     "related_issue_id": "456",
@@ -473,11 +478,11 @@ As a pure router, you do not create documentation. Documentation is handled by:
 ## Integration with FABER
 
 You are invoked by FABER workflow managers:
-- **Frame Manager**: fetch + classify operations
-- **Architect Manager**: comment operations
-- **Build Manager**: comment + update-state operations
-- **Evaluate Manager**: comment operations
-- **Release Manager**: close + comment + label operations (CRITICAL)
+- **Frame Manager**: fetch-issue + classify-issue operations
+- **Architect Manager**: create-comment operations
+- **Build Manager**: create-comment + update-state operations
+- **Evaluate Manager**: create-comment operations
+- **Release Manager**: close-issue + create-comment + add-label operations (CRITICAL)
 
 ## Usage Examples
 
@@ -485,13 +490,13 @@ You are invoked by FABER workflow managers:
 ```bash
 # Fetch issue details
 issue_json=$(claude --agent work-manager '{
-  "operation": "fetch",
+  "operation": "fetch-issue",
   "parameters": {"issue_id": "123"}
 }')
 
 # Classify work type
 work_type=$(claude --agent work-manager '{
-  "operation": "classify",
+  "operation": "classify-issue",
   "parameters": {"issue_json": "'"$issue_json"'"}
 }')
 ```
@@ -500,7 +505,7 @@ work_type=$(claude --agent work-manager '{
 ```bash
 # Close issue (fixes critical bug)
 result=$(claude --agent work-manager '{
-  "operation": "close",
+  "operation": "close-issue",
   "parameters": {
     "issue_id": "123",
     "close_comment": "✅ Released in PR #456. Deployed to production.",
@@ -510,8 +515,8 @@ result=$(claude --agent work-manager '{
 
 # Add completion label
 claude --agent work-manager '{
-  "operation": "label",
-  "parameters": {"issue_id": "123", "label_name": "faber-completed", "action": "add"}
+  "operation": "add-label",
+  "parameters": {"issue_id": "123", "label_name": "faber-completed"}
 }'
 ```
 
@@ -525,7 +530,7 @@ claude --agent work-manager '{
 
 # Post status comment
 claude --agent work-manager '{
-  "operation": "comment",
+  "operation": "create-comment",
   "parameters": {
     "issue_id": "123",
     "work_id": "faber-abc123",
@@ -581,16 +586,16 @@ Test routing to each skill:
 
 ```bash
 # Test fetch routing
-claude --agent work-manager '{"operation":"fetch","parameters":{"issue_id":"123"}}'
+claude --agent work-manager '{"operation":"fetch-issue","parameters":{"issue_id":"123"}}'
 
 # Test classify routing
-claude --agent work-manager '{"operation":"classify","parameters":{"issue_json":"..."}}'
+claude --agent work-manager '{"operation":"classify-issue","parameters":{"issue_json":"..."}}'
 
 # Test close routing (CRITICAL)
-claude --agent work-manager '{"operation":"close","parameters":{"issue_id":"123","close_comment":"Test"}}'
+claude --agent work-manager '{"operation":"close-issue","parameters":{"issue_id":"123","close_comment":"Test"}}'
 
 # Test comment routing
-claude --agent work-manager '{"operation":"comment","parameters":{"issue_id":"123","work_id":"test","author_context":"frame","message":"Test"}}'
+claude --agent work-manager '{"operation":"create-comment","parameters":{"issue_id":"123","work_id":"test","author_context":"frame","message":"Test"}}'
 ```
 
 ## Migration Notes

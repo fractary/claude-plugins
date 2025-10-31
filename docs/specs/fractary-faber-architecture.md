@@ -779,7 +779,7 @@ plugins/{plugin-name}/
 
 ```json
 {
-  "name": "fractary-claude-plugins",
+  "name": "fractary",
   "version": "1.0.0",
   "description": "Fractary plugins for Claude Code",
   "repository": "github.com/fractary/claude-plugins",
@@ -883,12 +883,12 @@ Commands are prefixed with plugin name:
 
 ```bash
 # Install from GitHub
-claude plugin install fractary-claude-plugins/fractary-faber
+claude plugin install fractar/fractary-faber
 
 # Install multiple
 claude plugin install \
-  fractary-claude-plugins/fractary-faber \
-  fractary-claude-plugins/fractary-faber-app
+  fractar/fractary-faber \
+  fractar/fractary-faber-app
 
 # List installed
 claude plugin list
@@ -905,38 +905,38 @@ Users choose which plugins to install:
 
 **Minimal (core only):**
 ```bash
-claude plugin install fractary-claude-plugins/fractary-faber
+claude plugin install fractar/fractary-faber
 ```
 
 **Application developer:**
 ```bash
 claude plugin install \
-  fractary-claude-plugins/fractary-faber \
-  fractary-claude-plugins/fractary-faber-app
+  fractar/fractary-faber \
+  fractar/fractary-faber-app
 ```
 
 **Full-stack developer:**
 ```bash
 claude plugin install \
-  fractary-claude-plugins/fractary-faber \
-  fractary-claude-plugins/fractary-faber-app \
-  fractary-claude-plugins/fractary-faber-api \
-  fractary-claude-plugins/fractary-faber-cloud
+  fractar/fractary-faber \
+  fractar/fractary-faber-app \
+  fractar/fractary-faber-api \
+  fractar/fractary-faber-cloud
 ```
 
 **Web scraping project (Corthovore):**
 ```bash
 claude plugin install \
-  fractary-claude-plugins/fractary-faber \
-  fractary-claude-plugins/fractary-faber-scraper
+  fractar/fractary-faber \
+  fractar/fractary-faber-scraper
 ```
 
 **Content creator:**
 ```bash
 claude plugin install \
-  fractary-claude-plugins/fractary-faber \
-  fractary-claude-plugins/fractary-faber-video \
-  fractary-claude-plugins/fractary-faber-blog
+  fractar/fractary-faber \
+  fractar/fractary-faber-video \
+  fractar/fractary-faber-blog
 ```
 
 ---
@@ -1169,8 +1169,8 @@ my-openai-project/
 
 **Installation:**
 ```bash
-claude plugin install fractary-claude-plugins/fractary-faber
-claude plugin install fractary-claude-plugins/fractary-faber-app
+claude plugin install fractar/fractary-faber
+claude plugin install fractar/fractary-faber-app
 ```
 
 **Initialize:**
@@ -1212,8 +1212,8 @@ handlers:
 
 **Installation:**
 ```bash
-claude plugin install fractary-claude-plugins/fractary-faber
-claude plugin install fractary-claude-plugins/fractary-faber-scraper
+claude plugin install fractar/fractary-faber
+claude plugin install fractar/fractary-faber-scraper
 ```
 
 **faber.yaml:**
@@ -1257,9 +1257,9 @@ workflows:
 
 **Installation:**
 ```bash
-claude plugin install fractary-claude-plugins/fractary-faber
-claude plugin install fractary-claude-plugins/fractary-faber-video
-claude plugin install fractary-claude-plugins/fractary-faber-blog
+claude plugin install fractar/fractary-faber
+claude plugin install fractar/fractary-faber-video
+claude plugin install fractar/fractary-faber-blog
 ```
 
 **Create video:**

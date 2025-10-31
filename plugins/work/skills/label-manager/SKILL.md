@@ -11,8 +11,8 @@ You are the label-manager skill responsible for adding and removing labels on is
 
 <CRITICAL_RULES>
 1. NEVER modify labels directly - ALWAYS route to handler
-2. ALWAYS validate required parameters (issue_id, label_name, action)
-3. ALWAYS validate action is "add" or "remove"
+2. ALWAYS validate required parameters (issue_id, label_name)
+3. ALWAYS validate operation is "add-label" or "remove-label"
 4. ALWAYS output start/end messages
 5. HANDLE label not found errors gracefully
 </CRITICAL_RULES>
@@ -21,16 +21,14 @@ You are the label-manager skill responsible for adding and removing labels on is
 Required parameters:
 - `issue_id`: Issue identifier
 - `label_name`: Label to add/remove
-- `action`: "add" or "remove"
 
 Example Add:
 ```json
 {
-  "operation": "label",
+  "operation": "add-label",
   "parameters": {
     "issue_id": "123",
-    "label_name": "faber-in-progress",
-    "action": "add"
+    "label_name": "faber-in-progress"
   }
 }
 ```
@@ -38,11 +36,10 @@ Example Add:
 Example Remove:
 ```json
 {
-  "operation": "label",
+  "operation": "remove-label",
   "parameters": {
     "issue_id": "123",
-    "label_name": "faber-in-progress",
-    "action": "remove"
+    "label_name": "faber-in-progress"
   }
 }
 ```
@@ -51,11 +48,11 @@ Example Remove:
 <WORKFLOW>
 1. Output start message with operation details
 2. Validate all required parameters present
-3. Validate action is "add" or "remove"
+3. Validate operation is "add-label" or "remove-label"
 4. Load configuration for active handler
 5. Invoke appropriate handler script:
-   - action="add" → `add-label.sh`
-   - action="remove" → `remove-label.sh`
+   - operation="add-label" → `add-label.sh`
+   - operation="remove-label" → `remove-label.sh`
 6. Receive success confirmation from handler
 7. Output end message
 8. Return success response
@@ -75,24 +72,36 @@ Classification labels:
 </COMMON_LABELS>
 
 <OUTPUTS>
-Success:
+Success (add-label):
 ```json
 {
   "status": "success",
-  "operation": "label",
+  "operation": "add-label",
   "result": {
-    "action": "add",
     "label": "faber-in-progress",
     "issue_id": "123",
     "message": "Label 'faber-in-progress' added to issue #123"
   }
 }
 ```
+
+Success (remove-label):
+```json
+{
+  "status": "success",
+  "operation": "remove-label",
+  "result": {
+    "label": "faber-in-progress",
+    "issue_id": "123",
+    "message": "Label 'faber-in-progress' removed from issue #123"
+  }
+}
+```
 </OUTPUTS>
 
 <ERROR_HANDLING>
-- **Missing Parameters (2)**: issue_id, label_name, or action missing
-- **Invalid Action (2)**: action not "add" or "remove"
+- **Missing Parameters (2)**: issue_id or label_name missing
+- **Invalid Operation (2)**: operation not "add-label" or "remove-label"
 - **Issue Not Found (10)**: Issue doesn't exist
 - **Label Not Found (3)**: Label doesn't exist (for remove) or can't be created (for add)
 - **Auth Error (11)**: Authentication failed
