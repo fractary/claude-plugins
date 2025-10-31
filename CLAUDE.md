@@ -124,6 +124,35 @@ To test a FABER workflow:
 /faber status
 ```
 
+### How to Invoke Agents
+
+Agents are invoked using **declarative natural language**, not tool calls.
+
+**Correct invocation**:
+```
+Use the @agent-fractary-repo:repo-manager agent to create a commit with the following request:
+{
+  "operation": "create-commit",
+  "parameters": {
+    "message": "Add CSV export",
+    "type": "feat",
+    "work_id": "123"
+  }
+}
+```
+
+**Incorrect invocation**:
+- ❌ Skill tool with agent name
+- ❌ Task tool with agent name
+- ❌ Direct skill invocation (bypassing agent)
+
+The plugin system automatically routes when you state you're using an agent. Simply declare that you're using the agent in natural language, and the system handles the rest.
+
+**Agent types**:
+- **@agent-fractary-repo:repo-manager** - Repository operations (commits, branches, PRs, tags)
+- **@agent-fractary-work:work-manager** - Work item management (issues, labels, milestones)
+- **@agent-fractary-file:file-manager** - File storage operations (R2, S3, local)
+
 ### Command Failure Protocol
 
 When commands or skills fail:

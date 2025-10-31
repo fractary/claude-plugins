@@ -104,9 +104,37 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+After parsing arguments, invoke the repo-manager agent using declarative syntax.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**Agent**: @agent-fractary-repo:repo-manager
+
+**How to invoke**:
+State that you're using the agent in natural language:
+
+```
+Use the @agent-fractary-repo:repo-manager agent to create a commit with the following request:
+{
+  "operation": "create-commit",
+  "parameters": {
+    "message": "Add CSV export",
+    "type": "feat",
+    "work_id": "123"
+  }
+}
+```
+
+The plugin system routes declarative agent references automatically.
+
+**CRITICAL - DO NOT**:
+- ❌ Use Skill tool to invoke agents
+- ❌ Use Task tool to invoke agents
+- ❌ Invoke skills directly (commit-creator, branch-pusher, etc.) - let the agent route
+
+**The agent will**:
+- Validate the request
+- Route to commit-creator skill
+- Return the skill's response
+- You display results to user
 
 **Request structure**:
 ```json

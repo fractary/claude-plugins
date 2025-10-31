@@ -168,9 +168,38 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+After parsing arguments, invoke the repo-manager agent using declarative syntax.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**Agent**: @agent-fractary-repo:repo-manager
+
+**How to invoke**:
+State that you're using the agent in natural language:
+
+```
+Use the @agent-fractary-repo:repo-manager agent to create a pull request with the following request:
+{
+  "operation": "create-pr",
+  "parameters": {
+    "title": "Add CSV export feature",
+    "body": "Implements user data export to CSV format",
+    "base": "main",
+    "head": "feature/123-csv-export"
+  }
+}
+```
+
+The plugin system routes declarative agent references automatically.
+
+**CRITICAL - DO NOT**:
+- ❌ Use Skill tool to invoke agents
+- ❌ Use Task tool to invoke agents
+- ❌ Invoke skills directly (pr-manager, etc.) - let the agent route
+
+**The agent will**:
+- Validate the request
+- Route to pr-manager skill
+- Return the skill's response
+- You display results to user
 
 **Request structure**:
 ```json
@@ -182,12 +211,6 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
   }
 }
 ```
-
-The repo-manager agent will:
-1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
 
 ## Supported Operations
 

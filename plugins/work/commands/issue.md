@@ -192,9 +192,38 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the work-manager agent using declarative syntax:
+After parsing arguments, invoke the work-manager agent using declarative syntax.
 
-**Agent**: fractary-work:work-manager (or @agent-fractary-work:work-manager)
+**Agent**: @agent-fractary-work:work-manager
+
+**How to invoke**:
+State that you're using the agent in natural language:
+
+```
+Use the @agent-fractary-work:work-manager agent to create an issue with the following request:
+{
+  "operation": "create-issue",
+  "parameters": {
+    "title": "Add dark mode support",
+    "description": "Implement dark mode theme with user toggle",
+    "labels": "feature,ui",
+    "assignees": "johndoe"
+  }
+}
+```
+
+The plugin system routes declarative agent references automatically.
+
+**CRITICAL - DO NOT**:
+- ❌ Use Skill tool to invoke agents
+- ❌ Use Task tool to invoke agents
+- ❌ Invoke skills directly (issue-creator, issue-fetcher, etc.) - let the agent route
+
+**The agent will**:
+- Validate the request
+- Route to appropriate skill (issue-creator, issue-fetcher, etc.)
+- Return the skill's response
+- You display results to user
 
 **Request structure**:
 ```json
@@ -206,12 +235,6 @@ After parsing arguments, invoke the work-manager agent using declarative syntax:
   }
 }
 ```
-
-The work-manager agent will:
-1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/Jira/Linear)
-4. Return structured response
 
 ## Supported Operations
 

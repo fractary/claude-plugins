@@ -102,9 +102,37 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+After parsing arguments, invoke the repo-manager agent using declarative syntax.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**Agent**: @agent-fractary-repo:repo-manager
+
+**How to invoke**:
+State that you're using the agent in natural language:
+
+```
+Use the @agent-fractary-repo:repo-manager agent to push a branch with the following request:
+{
+  "operation": "push-branch",
+  "parameters": {
+    "branch": "feature/123-add-export",
+    "remote": "origin",
+    "set_upstream": true
+  }
+}
+```
+
+The plugin system routes declarative agent references automatically.
+
+**CRITICAL - DO NOT**:
+- ❌ Use Skill tool to invoke agents
+- ❌ Use Task tool to invoke agents
+- ❌ Invoke skills directly (branch-pusher, etc.) - let the agent route
+
+**The agent will**:
+- Validate the request
+- Route to branch-pusher skill
+- Return the skill's response
+- You display results to user
 
 **Request structure**:
 ```json
@@ -118,12 +146,6 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
   }
 }
 ```
-
-The repo-manager agent will:
-1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
 
 ## Supported Operations
 
