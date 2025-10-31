@@ -50,7 +50,8 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
    - Package parameters for commit operation
 
 3. **Invoke agent**
-   - Invoke fractary-repo:repo-manager agent with the request
+   - Use the Task tool with subagent_type="fractary-repo:repo-manager"
+   - Pass the structured JSON request in the prompt parameter
 
 4. **Return response**
    - The repo-manager agent will handle the operation and return results
@@ -104,31 +105,39 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax.
+After parsing arguments, invoke the repo-manager agent using the Task tool.
 
-**Agent**: @agent-fractary-repo:repo-manager
+**Agent**: fractary-repo:repo-manager
 
 **How to invoke**:
-State that you're using the agent in natural language:
+Use the Task tool with the agent as subagent_type:
 
 ```
-Use the @agent-fractary-repo:repo-manager agent to create a commit with the following request:
-{
-  "operation": "create-commit",
-  "parameters": {
-    "message": "Add CSV export",
-    "type": "feat",
-    "work_id": "123"
-  }
-}
+Task tool invocation:
+- subagent_type: "fractary-repo:repo-manager"
+- description: Brief description of operation
+- prompt: JSON request containing operation and parameters
 ```
 
-The plugin system routes declarative agent references automatically.
+**Example invocation**:
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Create semantic commit",
+  prompt='{
+    "operation": "create-commit",
+    "parameters": {
+      "message": "Add CSV export",
+      "type": "feat",
+      "work_id": "123"
+    }
+  }'
+)
+```
 
 **CRITICAL - DO NOT**:
-- ❌ Use Skill tool to invoke agents
-- ❌ Use Task tool to invoke agents
 - ❌ Invoke skills directly (commit-creator, branch-pusher, etc.) - let the agent route
+- ❌ Write declarative text about using the agent - actually invoke it
 
 **The agent will**:
 - Validate the request
