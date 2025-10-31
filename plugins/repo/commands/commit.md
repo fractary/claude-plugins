@@ -29,6 +29,14 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 - User must explicitly run /repo:push to push changes
 - EXCEPTION: If explicit continuation flags exist (not currently implemented)
 
+**WHEN COMMANDS FAIL:**
+- NEVER bypass the command architecture with manual bash/git commands
+- NEVER use git/gh CLI directly as a workaround
+- ALWAYS report the failure to the user with error details
+- ALWAYS wait for explicit user instruction on how to proceed
+- DO NOT be "helpful" by finding alternative approaches
+- The user decides: debug the skill, try different approach, or abort
+
 **THIS COMMAND IS ONLY A ROUTER.**
 </CRITICAL_RULES>
 

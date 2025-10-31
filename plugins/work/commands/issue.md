@@ -21,6 +21,14 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 - Invoke skills directly (the work-manager agent handles skill invocation)
 - Execute platform-specific logic (that's the agent's job)
 
+**WHEN COMMANDS FAIL:**
+- NEVER bypass the command architecture with manual bash/gh/jq commands
+- NEVER use gh/jq CLI directly as a workaround
+- ALWAYS report the failure to the user with error details
+- ALWAYS wait for explicit user instruction on how to proceed
+- DO NOT be "helpful" by finding alternative approaches
+- The user decides: debug the skill, try different approach, or abort
+
 **THIS COMMAND IS ONLY A ROUTER.**
 </CRITICAL_RULES>
 

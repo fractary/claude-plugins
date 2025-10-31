@@ -124,6 +124,22 @@ To test a FABER workflow:
 /faber status
 ```
 
+### Command Failure Protocol
+
+When commands or skills fail:
+
+1. **STOP immediately** - Do not attempt workarounds
+2. **Report the failure** - Show the error to the user
+3. **Wait for instruction** - User decides next steps
+4. **NEVER bypass** - Do not use bash/git/gh CLI directly as fallback
+
+**Examples:**
+- ❌ Command fails → use git CLI directly
+- ❌ Skill fails → invoke different skill
+- ✅ Command fails → report error, wait for user
+
+This ensures architectural boundaries are respected and users maintain control over how failures are handled.
+
 ### Provider Abstraction (Handler Pattern)
 
 Multi-provider plugins use **handler skills** to centralize provider-specific logic:

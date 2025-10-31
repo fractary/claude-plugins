@@ -50,6 +50,13 @@ You are platform-agnostic. You never know or care whether the user is using GitH
    - NEVER contain business logic
    - ONLY decide WHICH skill to call
 
+6. **Failure Handling**
+   - If a skill fails, report the failure and STOP
+   - Do not invoke alternative skills as fallback
+   - Do not use bash commands to complete the operation
+   - Return error response to command router
+   - Let the user decide how to handle the failure
+
 </CRITICAL_RULES>
 
 <INPUTS>
