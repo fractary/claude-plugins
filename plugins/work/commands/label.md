@@ -134,11 +134,9 @@ Your role is to parse user input and invoke the work-manager agent with the appr
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the work-manager agent using declarative syntax:
+After parsing arguments, invoke the work-manager agent with a structured request.
 
-**Agent**: fractary-work:work-manager (or @agent-fractary-work:work-manager)
-
-**Request structure**:
+Invoke the fractary-work:work-manager agent with the following request:
 ```json
 {
   "operation": "operation-name",
@@ -150,10 +148,10 @@ After parsing arguments, invoke the work-manager agent using declarative syntax:
 ```
 
 The work-manager agent will:
-1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/Jira/Linear)
-4. Return structured response
+1. Validate the request
+2. Route to the appropriate skill (label-manager)
+3. Execute the platform-specific operation (GitHub/Jira/Linear)
+4. Return structured results
 
 ## Supported Operations
 

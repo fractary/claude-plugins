@@ -246,48 +246,9 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the work-manager agent using the Task tool.
+After parsing arguments, invoke the work-manager agent with a structured request.
 
-**Agent**: fractary-work:work-manager
-
-**How to invoke**:
-Use the Task tool with the agent as subagent_type:
-
-```
-Task tool invocation:
-- subagent_type: "fractary-work:work-manager"
-- description: Brief description of operation
-- prompt: JSON request containing operation and parameters
-```
-
-**Example invocation**:
-```
-Task(
-  subagent_type="fractary-work:work-manager",
-  description="Create new issue",
-  prompt='{
-    "operation": "create-issue",
-    "parameters": {
-      "title": "Add dark mode support",
-      "description": "Implement dark mode theme with user toggle",
-      "labels": "feature,ui",
-      "assignees": "johndoe"
-    }
-  }'
-)
-```
-
-**CRITICAL - DO NOT**:
-- ❌ Invoke skills directly (issue-creator, issue-fetcher, etc.) - let the agent route
-- ❌ Write declarative text about using the agent - actually invoke it
-
-**The agent will**:
-- Validate the request
-- Route to appropriate skill (issue-creator, issue-fetcher, etc.)
-- Return the skill's response
-- You display results to user
-
-**Request structure**:
+Invoke the fractary-work:work-manager agent with the following request:
 ```json
 {
   "operation": "operation-name",
@@ -298,6 +259,12 @@ Task(
 }
 ```
 
+The work-manager agent will:
+1. Validate the request
+2. Route to the appropriate skill (issue-creator, issue-fetcher, issue-updater, etc.)
+3. Execute the platform-specific operation (GitHub/Jira/Linear)
+4. Return structured results
+
 ## Supported Operations
 
 - `create-issue` - Create new work item
@@ -306,128 +273,29 @@ Task(
 - `update-issue` - Update issue title or description
 - `assign-issue` - Assign issue to user
 - `search-issues` - Search issues by keyword
+
+## Type Conversion
+
+**IMPORTANT**: The `--type` flag must be converted to a label before sending to the agent.
+
+When the user provides `--type <value>`, convert it to `"type: <value>"` label format and merge with any additional `--label` flags:
+
+- `--type feature` → `"type: feature"` label
+- `--type bug` → `"type: bug"` label
+- `--type chore` → `"type: chore"` label
+- `--type patch` → `"type: patch"` label
+
+Example: `/work:issue create "Title" --type bug --label urgent` becomes:
+```json
+{
+  "operation": "create-issue",
+  "parameters": {
+    "title": "Title",
+    "labels": "type: bug,urgent"
+  }
+}
+```
 </AGENT_INVOCATION>
-
-<INVOCATION_TEMPLATE>
-## How to Actually Invoke the Agent
-
-After parsing the command arguments, use the Task tool to invoke the agent.
-
-**Template for all operations:**
-```
-Task tool with:
-- subagent_type: "fractary-work:work-manager"
-- description: "Brief operation description"
-- prompt: JSON request with operation and parameters
-```
-
-**Concrete examples for each operation:**
-
-### Create Issue
-
-**IMPORTANT**: Convert `--type` to label format before sending to agent!
-
-**Input from user**:
-```
-/work:issue create "Add CSV export feature" --type feature --body "Allow users to export data as CSV"
-```
-
-**After type conversion, invoke Task tool**:
-```
-Invoke Task tool:
-  subagent_type="fractary-work:work-manager"
-  description="Create new issue"
-  prompt='{
-    "operation": "create-issue",
-    "parameters": {
-      "title": "Add CSV export feature",
-      "description": "Allow users to export data as CSV",
-      "labels": "type: feature"
-    }
-  }'
-```
-
-**With additional labels**:
-```
-Input: /work:issue create "Fix bug" --type bug --label urgent --label security
-Output to agent: {"operation": "create-issue", "parameters": {"title": "Fix bug", "labels": "type: bug,urgent,security"}}
-```
-
-### Fetch Issue
-```
-Invoke Task tool:
-  subagent_type="fractary-work:work-manager"
-  description="Fetch issue details"
-  prompt='{
-    "operation": "fetch-issue",
-    "parameters": {
-      "issue_number": "123"
-    }
-  }'
-```
-
-### List Issues
-```
-Invoke Task tool:
-  subagent_type="fractary-work:work-manager"
-  description="List issues"
-  prompt='{
-    "operation": "list-issues",
-    "parameters": {
-      "state": "open",
-      "labels": ["bug"]
-    }
-  }'
-```
-
-### Update Issue
-```
-Invoke Task tool:
-  subagent_type="fractary-work:work-manager"
-  description="Update issue"
-  prompt='{
-    "operation": "update-issue",
-    "parameters": {
-      "issue_number": "123",
-      "title": "New title"
-    }
-  }'
-```
-
-### Assign Issue
-```
-Invoke Task tool:
-  subagent_type="fractary-work:work-manager"
-  description="Assign issue"
-  prompt='{
-    "operation": "assign-issue",
-    "parameters": {
-      "issue_number": "123",
-      "assignee": "johndoe"
-    }
-  }'
-```
-
-### Search Issues
-```
-Invoke Task tool:
-  subagent_type="fractary-work:work-manager"
-  description="Search issues"
-  prompt='{
-    "operation": "search-issues",
-    "parameters": {
-      "query": "authentication",
-      "state": "all"
-    }
-  }'
-```
-
-**Key points:**
-- Actually invoke the Task tool - don't just write text about it
-- The work-manager agent will receive the request
-- The agent will route to the appropriate skill
-- Display the agent's response to the user
-</INVOCATION_TEMPLATE>
 
 <ERROR_HANDLING>
 Common errors to handle:
