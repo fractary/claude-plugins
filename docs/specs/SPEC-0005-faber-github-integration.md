@@ -1,3 +1,16 @@
+---
+org: fractary
+system: claude-code
+title: FABER GitHub Integration Specification
+description: Specification for triggering FABER workflows via @faber mentions in GitHub issues with webhook-based automation
+tags: [faber, github-integration, webhooks, automation, workflow-triggers, mentions]
+created: 2025-10-31
+updated: 2025-10-31
+codex_sync_include: []
+codex_sync_exclude: []
+visibility: internal
+---
+
 # FABER GitHub Integration Specification
 
 **Version:** 1.0.0

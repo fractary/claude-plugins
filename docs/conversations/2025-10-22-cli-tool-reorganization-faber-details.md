@@ -1,4 +1,15 @@
-
+---
+org: fractary
+system: claude-code
+title: CLI Tool Reorganization and FABER details
+description: Discussion about reorganizing CLI Tool and FABER
+tags: [faber, architecture, cli]
+created: 2025-10-22
+updated: 2025-10-22
+codex_sync_include: []
+codex_sync_exclude: []
+visibility: internal
+---
 
 You said:
 I want to have a chat about refining the purpose of the key fractary tools and how the FABER workflow model and now the core primitives of building/creation play into that. The systems I had in mind were forge, codex, faber and helm. I had caster as just a subelement of forge but perhaps it deserves to be its own tool. All of these tools get packaged as commands with the common fractary cli but each could have other elements such as a package/plugin of agents. I think there is likely some relationship between these tools and the fundamental elements / challenges of agentic / ai development and these tools offer help managing those with an open source solution (where omnidas may some day offer enterprise level paid solutions that go even further). for instance, forgetting what codex technically is at the moment (an github workflow to sync docs between projects within an organization to help the agents within each have better context on how to interact between them and share common docs/standards) the really point of codex is to help with the memory challenge of agents and could potentially evolve into other solutions. The concept of forge was distribution of starter templates / bundles, and perhaps it still could be, but now I'm unsure. Does forge continue in that role and add the ability to plugin to the items listed in the stockyard to distribute them? or, do we make that the role of Caster, and adapt forge to be tools to manage the creation of the agents / bundles, including perhaps tools to adapt them between agentic frameworks. helm is pretty straight forward, its monitoring agent activity, alerting, possibly orchestration/control. As for faber, it needs to tie into the FABER workflow vision (frame, analyze, build, evaluate, release) that underlies every key building workflow. As such, I had thought it would include some agents bundles to manage that workflow using combinations of issue tracking / repo management, etc. faber also mean 'maker ' though, and maybe the fact that it manages the maker workflow is sufficient for that to make sense. There is though the question of these new primitives of creation, the core agent / command / skill type that are common to all creation workflows and where that should sit. Is that framework part of faber somehow because it is fundamentally ties to the FABER workflow the various primatives need a way to map into that general workflow depending on the thing that is being built, or is what a part of the agent building / creation / management part, and is that agent stuff then part of faber or is it part of forge? or, does that get broken up somehow where agent building / creation is in one (ie. forge) and management is part of faber? help me think through this please. 

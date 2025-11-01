@@ -112,6 +112,53 @@
         ]
       },
       {
+        "name": "fractary-faber",
+        "source": "./plugins/faber",
+        "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
+        "version": "1.1.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber",
+        "license": "MIT",
+        "keywords": [
+          "faber",
+          "sdlc",
+          "workflow",
+          "automation",
+          "frame",
+          "architect",
+          "build",
+          "evaluate",
+          "release",
+          "software-development"
+        ],
+        "category": "development",
+        "strict": true,
+        "requires": [
+          "fractary-work",
+          "fractary-repo",
+          "fractary-file"
+        ],
+        "commands": [
+          "./commands/faber.md",
+          "./commands/init.md",
+          "./commands/mention.md",
+          "./commands/run.md",
+          "./commands/status.md"
+        ],
+        "agents": [
+          "./agents/director.md",
+          "./agents/frame-manager.md",
+          "./agents/architect-manager.md",
+          "./agents/build-manager.md",
+          "./agents/evaluate-manager.md",
+          "./agents/release-manager.md"
+        ]
+      },
+      {
         "name": "fractary-faber-cloud",
         "source": "./plugins/faber-cloud",
         "description": "Comprehensive infrastructure and operations management for Claude Code - design, deploy, and monitor cloud infrastructure with AI assistance",
