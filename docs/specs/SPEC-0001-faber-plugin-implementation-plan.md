@@ -1,3 +1,16 @@
+---
+org: fractary
+system: claude-code
+title: Fractary FABER Plugin Implementation Plan
+description: Complete specification for implementing the fractary-faber plugin with tool-agnostic SDLC workflow framework (Frame → Architect → Build → Evaluate → Release)
+tags: [faber, sdlc, workflow, architecture, implementation, plugin-design]
+created: 2025-01-22
+updated: 2025-01-22
+codex_sync_include: []
+codex_sync_exclude: []
+visibility: internal
+---
+
 # Fractary FABER Plugin Implementation Plan
 
 **Date**: 2025-01-22

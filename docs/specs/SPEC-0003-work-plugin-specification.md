@@ -1,3 +1,16 @@
+---
+org: fractary
+system: claude-code
+title: Fractary Work Plugin - Universal Issue Management Specification
+description: Platform-agnostic issue management across GitHub Issues, Jira Cloud, and Linear with 3-layer architecture and handler-based platform abstraction
+tags: [work-tracking, issues, github, jira, linear, platform-abstraction, plugin-design]
+created: 2025-01-29
+updated: 2025-01-29
+codex_sync_include: []
+codex_sync_exclude: []
+visibility: internal
+---
+
 # Fractary Work Plugin - Universal Issue Management Specification
 
 **Version:** 2.0.0

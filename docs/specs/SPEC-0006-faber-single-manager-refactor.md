@@ -1,3 +1,16 @@
+---
+org: fractary
+system: claude-code
+title: FABER Single Manager Architecture Refactor
+description: Proposed refactoring from multi-agent architecture (5 phase managers) to single workflow manager + skills architecture for improved context efficiency and maintainability
+tags: [faber, refactoring, architecture, single-manager, workflow-optimization, context-reduction]
+created: 2025-11-01
+updated: 2025-11-01
+codex_sync_include: []
+codex_sync_exclude: []
+visibility: internal
+---
+
 # FABER Single Manager Architecture Refactor
 
 **Status**: Proposed

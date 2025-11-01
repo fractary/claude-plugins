@@ -1,3 +1,16 @@
+---
+org: fractary
+system: claude-code
+title: Fractary FABER Architecture Specification
+description: Universal workflow framework architecture, plugin taxonomy, configuration system, and repository structure for the FABER SDLC framework
+tags: [faber, architecture, workflow-framework, plugin-taxonomy, configuration, design]
+created: 2025-01-28
+updated: 2025-01-28
+codex_sync_include: []
+codex_sync_exclude: []
+visibility: internal
+---
+
 # Fractary FABER Architecture Specification
 
 **Version:** 1.0.0
