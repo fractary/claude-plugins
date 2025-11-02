@@ -30,6 +30,14 @@ autonomy = "assist"  # Stop before Release - manual review required
 max_evaluate_retries = 3
 auto_merge = false  # Never auto-merge - always manual
 
+# Skill overrides - use "basic" workflow for all phases
+[workflow.skills]
+frame = "basic"
+architect = "basic"
+build = "basic"
+evaluate = "basic"
+release = "basic"
+
 [safety]
 protected_paths = [
     ".git/",
