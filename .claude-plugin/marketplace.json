@@ -112,10 +112,38 @@
         ]
       },
       {
+        "name": "fractary-file",
+        "source": "./plugins/file",
+        "description": "Universal file storage operations across R2, S3, and local filesystem with modular handler architecture",
+        "version": "1.0.1",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/file",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/file",
+        "license": "MIT",
+        "keywords": [
+          "file-storage",
+          "r2",
+          "s3",
+          "cloudflare",
+          "aws",
+          "storage",
+          "filesystem",
+          "cloud-storage"
+        ],
+        "category": "development",
+        "strict": true,
+        "agents": [
+          "./agents/file-manager.md"
+        ]
+      },
+      {
         "name": "fractary-faber",
         "source": "./plugins/faber",
         "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
-        "version": "1.1.0",
+        "version": "2.0.0",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
