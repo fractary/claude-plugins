@@ -7,10 +7,5 @@
     "./agents/director.md",
     "./agents/workflow-manager.md"
   ],
-  "skills": "./skills/",
-  "requires": [
-    "fractary-work",
-    "fractary-repo",
-    "fractary-file"
-  ]
+  "skills": "./skills/"
 }
