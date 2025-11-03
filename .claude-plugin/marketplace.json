@@ -165,11 +165,6 @@
         ],
         "category": "development",
         "strict": true,
-        "requires": [
-          "fractary-work",
-          "fractary-repo",
-          "fractary-file"
-        ],
         "commands": [
           "./commands/faber.md",
           "./commands/init.md",
