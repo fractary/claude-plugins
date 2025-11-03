@@ -88,13 +88,13 @@ generate_commit_message() {
 
     # Get file extensions and paths
     local files=$(git diff --cached --name-only)
-    local file_count=$(echo "$files" | wc -l)
+    local file_count=$(echo "$files" | wc -l | tr -d ' ')
 
     # Analyze file types
-    local has_docs=$(echo "$files" | grep -iE "\.(md|rst|txt|adoc)$" | wc -l)
-    local has_scripts=$(echo "$files" | grep -E "\.(sh|bash|zsh|fish)$" | wc -l)
-    local has_config=$(echo "$files" | grep -E "\.(toml|yaml|yml|json|ini|conf)$" | wc -l)
-    local has_source=$(echo "$files" | grep -E "\.(js|ts|py|rb|go|rs|java|c|cpp|h|hpp)$" | wc -l)
+    local has_docs=$(echo "$files" | grep -iE "\.(md|rst|txt|adoc)$" | wc -l | tr -d ' ')
+    local has_scripts=$(echo "$files" | grep -E "\.(sh|bash|zsh|fish)$" | wc -l | tr -d ' ')
+    local has_config=$(echo "$files" | grep -E "\.(toml|yaml|yml|json|ini|conf)$" | wc -l | tr -d ' ')
+    local has_source=$(echo "$files" | grep -E "\.(js|ts|py|rb|go|rs|java|c|cpp|h|hpp)$" | wc -l | tr -d ' ')
 
     # Determine commit type and generate summary
     local commit_type="chore"
