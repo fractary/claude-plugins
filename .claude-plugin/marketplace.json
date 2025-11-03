@@ -174,11 +174,7 @@
         ],
         "agents": [
           "./agents/director.md",
-          "./agents/frame-manager.md",
-          "./agents/architect-manager.md",
-          "./agents/build-manager.md",
-          "./agents/evaluate-manager.md",
-          "./agents/release-manager.md"
+          "./agents/workflow-manager.md"
         ]
       },
       {
