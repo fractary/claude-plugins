@@ -64,8 +64,8 @@ The `faber` plugin orchestrates workflows using the primitive manager plugins (w
 ```
 plugins/
 ├── faber/              # Core FABER workflow orchestration
-│   ├── agents/         # Workflow managers (director, frame-manager, architect-manager, etc.)
-│   ├── skills/core/    # Core utilities (config, sessions, status cards)
+│   ├── agents/         # Workflow orchestration (director, workflow-manager)
+│   ├── skills/         # Phase skills (frame, architect, build, evaluate, release) + core utilities
 │   ├── commands/       # User commands (/faber, /faber:init, /faber:run, /faber:status)
 │   ├── presets/        # Quick-start configuration presets
 │   └── config/         # Configuration templates
@@ -314,6 +314,39 @@ This pattern applies to:
 - Software engineering (implemented in `faber/`)
 - Infrastructure (implemented in `faber-cloud/`)
 - Design, writing, data (planned)
+
+### FABER v2.0 Architecture (Current)
+
+FABER v2.0 uses a **single workflow-manager architecture** for improved context efficiency:
+
+**Architecture**:
+```
+director.md (lightweight router)
+  └─ workflow-manager.md (orchestrates all 5 phases)
+      ├─ frame (skill with workflow/basic.md)
+      ├─ architect (skill with workflow/basic.md)
+      ├─ build (skill with workflow/basic.md)
+      ├─ evaluate (skill with workflow/basic.md)
+      └─ release (skill with workflow/basic.md)
+```
+
+**Key improvements**:
+- **60% context reduction** (from ~98K to ~40K tokens for orchestration)
+- **Continuous context** across all phases
+- **Skill overrides** via configuration (`[workflow.skills]`)
+- **Domain customization** through `workflow/{domain}.md` files
+
+**Configuration example**:
+```toml
+[workflow.skills]
+frame = "basic"        # Use FABER default
+architect = "cloud"    # Use cloud-specific override
+build = "cloud"        # Use cloud-specific override
+evaluate = "cloud"     # Use cloud-specific override
+release = "basic"      # Use FABER default
+```
+
+**Migration**: See `plugins/faber/docs/MIGRATION-v2.md` for upgrading from v1.x
 
 ## Tool Philosophy
 

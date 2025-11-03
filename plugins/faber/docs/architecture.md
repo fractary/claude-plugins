@@ -35,18 +35,26 @@ FABER is a **tool-agnostic SDLC workflow framework** built on a 3-layer architec
                        │
 ┌──────────────────────▼──────────────────────────────────┐
 │                   Orchestration                          │
-│              director (Agent)                      │
-│   Coordinates 5 phase managers + session management      │
+│              director (Agent - Lightweight Router)       │
+│   Routes requests to workflow-manager + parses mentions  │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
-│                  Phase Managers                          │
-│  frame, architect, build, evaluate, release (Agents)     │
-│             Make high-level decisions                    │
+│                 Workflow Manager                         │
+│              workflow-manager (Agent)                    │
+│  Orchestrates all 5 phases with continuous context       │
+│  Frame → Architect → Build → Evaluate → Release          │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
-│                 Generic Managers                         │
+│                    Phase Skills                          │
+│  frame, architect, build, evaluate, release (Skills)     │
+│  Each with workflow/basic.md (batteries-included)        │
+│  Domain plugins can override with workflow/{domain}.md   │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────┐
+│                 Primitive Managers                       │
 │        work-manager, repo-manager, file-manager          │
 │          Decision logic + platform routing               │
 └──────────────────────┬──────────────────────────────────┘
@@ -80,15 +88,18 @@ FABER uses a 3-layer architecture to achieve context efficiency:
 - ~200-400 lines per agent
 
 **Components**:
-- `director` - Orchestrates complete workflow
-- `frame-manager` - Frame phase decisions
-- `architect-manager` - Architect phase decisions
-- `build-manager` - Build phase decisions
-- `evaluate-manager` - Evaluate phase decisions
-- `release-manager` - Release phase decisions
-- `work-manager` - Work tracking decisions
-- `repo-manager` - Source control decisions
-- `file-manager` - File storage decisions
+- `director` - Lightweight router, parses mentions, routes to workflow-manager
+- `workflow-manager` - Orchestrates complete FABER workflow across all 5 phases
+- Phase skills (via workflow-manager):
+  - `frame` - Work fetching, classification, branch creation
+  - `architect` - Specification generation
+  - `build` - Solution implementation
+  - `evaluate` - Testing, review, GO/NO-GO decisions
+  - `release` - PR creation, deployment
+- Primitive managers (invoked by phase skills):
+  - `work-manager` - Work tracking decisions
+  - `repo-manager` - Source control decisions
+  - `file-manager` - File storage decisions
 
 **Example Decision Logic**:
 ```
@@ -111,9 +122,13 @@ Should I retry Build phase?
 
 **Components**:
 - `core` - Configuration, sessions, status cards
-- `work-manager` - GitHub/Jira/Linear adapters
-- `repo-manager` - GitHub/GitLab/Bitbucket adapters
-- `file-manager` - R2/S3/local adapters
+- Phase skills - Frame, Architect, Build, Evaluate, Release
+  - Each has `SKILL.md` + `workflow/basic.md` (batteries-included)
+  - Domain plugins can provide `workflow/{domain}.md` overrides
+- Primitive manager skills:
+  - `work-manager` - GitHub/Jira/Linear adapters
+  - `repo-manager` - GitHub/GitLab/Bitbucket adapters
+  - `file-manager` - R2/S3/local adapters
 
 **Example Adapter Selection**:
 ```bash
@@ -156,28 +171,28 @@ echo "https://$PUBLIC_URL/$REMOTE_PATH"
 
 ### Context Efficiency Comparison
 
-**Before (Traditional Approach)**:
+**Before (Multi-Agent Architecture)**:
 ```
-Agent loads:
-- Decision logic: 200 lines
-- GitHub implementation: 300 lines
-- Jira implementation: 300 lines (even if not used!)
-- Error handling: 100 lines
-- Utility functions: 100 lines
-Total: 1000 lines in context
+director loads: ~26K tokens
++ frame-manager: ~12K tokens
++ architect-manager: ~14K tokens
++ build-manager: ~14K tokens
++ evaluate-manager: ~16K tokens
++ release-manager: ~16K tokens
+Total orchestration: ~98K tokens
 ```
 
-**After (3-Layer Architecture)**:
+**After (Single Workflow-Manager Architecture)**:
 ```
-Agent loads:
-- Decision logic: 200 lines
-Skill loads:
-- Adapter selection: 100 lines
-Scripts execute:
-- Platform operations: 0 lines (not loaded!)
-- Only output enters context: ~10 lines
-Total: 310 lines in context
-Savings: 69% context reduction!
+director loads: ~15K tokens (lightweight router)
++ workflow-manager: ~25K tokens (all 5 phases)
+Total orchestration: ~40K tokens
+Savings: ~60% context reduction!
+
+Additional benefits:
+- Continuous context across all phases
+- Single point of orchestration logic
+- Easier to maintain and debug
 ```
 
 ## Component Hierarchy
@@ -190,36 +205,34 @@ User
       ├─ /fractary-faber:init (Command)
       │   └─ Auto-detects project settings
       ├─ /fractary-faber:run (Command)
-      │   └─ director (Agent)
-      │       ├─ frame-manager (Agent)
-      │       │   ├─ work-manager (Agent)
-      │       │   │   └─ work-manager (Skill)
-      │       │   │       ├─ scripts/github/fetch-issue.sh
-      │       │   │       ├─ scripts/github/classify-issue.sh
-      │       │   │       └─ ...
-      │       │   └─ repo-manager (Agent)
-      │       │       └─ repo-manager (Skill)
-      │       │           ├─ scripts/github/generate-branch-name.sh
-      │       │           ├─ scripts/github/create-branch.sh
-      │       │           └─ ...
-      │       ├─ architect-manager (Agent)
-      │       │   ├─ work-manager (Agent)
-      │       │   ├─ repo-manager (Agent)
-      │       │   └─ file-manager (Agent)
-      │       │       └─ file-manager (Skill)
-      │       │           ├─ scripts/r2/upload.sh
-      │       │           ├─ scripts/local/upload.sh
-      │       │           └─ ...
-      │       ├─ build-manager (Agent)
-      │       │   ├─ repo-manager (Agent)
-      │       │   └─ file-manager (Agent)
-      │       ├─ evaluate-manager (Agent)
-      │       │   ├─ repo-manager (Agent)
-      │       │   └─ file-manager (Agent)
-      │       └─ release-manager (Agent)
-      │           ├─ work-manager (Agent)
-      │           ├─ repo-manager (Agent)
-      │           └─ file-manager (Agent)
+      │   └─ director (Agent - Lightweight Router)
+      │       └─ workflow-manager (Agent - Orchestrates all 5 phases)
+      │           ├─ frame (Skill)
+      │           │   ├─ workflow/basic.md (batteries-included)
+      │           │   ├─ work-manager (Agent via @agent mention)
+      │           │   │   └─ work-manager (Skill)
+      │           │   │       ├─ scripts/github/fetch-issue.sh
+      │           │   │       ├─ scripts/github/classify-issue.sh
+      │           │   │       └─ ...
+      │           │   └─ repo-manager (Agent via @agent mention)
+      │           │       └─ repo-manager (Skill)
+      │           │           ├─ scripts/github/generate-branch-name.sh
+      │           │           ├─ scripts/github/create-branch.sh
+      │           │           └─ ...
+      │           ├─ architect (Skill)
+      │           │   ├─ workflow/basic.md
+      │           │   ├─ repo-manager (Agent)
+      │           │   └─ file-manager (Agent)
+      │           ├─ build (Skill)
+      │           │   ├─ workflow/basic.md
+      │           │   └─ repo-manager (Agent)
+      │           ├─ evaluate (Skill)
+      │           │   ├─ workflow/basic.md
+      │           │   └─ repo-manager (Agent)
+      │           └─ release (Skill)
+      │               ├─ workflow/basic.md
+      │               ├─ work-manager (Agent)
+      │               └─ repo-manager (Agent)
       └─ /fractary-faber:status (Command)
           └─ Reads session files
 ```
@@ -235,30 +248,29 @@ User: /faber run 123
   ↓ Parses input, generates work_id
   ↓ Invokes
 director "abc12345 github 123 engineering"
-  ↓ Phase 1
-frame-manager "abc12345 github 123 engineering"
-  ↓ Needs to fetch issue
-work-manager "fetch github/123"
-  ↓ Delegates to skill
-work-manager skill → scripts/github/fetch-issue.sh
+  ↓ Routes to
+workflow-manager "abc12345 github 123 engineering"
+  ↓ Phase 1: Frame
+workflow-manager invokes frame skill
+  ↓ Reads workflow/basic.md
+frame skill → Uses @agent-fractary-work:work-manager
+  ↓ fetch issue
+work-manager → scripts/github/fetch-issue.sh
   ↓ Returns JSON
 {title: "Add auth", labels: ["feature"]}
-  ↓ Back to frame-manager
-frame-manager classifies work → /feature
-  ↓ Needs to create branch
-repo-manager "create-branch abc12345 /feature"
-  ↓ Delegates to skill
-repo-manager skill → scripts/github/generate-branch-name.sh
-  ↓ Returns
-"feat/123-add-auth"
-  ↓ Creates branch
-repo-manager skill → scripts/github/create-branch.sh
+  ↓ Back to frame skill
+frame skill classifies work → feature
+  ↓ Uses @agent-fractary-repo:repo-manager
+repo-manager → scripts/github/create-branch.sh
   ↓ Returns
 "Branch created: feat/123-add-auth"
-  ↓ Back to director
-director → Frame complete, proceed to Architect
-  ↓ Phase 2
-architect-manager ...
+  ↓ Back to workflow-manager
+workflow-manager → Frame complete, proceed to Architect
+  ↓ Phase 2: Architect (with full Frame context)
+workflow-manager invokes architect skill...
+  ↓ Phase 3: Build (with Frame + Architect context)
+  ↓ Phase 4: Evaluate (with all previous context)
+  ↓ Phase 5: Release (with complete workflow context)
 ```
 
 ## Data Flow

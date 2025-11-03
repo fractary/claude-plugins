@@ -1,15 +1,11 @@
 {
   "name": "fractary-faber",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
   "commands": "./commands/",
   "agents": [
     "./agents/director.md",
-    "./agents/frame-manager.md",
-    "./agents/architect-manager.md",
-    "./agents/build-manager.md",
-    "./agents/evaluate-manager.md",
-    "./agents/release-manager.md"
+    "./agents/workflow-manager.md"
   ],
   "skills": "./skills/",
   "requires": [

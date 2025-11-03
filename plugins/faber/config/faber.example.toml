@@ -58,6 +58,24 @@ auto_merge = false
 # Automatically close work item after successful Release phase
 auto_close_work_item = false
 
+# Skill overrides - customize phase implementations
+# Default uses "basic" workflow from skills/{phase}/workflow/basic.md
+# Domain plugins provide domain-specific alternatives (e.g., "app", "cloud")
+# Projects can provide local skill overrides in .faber/skills/{phase}/workflow/custom.md
+[workflow.skills]
+frame = "basic"        # basic | app | cloud | custom
+architect = "basic"    # basic | app | cloud | custom
+build = "basic"        # basic | app | cloud | custom
+evaluate = "basic"     # basic | app | cloud | custom
+release = "basic"      # basic | app | cloud | custom
+
+# Custom phase sequence (optional) - default is Frame → Architect → Build → Evaluate → Release
+# Uncomment to override:
+# phase_sequence = ["frame", "architect", "build", "evaluate", "release"]
+
+# Skip phases (optional) - useful for testing or partial workflows
+# skip_phases = []  # e.g., ["architect"] to skip specification generation
+
 [systems.work_config]
 # GitHub-specific configuration (when issue_system = "github")
 repo = "owner/repo"
