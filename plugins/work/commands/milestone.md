@@ -1,12 +1,41 @@
 ---
 name: fractary-work:milestone
-description: Create, list, and manage milestones for release planning
-argument-hint: create <title> [--due <date>] [--description <text>] | list [--state <state>] | set <issue_number> <milestone> | remove <issue_number>
+description: "[DEPRECATED] Create, list, and manage milestones for release planning - Use /work:milestone-create, /work:milestone-list, /work:milestone-set, /work:milestone-remove, or /work:milestone-close instead"
+argument-hint: create <title> [--due <date>] [--description <text>] | list [--state <state>] | set <issue_number> <milestone> | remove <issue_number> | close <milestone_id>
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/work:milestone-create` - Create a new milestone
+- `/work:milestone-list` - List milestones with filtering
+- `/work:milestone-set` - Set milestone on an issue
+- `/work:milestone-remove` - Remove milestone from an issue
+- `/work:milestone-close` - Close a completed milestone
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/work:milestone create "v1.0"` → `/work:milestone-create "v1.0"`
+- `/work:milestone list` → `/work:milestone-list`
+- `/work:milestone set 123 "v1.0"` → `/work:milestone-set 123 "v1.0"`
+- `/work:milestone remove 123` → `/work:milestone-remove 123`
+- `/work:milestone close "v1.0"` → `/work:milestone-close "v1.0"`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the work:milestone command router for the fractary-work plugin.
 Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead.
 </CONTEXT>
 
 <CRITICAL_RULES>

@@ -1,12 +1,37 @@
 ---
 name: fractary-repo:branch
-description: Create, delete, and manage Git branches
+description: "[DEPRECATED] Create, delete, and manage Git branches - Use /repo:branch-create, /repo:branch-delete, or /repo:branch-list instead"
 argument-hint: create <work_id> <description> [--base <branch>] [--prefix <prefix>] | delete <branch_name> [--location <where>] [--force] | list [--stale] [--merged] [--days <n>] [--pattern <pattern>]
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/repo:branch-create` - Create a new Git branch
+- `/repo:branch-delete` - Delete a Git branch
+- `/repo:branch-list` - List branches with filtering
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `frac tary-repo:branch create 123 "desc"` → `/repo:branch-create 123 "desc"`
+- `/repo:branch delete name` → `/repo:branch-delete name`
+- `/repo:branch list --stale` → `/repo:branch-list --stale`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the repo:branch command router for the fractary-repo plugin.
 Your role is to parse user input and invoke the repo-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead (/repo:branch-create, /repo:branch-delete, /repo:branch-list).
 </CONTEXT>
 
 <CRITICAL_RULES>

@@ -1,12 +1,35 @@
 ---
 name: fractary-work:comment
-description: Create and manage comments on work items
+description: "[DEPRECATED] Create and manage comments on work items - Use /work:comment-create or /work:comment-list instead"
 argument-hint: create <issue_number> <text> | list <issue_number> [--limit <n>]
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/work:comment-create` - Add a comment to an issue
+- `/work:comment-list` - List comments on an issue
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/work:comment create 123 "text"` → `/work:comment-create 123 "text"`
+- `/work:comment list 123` → `/work:comment-list 123`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the work:comment command router for the fractary-work plugin.
 Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead.
 </CONTEXT>
 
 <CRITICAL_RULES>

@@ -1,12 +1,37 @@
 ---
 name: fractary-work:state
-description: Manage issue lifecycle states (close, reopen, update state)
+description: "[DEPRECATED] Manage issue lifecycle states - Use /work:state-close, /work:state-reopen, or /work:state-transition instead"
 argument-hint: close <number> [--comment <text>] | reopen <number> [--comment <text>] | transition <number> <state>
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/work:state-close` - Close an issue
+- `/work:state-reopen` - Reopen a closed issue
+- `/work:state-transition` - Transition issue to a workflow state
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/work:state close 123` → `/work:state-close 123`
+- `/work:state reopen 123` → `/work:state-reopen 123`
+- `/work:state transition 123 in_progress` → `/work:state-transition 123 in_progress`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the work:state command router for the fractary-work plugin.
 Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead.
 </CONTEXT>
 
 <CRITICAL_RULES>

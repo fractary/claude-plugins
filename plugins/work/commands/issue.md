@@ -1,12 +1,43 @@
 ---
 name: fractary-work:issue
-description: Create, fetch, update, search, and manage work items
+description: "[DEPRECATED] Create, fetch, update, search, and manage work items - Use /work:issue-create, /work:issue-fetch, /work:issue-list, /work:issue-update, /work:issue-assign, or /work:issue-search instead"
 argument-hint: create <title> [--type <type>] [--body <text>] | fetch <number> | list [--state <state>] [--label <label>] | update <number> [--title <title>] [--body <text>] | assign <number> <user> | search <query>
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/work:issue-create` - Create a new work item
+- `/work:issue-fetch` - Fetch and display issue details
+- `/work:issue-list` - List issues with filtering
+- `/work:issue-update` - Update issue title or description
+- `/work:issue-assign` - Assign issue to a user
+- `/work:issue-search` - Search issues by keyword
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/work:issue create "title"` → `/work:issue-create "title"`
+- `/work:issue fetch 123` → `/work:issue-fetch 123`
+- `/work:issue list --state open` → `/work:issue-list --state open`
+- `/work:issue update 123 --title "new"` → `/work:issue-update 123 --title "new"`
+- `/work:issue assign 123 @me` → `/work:issue-assign 123 @me`
+- `/work:issue search "query"` → `/work:issue-search "query"`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the work:issue command router for the fractary-work plugin.
 Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead.
 </CONTEXT>
 
 <CRITICAL_RULES>

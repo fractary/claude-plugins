@@ -1,12 +1,37 @@
 ---
 name: fractary-repo:tag
-description: Create and push semantic version tags
+description: "[DEPRECATED] Create and push semantic version tags - Use /repo:tag-create, /repo:tag-push, or /repo:tag-list instead"
 argument-hint: create <tag_name> [--message <text>] [--commit <sha>] [--sign] [--force] | push <tag_name|all> [--remote <name>] | list [--pattern <pattern>] [--latest <n>]
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/repo:tag-create` - Create a new Git tag
+- `/repo:tag-push` - Push tag(s) to remote
+- `/repo:tag-list` - List tags with filtering
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/repo:tag create v1.0.0` → `/repo:tag-create v1.0.0`
+- `/repo:tag push v1.0.0` → `/repo:tag-push v1.0.0`
+- `/repo:tag list --latest 10` → `/repo:tag-list --latest 10`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the repo:tag command router for the fractary-repo plugin.
 Your role is to parse user input and invoke the repo-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead (/repo:tag-create, /repo:tag-push, /repo:tag-list).
 </CONTEXT>
 
 <CRITICAL_RULES>

@@ -1,12 +1,39 @@
 ---
 name: fractary-work:label
-description: Add, remove, and manage labels on work items
+description: "[DEPRECATED] Add, remove, and manage labels on work items - Use /work:label-add, /work:label-remove, /work:label-list, or /work:label-set instead"
 argument-hint: add <number> <label> | remove <number> <label> | list <number> | set <number> <label1> <label2> ...
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/work:label-add` - Add a label to an issue
+- `/work:label-remove` - Remove a label from an issue
+- `/work:label-list` - List all labels on an issue
+- `/work:label-set` - Set exact labels on issue (replaces all)
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/work:label add 123 bug` → `/work:label-add 123 bug`
+- `/work:label remove 123 wontfix` → `/work:label-remove 123 wontfix`
+- `/work:label list 123` → `/work:label-list 123`
+- `/work:label set 123 bug urgent` → `/work:label-set 123 bug urgent`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the work:label command router for the fractary-work plugin.
 Your role is to parse user input and invoke the work-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead.
 </CONTEXT>
 
 <CRITICAL_RULES>
