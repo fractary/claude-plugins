@@ -166,10 +166,6 @@ generate_commit_message() {
 $commit_type: $summary
 
 Auto-committed on Claude Code session end at $timestamp
-
-🤖 Generated with Claude Code
-
-Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 }
 
