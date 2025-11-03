@@ -1,12 +1,39 @@
 ---
 name: fractary-repo:pr
-description: Create, comment, review, and merge pull requests
+description: "[DEPRECATED] Create, comment, review, and merge pull requests - Use /repo:pr-create, /repo:pr-comment, /repo:pr-review, or /repo:pr-merge instead"
 argument-hint: create <title> [--body <text>] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft] | comment <pr_number> <comment> | review <pr_number> <action> [--comment <text>] | merge <pr_number> [--strategy <strategy>] [--delete-branch]
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS COMMAND IS DEPRECATED**
+
+This multi-function command has been split into focused single-purpose commands for better usability:
+
+- `/repo:pr-create` - Create a new pull request
+- `/repo:pr-comment` - Add a comment to a PR
+- `/repo:pr-review` - Review a PR (approve, request changes, comment)
+- `/repo:pr-merge` - Merge a pull request
+
+**Why this change?**
+- Simpler command structure (no subcommands)
+- Shorter argument hints that fit on screen
+- Better discoverability through tab completion
+- Consistent with Unix philosophy: do one thing well
+
+**Migration:**
+- `/repo:pr create "title"` → `/repo:pr-create "title"`
+- `/repo:pr comment 456 "text"` → `/repo:pr-comment 456 "text"`
+- `/repo:pr review 456 approve` → `/repo:pr-review 456 approve`
+- `/repo:pr merge 456` → `/repo:pr-merge 456`
+
+This command will be removed in the next major version. Please update your workflows to use the new single-purpose commands.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the repo:pr command router for the fractary-repo plugin.
 Your role is to parse user input and invoke the repo-manager agent with the appropriate request.
+
+**DEPRECATION WARNING:** Before proceeding, inform the user that this command is deprecated and they should use the new single-purpose commands instead (/repo:pr-create, /repo:pr-comment, /repo:pr-review, /repo:pr-merge).
 </CONTEXT>
 
 <CRITICAL_RULES>
