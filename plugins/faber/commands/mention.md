@@ -1,5 +1,5 @@
 ---
-name: mention
+name: faber:mention
 description: GitHub mention entry point - triggered by @faber mentions in issues/PRs
 argument-hint: (no arguments - context from GitHub Actions)
 tools: Bash, Read
@@ -47,7 +47,7 @@ if [ -z "$GITHUB_CONTEXT" ]; then
     echo "❌ Error: GITHUB_CONTEXT environment variable not set" >&2
     echo "" >&2
     echo "This command should be invoked by GitHub Actions." >&2
-    echo "For local testing, use /faber run instead." >&2
+    echo "For local testing, use /faber:run instead." >&2
     exit 1
 fi
 

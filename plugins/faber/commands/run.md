@@ -1,5 +1,5 @@
 ---
-name: run
+name: faber:run
 description: Execute complete FABER workflow for a work item (issue/ticket/task)
 argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--auto-merge]
 tools: Bash, SlashCommand, Read
@@ -25,35 +25,35 @@ Support multiple input formats:
 
 ```bash
 # GitHub issue number
-/faber run 123
-/faber run #123
-/faber run GH-123
+/faber:run 123
+/faber:run #123
+/faber:run GH-123
 
 # GitHub issue URL
-/faber run https://github.com/org/repo/issues/123
+/faber:run https://github.com/org/repo/issues/123
 
 # Jira ticket
-/faber run PROJ-123
+/faber:run PROJ-123
 
 # Jira ticket URL
-/faber run https://company.atlassian.net/browse/PROJ-123
+/faber:run https://company.atlassian.net/browse/PROJ-123
 
 # Linear issue
-/faber run LIN-123
+/faber:run LIN-123
 
 # Linear issue URL
-/faber run https://linear.app/company/issue/LIN-123
+/faber:run https://linear.app/company/issue/LIN-123
 
 # With explicit work domain
-/faber run 123 --domain design
-/faber run 123 --domain data
+/faber:run 123 --domain design
+/faber:run 123 --domain data
 
 # With autonomy override
-/faber run 123 --autonomy autonomous
-/faber run 123 --autonomy dry-run
+/faber:run 123 --autonomy autonomous
+/faber:run 123 --autonomy dry-run
 
 # With auto-merge
-/faber run 123 --auto-merge
+/faber:run 123 --auto-merge
 ```
 
 ## Workflow
@@ -140,7 +140,7 @@ CONFIG_SCRIPT="$SCRIPT_DIR/skills/core/scripts/config-loader.sh"
 if [ ! -f ".faber.config.toml" ]; then
     echo "Error: No .faber.config.toml found in current directory" >&2
     echo "" >&2
-    echo "Run '/faber init' to create configuration" >&2
+    echo "Run '/faber:init' to create configuration" >&2
     exit 3
 fi
 
@@ -321,10 +321,10 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
         echo "Workflow paused at Release phase."
         echo ""
         echo "To approve release:"
-        echo "  /faber approve $WORK_ID"
+        echo "  /faber:approve $WORK_ID"
         echo ""
         echo "To check status:"
-        echo "  /faber status $WORK_ID"
+        echo "  /faber:status $WORK_ID"
     else
         # Extract PR URL
         PR_URL=$(echo "$SESSION_JSON" | jq -r '.stages.release.data.pr_url // "N/A"')
@@ -338,7 +338,7 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
 
         echo ""
         echo "To check workflow details:"
-        echo "  /faber status $WORK_ID"
+        echo "  /faber:status $WORK_ID"
     fi
 
     exit 0
@@ -353,7 +353,7 @@ else
     echo "📋 Troubleshooting:"
     echo ""
     echo "1. Check session status:"
-    echo "   /faber status $WORK_ID"
+    echo "   /faber:status $WORK_ID"
     echo ""
     echo "2. View session file:"
     echo "   cat .faber/sessions/${WORK_ID}.json"
@@ -361,7 +361,7 @@ else
     echo "3. Check logs for errors in the output above"
     echo ""
     echo "4. Retry from failed phase:"
-    echo "   /faber retry $WORK_ID"
+    echo "   /faber:retry $WORK_ID"
     echo ""
 
     exit $DIRECTOR_EXIT
@@ -374,7 +374,7 @@ Handle these error cases:
 
 1. **No configuration** (exit 3):
    - Message: "No .faber.config.toml found"
-   - Suggestion: "Run '/faber init' to create configuration"
+   - Suggestion: "Run '/faber:init' to create configuration"
 
 2. **Invalid work item format** (exit 2):
    - Message: "Invalid work item format"
@@ -405,13 +405,13 @@ Different autonomy levels change workflow behavior:
 ### assist
 - Executes Frame → Architect → Build → Evaluate
 - Stops before Release
-- Waits for explicit `/faber approve`
+- Waits for explicit `/faber:approve`
 
 ### guarded (default)
 - Executes all phases
 - Pauses at Release for approval
 - Posts status card asking for confirmation
-- Waits for explicit `/faber approve`
+- Waits for explicit `/faber:approve`
 
 ### autonomous
 - Executes all phases without pausing
@@ -422,28 +422,28 @@ Different autonomy levels change workflow behavior:
 
 ```bash
 # Basic usage - GitHub issue
-/faber run 123
+/faber:run 123
 
 # GitHub issue with URL
-/faber run https://github.com/acme/app/issues/456
+/faber:run https://github.com/acme/app/issues/456
 
 # Jira ticket
-/faber run PROJ-789
+/faber:run PROJ-789
 
 # Override domain
-/faber run 123 --domain design
+/faber:run 123 --domain design
 
 # Override autonomy
-/faber run 123 --autonomy autonomous
+/faber:run 123 --autonomy autonomous
 
 # Enable auto-merge
-/faber run 123 --auto-merge
+/faber:run 123 --auto-merge
 
 # Dry-run mode (test)
-/faber run 123 --autonomy dry-run
+/faber:run 123 --autonomy dry-run
 
 # Design work with autonomous mode
-/faber run PROJ-456 --domain design --autonomy autonomous
+/faber:run PROJ-456 --domain design --autonomy autonomous
 ```
 
 ## Integration with Director
@@ -451,7 +451,7 @@ Different autonomy levels change workflow behavior:
 This command is a thin wrapper around the director agent:
 
 ```
-/faber run 123
+/faber:run 123
   ↓
 Parse input + Load config
   ↓
@@ -486,8 +486,8 @@ Session contains:
 
 - Does NOT implement workflow logic (delegates to director)
 - Does NOT manage git/issues directly (director handles it)
-- Does NOT retry failed phases (use `/faber retry` for that)
-- Does NOT show detailed status (use `/faber status` for that)
+- Does NOT retry failed phases (use `/faber:retry` for that)
+- Does NOT show detailed status (use `/faber:status` for that)
 
 ## Best Practices
 

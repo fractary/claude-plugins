@@ -1,5 +1,5 @@
 ---
-name: status
+name: faber:status
 description: Show detailed status of FABER workflow sessions
 argument-hint: [work_id] | --all | --recent <N> | --failed | --waiting
 tools: Bash, Read, Glob
@@ -24,24 +24,24 @@ Support multiple query formats:
 
 ```bash
 # Show specific session by work_id
-/faber status abc12345
+/faber:status abc12345
 
 # Show specific session by issue
-/faber status #123
-/faber status PROJ-456
+/faber:status #123
+/faber:status PROJ-456
 
 # Show all active sessions
-/faber status
-/faber status --all
+/faber:status
+/faber:status --all
 
 # Show recent sessions
-/faber status --recent 5
+/faber:status --recent 5
 
 # Show failed sessions
-/faber status --failed
+/faber:status --failed
 
 # Show waiting sessions (paused)
-/faber status --waiting
+/faber:status --waiting
 ```
 
 ## Workflow
@@ -100,7 +100,7 @@ if [ ! -d "$SESSION_DIR" ]; then
     echo "No FABER sessions found in this project." >&2
     echo "" >&2
     echo "To start a workflow:" >&2
-    echo "  /faber run <issue-id>" >&2
+    echo "  /faber:run <issue-id>" >&2
     exit 1
 fi
 
@@ -237,11 +237,11 @@ format_session_status() {
         fi
     elif [ "$overall_status" = "failed" ]; then
         echo "  ❌ Workflow failed - check error details below"
-        echo "  Retry: /faber retry $work_id"
+        echo "  Retry: /faber:retry $work_id"
     elif [ "$overall_status" = "waiting" ]; then
         if [ "$release_status" = "pending" ]; then
             echo "  ⏸️  Waiting for release approval"
-            echo "  Approve: /faber approve $work_id"
+            echo "  Approve: /faber:approve $work_id"
         else
             echo "  ⏸️  Workflow paused"
         fi
@@ -394,7 +394,7 @@ format_session_list() {
     echo ""
     echo "Total: $count session(s)"
     echo ""
-    echo "To view details: /faber status <work_id>"
+    echo "To view details: /faber:status <work_id>"
     echo ""
 }
 ```
@@ -486,7 +486,7 @@ Artifacts:
 Next Steps:
 
   ⏸️  Waiting for release approval
-  Approve: /faber approve abc12345
+  Approve: /faber:approve abc12345
 ```
 
 ### Session List
@@ -504,7 +504,7 @@ ghi11121   jira/PROJ-789   2025-10-21 16:20     waiting
 
 Total: 3 session(s)
 
-To view details: /faber status <work_id>
+To view details: /faber:status <work_id>
 ```
 
 ## Error Handling
@@ -520,26 +520,26 @@ Handle these cases:
 
 ```bash
 # Show specific session
-/faber status abc12345
+/faber:status abc12345
 
 # Show session by issue number
-/faber status #123
-/faber status PROJ-456
+/faber:status #123
+/faber:status PROJ-456
 
 # Show all sessions
-/faber status --all
+/faber:status --all
 
 # Show active sessions (default)
-/faber status
+/faber:status
 
 # Show recent 5 sessions
-/faber status --recent 5
+/faber:status --recent 5
 
 # Show failed sessions
-/faber status --failed
+/faber:status --failed
 
 # Show sessions waiting for approval
-/faber status --waiting
+/faber:status --waiting
 ```
 
 ## Integration Points
@@ -552,9 +552,9 @@ This command reads:
 ## What This Command Does NOT Do
 
 - Does NOT modify sessions (read-only)
-- Does NOT execute workflows (use `/faber run`)
-- Does NOT approve releases (use `/faber approve`)
-- Does NOT retry workflows (use `/faber retry`)
+- Does NOT execute workflows (use `/faber:run`)
+- Does NOT approve releases (use `/faber:approve`)
+- Does NOT retry workflows (use `/faber:retry`)
 
 ## Best Practices
 

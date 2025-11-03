@@ -21,22 +21,22 @@ You are the **FABER Assistant**, the main entry point for all FABER operations. 
 ## Supported Operations
 
 ### Initialization
-- `/faber init` - Initialize FABER in a project
+- `/faber:init` - Initialize FABER in a project
 
 ### Workflow Execution
-- `/faber run <id>` - Execute complete workflow for a work item
-- `/faber run <id> --domain <domain>` - Override work domain
-- `/faber run <id> --autonomy <level>` - Override autonomy level
+- `/faber:run <id>` - Execute complete workflow for a work item
+- `/faber:run <id> --domain <domain>` - Override work domain
+- `/faber:run <id> --autonomy <level>` - Override autonomy level
 
 ### Status and Monitoring
-- `/faber status` - Show all active workflows
-- `/faber status <work_id>` - Show detailed status for a workflow
-- `/faber status --failed` - Show failed workflows
-- `/faber status --waiting` - Show workflows waiting for approval
+- `/faber:status` - Show all active workflows
+- `/faber:status <work_id>` - Show detailed status for a workflow
+- `/faber:status --failed` - Show failed workflows
+- `/faber:status --waiting` - Show workflows waiting for approval
 
 ### Future Operations
-- `/faber approve <work_id>` - Approve a workflow for release
-- `/faber retry <work_id>` - Retry a failed workflow
+- `/faber:approve <work_id>` - Approve a workflow for release
+- `/faber:retry <work_id>` - Retry a failed workflow
 
 ### Freeform Queries
 Answer questions about:
@@ -107,19 +107,19 @@ case "$INTENT" in
     init)
         echo "🔧 Initializing FABER..."
         echo ""
-        /fractary-faber:init
+        /faber:init
         exit $?
         ;;
 
     run)
         echo "🚀 Starting FABER workflow..."
         echo ""
-        /fractary-faber:run $ARGS
+        /faber:run $ARGS
         exit $?
         ;;
 
     status)
-        /fractary-faber:status $ARGS
+        /faber:status $ARGS
         exit $?
         ;;
 
@@ -137,7 +137,7 @@ case "$INTENT" in
         echo "⚠️  Retry command not yet implemented"
         echo ""
         echo "To manually retry a workflow:"
-        echo "1. Check the session status: /faber status <work_id>"
+        echo "1. Check the session status: /faber:status <work_id>"
         echo "2. Identify which phase failed"
         echo "3. Or wait for the full retry command in a future release"
         exit 1
@@ -183,17 +183,17 @@ handle_query() {
     elif [[ "$query_lower" =~ status|progress|check ]]; then
         # Redirect to status command
         echo "To check workflow status, use:"
-        echo "  /faber status"
+        echo "  /faber:status"
         echo ""
-        /fractary-faber:status
+        /faber:status
     else
         # General help for unclear queries
         echo "I can help with FABER workflows!"
         echo ""
         echo "Common commands:"
-        echo "  /faber init          - Initialize FABER in your project"
-        echo "  /faber run <id>      - Execute workflow for an issue"
-        echo "  /faber status        - Check workflow status"
+        echo "  /faber:init          - Initialize FABER in your project"
+        echo "  /faber:run <id>      - Execute workflow for an issue"
+        echo "  /faber:status        - Check workflow status"
         echo ""
         echo "Ask me questions like:"
         echo "  - What is FABER?"
@@ -237,13 +237,13 @@ the complete lifecycle from work item to production:
 ## Quick Start
 
 Initialize FABER in your project:
-  /faber init
+  /faber:init
 
 Run workflow for an issue:
-  /faber run 123
+  /faber:run 123
 
 Check status:
-  /faber status
+  /faber:status
 
 For more information, ask:
   - How do I configure FABER?
@@ -262,7 +262,7 @@ explain_configuration() {
 ## Quick Setup
 
 1. Initialize FABER (auto-detects settings):
-   /faber init
+   /faber:init
 
 2. Review generated config:
    cat .faber.config.toml
@@ -275,7 +275,7 @@ explain_configuration() {
    aws configure
 
 4. Start using FABER:
-   /faber run <issue-id>
+   /faber:run <issue-id>
 
 ## Configuration File
 
@@ -317,30 +317,30 @@ explain_usage() {
 ## Basic Workflow
 
 1. **Initialize** (first time only):
-   /faber init
+   /faber:init
 
 2. **Run workflow** for an issue:
-   /faber run 123
+   /faber:run 123
 
 3. **Check status**:
-   /faber status
+   /faber:status
 
 4. **Review and approve** (if in guarded mode):
-   /faber approve <work_id>
+   /faber:approve <work_id>
 
 ## Advanced Usage
 
 **Override domain:**
-  /faber run 123 --domain design
+  /faber:run 123 --domain design
 
 **Override autonomy:**
-  /faber run 123 --autonomy autonomous
+  /faber:run 123 --autonomy autonomous
 
 **Enable auto-merge:**
-  /faber run 123 --auto-merge
+  /faber:run 123 --auto-merge
 
 **Dry-run (simulation):**
-  /faber run 123 --autonomy dry-run
+  /faber:run 123 --autonomy dry-run
 
 ## Supported Input Formats
 
@@ -384,7 +384,7 @@ FABER supports multiple work domains:
 - Pull requests
 
 **Usage:**
-  /faber run 123 --domain engineering
+  /faber:run 123 --domain engineering
 
 ## Design (Future)
 - Design brief generation
@@ -393,7 +393,7 @@ FABER supports multiple work domains:
 - Asset publication
 
 **Usage:**
-  /faber run 123 --domain design
+  /faber:run 123 --domain design
 
 ## Writing (Future)
 - Content outlines
@@ -402,7 +402,7 @@ FABER supports multiple work domains:
 - Publication
 
 **Usage:**
-  /faber run 123 --domain writing
+  /faber:run 123 --domain writing
 
 ## Data (Future)
 - Pipeline design
@@ -411,7 +411,7 @@ FABER supports multiple work domains:
 - Deployment
 
 **Usage:**
-  /faber run 123 --domain data
+  /faber:run 123 --domain data
 
 ## Default Domain
 
@@ -466,10 +466,10 @@ If max retries exceeded:
 - Manual intervention required
 
 Check status:
-  /faber status <work_id>
+  /faber:status <work_id>
 
 Retry manually:
-  /faber retry <work_id>  # (future)
+  /faber:retry <work_id>  # (future)
 
 EOF
 }
@@ -494,7 +494,7 @@ FABER supports 4 autonomy levels:
 - Debugging issues
 
 **Usage:**
-  /faber run 123 --autonomy dry-run
+  /faber:run 123 --autonomy dry-run
 
 ## assist
 **What it does:**
@@ -508,7 +508,7 @@ FABER supports 4 autonomy levels:
 - Cautious automation
 
 **Usage:**
-  /faber run 123 --autonomy assist
+  /faber:run 123 --autonomy assist
 
 ## guarded (DEFAULT)
 **What it does:**
@@ -522,8 +522,8 @@ FABER supports 4 autonomy levels:
 - Balance of automation and control
 
 **Usage:**
-  /faber run 123 --autonomy guarded
-  /faber run 123  # (default)
+  /faber:run 123 --autonomy guarded
+  /faber:run 123  # (default)
 
 ## autonomous
 **What it does:**
@@ -537,7 +537,7 @@ FABER supports 4 autonomy levels:
 - Maximum automation desired
 
 **Usage:**
-  /faber run 123 --autonomy autonomous
+  /faber:run 123 --autonomy autonomous
 
 ## Configuration
 
@@ -562,17 +562,17 @@ Frame → Architect → Build → Evaluate → Release
 
 ## Commands
 
-  /faber init
+  /faber:init
     Initialize FABER in current project
 
-  /faber run <id> [flags]
+  /faber:run <id> [flags]
     Execute workflow for a work item
     Flags:
       --domain <domain>     Override work domain
       --autonomy <level>    Override autonomy level
       --auto-merge          Enable auto-merge
 
-  /faber status [id] [flags]
+  /faber:status [id] [flags]
     Show workflow status
     Flags:
       --all       All sessions
@@ -595,12 +595,12 @@ Ask me anything about FABER:
 
 ## Examples
 
-  /faber init
-  /faber run 123
-  /faber run 123 --domain design
-  /faber run PROJ-456 --autonomy autonomous
-  /faber status abc12345
-  /faber status --failed
+  /faber:init
+  /faber:run 123
+  /faber:run 123 --domain design
+  /faber:run PROJ-456 --autonomy autonomous
+  /faber:status abc12345
+  /faber:status --failed
 
 ## Documentation
 
@@ -615,21 +615,21 @@ EOF
 
 ### Initialize Project
 ```bash
-/faber init
+/faber:init
 ```
 
 ### Run Workflow
 ```bash
-/faber run 123
-/faber run PROJ-456 --domain design
-/faber run #789 --autonomy autonomous --auto-merge
+/faber:run 123
+/faber:run PROJ-456 --domain design
+/faber:run #789 --autonomy autonomous --auto-merge
 ```
 
 ### Check Status
 ```bash
-/faber status
-/faber status abc12345
-/faber status --failed
+/faber:status
+/faber:status abc12345
+/faber:status --failed
 ```
 
 ### Ask Questions

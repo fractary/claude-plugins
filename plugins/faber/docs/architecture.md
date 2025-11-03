@@ -240,7 +240,7 @@ User
 ### Invocation Chain Example
 
 ```
-User: /faber run 123
+User: /faber:run 123
   ↓
 /faber (router)
   ↓ Routes to
@@ -535,7 +535,7 @@ gitlab_token = "${GITLAB_TOKEN}"
 repo_system = "gitlab"
 
 # Run workflow - automatically uses GitLab scripts!
-/faber run 123
+/faber:run 123
 ```
 
 **No agent changes required!** The skill layer automatically routes to the correct platform.
@@ -558,7 +558,7 @@ work_domain = "design"
 
 **Step 3: Domain-Specific Workflows**
 ```bash
-/faber run 123 --domain design
+/faber:run 123 --domain design
 # Uses design-specific Build and Evaluate logic
 ```
 

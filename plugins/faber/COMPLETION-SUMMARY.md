@@ -250,16 +250,16 @@ fractary-faber/
 ```bash
 # 1. Initialize FABER in your project
 cd your-project
-/faber init
+/faber:init
 
 # 2. Configure authentication
 gh auth login
 
 # 3. Run your first workflow
-/faber run 123
+/faber:run 123
 
 # 4. Check status
-/faber status
+/faber:status
 ```
 
 ### Use Presets
@@ -272,7 +272,7 @@ cp plugins/fractary-faber/presets/software-guarded.toml .faber.config.toml
 vim .faber.config.toml
 
 # Run workflow
-/faber run 123
+/faber:run 123
 ```
 
 ### Ask Questions
@@ -326,8 +326,8 @@ Scripts and agents are ready, implementations needed:
 
 ### Priority 4: Additional Commands
 
-- [ ] `/faber approve` - Approve workflow for release
-- [ ] `/faber retry` - Retry failed workflow
+- [ ] `/faber:approve` - Approve workflow for release
+- [ ] `/faber:retry` - Retry failed workflow
 - [ ] `/faber cancel` - Cancel running workflow
 
 ### Priority 5: Additional Domains
@@ -421,7 +421,7 @@ Scripts and agents are ready, implementations needed:
 
 ### Developer Experience
 
-✅ Simple commands (/faber init, /faber run, /faber status)
+✅ Simple commands (/faber:init, /faber:run, /faber:status)
 
 ✅ Multiple input formats
 
@@ -493,7 +493,7 @@ Based on the original specification:
 
 ### User Experience ✅
 
-- [x] Simple commands (/faber init, /faber run, /faber status)
+- [x] Simple commands (/faber:init, /faber:run, /faber:status)
 - [x] Auto-detection of project settings
 - [x] Configuration presets
 - [x] Clear status indicators

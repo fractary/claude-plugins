@@ -1,5 +1,5 @@
 ---
-name: init
+name: faber:init
 description: Initialize FABER in a project with auto-discovered configuration
 argument-hint: (no arguments)
 tools: Bash, Read, Write, Glob, Grep
@@ -255,10 +255,10 @@ fi
 
 echo ""
 echo "3. Run FABER on an issue:"
-echo "   /faber run <issue-id>"
+echo "   /faber:run <issue-id>"
 echo ""
 echo "4. Check status:"
-echo "   /faber status"
+echo "   /faber:status"
 echo ""
 echo "For more information:"
 echo "  https://github.com/fractary/claude-plugins/tree/main/plugins/faber"
@@ -360,10 +360,10 @@ Configuration created: .faber.config.toml
    gh auth login
 
 3. Run FABER on an issue:
-   /faber run <issue-id>
+   /faber:run <issue-id>
 
 4. Check status:
-   /faber status
+   /faber:status
 
 For more information:
   https://github.com/fractary/claude-plugins/tree/main/plugins/faber

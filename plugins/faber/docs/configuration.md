@@ -18,7 +18,7 @@ This guide covers all aspects of configuring FABER for your projects.
 
 ```bash
 cd your-project
-/faber init
+/faber:init
 ```
 
 This auto-detects your project settings and creates `.faber.config.toml`.
@@ -368,7 +368,7 @@ autonomy = "dry-run"
 
 **Override**:
 ```bash
-/faber run 123 --autonomy dry-run
+/faber:run 123 --autonomy dry-run
 ```
 
 ### assist
@@ -388,7 +388,7 @@ autonomy = "assist"
 
 **Override**:
 ```bash
-/faber run 123 --autonomy assist
+/faber:run 123 --autonomy assist
 ```
 
 ### guarded (RECOMMENDED)
@@ -409,7 +409,7 @@ autonomy = "guarded"
 
 **Override**:
 ```bash
-/faber run 123 --autonomy guarded
+/faber:run 123 --autonomy guarded
 ```
 
 ### autonomous
@@ -433,7 +433,7 @@ auto_merge = true  # Optional
 
 **Override**:
 ```bash
-/faber run 123 --autonomy autonomous --auto-merge
+/faber:run 123 --autonomy autonomous --auto-merge
 ```
 
 ⚠️ **WARNING**: Use autonomous mode with caution in production!
@@ -562,7 +562,7 @@ auto_merge = false
 
 Then:
 ```bash
-/faber run 123 --domain design  # Uses design settings
+/faber:run 123 --domain design  # Uses design settings
 ```
 
 ## Environment Variables
@@ -609,7 +609,7 @@ export R2_ACCESS_KEY_ID=$(aws secretsmanager get-secret-value --secret-id r2-acc
 
 **Solution**:
 ```bash
-/faber init  # Auto-detect
+/faber:init  # Auto-detect
 # OR
 cp plugins/fractary-faber/presets/software-guarded.toml .faber.config.toml
 ```
@@ -625,7 +625,7 @@ cp plugins/fractary-faber/presets/software-guarded.toml .faber.config.toml
 
 ```bash
 # Test configuration
-/faber status
+/faber:status
 ```
 
 ### Authentication Failed
@@ -673,10 +673,10 @@ protected_paths = [
 
 ```bash
 # Test loading configuration
-/faber status
+/faber:status
 
 # Dry-run to validate
-/faber run 123 --autonomy dry-run
+/faber:run 123 --autonomy dry-run
 ```
 
 ### Validate Platforms

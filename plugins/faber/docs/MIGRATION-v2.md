@@ -63,7 +63,7 @@ If you're using FABER without custom domain plugins:
 
 - ✅ **No migration needed** - v2.0 is backward compatible
 - ✅ Configuration files work as-is (new fields are optional)
-- ✅ Commands unchanged (`/faber run`, `/faber status`, etc.)
+- ✅ Commands unchanged (`/faber:run`, `/faber:status`, etc.)
 - ✅ Session files remain compatible
 
 ### For Domain Plugin Authors
@@ -248,7 +248,7 @@ evaluate = "app"
 EOF
 
 # 2. Run workflow
-/faber run 123
+/faber:run 123
 
 # 3. Verify each phase uses domain skills
 # Check session file: .faber/sessions/{work_id}.json

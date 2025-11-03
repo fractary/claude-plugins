@@ -30,7 +30,7 @@ FABER is a **tool-agnostic workflow framework** that automates the complete soft
 
 ```bash
 cd your-project
-/faber init
+/faber:init
 ```
 
 This auto-detects your project settings and creates `.faber.config.toml`.
@@ -49,7 +49,7 @@ aws configure
 
 ```bash
 # Execute complete workflow for issue #123
-/faber run 123
+/faber:run 123
 ```
 
 That's it! FABER will:
@@ -108,7 +108,7 @@ Then edit placeholders (marked with `<...>`) in `.faber.config.toml`.
 Let FABER detect your project settings:
 
 ```bash
-/faber init
+/faber:init
 ```
 
 This creates `.faber.config.toml` with auto-detected values for:
@@ -148,13 +148,13 @@ Status updates post automatically to GitHub issues. See [GitHub Integration Guid
 
 ```bash
 # Initialize FABER in a project
-/faber init
+/faber:init
 
 # Run workflow for an issue
-/faber run 123
+/faber:run 123
 
 # Check workflow status
-/faber status
+/faber:status
 
 # Get help
 /faber help
@@ -164,22 +164,22 @@ Status updates post automatically to GitHub issues. See [GitHub Integration Guid
 
 ```bash
 # Override domain
-/faber run 123 --domain design
+/faber:run 123 --domain design
 
 # Override autonomy level
-/faber run 123 --autonomy autonomous
+/faber:run 123 --autonomy autonomous
 
 # Enable auto-merge
-/faber run 123 --auto-merge
+/faber:run 123 --auto-merge
 
 # Dry-run (simulation only)
-/faber run 123 --autonomy dry-run
+/faber:run 123 --autonomy dry-run
 
 # Check specific workflow
-/faber status abc12345
+/faber:status abc12345
 
 # Show failed workflows
-/faber status --failed
+/faber:status --failed
 ```
 
 ### Supported Input Formats
@@ -251,7 +251,7 @@ autonomy = "guarded"
 Override per workflow:
 
 ```bash
-/faber run 123 --autonomy autonomous
+/faber:run 123 --autonomy autonomous
 ```
 
 ## Architecture
@@ -295,9 +295,9 @@ Layer 3: Scripts (Deterministic Operations)
 
 #### Commands (User Interface)
 - `/faber` - Main entry point with intelligent routing
-- `/faber init` - Initialize FABER in a project
-- `/faber run` - Execute workflow
-- `/faber status` - Show workflow status
+- `/faber:init` - Initialize FABER in a project
+- `/faber:run` - Execute workflow
+- `/faber:status` - Show workflow status
 
 ## Domain Support
 
@@ -308,28 +308,28 @@ FABER supports multiple work domains:
 - Code implementation and testing
 - Pull requests and code review
 
-**Usage**: `/faber run 123 --domain engineering`
+**Usage**: `/faber:run 123 --domain engineering`
 
 ### Design 🚧 (Future)
 - Design brief generation
 - Asset creation
 - Design review and publication
 
-**Usage**: `/faber run 123 --domain design`
+**Usage**: `/faber:run 123 --domain design`
 
 ### Writing 🚧 (Future)
 - Content outlines
 - Writing and editing
 - Content review and publication
 
-**Usage**: `/faber run 123 --domain writing`
+**Usage**: `/faber:run 123 --domain writing`
 
 ### Data 🚧 (Future)
 - Pipeline design and implementation
 - Data quality checks
 - Pipeline deployment
 
-**Usage**: `/faber run 123 --domain data`
+**Usage**: `/faber:run 123 --domain data`
 
 ## Platform Support
 
@@ -354,10 +354,10 @@ FABER supports multiple work domains:
 
 ```bash
 # Initialize FABER
-/faber init
+/faber:init
 
 # Run workflow for GitHub issue #123
-/faber run 123
+/faber:run 123
 
 # FABER executes:
 # 1. Frame: Fetches issue, creates branch
@@ -367,7 +367,7 @@ FABER supports multiple work domains:
 # 5. Release: Creates PR, waits for approval
 
 # Check status
-/faber status abc12345
+/faber:status abc12345
 
 # Approve and merge (manual)
 # - Review PR
@@ -378,7 +378,7 @@ FABER supports multiple work domains:
 
 ```bash
 # Run with full automation
-/faber run 456 --autonomy autonomous --auto-merge
+/faber:run 456 --autonomy autonomous --auto-merge
 
 # FABER executes all phases and merges PR automatically
 # ⚠️ Use only for non-critical changes!
@@ -388,7 +388,7 @@ FABER supports multiple work domains:
 
 ```bash
 # Design workflow for Jira ticket
-/faber run PROJ-789 --domain design
+/faber:run PROJ-789 --domain design
 
 # FABER executes:
 # 1. Frame: Fetches design brief
@@ -404,16 +404,16 @@ FABER supports multiple work domains:
 
 ```bash
 # Show all active workflows
-/faber status
+/faber:status
 
 # Show specific workflow
-/faber status abc12345
+/faber:status abc12345
 
 # Show failed workflows
-/faber status --failed
+/faber:status --failed
 
 # Show workflows waiting for approval
-/faber status --waiting
+/faber:status --waiting
 ```
 
 ### View Session Details
@@ -429,7 +429,7 @@ cat .faber/sessions/abc12345.json | jq .
 ### Common Issues
 
 #### "Configuration file not found"
-**Solution**: Run `/faber init` or copy a preset
+**Solution**: Run `/faber:init` or copy a preset
 
 #### "Authentication failed"
 **Solution**: Configure platform authentication
@@ -447,7 +447,7 @@ cat .faber/sessions/abc12345.json | jq .
 Run with dry-run to see what would happen:
 
 ```bash
-/faber run 123 --autonomy dry-run
+/faber:run 123 --autonomy dry-run
 ```
 
 ## Safety Features

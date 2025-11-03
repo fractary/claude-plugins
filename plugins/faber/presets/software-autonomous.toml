@@ -14,7 +14,7 @@
 # To use this preset:
 #   cp presets/software-autonomous.toml .faber.config.toml
 #   # Edit values marked with <...>
-#   /faber run <issue-id>
+#   /faber:run <issue-id>
 
 [project]
 name = "<project-name>"

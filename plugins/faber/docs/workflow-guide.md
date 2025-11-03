@@ -39,7 +39,7 @@ Pull Request / Production
 
 ```bash
 # Start workflow
-/faber run 123
+/faber:run 123
 
 # FABER executes:
 1. Frame phase      (1-2 minutes)
@@ -503,7 +503,7 @@ Location: `.faber/sessions/<work_id>.json`
 
 1. **Create**: Session created at workflow start (Frame phase)
 2. **Update**: Updated after each phase completes
-3. **Query**: Can be queried via `/faber status`
+3. **Query**: Can be queried via `/faber:status`
 4. **Preserve**: Persists after workflow completes (success or failure)
 
 ### Session Operations
@@ -523,7 +523,7 @@ Location: `.faber/sessions/<work_id>.json`
 **Query Session**:
 ```bash
 # View status
-/faber status abc12345
+/faber:status abc12345
 
 # Raw session file
 cat .faber/sessions/abc12345.json
@@ -599,7 +599,7 @@ Implementation complete and tested. Ready to create pull request.
 
 To approve:
 ```bash
-/faber approve abc12345
+/faber:approve abc12345
 ```
 ```
 
@@ -651,7 +651,7 @@ To approve:
 **Manual Recovery**:
 ```bash
 # Check what failed
-/faber status abc12345
+/faber:status abc12345
 
 # View session details
 cat .faber/sessions/abc12345.json | jq .
@@ -659,7 +659,7 @@ cat .faber/sessions/abc12345.json | jq .
 # Fix issues manually
 
 # Retry workflow (future)
-/faber retry abc12345
+/faber:retry abc12345
 ```
 
 ### Error Messages
@@ -678,11 +678,11 @@ Failed Tests:
   - test/api.test.ts: API endpoint authentication
 
 To investigate:
-  /faber status abc12345
+  /faber:status abc12345
 
 To retry manually:
   1. Fix failing tests
-  2. Run: /faber retry abc12345
+  2. Run: /faber:retry abc12345
 ```
 
 ## Examples
@@ -691,7 +691,7 @@ To retry manually:
 
 ```bash
 # Start workflow for issue #123
-/faber run 123
+/faber:run 123
 
 # Output:
 🚀 Starting FABER workflow...
@@ -750,17 +750,17 @@ Creating pull request...
 ✅ PR created: https://github.com/acme/app/pull/45
 ⏸️ Waiting for release approval (guarded mode)
 
-Post '/faber approve abc12345' to proceed
+Post '/faber:approve abc12345' to proceed
 
 # Later, after review:
-/faber approve abc12345  # (future command)
+/faber:approve abc12345  # (future command)
 # Or manually merge PR via GitHub UI
 ```
 
 ### Example 2: Workflow with Retries
 
 ```bash
-/faber run 456
+/faber:run 456
 
 # ... Frame, Architect, Build complete ...
 
@@ -794,7 +794,7 @@ Decision: GO
 ### Example 3: Autonomous Workflow
 
 ```bash
-/faber run 789 --autonomy autonomous --auto-merge
+/faber:run 789 --autonomy autonomous --auto-merge
 
 # Executes all phases without pausing
 # Automatically merges PR at the end
