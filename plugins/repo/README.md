@@ -363,6 +363,85 @@ The plugin is fully integrated with FABER workflows:
 
 All operations include FABER metadata for full traceability.
 
+## Git Status Cache
+
+The plugin maintains a unified git status cache to eliminate hook conflicts and improve performance.
+
+### Overview
+
+The status cache provides:
+- **Single source of truth** - No concurrent git operations
+- **Fast reads** - Cache queries are instant (~5ms vs 50-200ms for git commands)
+- **Auto-refresh** - Updates on command submission and session end
+- **Rich data** - 10 fields: branch, uncommitted changes, ahead/behind, stash, conflicts, etc.
+
+### Cache Location
+
+`~/.fractary/repo/status.cache` (JSON format)
+
+### Automatic Updates
+
+The cache is updated automatically via hooks:
+- **UserPromptSubmit** - Updates cache when you submit commands (keeps it fresh)
+- **Stop** - Updates cache when auto-commit runs (after commits)
+
+### Status Line Integration
+
+Use the cache in your Claude Code status line (`.claude/statusline.json`):
+
+```json
+{
+  "sections": [
+    {
+      "command": "~/.fractary/repo/scripts/read-status-cache.sh uncommitted ahead",
+      "format": "Git: %s↑%s",
+      "color": "yellow"
+    }
+  ]
+}
+```
+
+**Output**: `Git: 3↑5` (3 uncommitted changes, 5 commits ahead)
+
+### Available Fields
+
+- `branch` - Current branch name
+- `uncommitted_changes` (alias: `uncommitted`, `changes`) - Count of staged + unstaged changes
+- `untracked_files` (alias: `untracked`) - Count of untracked files
+- `commits_ahead` (alias: `ahead`) - Commits ahead of remote
+- `commits_behind` (alias: `behind`) - Commits behind remote
+- `has_conflicts` (alias: `conflicts`) - Merge conflicts present (true/false)
+- `stash_count` (alias: `stash`) - Number of stashes
+- `clean` - Working tree is clean (true/false)
+- `timestamp` - Last cache update (ISO 8601)
+- `repo_path` - Repository root path
+
+### Manual Operations
+
+```bash
+# Update cache manually
+~/.fractary/repo/scripts/update-status-cache.sh
+
+# Read specific fields
+~/.fractary/repo/scripts/read-status-cache.sh uncommitted ahead behind
+
+# Read entire cache
+~/.fractary/repo/scripts/read-status-cache.sh
+```
+
+### Documentation
+
+- [Status Line Examples](docs/status-cache-statusline-examples.md) - Comprehensive status line configurations
+- [Migration Guide](docs/status-cache-migration-guide.md) - Migrate from custom status hooks
+
+### Benefits
+
+✅ **Eliminates hook conflicts** - No more concurrent git operations fighting for lock
+✅ **Faster status display** - Instant cache reads vs slow git queries
+✅ **Consistent data** - All consumers see same snapshot
+✅ **Auto-maintained** - Updates handled by plugin hooks
+✅ **Rich information** - 10 fields available for display
+
 ## Directory Structure
 
 ```
@@ -375,10 +454,12 @@ repo/
 ├── docs/
 │   ├── spec/
 │   │   └── repo-plugin-refactoring-spec.md
-│   └── setup/                       # Setup guides (coming soon)
-│       ├── github-setup.md
-│       ├── gitlab-setup.md
-│       └── bitbucket-setup.md
+│   ├── setup/                       # Setup guides
+│   │   ├── github-setup.md
+│   │   ├── gitlab-setup.md
+│   │   └── bitbucket-setup.md
+│   ├── status-cache-statusline-examples.md  # Status line integration
+│   └── status-cache-migration-guide.md      # Migration from custom hooks
 ├── commands/                        # User commands (Layer 1)
 │   ├── branch.md
 │   ├── commit.md
@@ -388,6 +469,12 @@ repo/
 │   └── cleanup.md
 ├── agents/                          # Routing agent (Layer 2)
 │   └── repo-manager.md
+├── scripts/                         # Utility scripts
+│   ├── auto-commit-on-stop.sh       # Auto-commit hook
+│   ├── update-status-cache.sh       # Update git status cache
+│   └── read-status-cache.sh         # Read git status cache
+├── hooks/
+│   └── hooks.json                   # Plugin hook configuration
 └── skills/                          # Workflows & handlers (Layer 3)
     ├── branch-namer/
     ├── branch-manager/

@@ -1,5 +1,5 @@
 {
-    "description": "Fractary Repo Plugin Hooks - Auto-commit changes when Claude Code session ends",
+    "description": "Fractary Repo Plugin Hooks - Auto-commit on session end and update status cache on command submission",
     "hooks": {
       "Stop": [
         {
@@ -7,6 +7,16 @@
             {
               "type": "command",
               "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
             }
           ]
         }

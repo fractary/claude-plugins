@@ -50,6 +50,14 @@ if [ -n "$CLAUDE_PROJECT_DIR" ] && command -v claude &> /dev/null; then
     # - Respect the configured source control provider
     if claude exec "/fractary-repo:commit" 2>/dev/null; then
         echo -e "${GREEN}✅ Commit created via fractary-repo plugin${NC}"
+
+        # Update status cache for status line consumption
+        echo -e "${BLUE}📊 Updating status cache...${NC}"
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        if [ -f "${SCRIPT_DIR}/update-status-cache.sh" ]; then
+            "${SCRIPT_DIR}/update-status-cache.sh" --quiet || echo -e "${YELLOW}⚠️  Status cache update failed (non-critical)${NC}"
+        fi
+
         echo -e "${GREEN}✨ Auto-commit hook completed successfully${NC}"
         exit 0
     else
@@ -74,6 +82,14 @@ git commit -m "$COMMIT_MSG"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Changes committed successfully${NC}"
+
+    # Update status cache for status line consumption
+    echo -e "${BLUE}📊 Updating status cache...${NC}"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "${SCRIPT_DIR}/update-status-cache.sh" ]; then
+        "${SCRIPT_DIR}/update-status-cache.sh" --quiet || echo -e "${YELLOW}⚠️  Status cache update failed (non-critical)${NC}"
+    fi
+
     echo -e "${GREEN}✨ Auto-commit hook completed${NC}"
 else
     echo -e "${RED}❌ Commit failed${NC}"
