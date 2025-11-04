@@ -46,6 +46,8 @@ PLATFORM=$(echo "$CONFIG_JSON" | jq -r '.handlers["work-tracker"].active')
 
 **Configuration Location:** `.fractary/plugins/work/config.json`
 
+**Special Behavior:** When config doesn't exist, the work plugin uses auto-detection (e.g., gh CLI automatically detects the repository). Skills can check if config exists and recommend running `/work:init` to persist settings.
+
 **Example:**
 ```bash
 # Load configuration
@@ -59,6 +61,25 @@ PLATFORM=$(echo "$CONFIG_JSON" | jq -r '.handlers["work-tracker"].active')
 GITHUB_OWNER=$(echo "$CONFIG_JSON" | jq -r '.handlers["work-tracker"].github.owner')
 GITHUB_REPO=$(echo "$CONFIG_JSON" | jq -r '.handlers["work-tracker"].github.repo')
 ```
+
+## check-config-exists.sh
+
+**Purpose:** Check if work plugin configuration file exists
+
+**Location:** `plugins/work/skills/work-common/scripts/check-config-exists.sh`
+
+**Usage:**
+```bash
+if [ -f ".fractary/plugins/work/config.json" ]; then
+    # Config exists
+else
+    # Show recommendation to run /work:init
+fi
+```
+
+**Returns:** Exit code 0 if config exists, 1 if not
+
+**Use Case:** Skills can check config existence and include init recommendation in completion messages when config doesn't exist.
 
 ## normalize-issue.sh (FUTURE)
 
