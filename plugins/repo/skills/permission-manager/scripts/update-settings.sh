@@ -37,9 +37,9 @@ done
 SETTINGS_FILE="$PROJECT_PATH/.claude/settings.json"
 BACKUP_FILE="$PROJECT_PATH/.claude/settings.json.backup"
 
-# Commands to allow (safe, repo plugin needs these)
+# Commands to allow (safe operations, most write operations)
 ALLOW_COMMANDS=(
-    # Git read operations (safe)
+    # Git read operations
     "git status"
     "git branch"
     "git log"
@@ -51,14 +51,24 @@ ALLOW_COMMANDS=(
     "git show-ref"
     "git config"
 
-    # Git safe write operations
+    # Git write operations (safe for feature branches)
+    "git add"
     "git checkout"
     "git switch"
     "git fetch"
+    "git pull"
     "git remote"
     "git stash"
+    "git tag"
 
-    # GitHub CLI read operations (safe)
+    # Git operations on non-protected branches (allow by default)
+    "git commit"
+    "git push"
+    "git merge"
+    "git rebase"
+    "git reset"
+
+    # GitHub CLI read operations
     "gh pr view"
     "gh pr list"
     "gh pr status"
@@ -66,6 +76,18 @@ ALLOW_COMMANDS=(
     "gh issue list"
     "gh repo view"
     "gh auth status"
+
+    # GitHub CLI write operations (generally safe)
+    "gh pr create"
+    "gh pr comment"
+    "gh pr review"
+    "gh pr close"
+    "gh issue create"
+    "gh issue comment"
+    "gh issue close"
+    "gh repo clone"
+    "gh auth login"
+    "gh api"
 
     # Safe utility commands
     "cat"
@@ -85,30 +107,22 @@ ALLOW_COMMANDS=(
     "wc"
 )
 
-# Commands that require approval (risky but needed)
+# Commands that require approval (ONLY for protected branches)
+# These use pattern matching to detect operations on main/master/production
 REQUIRE_APPROVAL_COMMANDS=(
-    # Git write operations (need confirmation)
-    "git add"
-    "git commit"
-    "git push"
-    "git pull"
-    "git merge"
-    "git rebase"
-    "git reset"
-    "git tag"
+    # Protected branch push operations (pattern-based)
+    "git push origin main"
+    "git push origin master"
+    "git push origin production"
+    "git push -u origin main"
+    "git push -u origin master"
+    "git push -u origin production"
+    "git push --set-upstream origin main"
+    "git push --set-upstream origin master"
+    "git push --set-upstream origin production"
 
-    # GitHub CLI write operations (need confirmation)
-    "gh pr create"
-    "gh pr comment"
-    "gh pr review"
-    "gh pr merge"
-    "gh pr close"
-    "gh issue create"
-    "gh issue comment"
-    "gh issue close"
-    "gh repo clone"
-    "gh auth login"
-    "gh api"
+    # Protected branch merge operations
+    "gh pr merge" # When merging TO main/master/production (requires PR review anyway)
 )
 
 # Commands to deny (dangerous operations)
@@ -123,17 +137,23 @@ DENY_COMMANDS=(
     "format"
     "> /dev/sd"
 
-    # Git dangerous operations (force push to protected branches)
+    # Force push to protected branches (ALWAYS deny)
     "git push --force origin main"
     "git push --force origin master"
     "git push --force origin production"
     "git push -f origin main"
     "git push -f origin master"
     "git push -f origin production"
-    "git reset --hard origin/"
+    "git push --force-with-lease origin main"
+    "git push --force-with-lease origin master"
+    "git push --force-with-lease origin production"
+
+    # Other dangerous git operations
+    "git reset --hard origin/main"
+    "git reset --hard origin/master"
+    "git reset --hard origin/production"
     "git clean -fdx"
     "git filter-branch"
-    "git rebase --onto"
 
     # GitHub dangerous operations
     "gh repo delete"
@@ -170,7 +190,8 @@ create_default_settings() {
       "deny": []
     }
   },
-  "_comment": "Managed by fractary-repo plugin. Backup: .claude/settings.json.backup"
+  "_comment": "Managed by fractary-repo plugin. Protected branches: main, master, production",
+  "_note": "Most operations auto-allowed. Approval required only for protected branch operations."
 }
 EOF
 }
@@ -256,7 +277,7 @@ show_differences() {
         if command_in_array "$cmd" "${DENY_COMMANDS[@]}"; then
             misplaced+=("⚠️  $cmd (in allow, should be denied)")
         elif command_in_array "$cmd" "${REQUIRE_APPROVAL_COMMANDS[@]}"; then
-            misplaced+=("ℹ️  $cmd (in allow, recommended: requireApproval)")
+            misplaced+=("ℹ️  $cmd (in allow, recommended: requireApproval for protected branches)")
         fi
     done
 
@@ -365,32 +386,39 @@ merge_arrays_smart() {
 
 # Function to show permission changes
 show_changes() {
-    echo -e "${BLUE}🔐 Permission Changes${NC}"
+    echo -e "${BLUE}🔐 Branch-Aware Permission Configuration${NC}"
     echo "───────────────────────────────────────"
     echo ""
-    echo -e "${GREEN}SAFE (auto-allow, no prompts):${NC}"
-    for cmd in "${ALLOW_COMMANDS[@]}"; do
-        echo "  ✓ $cmd"
-    done
+    echo -e "${GREEN}AUTO-ALLOWED (no prompts - fast workflow):${NC}"
+    echo "  All git/gh operations on feature branches"
+    echo "  Examples:"
+    echo "    ✓ git commit (on feat/123)"
+    echo "    ✓ git push origin feat/123"
+    echo "    ✓ gh pr create"
+    echo "    ✓ gh pr comment/review"
     echo ""
-    echo -e "${YELLOW}RISKY (require approval before execution):${NC}"
+    echo -e "${YELLOW}REQUIRE APPROVAL (protected branch operations only):${NC}"
+    echo "  Operations targeting main/master/production"
     for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
-        echo "  ⚠️  $cmd"
+        echo "    ⚠️  $cmd"
     done
     echo ""
-    echo -e "${RED}DANGEROUS (always deny):${NC}"
-    for cmd in "${DENY_COMMANDS[@]}"; do
-        echo "  ✗ $cmd"
-    done
+    echo -e "${RED}ALWAYS DENIED (catastrophic operations):${NC}"
+    echo "  Dangerous operations that could destroy data/repos"
+    echo "  Examples:"
+    echo "    ✗ rm -rf /"
+    echo "    ✗ git push --force origin main/master/production"
+    echo "    ✗ gh repo delete"
+    echo "    ✗ sudo, shutdown, etc."
     echo ""
     echo "───────────────────────────────────────"
-    echo "These permissions will:"
-    echo "  ✓ Allow safe read operations (no prompts)"
-    echo "  ⚠️  Require approval for write operations"
-    echo "  ✗ Block dangerous/destructive operations"
+    echo -e "${GREEN}Benefits:${NC}"
+    echo "  ✓ Fast workflow on feature branches (no prompts)"
+    echo "  ⚠️  Protection for production branches (approval required)"
+    echo "  ✗ Safety net for catastrophic mistakes (always blocked)"
     echo ""
-    echo -e "${MAGENTA}NOTE: --dangerously-skip-permissions bypasses ALL checks${NC}"
-    echo -e "${MAGENTA}      including requireApproval. Use with extreme caution.${NC}"
+    echo -e "${MAGENTA}⚠️  IMPORTANT: --dangerously-skip-permissions bypasses ALL checks${NC}"
+    echo -e "${MAGENTA}   Even deny rules won't protect you in skip mode!${NC}"
     echo ""
 }
 
@@ -477,7 +505,9 @@ setup_permissions() {
        --argjson deny "$deny_json" \
        '.permissions.bash.allow = $allow |
         .permissions.bash.requireApproval = $require |
-        .permissions.bash.deny = $deny' \
+        .permissions.bash.deny = $deny |
+        ._comment = "Managed by fractary-repo plugin. Protected branches: main, master, production" |
+        ._note = "Most operations auto-allowed. Approval required only for protected branch operations."' \
        "$temp_file" > "${temp_file}.tmp"
 
     mv "${temp_file}.tmp" "$temp_file"
@@ -502,9 +532,12 @@ setup_permissions() {
     echo "  Settings file: $SETTINGS_FILE"
     echo "  Backup: $BACKUP_FILE"
     echo ""
-    echo "  Safe commands (auto-allow): $allow_count"
-    echo "  Risky commands (require approval): $require_count"
-    echo "  Dangerous commands (denied): $deny_count"
+    echo "  Commands auto-allowed: $allow_count"
+    echo "  Protected branch operations (require approval): $require_count"
+    echo "  Dangerous operations (denied): $deny_count"
+    echo ""
+    echo -e "${GREEN}Fast workflow enabled!${NC} Most operations won't prompt."
+    echo -e "${YELLOW}Protected:${NC} Operations on main/master/production require approval."
 }
 
 # Function to validate permissions
@@ -535,17 +568,16 @@ validate_permissions() {
 
     # Check if critical commands are present
     local missing_safe=()
-    for cmd in "git status" "git log" "git diff"; do
+    for cmd in "git status" "git log" "git commit" "git push"; do
         if ! jq -e ".permissions.bash.allow | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
             missing_safe+=("$cmd")
         fi
     done
 
-    local missing_risky=()
-    for cmd in "git commit" "git push" "gh pr create"; do
-        if ! jq -e ".permissions.bash.requireApproval | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1 && \
-           ! jq -e ".permissions.bash.allow | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-            missing_risky+=("$cmd")
+    local missing_protected=()
+    for cmd in "git push origin main" "git push origin master" "git push origin production"; do
+        if ! jq -e ".permissions.bash.requireApproval | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
+            missing_protected+=("$cmd")
         fi
     done
 
@@ -556,18 +588,18 @@ validate_permissions() {
         fi
     done
 
-    if [ ${#missing_safe[@]} -eq 0 ] && [ ${#missing_risky[@]} -eq 0 ] && [ ${#missing_denies[@]} -eq 0 ]; then
+    if [ ${#missing_safe[@]} -eq 0 ] && [ ${#missing_protected[@]} -eq 0 ] && [ ${#missing_denies[@]} -eq 0 ]; then
         echo -e "${GREEN}✓${NC} All critical permissions configured correctly"
-        echo -e "${GREEN}✓${NC} Safe commands: allowed"
-        echo -e "${GREEN}✓${NC} Risky commands: require approval (or allowed)"
-        echo -e "${GREEN}✓${NC} Dangerous commands: denied"
+        echo -e "${GREEN}✓${NC} General operations: allowed (fast workflow)"
+        echo -e "${YELLOW}✓${NC} Protected branch operations: require approval"
+        echo -e "${RED}✓${NC} Dangerous operations: denied"
     else
         echo -e "${YELLOW}⚠${NC} Some permissions missing:"
         if [ ${#missing_safe[@]} -gt 0 ]; then
-            echo "  Missing safe (allow): ${missing_safe[*]}"
+            echo "  Missing allows: ${missing_safe[*]}"
         fi
-        if [ ${#missing_risky[@]} -gt 0 ]; then
-            echo "  Missing risky (requireApproval or allow): ${missing_risky[*]}"
+        if [ ${#missing_protected[@]} -gt 0 ]; then
+            echo "  Missing protected (requireApproval): ${missing_protected[*]}"
         fi
         if [ ${#missing_denies[@]} -gt 0 ]; then
             echo "  Missing denies: ${missing_denies[*]}"
