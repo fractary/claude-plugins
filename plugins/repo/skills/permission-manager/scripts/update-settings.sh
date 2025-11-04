@@ -9,6 +9,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Default values
@@ -36,52 +37,35 @@ done
 SETTINGS_FILE="$PROJECT_PATH/.claude/settings.json"
 BACKUP_FILE="$PROJECT_PATH/.claude/settings.json.backup"
 
-# Commands to allow (repo plugin needs these)
+# Commands to allow (safe, repo plugin needs these)
 ALLOW_COMMANDS=(
-    # Git core operations
+    # Git read operations (safe)
     "git status"
     "git branch"
-    "git checkout"
-    "git switch"
-    "git commit"
-    "git push"
-    "git pull"
-    "git fetch"
-    "git remote"
-    "git tag"
     "git log"
     "git diff"
-    "git stash"
-    "git merge"
-    "git rebase"
+    "git show"
     "git rev-parse"
     "git for-each-ref"
     "git ls-remote"
     "git show-ref"
-    "git add"
-    "git reset"
-    "git show"
     "git config"
 
-    # GitHub CLI operations
-    "gh pr create"
+    # Git safe write operations
+    "git checkout"
+    "git switch"
+    "git fetch"
+    "git remote"
+    "git stash"
+
+    # GitHub CLI read operations (safe)
     "gh pr view"
     "gh pr list"
-    "gh pr comment"
-    "gh pr review"
-    "gh pr merge"
-    "gh pr close"
     "gh pr status"
-    "gh issue create"
     "gh issue view"
     "gh issue list"
-    "gh issue comment"
-    "gh issue close"
     "gh repo view"
-    "gh repo clone"
     "gh auth status"
-    "gh auth login"
-    "gh api"
 
     # Safe utility commands
     "cat"
@@ -99,6 +83,32 @@ ALLOW_COMMANDS=(
     "sort"
     "uniq"
     "wc"
+)
+
+# Commands that require approval (risky but needed)
+REQUIRE_APPROVAL_COMMANDS=(
+    # Git write operations (need confirmation)
+    "git add"
+    "git commit"
+    "git push"
+    "git pull"
+    "git merge"
+    "git rebase"
+    "git reset"
+    "git tag"
+
+    # GitHub CLI write operations (need confirmation)
+    "gh pr create"
+    "gh pr comment"
+    "gh pr review"
+    "gh pr merge"
+    "gh pr close"
+    "gh issue create"
+    "gh issue comment"
+    "gh issue close"
+    "gh repo clone"
+    "gh auth login"
+    "gh api"
 )
 
 # Commands to deny (dangerous operations)
@@ -156,6 +166,7 @@ create_default_settings() {
   "permissions": {
     "bash": {
       "allow": [],
+      "requireApproval": [],
       "deny": []
     }
   },
@@ -164,19 +175,192 @@ create_default_settings() {
 EOF
 }
 
-# Function to merge arrays in JSON (remove duplicates, sort)
-merge_array() {
-    local json_file="$1"
-    local path="$2"
-    local new_items="$3"
+# Function to check if command exists in array
+command_in_array() {
+    local cmd="$1"
+    shift
+    local array=("$@")
 
-    # Get existing items
-    local existing=$(jq -r "$path // [] | .[]" "$json_file" 2>/dev/null || echo "")
+    for item in "${array[@]}"; do
+        if [ "$item" = "$cmd" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
-    # Combine existing and new, remove duplicates, sort
-    local merged=$(echo "$existing"$'\n'"$new_items" | grep -v '^$' | sort -u)
+# Function to detect conflicts (command in multiple categories)
+detect_conflicts() {
+    local settings_file="$1"
+    local conflicts=()
 
-    echo "$merged"
+    # Get all commands from each category
+    local allows=$(jq -r '.permissions.bash.allow[]?' "$settings_file" 2>/dev/null || echo "")
+    local requires=$(jq -r '.permissions.bash.requireApproval[]?' "$settings_file" 2>/dev/null || echo "")
+    local denies=$(jq -r '.permissions.bash.deny[]?' "$settings_file" 2>/dev/null || echo "")
+
+    # Check for duplicates across categories
+    for cmd in $allows; do
+        if echo "$requires" | grep -qF "$cmd"; then
+            conflicts+=("$cmd (in both allow and requireApproval)")
+        fi
+        if echo "$denies" | grep -qF "$cmd"; then
+            conflicts+=("$cmd (in both allow and deny)")
+        fi
+    done
+
+    for cmd in $requires; do
+        if echo "$denies" | grep -qF "$cmd"; then
+            conflicts+=("$cmd (in both requireApproval and deny)")
+        fi
+    done
+
+    if [ ${#conflicts[@]} -gt 0 ]; then
+        return 0  # Conflicts found
+    fi
+    return 1  # No conflicts
+}
+
+# Function to show differences from recommended settings
+show_differences() {
+    local settings_file="$1"
+
+    echo -e "${BLUE}📊 Comparing with Recommended Settings${NC}"
+    echo "───────────────────────────────────────"
+
+    # Get current settings
+    local current_allows=$(jq -r '.permissions.bash.allow[]?' "$settings_file" 2>/dev/null | sort -u)
+    local current_requires=$(jq -r '.permissions.bash.requireApproval[]?' "$settings_file" 2>/dev/null | sort -u)
+    local current_denies=$(jq -r '.permissions.bash.deny[]?' "$settings_file" 2>/dev/null | sort -u)
+
+    # Check for custom allows (not in our recommended lists)
+    local custom_allows=()
+    for cmd in $current_allows; do
+        if ! command_in_array "$cmd" "${ALLOW_COMMANDS[@]}" && \
+           ! command_in_array "$cmd" "${REQUIRE_APPROVAL_COMMANDS[@]}"; then
+            custom_allows+=("$cmd")
+        fi
+    done
+
+    # Check for custom denies (not in our recommended list)
+    local custom_denies=()
+    for cmd in $current_denies; do
+        if ! command_in_array "$cmd" "${DENY_COMMANDS[@]}"; then
+            custom_denies+=("$cmd")
+        fi
+    done
+
+    # Check for commands that should be elsewhere
+    local misplaced=()
+    for cmd in $current_allows; do
+        if command_in_array "$cmd" "${DENY_COMMANDS[@]}"; then
+            misplaced+=("⚠️  $cmd (in allow, should be denied)")
+        elif command_in_array "$cmd" "${REQUIRE_APPROVAL_COMMANDS[@]}"; then
+            misplaced+=("ℹ️  $cmd (in allow, recommended: requireApproval)")
+        fi
+    done
+
+    for cmd in $current_denies; do
+        if command_in_array "$cmd" "${ALLOW_COMMANDS[@]}"; then
+            misplaced+=("⚠️  $cmd (in deny, should be allowed)")
+        fi
+    done
+
+    # Show findings
+    if [ ${#custom_allows[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Custom Allows (not in repo recommendations):${NC}"
+        for cmd in "${custom_allows[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+    fi
+
+    if [ ${#custom_denies[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Custom Denies (not in repo recommendations):${NC}"
+        for cmd in "${custom_denies[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+    fi
+
+    if [ ${#misplaced[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Potentially Misplaced Permissions:${NC}"
+        for item in "${misplaced[@]}"; do
+            echo "  $item"
+        done
+        echo ""
+    fi
+
+    if [ ${#custom_allows[@]} -eq 0 ] && [ ${#custom_denies[@]} -eq 0 ] && [ ${#misplaced[@]} -eq 0 ]; then
+        echo -e "${GREEN}✓ No differences from recommended settings${NC}"
+        echo ""
+    fi
+}
+
+# Function to merge arrays (remove duplicates, handle conflicts)
+merge_arrays_smart() {
+    local settings_file="$1"
+    local category="$2"  # allow, requireApproval, or deny
+    shift 2
+    local new_items=("$@")
+
+    # Get existing items from this category
+    local existing=$(jq -r ".permissions.bash.$category[]?" "$settings_file" 2>/dev/null | sort -u)
+
+    # Get items from other categories to avoid conflicts
+    local other_categories=()
+    if [ "$category" != "allow" ]; then
+        other_categories+=($(jq -r '.permissions.bash.allow[]?' "$settings_file" 2>/dev/null))
+    fi
+    if [ "$category" != "requireApproval" ]; then
+        other_categories+=($(jq -r '.permissions.bash.requireApproval[]?' "$settings_file" 2>/dev/null))
+    fi
+    if [ "$category" != "deny" ]; then
+        other_categories+=($(jq -r '.permissions.bash.deny[]?' "$settings_file" 2>/dev/null))
+    fi
+
+    # Combine new items with existing (from this category only)
+    local combined=()
+
+    # Add existing items that aren't in other categories
+    for cmd in $existing; do
+        local in_other=false
+        for other in "${other_categories[@]}"; do
+            if [ "$cmd" = "$other" ]; then
+                in_other=true
+                break
+            fi
+        done
+        if ! $in_other; then
+            combined+=("$cmd")
+        fi
+    done
+
+    # Add new items that aren't already present and aren't in other categories
+    for cmd in "${new_items[@]}"; do
+        local already_present=false
+        for existing_cmd in "${combined[@]}"; do
+            if [ "$cmd" = "$existing_cmd" ]; then
+                already_present=true
+                break
+            fi
+        done
+
+        local in_other=false
+        for other in "${other_categories[@]}"; do
+            if [ "$cmd" = "$other" ]; then
+                in_other=true
+                break
+            fi
+        done
+
+        if ! $already_present && ! $in_other; then
+            combined+=("$cmd")
+        fi
+    done
+
+    # Sort and output
+    printf "%s\n" "${combined[@]}" | sort -u
 }
 
 # Function to show permission changes
@@ -184,21 +368,29 @@ show_changes() {
     echo -e "${BLUE}🔐 Permission Changes${NC}"
     echo "───────────────────────────────────────"
     echo ""
-    echo -e "${GREEN}ALLOWING (repo operations):${NC}"
+    echo -e "${GREEN}SAFE (auto-allow, no prompts):${NC}"
     for cmd in "${ALLOW_COMMANDS[@]}"; do
         echo "  ✓ $cmd"
     done
     echo ""
-    echo -e "${RED}DENYING (dangerous operations):${NC}"
+    echo -e "${YELLOW}RISKY (require approval before execution):${NC}"
+    for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
+        echo "  ⚠️  $cmd"
+    done
+    echo ""
+    echo -e "${RED}DANGEROUS (always deny):${NC}"
     for cmd in "${DENY_COMMANDS[@]}"; do
         echo "  ✗ $cmd"
     done
     echo ""
     echo "───────────────────────────────────────"
     echo "These permissions will:"
-    echo "  ✓ Eliminate prompts for repo operations"
-    echo "  ✓ Prevent accidental catastrophic commands"
-    echo "  ✓ Allow safe git and GitHub operations"
+    echo "  ✓ Allow safe read operations (no prompts)"
+    echo "  ⚠️  Require approval for write operations"
+    echo "  ✗ Block dangerous/destructive operations"
+    echo ""
+    echo -e "${MAGENTA}NOTE: --dangerously-skip-permissions bypasses ALL checks${NC}"
+    echo -e "${MAGENTA}      including requireApproval. Use with extreme caution.${NC}"
     echo ""
 }
 
@@ -241,6 +433,19 @@ setup_permissions() {
         exit 1
     fi
 
+    # Check for conflicts in existing settings
+    if detect_conflicts "$SETTINGS_FILE"; then
+        echo -e "${RED}⚠️  WARNING: Conflicts detected in existing settings${NC}"
+        echo "Some commands appear in multiple categories (allow/requireApproval/deny)"
+        echo "These will be resolved by removing duplicates, keeping the most restrictive."
+        echo ""
+    fi
+
+    # Show differences from recommended settings
+    if [ -f "$SETTINGS_FILE" ]; then
+        show_differences "$SETTINGS_FILE"
+    fi
+
     # Show what will change
     show_changes
 
@@ -251,27 +456,28 @@ setup_permissions() {
     cp "$SETTINGS_FILE" "$temp_file"
 
     # Ensure permissions.bash structure exists
-    jq '.permissions.bash.allow //= [] | .permissions.bash.deny //= []' "$temp_file" > "${temp_file}.tmp"
+    jq '.permissions.bash.allow //= [] |
+        .permissions.bash.requireApproval //= [] |
+        .permissions.bash.deny //= []' "$temp_file" > "${temp_file}.tmp"
     mv "${temp_file}.tmp" "$temp_file"
 
-    # Add allow commands (preserve existing)
-    local existing_allow=$(jq -r '.permissions.bash.allow[]' "$temp_file" 2>/dev/null || echo "")
-    local all_allow=$(printf "%s\n" "${ALLOW_COMMANDS[@]}" "$existing_allow" | grep -v '^$' | sort -u)
+    # Merge arrays with smart conflict resolution
+    local all_allow=$(merge_arrays_smart "$temp_file" "allow" "${ALLOW_COMMANDS[@]}")
+    local all_require=$(merge_arrays_smart "$temp_file" "requireApproval" "${REQUIRE_APPROVAL_COMMANDS[@]}")
+    local all_deny=$(merge_arrays_smart "$temp_file" "deny" "${DENY_COMMANDS[@]}")
 
-    # Add deny commands (preserve existing)
-    local existing_deny=$(jq -r '.permissions.bash.deny[]' "$temp_file" 2>/dev/null || echo "")
-    local all_deny=$(printf "%s\n" "${DENY_COMMANDS[@]}" "$existing_deny" | grep -v '^$' | sort -u)
-
-    # Build new allow array
+    # Build JSON arrays
     local allow_json=$(echo "$all_allow" | jq -R . | jq -s .)
-
-    # Build new deny array
+    local require_json=$(echo "$all_require" | jq -R . | jq -s .)
     local deny_json=$(echo "$all_deny" | jq -R . | jq -s .)
 
     # Update settings with merged arrays
     jq --argjson allow "$allow_json" \
+       --argjson require "$require_json" \
        --argjson deny "$deny_json" \
-       '.permissions.bash.allow = $allow | .permissions.bash.deny = $deny' \
+       '.permissions.bash.allow = $allow |
+        .permissions.bash.requireApproval = $require |
+        .permissions.bash.deny = $deny' \
        "$temp_file" > "${temp_file}.tmp"
 
     mv "${temp_file}.tmp" "$temp_file"
@@ -287,15 +493,18 @@ setup_permissions() {
     mv "$temp_file" "$SETTINGS_FILE"
 
     # Count changes
-    local allow_count=$(echo "$all_allow" | wc -l)
-    local deny_count=$(echo "$all_deny" | wc -l)
+    local allow_count=$(echo "$all_allow" | grep -v '^$' | wc -l)
+    local require_count=$(echo "$all_require" | grep -v '^$' | wc -l)
+    local deny_count=$(echo "$all_deny" | grep -v '^$' | wc -l)
 
     echo ""
     echo -e "${GREEN}✅ Updated settings${NC}"
     echo "  Settings file: $SETTINGS_FILE"
     echo "  Backup: $BACKUP_FILE"
-    echo "  Commands allowed: $allow_count"
-    echo "  Commands denied: $deny_count"
+    echo ""
+    echo "  Safe commands (auto-allow): $allow_count"
+    echo "  Risky commands (require approval): $require_count"
+    echo "  Dangerous commands (denied): $deny_count"
 }
 
 # Function to validate permissions
@@ -314,15 +523,32 @@ validate_permissions() {
     echo -e "${BLUE}🔐 Validating Permissions${NC}"
     echo "───────────────────────────────────────"
 
-    # Check if critical commands are allowed
-    local missing_allows=()
-    for cmd in "git status" "git commit" "git push" "gh pr create"; do
+    # Check for conflicts
+    if detect_conflicts "$SETTINGS_FILE"; then
+        echo -e "${YELLOW}⚠️  Conflicts detected (commands in multiple categories)${NC}"
+        echo "Run: /repo:init-permissions --mode setup (to fix)"
+        echo ""
+    fi
+
+    # Show differences
+    show_differences "$SETTINGS_FILE"
+
+    # Check if critical commands are present
+    local missing_safe=()
+    for cmd in "git status" "git log" "git diff"; do
         if ! jq -e ".permissions.bash.allow | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-            missing_allows+=("$cmd")
+            missing_safe+=("$cmd")
         fi
     done
 
-    # Check if critical denies are present
+    local missing_risky=()
+    for cmd in "git commit" "git push" "gh pr create"; do
+        if ! jq -e ".permissions.bash.requireApproval | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1 && \
+           ! jq -e ".permissions.bash.allow | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
+            missing_risky+=("$cmd")
+        fi
+    done
+
     local missing_denies=()
     for cmd in "rm -rf /" "git push --force origin main" "gh repo delete"; do
         if ! jq -e ".permissions.bash.deny | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
@@ -330,15 +556,18 @@ validate_permissions() {
         fi
     done
 
-    if [ ${#missing_allows[@]} -eq 0 ] && [ ${#missing_denies[@]} -eq 0 ]; then
+    if [ ${#missing_safe[@]} -eq 0 ] && [ ${#missing_risky[@]} -eq 0 ] && [ ${#missing_denies[@]} -eq 0 ]; then
         echo -e "${GREEN}✓${NC} All critical permissions configured correctly"
-        echo -e "${GREEN}✓${NC} Git commands: allowed"
-        echo -e "${GREEN}✓${NC} GitHub CLI commands: allowed"
+        echo -e "${GREEN}✓${NC} Safe commands: allowed"
+        echo -e "${GREEN}✓${NC} Risky commands: require approval (or allowed)"
         echo -e "${GREEN}✓${NC} Dangerous commands: denied"
     else
         echo -e "${YELLOW}⚠${NC} Some permissions missing:"
-        if [ ${#missing_allows[@]} -gt 0 ]; then
-            echo "  Missing allows: ${missing_allows[*]}"
+        if [ ${#missing_safe[@]} -gt 0 ]; then
+            echo "  Missing safe (allow): ${missing_safe[*]}"
+        fi
+        if [ ${#missing_risky[@]} -gt 0 ]; then
+            echo "  Missing risky (requireApproval or allow): ${missing_risky[*]}"
         fi
         if [ ${#missing_denies[@]} -gt 0 ]; then
             echo "  Missing denies: ${missing_denies[*]}"
@@ -363,20 +592,33 @@ reset_permissions() {
     echo "This will remove all repo-specific permissions"
     echo ""
 
-    # Remove repo-specific allow/deny rules
+    # Remove repo-specific allow/deny/requireApproval rules
     local temp_file=$(mktemp)
 
     # Get existing settings
     cp "$SETTINGS_FILE" "$temp_file"
 
-    # Remove commands we added
+    # Remove commands we added from all categories
     for cmd in "${ALLOW_COMMANDS[@]}"; do
-        jq --arg cmd "$cmd" '.permissions.bash.allow = (.permissions.bash.allow - [$cmd])' "$temp_file" > "${temp_file}.tmp"
+        jq --arg cmd "$cmd" '
+            .permissions.bash.allow = (.permissions.bash.allow - [$cmd]) |
+            .permissions.bash.requireApproval = (.permissions.bash.requireApproval - [$cmd])
+        ' "$temp_file" > "${temp_file}.tmp"
+        mv "${temp_file}.tmp" "$temp_file"
+    done
+
+    for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
+        jq --arg cmd "$cmd" '
+            .permissions.bash.allow = (.permissions.bash.allow - [$cmd]) |
+            .permissions.bash.requireApproval = (.permissions.bash.requireApproval - [$cmd])
+        ' "$temp_file" > "${temp_file}.tmp"
         mv "${temp_file}.tmp" "$temp_file"
     done
 
     for cmd in "${DENY_COMMANDS[@]}"; do
-        jq --arg cmd "$cmd" '.permissions.bash.deny = (.permissions.bash.deny - [$cmd])' "$temp_file" > "${temp_file}.tmp"
+        jq --arg cmd "$cmd" '
+            .permissions.bash.deny = (.permissions.bash.deny - [$cmd])
+        ' "$temp_file" > "${temp_file}.tmp"
         mv "${temp_file}.tmp" "$temp_file"
     done
 
