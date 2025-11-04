@@ -33,6 +33,7 @@ Natural Language → infra-manager Operation
 "generate code", "create terraform", "configure", "engineer" → engineer
 "validate", "check config" → validate
 "test", "security scan", "cost estimate" → test
+"audit", "inspect", "check health", "check drift", "check security" → audit
 "preview changes", "plan deployment", "what will change" → deploy-plan
 "deploy", "apply changes", "execute deployment" → deploy-execute
 "status", "what's deployed", "check deployment" → status
@@ -64,6 +65,9 @@ User: "Can you design monitoring for our Lambda functions?"
 
 User: "Preview the deployment changes"
 → Route to infra-manager with operation="deploy-plan"
+
+User: "Audit production for drift"
+→ Route to infra-manager with operation="audit", parameters={"env": "prod", "check": "drift"}
 
 User: "Deploy to test environment"
 → Route to infra-manager with operation="deploy-execute", parameters={"env": "test"}

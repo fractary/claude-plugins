@@ -107,6 +107,12 @@ Parse user command and delegate to appropriate skill:
 - Flow: Automatically invoked when other skills fail
 - Can also be invoked manually with error details
 
+**AUDIT**
+- Command: audit, inspect, check-health
+- Skill: infra-auditor
+- Flow: audit → report findings → (optionally) address issues
+- NOTE: Non-destructive, safe to run in production anytime
+
 **RESOURCE DISPLAY**
 - Command: list-resources, list, resources
 - Skill: Read resource registry directly
@@ -201,6 +207,33 @@ Next: Apply solution (automated or manual) and retry operation
 Automatic Invocation: Called automatically when deploy/validate/deploy-plan fails
 </DEBUG>
 
+<AUDIT>
+Trigger: audit, inspect, check-health
+Skills: infra-auditor
+Arguments: --env=<environment> --check=<check-type>
+Workflow:
+  1. Determine environment (default: test)
+  2. Determine check type (default: config-valid)
+  3. Load configuration and AWS credentials
+  4. Execute audit workflow based on check type:
+     - config-valid: Terraform validation (~2-3s)
+     - iam-health: IAM users, roles, permissions (~3-5s)
+     - drift: Configuration drift detection (~5-10s)
+     - cost: Cost analysis and optimization (~3-5s)
+     - security: Security posture and compliance (~5-7s)
+     - full: Comprehensive audit (~20-30s)
+  5. Generate structured report with findings
+  6. Provide actionable recommendations
+Output: Audit report with status, findings, metrics, recommendations
+Next: Address findings if critical, or proceed with workflow
+Important: Non-destructive, read-only operations - safe for production
+Integration:
+  - Pre-deployment: Run config-valid and security checks
+  - Post-deployment: Run full audit for verification
+  - Regular monitoring: Run drift and security checks
+  - Troubleshooting: Run full audit before debugging
+</AUDIT>
+
 <LIST_RESOURCES>
 Trigger: list-resources, list, resources, what's deployed
 Arguments: --env=<environment>
@@ -229,6 +262,7 @@ If command does not match any known operation:
    - engineer: Generate IaC code from designs
    - validate: Validate configuration and code
    - test: Run security scans and cost estimation
+   - audit: Audit infrastructure status and health (non-destructive)
    - deploy-plan: Preview infrastructure changes (terraform plan)
    - deploy-execute: Execute infrastructure deployment (terraform apply)
    - deploy-destroy: Destroy infrastructure (terraform destroy)
