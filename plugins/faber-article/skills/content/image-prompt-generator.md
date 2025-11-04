@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:image-prompt-generator
+description: |
+  Generate DALL-E 3 prompts for brand-consistent hero images - analyze post content and themes,
+  create prompts with split composition, dramatic lighting contrast (warm/cool), circuit patterns,
+  futuristic aesthetic, and professional high-quality rendering specifications.
+tools: Read
+---
+
 # Image Prompt Generator Skill
 
 ## Purpose

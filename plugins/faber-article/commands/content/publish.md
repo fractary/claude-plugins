@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-publish
+description: Finalize and publish blog post (move from sandbox to blog, set publication date)
+argument-hint: <slug> [--date YYYY-MM-DD]
+---
+
 Invoke the content-manager agent to finalize and publish a blog post.
 
 **Parameters from command:**

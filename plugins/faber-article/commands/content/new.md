@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-new
+description: Create new blog post from scratch with full workflow (research → outline → draft → SEO → image → publish)
+argument-hint: <title> [--depth basic|moderate|deep]
+---
+
 Invoke the content-manager agent to execute the full content creation workflow (research → outline → draft → SEO → image → publish).
 
 **Parameters from command:**

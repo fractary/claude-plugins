@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-ideate
+description: Brainstorm content ideas with research, create top 3 as "idea" state posts
+argument-hint: [topic-area]
+---
+
 Invoke the content-manager agent to brainstorm and generate content ideas.
 
 **Parameters from command:**

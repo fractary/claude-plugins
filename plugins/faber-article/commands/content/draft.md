@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-draft
+description: Convert existing outline into full blog post draft (800-2000 words)
+argument-hint: <slug>
+---
+
 Invoke the content-manager agent to convert an outline into a full draft.
 
 **Parameters from command:**

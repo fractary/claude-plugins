@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:content-writer
+description: |
+  Transform outlines into complete blog posts (800-2000 words) - write engaging content with brand
+  voice (empowering, practical, evidence-based), incorporate research and citations, ensure proper
+  markdown formatting, maintain narrative flow, and create compelling introductions and conclusions.
+tools: Read, Edit, Write
+---
+
 # Content Writer Skill
 
 ## Purpose

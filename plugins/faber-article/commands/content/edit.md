@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-edit
+description: Review and enhance existing blog post with updated research and improvements
+argument-hint: <slug> [--depth basic|moderate|deep]
+---
+
 Invoke the content-manager agent to review and enhance an existing blog post (draft or published).
 
 **Parameters from command:**

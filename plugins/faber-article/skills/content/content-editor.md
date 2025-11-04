@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:content-editor
+description: |
+  Review and enhance existing blog posts with configurable depth (basic/moderate/deep) - update
+  outdated information, strengthen arguments with evidence, improve clarity and flow, fix grammar
+  and structure, ensure brand voice consistency, and refresh published content.
+tools: Read, Edit, WebSearch, WebFetch
+---
+
 # Content Editor Skill
 
 ## Purpose

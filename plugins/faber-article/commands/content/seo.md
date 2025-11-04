@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-seo
+description: Optimize SEO metadata (title, description, tags, category) and find internal links
+argument-hint: <slug>
+---
+
 Invoke the content-manager agent to optimize SEO metadata and identify internal linking opportunities.
 
 **Parameters from command:**

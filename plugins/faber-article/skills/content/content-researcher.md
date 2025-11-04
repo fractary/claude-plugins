@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:content-researcher
+description: |
+  Research topics with configurable depth (basic/moderate/deep) - gather credible sources, validate
+  claims, analyze trends, generate research briefs with statistics, perform competitor analysis,
+  conduct SEO keyword research, and create comprehensive content research documentation.
+tools: WebSearch, WebFetch, Write
+---
+
 # Content Researcher Skill
 
 ## Purpose

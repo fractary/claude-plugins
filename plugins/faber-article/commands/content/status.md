@@ -1,3 +1,9 @@
+---
+name: fractary-faber-article:content-status
+description: Check workflow status and progress of blog posts (single post or all posts overview)
+argument-hint: [slug]
+---
+
 Invoke the content-manager agent to check the workflow status of blog posts.
 
 **Parameters from command:**

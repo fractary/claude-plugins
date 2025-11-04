@@ -1,14 +1,18 @@
-# Realized Self Content Creation System
+# Faber-Article Plugin
 
-**Version:** 1.0 (Prototype)
-**Status:** Ready for testing
+**Version:** 1.0.0
+**Status:** Production-Ready
+**Plugin Name:** `fractary-faber-article`
 **Created:** 2025-04-19
 
 ---
 
 ## Overview
 
-An AI-assisted content creation system for the Realized Self blog that automates the entire content lifecycle from ideation to publication.
+An AI-assisted content creation plugin for blog article lifecycle automation - from ideation through publication. Implements the Fractary 3-layer architecture with semi-automated checkpoints for quality control.
+
+**Designed for:** Content creators, bloggers, technical writers, solopreneurs
+**Works with:** Any Markdown-based blog system (Astro, Hugo, Jekyll, etc.)
 
 **Key Features:**
 - ✅ Configurable research depth (basic, moderate, deep)
@@ -20,9 +24,59 @@ An AI-assisted content creation system for the Realized Self blog that automates
 
 ---
 
+## Installation
+
+### Prerequisites
+
+1. **Claude Code CLI** installed and configured
+2. **OpenAI API key** (for image generation - optional but recommended)
+3. **Content directories** in your project:
+   - `src/content/sandbox/` (for drafts)
+   - `src/content/blog/` (for published posts)
+   - `public/images/hero/` (for hero images)
+
+### Install Plugin
+
+**Option 1: Clone into plugins directory**
+```bash
+cd ~/.claude/plugins/
+git clone <repository-url> faber-article
+```
+
+**Option 2: Symlink for development**
+```bash
+ln -s /path/to/claude-plugins/plugins/faber-article ~/.claude/plugins/faber-article
+```
+
+### Configuration
+
+**Set OpenAI API Key (for image generation):**
+```bash
+export OPENAI_API_KEY="sk-..."
+# Or add to ~/.bashrc or ~/.zshrc
+```
+
+**Create required directories:**
+```bash
+mkdir -p src/content/{sandbox,blog}
+mkdir -p public/images/hero
+mkdir -p .claude
+```
+
+### Verify Installation
+
+```bash
+# List available commands
+/content:status
+
+# You should see the plugin registered with 9 commands available
+```
+
+---
+
 ## Quick Start
 
-### Create a New Blog Post (Full Workflow)
+### Create Your First Blog Post (Full Workflow)
 
 ```bash
 /content:new "Your Post Title" --depth moderate
@@ -355,38 +409,97 @@ All directories are created automatically if missing.
 
 ---
 
-## Future Migration to Faber-Content Plugin
+## Roadmap
 
-This is a **prototype** implementation in the Realized Self project.
+### Version 1.x
+- ✅ Core workflow automation (research → publish)
+- ✅ Semi-automated checkpoints
+- ✅ State tracking and validation
+- ✅ DALL-E 3 image generation
+- ✅ SEO optimization
+- ⏳ XML markup for all skills (in progress)
+- ⏳ Configuration system for brand customization
 
-**Phase 2 Goals:**
-- Extract into `fractary-faber:content` or `fractary-faber:article` plugin
-- Generalize for multi-brand use
-- Add configuration for:
-  - Brand voice and style
-  - Visual style preferences
-  - Frontmatter schema
-  - Custom workflow states
-  - Research source preferences
+### Version 2.x (Future)
+- Configuration files for brand voice, visual style, frontmatter schema
+- Custom workflow states and transitions
+- Parallel skill execution for performance
+- Workflow analytics and reporting
+- Multi-user collaboration features
+- A/B testing for headlines and content
+- Scheduled/automated workflows
 
 ---
 
 ## Documentation
 
-- **Full Specification:** `docs/specs/content-creation-system.md`
-- **Skills Documentation:** `.claude/skills/content/`
-- **Agent Documentation:** `.claude/agents/content-manager.md`
-- **Command Reference:** `.claude/commands/content/`
+- **[User Guide](./docs/USER-GUIDE.md)** - Complete command reference and workflows
+- **[Architecture](./docs/ARCHITECTURE.md)** - System design and components
+- **[Skills Reference](./docs/SKILLS-REFERENCE.md)** - Detailed skill documentation
+- **[Original Spec](../../docs/specs/SPEC-0011-faber-article-plugin.md)** - System specification
 
 ---
 
-## Support & Feedback
+## Plugin Architecture
 
-This is a prototype system. For issues or suggestions:
-1. Test thoroughly with non-critical content first
-2. Document any issues encountered
-3. Note ideas for improvements
-4. Prepare feedback for plugin version
+Follows **Fractary 3-layer architecture**:
+
+```
+Commands → Agent → Skills → Tools
+```
+
+- **9 Commands:** Entry points for user workflows
+- **1 Agent:** `content-manager` - Orchestrates multi-step workflows
+- **8 Skills:** Focused execution units (research, write, edit, SEO, etc.)
+- **Tools:** Claude Code tools (Read, Edit, Write, Bash, WebSearch, etc.)
+
+See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed design.
+
+---
+
+## Configuration & Customization
+
+### Brand Voice
+
+Currently configured for **Realized Self** brand voice:
+- Empowering, practical, evidence-based, optimistic
+- Five Freedoms Framework alignment
+- Solopreneur and knowledge worker audience
+
+**Future:** Configurable brand voice profiles
+
+### Visual Style (Hero Images)
+
+Auto-generated images follow:
+- Split composition (left/right contrast)
+- Warm/cool lighting contrast
+- Circuit patterns and futuristic aesthetic
+- Professional high-quality rendering
+
+**Future:** Custom visual style configuration
+
+---
+
+## Support & Contributions
+
+### Issues
+
+Report issues at: [GitHub Issues](<repository-url>/issues)
+
+### Contributions
+
+Contributions welcome! Please:
+1. Follow Fractary Plugin Standards
+2. Test thoroughly before PR
+3. Update documentation
+4. Add examples for new features
+
+### Feedback
+
+For questions or suggestions:
+- Open a GitHub discussion
+- Tag @fractary in issues
+- Consult [User Guide](./docs/USER-GUIDE.md) first
 
 ---
 

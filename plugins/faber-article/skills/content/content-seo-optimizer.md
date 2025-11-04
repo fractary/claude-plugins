@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:content-seo-optimizer
+description: |
+  Optimize SEO metadata and internal linking - craft SEO-friendly titles (50-60 chars), write
+  compelling meta descriptions (150-160 chars), select relevant tags, assign categories, generate
+  canonical URLs, identify internal link opportunities, and validate frontmatter completeness.
+tools: Read, Edit, WebSearch, Grep
+---
+
 # Content SEO Optimizer Skill
 
 ## Purpose

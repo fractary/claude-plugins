@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:content-outliner
+description: |
+  Convert research briefs into detailed structured outlines - organize hierarchical sections,
+  plan narrative flow, map to Five Freedoms Framework, assign evidence and citations, estimate
+  word counts, and create comprehensive content blueprints ready for writing.
+tools: Read, Edit, Write
+---
+
 # Content Outliner Skill
 
 ## Purpose

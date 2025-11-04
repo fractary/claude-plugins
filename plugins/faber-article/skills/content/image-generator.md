@@ -1,3 +1,12 @@
+---
+name: fractary-faber-article:image-generator
+description: |
+  Generate hero images via DALL-E 3 API - call OpenAI API with prompt, download image, convert to
+  WebP format (quality: 85), save to /public/images/hero/{slug}.webp, update post frontmatter with
+  heroImage path, handle errors with retries. Cost: $0.08 per 1792x1024 HD image.
+tools: Bash, Edit
+---
+
 # Image Generator Skill
 
 ## Purpose
