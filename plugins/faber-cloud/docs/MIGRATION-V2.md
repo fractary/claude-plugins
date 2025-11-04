@@ -9,7 +9,7 @@
 ## Overview
 
 Version 2.0.0 of faber-cloud represents a **clean architectural separation** where:
-- **faber-cloud** = Infrastructure lifecycle (design → build → test → deploy)
+- **faber-cloud** = Infrastructure lifecycle (architect → build → test → deploy)
 - **helm-cloud** = Operations monitoring (monitor → investigate → remediate → audit)
 
 This separation creates cleaner boundaries, better maintainability, and prepares for unified cross-domain monitoring via the central `helm` plugin.
@@ -130,7 +130,7 @@ Verify infrastructure commands still work:
 /fractary-faber-cloud:architect "S3 bucket for uploads"
 /fractary-faber-cloud:validate --env=test
 /fractary-faber-cloud:deploy --env=test
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:list --env=test
 ```
 
 ### Step 6: Test Operations Monitoring
@@ -247,7 +247,7 @@ All infrastructure lifecycle commands remain unchanged:
 /fractary-faber-cloud:test --env=test --phase=pre-deployment
 
 # Preview
-/fractary-faber-cloud:preview --env=test
+/fractary-faber-cloud:deploy-plan --env=test
 
 # Deploy
 /fractary-faber-cloud:deploy --env=test
@@ -256,7 +256,7 @@ All infrastructure lifecycle commands remain unchanged:
 /fractary-faber-cloud:status --env=test
 
 # Resources
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:list --env=test
 
 # Debug
 /fractary-faber-cloud:debug --error="AccessDenied"

@@ -1201,7 +1201,7 @@ The plugin only provides the **template** for the config file.
 ### Integration Testing
 
 **Full Deployment Workflow:**
-- Test init → validate → deploy → verify
+- Test init → validate → deploy-execute → verify
 - Test with multiple providers
 - Test with multiple IaC tools
 - Test error recovery

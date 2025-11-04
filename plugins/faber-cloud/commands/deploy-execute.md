@@ -119,7 +119,7 @@ Deployment automatically:
 Check deployment status:
 ```
 /fractary-faber-cloud:status --env=test
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:list --env=test
 ```
 
 ## Rollback

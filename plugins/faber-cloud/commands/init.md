@@ -210,7 +210,7 @@ Configuration saved to: .fractary/plugins/faber-cloud/config/faber-cloud.json
 Next steps:
   - Review configuration: cat .fractary/plugins/faber-cloud/config/faber-cloud.json
   - Validate setup: /fractary-faber-cloud:validate
-  - Deploy infrastructure: /fractary-faber-cloud:deploy-apply --env=test
+  - Deploy infrastructure: /fractary-faber-cloud:deploy-execute --env=test
 ```
 
 ## Error Handling
@@ -247,4 +247,4 @@ Next steps:
 
 - `/fractary-faber-cloud:validate` - Validate existing configuration
 - `/fractary-faber-cloud:status` - Show current configuration status
-- `/fractary-faber-cloud:deploy-apply` - Deploy infrastructure using configuration
+- `/fractary-faber-cloud:deploy-execute` - Deploy infrastructure using configuration

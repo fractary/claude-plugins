@@ -41,7 +41,7 @@ Layer 5: Provider Adapters
 5. Route to infra-manager or ops-manager
 
 **Examples:**
-- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env=prod`
+- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy-execute --env=prod`
 - "check health" → `/fractary-faber-cloud:ops-manage check-health`
 - "investigate errors" → `/fractary-faber-cloud:ops-manage investigate`
 
@@ -51,7 +51,7 @@ Layer 5: Provider Adapters
 
 **Workflow:**
 ```
-architect → engineer → validate → test → preview → deploy → (debug if needed)
+architect → engineer → validate → test → deploy-plan → deploy-execute → (debug if needed)
 ```
 
 **Delegations:**
@@ -59,8 +59,8 @@ architect → engineer → validate → test → preview → deploy → (debug i
 - engineer → infra-engineer skill
 - validate → infra-validator skill
 - test → infra-tester skill
-- preview → infra-previewer skill
-- deploy → infra-deployer skill
+- deploy-plan → infra-previewer skill
+- deploy-execute → infra-deployer skill
 - debug → infra-debugger skill
 
 **Commands:** architect, engineer, validate-config, test-changes, preview-changes, deploy, show-resources, check-status, debug

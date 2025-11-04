@@ -80,7 +80,7 @@ Check status:
 
 Based on status:
 - If not deployed: `/fractary-faber-cloud:deploy --env=test`
-- If deployed: `/fractary-faber-cloud:resources --env=test`
+- If deployed: `/fractary-faber-cloud:list --env=test`
 - If issues: `/fractary-faber-cloud:debug`
 - If healthy: Continue monitoring with helm-cloud
 

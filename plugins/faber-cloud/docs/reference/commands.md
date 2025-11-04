@@ -136,13 +136,13 @@ Run pre or post-deployment tests.
 - Health checks
 - Integration tests
 
-#### /fractary-faber-cloud:preview
+#### /fractary-faber-cloud:deploy-plan
 
 Generate Terraform execution plan.
 
 **Syntax:**
 ```bash
-/fractary-faber-cloud:preview --env=<env>
+/fractary-faber-cloud:deploy-plan --env=<env>
 ```
 
 **Options:**
@@ -150,8 +150,8 @@ Generate Terraform execution plan.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:preview --env=test
-/fractary-faber-cloud:preview --env=prod
+/fractary-faber-cloud:deploy-plan --env=test
+/fractary-faber-cloud:deploy-plan --env=prod
 ```
 
 **Shows:**
@@ -216,13 +216,13 @@ Check configuration and deployment status.
 - Resource counts
 - Last deployment
 
-#### /fractary-faber-cloud:resources
+#### /fractary-faber-cloud:list
 
 Display deployed resources.
 
 **Syntax:**
 ```bash
-/fractary-faber-cloud:resources --env=<env>
+/fractary-faber-cloud:list --env=<env>
 ```
 
 **Options:**
@@ -230,8 +230,8 @@ Display deployed resources.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:resources --env=test
-/fractary-faber-cloud:resources --env=prod
+/fractary-faber-cloud:list --env=test
+/fractary-faber-cloud:list --env=prod
 ```
 
 **Shows:**
@@ -586,7 +586,7 @@ Audit costs, security, or compliance.
 
 **Show resources:**
 ```bash
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:list --env=test
 ```
 
 **Operations (helm-cloud):**
