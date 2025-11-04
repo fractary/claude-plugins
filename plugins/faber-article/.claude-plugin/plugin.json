@@ -8,6 +8,5 @@
   "agents": [
     "./agents/content-manager.md"
   ],
-  "skills": "./skills/",
-  "requires": []
+  "skills": "./skills/"
 }
