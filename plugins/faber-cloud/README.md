@@ -1,25 +1,37 @@
 # Fractary faber-cloud Plugin
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 
 Comprehensive cloud infrastructure lifecycle management plugin for Claude Code.
 
-Focus: Infrastructure design, configuration, deployment, and teardown (FABER framework for cloud).
+Focus: Infrastructure architecture, engineering, deployment, and lifecycle management (FABER framework for cloud).
+
+> **📋 Note**: This README contains examples using old command names from v2.1. See [Migration from v2.1](#migration-from-v21) for command name changes. A comprehensive documentation update is in progress.
 
 ---
 
-## What's New in v2.1.0
+## What's New in v2.2.0 (SPEC-0013)
 
-**Simplified Command Structure**: All commands renamed for clarity and Terraform alignment
-- `init` (was `devops-init` in pre-release versions)
-- `design` (for architecture/design phase)
-- `configure` (for IaC code generation)
-- `deploy-plan` (preview deployment changes)
-- `deploy-apply` (execute deployment)
-- `manage` (unified management interface)
+**Command Reorganization**: Commands renamed for clarity and FABER phase alignment
+- `architect` (was `design` - aligns with FABER Architect phase)
+- `engineer` (was `configure` - better describes IaC generation)
+- `deploy-execute` (was `deploy-apply` - clearer intent)
+- `deploy-destroy` (was `teardown` - parallel naming with deploy-execute)
+- `list` (was `resources` - simpler, more intuitive)
 
 **New Commands**:
-- `teardown` - Safely destroy infrastructure with production safeguards
+- `audit` - Infrastructure observability without modification (corthos pattern)
+  - Fast targeted checks: config-valid, iam-health, drift, cost, security
+  - Comprehensive full audit
+  - Pre/post-deployment verification
+  - Non-destructive, safe for production
+
+**Continuing from v2.1.0**:
+- `init` - Plugin configuration wizard
+- `deploy-plan` - Preview deployment changes
+- `validate` - Terraform syntax validation
+- `test` - Security scans and cost estimation
+- `manage` - Unified management interface
 
 **Enhanced Automation**:
 - **Automated error fixing** with `--complete` flag on debug command
@@ -33,23 +45,19 @@ Focus: Infrastructure design, configuration, deployment, and teardown (FABER fra
 
 ---
 
-## Migration from v2.0
+## Migration from v2.1
 
-**Configuration File:**
-```bash
-# Rename config file
-mv .fractary/plugins/faber-cloud/config/devops.json \
-   .fractary/plugins/faber-cloud/config/faber-cloud.json
+**Command Name Changes (v2.2.0 - SPEC-0013):**
+- `/fractary-faber-cloud:design` → `/fractary-faber-cloud:architect`
+- `/fractary-faber-cloud:configure` → `/fractary-faber-cloud:engineer`
+- `/fractary-faber-cloud:deploy-apply` → `/fractary-faber-cloud:deploy-execute`
+- `/fractary-faber-cloud:teardown` → `/fractary-faber-cloud:deploy-destroy`
+- `/fractary-faber-cloud:resources` → `/fractary-faber-cloud:list`
 
-# Or use migration script
-./plugins/faber-cloud/scripts/migrate-config.sh
-```
+**New Command:**
+- `/fractary-faber-cloud:audit` - Infrastructure health and drift detection
 
-**Command Updates:**
-- Replace `/fractary-faber-cloud:architect` with `/fractary-faber-cloud:design`
-- Replace `/fractary-faber-cloud:engineer` with `/fractary-faber-cloud:configure`
-- Replace `/fractary-faber-cloud:preview` with `/fractary-faber-cloud:deploy-plan`
-- Replace `/fractary-faber-cloud:deploy` with `/fractary-faber-cloud:deploy-apply`
+**No Breaking Changes**: Old command names supported with deprecation warnings until v3.0
 
 ---
 
