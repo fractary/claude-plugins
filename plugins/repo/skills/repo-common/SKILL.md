@@ -78,8 +78,42 @@ You receive utility requests from other skills:
     "branch_naming": "feat/{issue_id}-{slug}",
     "commit_format": "conventional",
     "require_signed_commits": false,
-    "merge_strategy": "no-ff"
+    "merge_strategy": "no-ff",
+    "push_sync_strategy": "auto-merge"
   }
+}
+```
+
+**Special return value**: If config file doesn't exist, returns defaults with a flag:
+```json
+{
+  "config_exists": false,
+  "using_defaults": true,
+  "handlers": { ... },
+  "defaults": { ... }
+}
+```
+
+---
+
+### check-config-exists
+**Purpose**: Check if plugin configuration exists and return recommendation if not
+**Script**: `scripts/check-config-exists.sh`
+**Parameters**: None
+
+**Output Format**:
+```json
+{
+  "config_exists": true,
+  "config_path": ".fractary/plugins/repo/config.json"
+}
+```
+
+**Output Format (if not exists)**:
+```json
+{
+  "config_exists": false,
+  "recommendation": "💡 Tip: Run /repo:init to create a configuration file for this repository. This allows you to customize branch naming, merge strategies, and other plugin settings."
 }
 ```
 
@@ -326,6 +360,12 @@ is_valid_commit_type() {
         "commit_format": {"type": "string", "enum": ["conventional", "faber"], "default": "faber"},
         "require_signed_commits": {"type": "boolean", "default": false},
         "merge_strategy": {"type": "string", "enum": ["no-ff", "squash", "ff-only"], "default": "no-ff"},
+        "push_sync_strategy": {
+          "type": "string",
+          "enum": ["auto-merge", "pull-rebase", "pull-merge", "manual", "fail"],
+          "default": "auto-merge",
+          "description": "Strategy for handling out-of-sync branches during push: auto-merge (pull+merge automatically), pull-rebase (pull+rebase automatically), pull-merge (pull with merge commit), manual (prompt user), fail (abort push)"
+        },
         "auto_delete_merged_branches": {"type": "boolean", "default": false}
       }
     }
@@ -352,10 +392,18 @@ is_valid_commit_type() {
     "commit_format": "faber",
     "require_signed_commits": false,
     "merge_strategy": "no-ff",
+    "push_sync_strategy": "auto-merge",
     "auto_delete_merged_branches": false
   }
 }
 ```
+
+**Push Sync Strategy Options:**
+- `auto-merge`: Automatically pull and merge when branch is out of sync (default, best for solo developers)
+- `pull-rebase`: Automatically pull and rebase local commits on top of remote changes
+- `pull-merge`: Pull with explicit merge commit
+- `manual`: Prompt user for action when branch is out of sync
+- `fail`: Abort push if branch is out of sync, require manual sync
 
 </CONFIGURATION_SCHEMA>
 

@@ -39,12 +39,14 @@ You receive requests from work-manager agent with:
 <WORKFLOW>
 1. Output start message with issue_id
 2. Validate issue_id parameter is present
-3. Load configuration to determine active handler
+3. Load configuration to determine active handler (or use auto-detection if config doesn't exist)
 4. Invoke handler-work-tracker-{platform} with fetch-issue operation
 5. Receive normalized issue JSON from handler
 6. Validate response has required fields (id, title, state, url)
-7. Output end message with issue summary
-8. Return response to work-manager agent
+7. Check if config file exists (.fractary/plugins/work/config.json)
+8. Output end message with issue summary
+   - If config doesn't exist, include recommendation to run /work:init
+9. Return response to work-manager agent
 </WORKFLOW>
 
 <HANDLERS>
@@ -143,13 +145,30 @@ On error:
 </OUTPUTS>
 
 <DOCUMENTATION>
-After fetching issue:
-1. Output completion message with:
-   - Issue identifier
-   - Issue title
-   - Issue state
-   - Platform
-2. No explicit documentation files needed (handled by workflow)
+After fetching issue, output completion message.
+
+**If config exists:**
+```
+✅ COMPLETED: Issue Fetcher
+Issue: #123 - Fix login page crash on mobile
+State: open
+Platform: GitHub
+───────────────────────────────────────
+```
+
+**If config does NOT exist:**
+```
+✅ COMPLETED: Issue Fetcher
+Issue: #123 - Fix login page crash on mobile
+State: open
+Platform: GitHub (auto-detected)
+───────────────────────────────────────
+
+💡 Tip: Run /work:init to create a configuration file for this project.
+   This allows you to customize label mappings, workflow states, and other plugin settings.
+```
+
+No explicit documentation files needed (handled by FABER workflow).
 </DOCUMENTATION>
 
 <ERROR_HANDLING>
