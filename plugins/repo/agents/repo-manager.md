@@ -131,6 +131,14 @@ Check required parameters are present based on operation:
 - Validate types and formats
 - Check for missing or invalid values
 
+**Special handling for create-branch:**
+- Determine mode from parameters:
+  - If `branch_name` provided → "direct" mode
+  - If `work_id` provided → "semantic" mode
+  - If only `description` provided → "simple" mode
+- Validate required parameters for chosen mode
+- Set defaults for optional parameters
+
 If validation fails:
 ```
 RETURN: {
@@ -239,8 +247,12 @@ Return structured response to caller:
 - description (string)
 
 **create-branch:**
-- branch_name (string)
-- base_branch (string)
+- mode (string): "direct"|"semantic"|"simple" (optional, defaults to "direct" if branch_name provided)
+- branch_name (string): Required for "direct" mode
+- work_id (string): Required for "semantic" mode
+- description (string): Required for "semantic" and "simple" modes
+- prefix (string): Optional for "semantic" mode, required for "simple" mode (default: "feat")
+- base_branch (string): Optional (default: "main")
 
 **delete-branch:**
 - branch_name (string)
@@ -421,26 +433,87 @@ OUTPUT:
 }
 ```
 
-**Example 2: Create Branch (from FABER Frame)**
+**Example 2a: Create Branch - Direct Mode**
 ```
 INPUT:
 {
   "operation": "create-branch",
   "parameters": {
-    "branch_name": "feat/123-add-export",
+    "mode": "direct",
+    "branch_name": "feature/my-new-feature",
     "base_branch": "main"
   }
 }
 
-ROUTING: → branch-manager skill
+ROUTING: → branch-manager skill (skip branch-namer)
 
 OUTPUT:
 {
   "status": "success",
   "operation": "create-branch",
   "result": {
-    "branch_name": "feat/123-add-export",
-    "commit_sha": "abc123..."
+    "branch_name": "feature/my-new-feature",
+    "commit_sha": "abc123...",
+    "mode": "direct"
+  }
+}
+```
+
+**Example 2b: Create Branch - Semantic Mode (FABER)**
+```
+INPUT:
+{
+  "operation": "create-branch",
+  "parameters": {
+    "mode": "semantic",
+    "work_id": "123",
+    "description": "add CSV export",
+    "prefix": "feat",
+    "base_branch": "main"
+  }
+}
+
+ROUTING:
+  1. → branch-namer skill (generate name)
+  2. → branch-manager skill (create branch)
+
+OUTPUT:
+{
+  "status": "success",
+  "operation": "create-branch",
+  "result": {
+    "branch_name": "feat/123-add-csv-export",
+    "commit_sha": "abc123...",
+    "mode": "semantic"
+  }
+}
+```
+
+**Example 2c: Create Branch - Simple Mode**
+```
+INPUT:
+{
+  "operation": "create-branch",
+  "parameters": {
+    "mode": "simple",
+    "description": "my experimental feature",
+    "prefix": "feat",
+    "base_branch": "main"
+  }
+}
+
+ROUTING:
+  1. → Generate simple name (feat/my-experimental-feature)
+  2. → branch-manager skill (create branch)
+
+OUTPUT:
+{
+  "status": "success",
+  "operation": "create-branch",
+  "result": {
+    "branch_name": "feat/my-experimental-feature",
+    "commit_sha": "abc123...",
+    "mode": "simple"
   }
 }
 ```
@@ -599,3 +672,27 @@ This agent is now a clean, focused router that:
 - Contains NO platform-specific knowledge
 
 All actual work is done by the 7 specialized skills, which in turn delegate to platform-specific handlers. This creates a clean, maintainable, testable architecture with dramatic context reduction.
+
+## Branch Creation Flexibility (v2.1)
+
+The `create-branch` operation supports three modes to accommodate different use cases:
+
+1. **Direct Mode**: For users who want full control over branch naming
+   - Provide exact branch name: `feature/my-custom-branch`
+   - No work item integration required
+   - Fastest path for ad-hoc branches
+
+2. **Semantic Mode**: For FABER workflows with work item tracking
+   - Generates semantic names: `feat/123-description`
+   - Integrates with work tracking systems
+   - Maintains full traceability
+
+3. **Simple Mode**: For quick branches without work items
+   - Generates simple names: `feat/description-slug`
+   - No work ID required
+   - Cleaner than direct mode, simpler than semantic
+
+**Backward Compatibility:**
+- Existing FABER calls unchanged (semantic mode is default when work_id provided)
+- All existing integrations continue to work
+- New modes are additive, not breaking
