@@ -2,19 +2,40 @@
 name: /fractary-faber-cloud:deploy-apply
 description: Execute deployment (terraform apply)
 examples:
-  - /fractary-faber-cloud:deploy-apply --env=test
-  - /fractary-faber-cloud:deploy-apply --env=prod
-argument-hint: "--env=<environment> [--auto-approve]"
+  - /fractary-faber-cloud:deploy-apply --env test
+  - /fractary-faber-cloud:deploy-apply --env prod
+argument-hint: "--env <environment> [--auto-approve]"
 ---
 
 # Deploy-Apply Command
 
 Deploy infrastructure to AWS (Terraform apply).
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:deploy-apply --env test
+/fractary-faber-cloud:deploy-apply --env prod --auto-approve
+
+# Incorrect ❌
+/fractary-faber-cloud:deploy-apply --env=test
+/fractary-faber-cloud:deploy-apply --env=prod --auto-approve=true
+```
+</ARGUMENT_SYNTAX>
+
 ## Usage
 
 ```bash
-/fractary-faber-cloud:deploy-apply --env=<environment> [--auto-approve]
+/fractary-faber-cloud:deploy-apply --env <environment> [--auto-approve]
 ```
 
 ## Parameters
@@ -37,12 +58,12 @@ Deploy infrastructure to AWS (Terraform apply).
 
 **Deploy to test:**
 ```
-/fractary-faber-cloud:deploy-apply --env=test
+/fractary-faber-cloud:deploy-apply --env test
 ```
 
 **Deploy to production:**
 ```
-/fractary-faber-cloud:deploy-apply --env=prod
+/fractary-faber-cloud:deploy-apply --env prod
 ```
 
 ## Complete Workflow
@@ -61,7 +82,7 @@ The deploy-apply command orchestrates the full workflow:
 ## Production Safety
 
 **For production deployments:**
-- ⚠️ Requires explicit `--env=prod`
+- ⚠️ Requires explicit `--env prod`
 - ⚠️ Multiple confirmation prompts
 - ⚠️ Shows detailed impact assessment
 - ⚠️ Allows cancellation at any step
@@ -86,7 +107,7 @@ If deployment encounters errors, you'll be offered 3 options:
 
 **Standard test deployment:**
 ```
-/fractary-faber-cloud:deploy-apply --env=test
+/fractary-faber-cloud:deploy-apply --env test
 ```
 
 **Production deployment (safe):**
@@ -98,11 +119,11 @@ If deployment encounters errors, you'll be offered 3 options:
 /fractary-faber-cloud:test
 
 # 3. Preview changes
-/fractary-faber-cloud:deploy-plan --env=prod
+/fractary-faber-cloud:deploy-plan --env prod
 # Review output carefully!
 
 # 4. Deploy with confirmation
-/fractary-faber-cloud:deploy-apply --env=prod
+/fractary-faber-cloud:deploy-apply --env prod
 # Will prompt for confirmation at each step
 ```
 
@@ -118,8 +139,8 @@ Deployment automatically:
 
 Check deployment status:
 ```
-/fractary-faber-cloud:status --env=test
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:status --env test
+/fractary-faber-cloud:resources --env test
 ```
 
 ## Rollback

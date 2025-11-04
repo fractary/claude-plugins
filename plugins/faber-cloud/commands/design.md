@@ -10,6 +10,26 @@ argument-hint: "<description>"
 
 # Design Command
 
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:design --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:design --env=test
+```
+</ARGUMENT_SYNTAX>
+
 Design cloud infrastructure from natural language requirements.
 
 ## Usage
@@ -52,7 +72,7 @@ Design cloud infrastructure from natural language requirements.
 After designing, you can:
 - Generate code: `/fractary-faber-cloud:configure`
 - Validate: `/fractary-faber-cloud:validate`
-- Deploy: `/fractary-faber-cloud:deploy-apply --env=test`
+- Deploy: `/fractary-faber-cloud:deploy-apply --env test`
 
 ## Invocation
 

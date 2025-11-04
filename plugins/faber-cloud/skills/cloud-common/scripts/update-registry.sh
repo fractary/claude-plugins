@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # update-registry.sh - Update resource registry after deployment
-# Usage: update-registry.sh --environment=<env> --resources=<json>
+# Usage: update-registry.sh --environment <env> --resources <json>
 
 set -euo pipefail
 
@@ -15,16 +15,34 @@ RESOURCES_JSON=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --environment=*)
-            ENVIRONMENT="${1#*=}"
-            shift
+        --environment)
+            if [[ $# -lt 2 || "$2" =~ ^-- ]]; then
+                echo "Error: --environment requires a value" >&2
+                echo "Usage: $0 --environment <env> --resources <json>" >&2
+                exit 2
+            fi
+            ENVIRONMENT="$2"
+            shift 2
             ;;
-        --resources=*)
-            RESOURCES_JSON="${1#*=}"
-            shift
+        --resources)
+            if [[ $# -lt 2 || "$2" =~ ^-- ]]; then
+                echo "Error: --resources requires a value" >&2
+                echo "Usage: $0 --environment <env> --resources <json>" >&2
+                exit 2
+            fi
+            RESOURCES_JSON="$2"
+            shift 2
+            ;;
+        --*=*)
+            # Reject equals syntax with helpful error
+            FLAG_NAME="${1%%=*}"
+            echo "Error: Use space-separated syntax, not equals syntax" >&2
+            echo "Use: $FLAG_NAME <value>" >&2
+            echo "Not: $1" >&2
+            exit 2
             ;;
         *)
-            echo "Unknown argument: $1"
+            echo "Unknown argument: $1" >&2
             exit 1
             ;;
     esac

@@ -9,6 +9,26 @@ argument-hint: "[--validate]"
 
 # Configure Command
 
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:configure --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:configure --env=test
+```
+</ARGUMENT_SYNTAX>
+
 Generate Infrastructure as Code (Terraform) from a design document.
 
 ## Usage
@@ -48,7 +68,7 @@ After generating code, you should:
 - Validate: `/fractary-faber-cloud:validate`
 - Test: `/fractary-faber-cloud:test`
 - Preview: `/fractary-faber-cloud:deploy-plan`
-- Deploy: `/fractary-faber-cloud:deploy-apply --env=test`
+- Deploy: `/fractary-faber-cloud:deploy-apply --env test`
 
 ## Invocation
 

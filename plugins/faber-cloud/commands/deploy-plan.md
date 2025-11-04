@@ -3,18 +3,38 @@ name: /fractary-faber-cloud:deploy-plan
 description: Generate and preview deployment plan (terraform plan)
 examples:
   - /fractary-faber-cloud:deploy-plan
-  - /fractary-faber-cloud:deploy-plan --env=test
-argument-hint: "[--env=<environment>]"
+  - /fractary-faber-cloud:deploy-plan --env test
+argument-hint: "[--env <environment>]"
 ---
 
 # Deploy-Plan Command
 
 Preview infrastructure changes before deployment (Terraform plan).
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:deploy-plan
+/fractary-faber-cloud:deploy-plan --env test
+/fractary-faber-cloud:deploy-plan --env prod
+
+# Incorrect ❌
+/fractary-faber-cloud:deploy-plan --env=test
+```
+</ARGUMENT_SYNTAX>
+
 ## Usage
 
 ```bash
-/fractary-faber-cloud:deploy-plan [--env=<environment>]
+/fractary-faber-cloud:deploy-plan [--env <environment>]
 ```
 
 ## Parameters
@@ -38,12 +58,12 @@ Preview infrastructure changes before deployment (Terraform plan).
 
 **Preview test environment changes:**
 ```
-/fractary-faber-cloud:deploy-plan --env=test
+/fractary-faber-cloud:deploy-plan --env test
 ```
 
 **Preview production changes:**
 ```
-/fractary-faber-cloud:deploy-plan --env=prod
+/fractary-faber-cloud:deploy-plan --env prod
 ```
 
 ## Output Includes
@@ -70,7 +90,7 @@ Run deploy-plan:
 ## Next Steps
 
 After reviewing plan:
-- Deploy if acceptable: `/fractary-faber-cloud:deploy-apply --env=test`
+- Deploy if acceptable: `/fractary-faber-cloud:deploy-apply --env test`
 - Modify code if needed: `/fractary-faber-cloud:configure`
 - Re-test if concerned: `/fractary-faber-cloud:test`
 
@@ -81,9 +101,9 @@ After reviewing plan:
 # Required workflow for production
 /fractary-faber-cloud:validate
 /fractary-faber-cloud:test
-/fractary-faber-cloud:deploy-plan --env=prod
+/fractary-faber-cloud:deploy-plan --env prod
 # Review output carefully
-/fractary-faber-cloud:deploy-apply --env=prod
+/fractary-faber-cloud:deploy-apply --env prod
 ```
 
 ## Invocation
