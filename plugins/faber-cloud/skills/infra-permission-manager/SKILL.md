@@ -15,8 +15,14 @@ profiles, automatically grant missing permissions when deployments fail, and mai
 </CONTEXT>
 
 <CRITICAL_RULES>
+1. ONLY manage deploy user permissions (infrastructure operations)
+2. NEVER manage resource permissions (runtime operations)
+3. ALL permission changes MUST be recorded in audit trail
+4. Production permissions require additional approval
+5. Always use appropriate AWS profile for environment
+
 **IMPORTANT:** Profile Separation
-- ONLY use discover-deploy profile for IAM operations
+- ONLY use discover-deploy profile (or aws_audit_profile) for IAM operations
 - NEVER grant IAM permissions using test-deploy or prod-deploy profiles
 - Validate profile before ANY AWS IAM operation
 - This is enforced at multiple levels for safety
@@ -32,6 +38,29 @@ profiles, automatically grant missing permissions when deployments fail, and mai
 - Include: timestamp, profile, permission, resource scope, reason
 - Audit trail must be complete and accurate for compliance
 </CRITICAL_RULES>
+
+<PERMISSION_TYPES>
+✅ DEPLOY USER PERMISSIONS (OK to add)
+- Infrastructure operations performed during deployment
+- Examples:
+  - Terraform state access (S3, DynamoDB)
+  - Resource creation/updates (Lambda, API Gateway, S3 buckets)
+  - IAM role creation/attachment
+  - CloudWatch log group creation
+  - VPC and networking setup
+
+❌ RESOURCE PERMISSIONS (REJECT - use Terraform)
+- Runtime operations performed by deployed applications
+- Examples:
+  - Lambda function reading from S3 bucket (use Terraform IAM role)
+  - API Gateway invoking Lambda (use Terraform resource policy)
+  - Application logging to CloudWatch (use Terraform IAM role)
+  - Cross-service access (use Terraform IAM policies)
+
+VALIDATION RULE:
+If user requests permission for runtime/application behavior → REJECT
+→ Explain: "This is a resource permission. Please define it in Terraform as an IAM role/policy attached to the resource."
+</PERMISSION_TYPES>
 
 <INPUTS>
 - **permission**: Required permission (e.g., "s3:PutObject")
@@ -64,14 +93,53 @@ Profile: discover-deploy (IAM operations only)
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
-✅ COMPLETED: Permission Manager
+✅ COMPLETED: IAM Permission Manager
+Environment: {env}
 Permission Granted: {permission}
 Target Profile: {target_profile}
 Scope: {resource_pattern}
-Audit: Logged in iam-audit.json
+Audit file: infrastructure/iam-policies/{env}-deploy-permissions.json
+Audit trail entry added: {timestamp}
 ───────────────────────────────────────
+Next: Return to infra-debugger (or parent skill)
 ```
 </WORKFLOW>
+
+<AUDIT_WORKFLOW>
+1. Receive permission request
+2. Validate: Deploy user permission or resource permission?
+   - If resource permission → REJECT with explanation
+   - If deploy user permission → Continue
+
+3. Determine environment from context
+4. Load audit file: infrastructure/iam-policies/{env}-deploy-permissions.json
+5. Add requested permissions to audit file
+6. Record in audit_trail with timestamp and reason
+7. Apply to AWS using apply-to-aws.sh script
+8. Verify application successful
+9. Return success status
+</AUDIT_WORKFLOW>
+
+<SCRIPTS>
+Audit System Scripts (skills/infra-permission-manager/scripts/audit/):
+
+update-audit.sh <env> <actions> <reason>
+  - Updates audit file with new permissions
+  - Records audit trail entry
+
+sync-from-aws.sh <env>
+  - Fetches current AWS IAM policy
+  - Shows differences from audit file
+  - Options to update audit file
+
+apply-to-aws.sh <env>
+  - Applies audit file permissions to AWS
+  - Uses {env}-deploy-discover profile
+
+diff-audit-aws.sh <env>
+  - Compares audit file vs actual AWS state
+  - Shows differences in readable format
+</SCRIPTS>
 
 <COMPLETION_CRITERIA>
 ✅ Profile separation validated (using discover-deploy)
@@ -182,3 +250,64 @@ When deployment fails with permission error:
      --profile myproject-core-discover-deploy
    ```
 </PERMISSION_DISCOVERY>
+
+<ERROR_HANDLING>
+If permission request is for resource (not deploy user):
+1. Identify the resource type (Lambda, API Gateway, etc.)
+2. Explain the distinction between deploy and resource permissions
+3. Provide Terraform example code
+4. REJECT the request
+
+**Example: Lambda function reading S3 bucket**
+
+```hcl
+# CORRECT: Define resource permission in Terraform as IAM role
+resource "aws_iam_role" "lambda_role" {
+  name = "my-function-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "lambda_s3_access" {
+  role = aws_iam_role.lambda_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:PutObject"]
+      Resource = "arn:aws:s3:::my-bucket/*"
+    }]
+  })
+}
+
+resource "aws_lambda_function" "my_function" {
+  function_name = "my-function"
+  role = aws_iam_role.lambda_role.arn
+  # ...
+}
+```
+
+**Example: API Gateway invoking Lambda**
+
+```hcl
+# CORRECT: Define resource permission in Terraform as resource policy
+resource "aws_lambda_permission" "apigw_lambda" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.my_function.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
+}
+```
+
+Response to user:
+"This is a resource permission (runtime behavior), not a deploy permission. Please define it in Terraform using the pattern above. Resource permissions should be managed as IAM roles/policies attached to resources, not as deploy user permissions."
+</ERROR_HANDLING>

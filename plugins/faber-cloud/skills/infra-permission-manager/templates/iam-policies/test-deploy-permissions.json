@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "environment": "test",
+  "deploy_user": "test-deploy",
+  "last_updated": "2025-11-04T00:00:00Z",
+  "policy_arn": "arn:aws:iam::ACCOUNT_ID:policy/test-deploy-policy",
+  "permissions": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "TerraformStateAccess",
+        "Effect": "Allow",
+        "Action": [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ],
+        "Resource": [
+          "arn:aws:s3:::terraform-state-bucket",
+          "arn:aws:s3:::terraform-state-bucket/*"
+        ]
+      },
+      {
+        "Sid": "TerraformStateLocking",
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ],
+        "Resource": "arn:aws:dynamodb:*:*:table/terraform-locks"
+      }
+    ]
+  },
+  "audit_trail": [
+    {
+      "timestamp": "2025-11-04T00:00:00Z",
+      "operation": "initialize",
+      "description": "Initial audit file created",
+      "added_actions": [],
+      "reason": "Setup IAM audit system"
+    }
+  ]
+}
