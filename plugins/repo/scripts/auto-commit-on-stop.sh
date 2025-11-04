@@ -81,10 +81,10 @@ generate_commit_message() {
     local name_status=$(git diff --cached --name-status)
 
     # Count changes by type
-    local added=$(echo "$name_status" | grep -c "^A" || echo "0")
-    local modified=$(echo "$name_status" | grep -c "^M" || echo "0")
-    local deleted=$(echo "$name_status" | grep -c "^D" || echo "0")
-    local renamed=$(echo "$name_status" | grep -c "^R" || echo "0")
+    local added=$(echo "$name_status" | grep "^A" | wc -l | tr -d ' ')
+    local modified=$(echo "$name_status" | grep "^M" | wc -l | tr -d ' ')
+    local deleted=$(echo "$name_status" | grep "^D" | wc -l | tr -d ' ')
+    local renamed=$(echo "$name_status" | grep "^R" | wc -l | tr -d ' ')
 
     # Get file extensions and paths
     local files=$(git diff --cached --name-only)
