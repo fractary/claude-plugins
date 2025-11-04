@@ -11,12 +11,12 @@ Focus: Infrastructure design, configuration, deployment, and teardown (FABER fra
 ## What's New in v2.1.0
 
 **Simplified Command Structure**: All commands renamed for clarity and Terraform alignment
-- `devops-init` → `init`
-- `architect` → `design`
-- `engineer` → `configure`
-- `preview` → `deploy-plan`
-- `deploy` → `deploy-apply`
-- `infra-manage` → `manage`
+- `init` (was `devops-init` in pre-release versions)
+- `design` (for architecture/design phase)
+- `configure` (for IaC code generation)
+- `deploy-plan` (preview deployment changes)
+- `deploy-apply` (execute deployment)
+- `manage` (unified management interface)
 
 **New Commands**:
 - `teardown` - Safely destroy infrastructure with production safeguards

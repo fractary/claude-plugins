@@ -495,14 +495,14 @@ plugins/fractary-faber-cloud/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── agents/
-│   ├── devops-director.md            # NEW - Phase 4
+│   ├── cloud-director.md             # NEW - Phase 4 (was devops-director.md)
 │   ├── infra-manager.md              # Phase 1 (unchanged)
-│   └── ops-manager.md                # Phase 3 (unchanged)
+│   └── ops-manager.md                # Phase 3 (moved to helm-cloud)
 ├── commands/
 │   ├── director.md                   # NEW - Phase 4
-│   ├── devops-init.md                # Phase 1
-│   ├── infra-manage.md               # Phase 1
-│   └── ops-manage.md                 # Phase 3
+│   ├── init.md                       # Phase 1 (was devops-init.md)
+│   ├── manage.md                     # Phase 1 (was infra-manage.md)
+│   └── [ops commands moved to helm-cloud]  # Phase 3
 ├── skills/                           # All phases (optimized)
 │   ├── devops-common/
 │   ├── infra-architect/

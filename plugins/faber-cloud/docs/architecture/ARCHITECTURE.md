@@ -488,14 +488,22 @@ plugins/fractary-faber-cloud/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── agents/
-│   ├── devops-director.md         (Phase 4)
-│   ├── infra-manager.md          (Phase 1)
-│   └── ops-manager.md            (Phase 3)
+│   ├── cloud-director.md         (Phase 4)
+│   └── infra-manager.md          (Phase 1)
 ├── commands/
 │   ├── director.md               (Phase 4)
-│   ├── devops-init.md            (Phase 1)
-│   ├── infra-manage.md           (Phase 1)
-│   └── ops-manage.md             (Phase 3)
+│   ├── init.md                   (Phase 1)
+│   ├── design.md                 (Phase 1)
+│   ├── configure.md              (Phase 1)
+│   ├── validate.md               (Phase 1)
+│   ├── test.md                   (Phase 2)
+│   ├── deploy-plan.md            (Phase 1)
+│   ├── deploy-apply.md           (Phase 1)
+│   ├── teardown.md               (Phase 2)
+│   ├── resources.md              (Phase 1)
+│   ├── status.md                 (Phase 1)
+│   ├── debug.md                  (Phase 2)
+│   └── manage.md                 (Phase 1)
 ├── skills/
 │   ├── devops-common/            (Phase 1)
 │   ├── infra-architect/          (Phase 1)

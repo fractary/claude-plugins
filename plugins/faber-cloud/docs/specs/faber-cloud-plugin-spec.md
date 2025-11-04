@@ -296,12 +296,19 @@ fractary-faber-cloud-plugin/
 │   └── devops-permissions.md
 │
 ├── commands/                         # User-invoked commands
-│   ├── devops-init.md               # /faber-cloud:init
-│   ├── devops-deploy.md             # /faber-cloud:deploy [env]
-│   ├── devops-debug.md              # /faber-cloud:debug
-│   ├── devops-permissions.md        # /faber-cloud:permissions
-│   ├── devops-validate.md           # /faber-cloud:validate
-│   └── devops-status.md             # /faber-cloud:status
+│   ├── init.md                      # /faber-cloud:init
+│   ├── design.md                    # /faber-cloud:design
+│   ├── configure.md                 # /faber-cloud:configure
+│   ├── validate.md                  # /faber-cloud:validate
+│   ├── test.md                      # /faber-cloud:test
+│   ├── deploy-plan.md               # /faber-cloud:deploy-plan
+│   ├── deploy-apply.md              # /faber-cloud:deploy-apply
+│   ├── teardown.md                  # /faber-cloud:teardown
+│   ├── resources.md                 # /faber-cloud:resources
+│   ├── status.md                    # /faber-cloud:status
+│   ├── debug.md                     # /faber-cloud:debug
+│   ├── manage.md                    # /faber-cloud:manage
+│   └── director.md                  # /faber-cloud:director
 │
 ├── skills/                          # Core implementation
 │   ├── devops-common/               # Shared utilities
