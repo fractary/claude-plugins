@@ -1,40 +1,57 @@
-# Fractary FABER Cloud Plugin
+# Fractary faber-cloud Plugin
 
-**Version:** 2.0.0 (Phase 4 Complete - Clean Separation)
+**Version:** 2.1.0
 
-**⚠️ BREAKING CHANGES:** Operations monitoring completely removed. Infrastructure lifecycle management only.
+Comprehensive cloud infrastructure lifecycle management plugin for Claude Code.
 
-Pure infrastructure lifecycle management for Claude Code - design, build, test, and deploy cloud infrastructure using the FABER workflow.
-
-## ⚠️ Version 2.0.0 Breaking Changes
-
-**Operations Monitoring Removed:**
-- `ops-manager` agent → Moved to `helm-cloud`
-- `ops-*` skills → Moved to `helm-cloud`
-- `ops-manage` command → Removed (use `helm-cloud`)
-
-**For operations monitoring, use:**
-- `fractary-helm-cloud` - Infrastructure operations
-- `fractary-helm` - Unified dashboard across domains
-
-**Migration Guide:** See [docs/MIGRATION-V2.md](docs/MIGRATION-V2.md)
+Focus: Infrastructure design, configuration, deployment, and teardown (FABER framework for cloud).
 
 ---
 
-## Recent Updates
+## What's New in v2.1.0
 
-**Phase 4 (Clean Separation) - v2.0.0:**
-- ✅ **BREAKING:** Operations monitoring completely removed
-- ✅ Pure infrastructure lifecycle management (FABER workflow)
-- ✅ Clean architectural boundaries
-- ✅ Focused on design → build → test → deploy
-- ✅ See migration guide for upgrade path
+**Simplified Command Structure**: All commands renamed for clarity and Terraform alignment
+- `devops-init` → `init`
+- `architect` → `design`
+- `engineer` → `configure`
+- `preview` → `deploy-plan`
+- `deploy` → `deploy-apply`
+- `infra-manage` → `manage`
 
-**Phase 1-3 (Complete):**
-- ✅ Simplified command structure
-- ✅ Operations extracted to helm-cloud
-- ✅ Central Helm orchestrator created
-- ✅ Backward compatibility maintained (through v1.x)
+**New Commands**:
+- `teardown` - Safely destroy infrastructure with production safeguards
+
+**Enhanced Automation**:
+- **Automated error fixing** with `--complete` flag on debug command
+- **IAM permission audit system** with complete traceability
+- **Environment safety validation** prevents multi-environment bugs
+
+**Architecture Clarity**:
+- Removed all "devops" naming for clear focus on infrastructure lifecycle
+- Configuration: `devops.json` → `faber-cloud.json` (backward compatible in v2.1.x)
+- All skills updated: `devops-common` → `cloud-common`
+
+---
+
+## Migration from v2.0
+
+**Configuration File:**
+```bash
+# Rename config file
+mv .fractary/plugins/faber-cloud/config/devops.json \
+   .fractary/plugins/faber-cloud/config/faber-cloud.json
+
+# Or use migration script
+./plugins/faber-cloud/scripts/migrate-config.sh
+```
+
+**Command Updates:**
+- Replace `/fractary-faber-cloud:architect` with `/fractary-faber-cloud:design`
+- Replace `/fractary-faber-cloud:engineer` with `/fractary-faber-cloud:configure`
+- Replace `/fractary-faber-cloud:preview` with `/fractary-faber-cloud:deploy-plan`
+- Replace `/fractary-faber-cloud:deploy` with `/fractary-faber-cloud:deploy-apply`
+
+---
 
 ## Overview
 
@@ -96,7 +113,7 @@ The Fractary FABER Cloud plugin (v2.0.0) provides infrastructure lifecycle manag
 /fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
-This creates `.fractary/plugins/faber-cloud/config/devops.json` with your project configuration.
+This creates `.fractary/plugins/faber-cloud/config/faber-cloud.json` with your project configuration.
 
 ### 2. Deploy Infrastructure
 
