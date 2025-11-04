@@ -4,6 +4,7 @@ description: |
   Manage documentation and knowledge sync across organization projects.
   Coordinates with fractary-repo for git operations.
 tools: Bash, Skill
+color: orange
 ---
 
 <CONTEXT>
