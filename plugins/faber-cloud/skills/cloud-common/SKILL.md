@@ -1,20 +1,35 @@
 ---
-name: DevOps Common
-description: Shared utilities for DevOps automation - configuration loading, pattern resolution, auto-discovery
+name: cloud-common
+description: Shared utilities for faber-cloud plugin - configuration loading, pattern resolution, auto-discovery
 allowed-tools: Bash, Read
 ---
 
-# DevOps Common
+# Cloud Common
 
-Shared utilities used across all DevOps skills.
+Shared utilities used across all faber-cloud skills.
 
 ## Purpose
 
 This skill provides:
 - Configuration loading from `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+- Backward compatibility with `devops.json` (v2.1.x only, deprecated)
 - Pattern substitution (`{project}`, `{environment}`, etc.)
 - Auto-discovery fallbacks when config is missing
 - Validation and error handling
+
+## Configuration Loading
+
+**Primary config file**: `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+
+**Backward compatibility** (v2.1.x only):
+- If `faber-cloud.json` not found, check for `devops.json`
+- If `devops.json` found:
+  1. Show deprecation warning
+  2. Prompt user to migrate: "Would you like to rename devops.json to faber-cloud.json?"
+  3. If yes: Rename file automatically
+  4. If no: Use devops.json but warn on every load
+
+This backward compatibility will be removed in v3.0.
 
 ## Components
 
@@ -23,7 +38,7 @@ This skill provides:
 Core configuration management:
 
 **Main Functions:**
-- `load_devops_config()` - Load configuration from file or auto-discover
+- `load_faber_cloud_config()` - Load configuration from file or auto-discover (with backward compatibility)
 - `resolve_pattern(pattern, environment)` - Substitute placeholders in patterns
 - `get_aws_profile(environment)` - Get AWS profile for environment
 - `get_config_value(key)` - Get specific config value
@@ -32,10 +47,10 @@ Core configuration management:
 **Usage:**
 ```bash
 # Source the loader
-source "${SKILL_DIR}/../devops-common/scripts/config-loader.sh"
+source "${SKILL_DIR}/../cloud-common/scripts/config-loader.sh"
 
-# Load configuration
-load_devops_config
+# Load configuration (checks faber-cloud.json, falls back to devops.json with warning)
+load_faber_cloud_config
 
 # Use configuration variables
 echo "Project: $PROJECT_NAME"
@@ -64,11 +79,11 @@ AWS_PROFILE=$(get_aws_profile "test")
 - `USER_NAME_PATTERN`, `POLICY_NAME_PATTERN` - IAM naming patterns
 - `RESOURCE_PREFIX` - Resource naming prefix
 
-### templates/devops-config.json.template
+### templates/faber-cloud.json.template
 
 Template for generating `.fractary/plugins/faber-cloud/config/faber-cloud.json`:
 - Placeholders: `{{PROJECT_NAME}}`, `{{NAMESPACE}}`, etc.
-- Used by `/faber-cloud:init` command
+- Used by `/fractary-faber-cloud:init` command
 - Includes sensible defaults
 
 ## Auto-Discovery

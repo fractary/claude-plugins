@@ -35,6 +35,23 @@ update the resource registry, and generate deployment documentation.
 </INPUTS>
 
 <WORKFLOW>
+Use TodoWrite to track deployment progress:
+
+1. ⏳ Validate environment configuration
+2. ⏳ Run environment safety validation
+3. ⏳ Initialize Terraform
+4. ⏳ Select Terraform workspace
+5. ⏳ Validate Terraform configuration
+6. ⏳ Generate deployment plan
+7. ⏳ Review plan for safety
+8. ⏳ Execute deployment (terraform apply)
+9. ⏳ Verify resources created
+10. ⏳ Run post-deployment tests
+11. ⏳ Generate documentation
+12. ⏳ Update deployment history
+
+Mark each step in_progress → completed as you go.
+
 **OUTPUT START MESSAGE:**
 ```
 🚀 STARTING: Infrastructure Deployer
@@ -46,14 +63,16 @@ AWS Profile: {profile}
 **EXECUTE STEPS:**
 
 1. Load configuration for environment
-2. Validate AWS profile separation
-3. Authenticate with AWS (via handler-hosting-aws)
-4. Execute Terraform apply (via handler-iac-terraform)
-5. If permission error: Invoke infra-permission-manager
-6. Verify deployed resources (via handler-hosting-aws)
-7. Update resource registry
-8. Generate DEPLOYED.md documentation
-9. Report deployment results
+2. Run environment safety validation (validate-plan.sh)
+3. Validate AWS profile separation
+4. Authenticate with AWS (via handler-hosting-aws)
+5. Execute Terraform apply (via handler-iac-terraform)
+6. If permission error: Present error delegation options
+7. Verify deployed resources (via handler-hosting-aws)
+8. Update resource registry
+9. Generate DEPLOYED.md documentation
+10. Update deployment history
+11. Report deployment results
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
@@ -96,6 +115,107 @@ Return deployment results:
 ```
 </OUTPUTS>
 
+<SAFETY_VALIDATION>
+Before deployment (step 2):
+
+1. Run validate-plan.sh script:
+   - Validates ENV matches Terraform workspace
+   - Validates AWS profile correct
+   - Validates backend configuration
+   - Checks for hardcoded environment values
+
+2. If validation fails:
+   - STOP immediately
+   - Show validation errors
+   - Do NOT proceed with deployment
+   - Wait for user to fix issues
+
+3. If validation passes:
+   - Continue to terraform init (step 3)
+</SAFETY_VALIDATION>
+
+<ERROR_DELEGATION>
+When deployment encounters errors during terraform apply (step 8):
+
+1. STOP deployment immediately
+2. Capture error output
+3. Present user with 3 options:
+
+   Option 1: Run debug (interactive mode)
+   → Invoke infra-debugger without --complete
+   → User controls each fix step
+   → Deployment does NOT continue automatically
+
+   Option 2: Run debug --complete (automated mode) [RECOMMENDED]
+   → Invoke infra-debugger with --complete flag
+   → Auto-fixes all errors
+   → Returns control to infra-deployer
+   → Deployment continues automatically from step 8
+
+   Option 3: Manual fix
+   → User fixes issues manually
+   → Run deploy-apply again when ready
+
+4. Wait for user selection
+</ERROR_DELEGATION>
+
+<COMPLETE_FLAG_INTEGRATION>
+When infra-debugger returns (Option 2 selected):
+
+1. Verify debugger marked as completed
+2. Check if all errors fixed
+3. If yes:
+   - Resume deployment from step 8 (terraform apply)
+   - Continue through remaining steps
+4. If no:
+   - Present options again
+</COMPLETE_FLAG_INTEGRATION>
+
+<STRUCTURED_OUTPUTS>
+Return JSON output format:
+
+{
+  "success": true/false,
+  "operation": "deploy-apply",
+  "environment": "{env}",
+  "results": {
+    "resources_created": 15,
+    "resources_updated": 3,
+    "resources_destroyed": 0,
+    "endpoints": [
+      "https://api.example.com",
+      "arn:aws:lambda:us-east-1:123456789012:function:my-function"
+    ],
+    "cost_estimate": "$45.23/month",
+    "deployment_time": "3m 42s"
+  },
+  "artifacts": [
+    "infrastructure/DEPLOYED.md",
+    "infrastructure/terraform.tfstate",
+    "docs/infrastructure/deployments.md"
+  ],
+  "errors": []
+}
+</STRUCTURED_OUTPUTS>
+
+<POST_DEPLOYMENT>
+After successful deployment (step 9):
+
+1. Verify resources created:
+   - Run terraform show
+   - Check expected resources exist
+   - Validate endpoints accessible
+
+2. Generate documentation (step 11):
+   - Update infrastructure/DEPLOYED.md
+   - Document all resources created
+   - Include endpoints and access information
+
+3. Update deployment history (step 12):
+   - Append to docs/infrastructure/deployments.md
+   - Include: timestamp, environment, deployer, resources, cost
+</POST_DEPLOYMENT>
+
 <PERMISSION_ERROR_HANDLING>
 If Terraform apply fails with permission error:
 
@@ -112,7 +232,7 @@ After successful deployment, update registry:
 
 ```bash
 # Execute registry update script
-../devops-common/scripts/update-registry.sh \
+../cloud-common/scripts/update-registry.sh \
   --environment="${environment}" \
   --resources="${deployed_resources_json}"
 ```
