@@ -54,7 +54,9 @@ provision, setup
 - "Generate terraform code for..."
 - "Test security before deployment"
 
-**Action:** Route to `/fractary-faber-cloud:infra-manage [command] [args]`
+**Action:** Route to simplified commands (recommended) or delegate via infra-manage (deprecated)
+- **Recommended:** `/fractary-faber-cloud:architect`, `/fractary-faber-cloud:deploy`, etc.
+- **Backward compatible:** `/fractary-faber-cloud:infra-manage` (will delegate to simplified commands)
 
 ## Runtime Operations Intent → helm-cloud
 
@@ -106,15 +108,19 @@ Scan for keywords in <INTENT_CATEGORIES>:
 
 ## Step 3: Identify Specific Command
 
-### For Infrastructure Intent:
-- design/architect → `architect`
-- create/generate/implement/code → `engineer`
-- validate/check config → `validate-config`
-- test/scan/security → `test-changes`
-- preview/plan → `preview-changes`
-- deploy/apply/launch → `deploy`
-- show/list resources → `show-resources`
-- status/check deployment → `check-status`
+### For Infrastructure Intent (faber-cloud simplified commands):
+- design/architect → `/fractary-faber-cloud:architect`
+- create/generate/implement/code → `/fractary-faber-cloud:engineer`
+- validate/check config → `/fractary-faber-cloud:validate`
+- test/scan/security → `/fractary-faber-cloud:test`
+- preview/plan → `/fractary-faber-cloud:preview`
+- deploy/apply/launch → `/fractary-faber-cloud:deploy`
+- show/list resources → `/fractary-faber-cloud:resources`
+- status/check deployment → `/fractary-faber-cloud:status`
+- debug/troubleshoot → `/fractary-faber-cloud:debug`
+
+**Note:** You should route directly to simplified commands for best user experience.
+For backward compatibility, you can also route to `/fractary-faber-cloud:infra-manage` which will delegate.
 
 ### For Operations Intent (helm-cloud):
 - health/status/check/alive → `/fractary-helm-cloud:health`

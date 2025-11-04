@@ -39,7 +39,241 @@ Complete reference for all fractary-faber-cloud commands.
 
 ## Infrastructure Commands
 
-### /fractary-faber-cloud:infra-manage
+### Simplified Commands (Recommended)
+
+**Phase 1 Update:** Direct action-based commands for better UX.
+
+#### /fractary-faber-cloud:architect
+
+Design infrastructure solutions from requirements.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:architect "<description>"
+```
+
+**Examples:**
+```bash
+/fractary-faber-cloud:architect "S3 bucket for user uploads"
+/fractary-faber-cloud:architect "API service with RDS database"
+```
+
+**Output:**
+- Design document at `.fractary/plugins/faber-cloud/designs/<feature>.md`
+- Includes: resources, security, cost estimate, implementation plan
+
+#### /fractary-faber-cloud:engineer
+
+Generate Terraform code from design documents.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:engineer <design-name>
+```
+
+**Examples:**
+```bash
+/fractary-faber-cloud:engineer s3-bucket
+/fractary-faber-cloud:engineer api-service
+```
+
+**Output:**
+- `infrastructure/terraform/main.tf`
+- `infrastructure/terraform/variables.tf`
+- `infrastructure/terraform/outputs.tf`
+
+#### /fractary-faber-cloud:validate
+
+Validate Terraform configuration.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:validate [--env=<env>]
+```
+
+**Options:**
+- `--env=<env>`: Environment to validate (optional)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:validate
+/fractary-faber-cloud:validate --env=test
+```
+
+**Checks:**
+- Terraform syntax
+- Configuration correctness
+- Security settings
+- Naming conventions
+- Required tags
+
+#### /fractary-faber-cloud:test
+
+Run pre or post-deployment tests.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:test [--env=<env>] [--phase=<phase>]
+```
+
+**Options:**
+- `--env=<env>`: Environment (optional)
+- `--phase=<phase>`: Test phase: `pre-deployment` or `post-deployment` (optional)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:test --env=test --phase=pre-deployment
+/fractary-faber-cloud:test --env=test --phase=post-deployment
+```
+
+**Pre-deployment tests:**
+- Security scans (Checkov, tfsec)
+- Cost estimation
+- Compliance checks
+
+**Post-deployment tests:**
+- Resource verification
+- Health checks
+- Integration tests
+
+#### /fractary-faber-cloud:preview
+
+Generate Terraform execution plan.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:preview --env=<env>
+```
+
+**Options:**
+- `--env=<env>`: Environment (required)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:preview --env=test
+/fractary-faber-cloud:preview --env=prod
+```
+
+**Shows:**
+- Resources to add (+)
+- Resources to change (~)
+- Resources to destroy (-)
+
+#### /fractary-faber-cloud:deploy
+
+Execute infrastructure deployment.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:deploy --env=<env> [options]
+```
+
+**Options:**
+- `--env=<env>`: Environment (required)
+- `--skip-tests`: Skip pre-deployment tests (not recommended)
+- `--skip-preview`: Skip preview step (not recommended)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:deploy --env=test
+/fractary-faber-cloud:deploy --env=prod
+```
+
+**Workflow:**
+1. Pre-deployment tests
+2. Preview changes
+3. Request approval
+4. Execute deployment
+5. Post-deployment tests
+6. Update documentation
+
+**Production:**
+- Extra confirmations required
+- Cannot skip with flags
+- Type "yes" to confirm
+
+#### /fractary-faber-cloud:status
+
+Check configuration and deployment status.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:status [--env=<env>]
+```
+
+**Options:**
+- `--env=<env>`: Environment (optional)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:status
+/fractary-faber-cloud:status --env=prod
+```
+
+**Shows:**
+- Configuration status
+- Deployment status
+- Resource counts
+- Last deployment
+
+#### /fractary-faber-cloud:resources
+
+Display deployed resources.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:resources --env=<env>
+```
+
+**Options:**
+- `--env=<env>`: Environment (required)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:resources --env=prod
+```
+
+**Shows:**
+- Resource type and name
+- ARN/ID
+- AWS Console link
+- Deployment timestamp
+
+#### /fractary-faber-cloud:debug
+
+Analyze and troubleshoot errors.
+
+**Syntax:**
+```bash
+/fractary-faber-cloud:debug [--error="<error>"] [--operation=<op>]
+```
+
+**Options:**
+- `--error="<text>"`: Error message (optional)
+- `--operation=<op>`: Operation that failed (optional)
+
+**Examples:**
+```bash
+/fractary-faber-cloud:debug --error="AccessDenied: s3:PutObject"
+/fractary-faber-cloud:debug --operation=deploy
+```
+
+**Provides:**
+- Error categorization
+- Root cause analysis
+- Solution proposals
+- Automation availability
+
+---
+
+### /fractary-faber-cloud:infra-manage (Deprecated)
+
+**⚠️ DEPRECATED:** This command now delegates to the simplified commands above.
+
+**Migration:**
+- Old: `/fractary-faber-cloud:infra-manage deploy --env=test`
+- New: `/fractary-faber-cloud:deploy --env=test`
 
 **Description:** Manage infrastructure lifecycle
 
@@ -48,7 +282,7 @@ Complete reference for all fractary-faber-cloud commands.
 /fractary-faber-cloud:infra-manage <command> [options]
 ```
 
-#### architect
+#### architect (deprecated)
 
 Design infrastructure solutions from requirements.
 
@@ -71,195 +305,36 @@ Design infrastructure solutions from requirements.
 - Design document at `.fractary/plugins/faber-cloud/designs/<feature>.md`
 - Includes: resources, security, cost estimate, implementation plan
 
-#### engineer
+**Note:** All operations delegated to simplified commands. See above for the new command syntax.
 
-Generate Terraform code from design documents.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage engineer --design=<design-file>
-```
-
-**Options:**
-- `--design=<file>`: Design document filename (required)
-- `--env=<env>`: Target environment (optional)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage engineer --design=s3-bucket.md
-/fractary-faber-cloud:infra-manage engineer --design=api-service.md --env=test
-```
-
-**Output:**
-- `infrastructure/terraform/main.tf`
-- `infrastructure/terraform/variables.tf`
-- `infrastructure/terraform/outputs.tf`
-
-#### validate-config
-
-Validate Terraform configuration.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage validate-config [--env=<env>]
-```
-
-**Options:**
-- `--env=<env>`: Environment to validate (optional)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage validate-config
-/fractary-faber-cloud:infra-manage validate-config --env=test
-```
-
-**Checks:**
-- Terraform syntax
-- Configuration correctness
-- Security settings
-- Naming conventions
-- Required tags
-
-#### test
-
-Run pre or post-deployment tests.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage test --env=<env> --phase=<phase>
-```
-
-**Options:**
-- `--env=<env>`: Environment (required)
-- `--phase=<phase>`: Test phase: `pre-deployment` or `post-deployment` (required)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
-/fractary-faber-cloud:infra-manage test --env=test --phase=post-deployment
-```
-
-**Pre-deployment tests:**
-- Security scans (Checkov, tfsec)
-- Cost estimation
-- Compliance checks
-
-**Post-deployment tests:**
-- Resource verification
-- Health checks
-- Integration tests
-
-#### preview-changes
-
-Generate Terraform execution plan.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage preview-changes --env=<env>
-```
-
-**Options:**
-- `--env=<env>`: Environment (required)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage preview-changes --env=test
-/fractary-faber-cloud:infra-manage preview-changes --env=prod
-```
-
-**Shows:**
-- Resources to add (+)
-- Resources to change (~)
-- Resources to destroy (-)
-
-#### deploy
-
-Execute infrastructure deployment.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage deploy --env=<env> [options]
-```
-
-**Options:**
-- `--env=<env>`: Environment (required)
-- `--skip-tests`: Skip pre-deployment tests (not recommended)
-- `--skip-preview`: Skip preview step (not recommended)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage deploy --env=test
-/fractary-faber-cloud:infra-manage deploy --env=prod
-```
-
-**Workflow:**
-1. Pre-deployment tests
-2. Preview changes
-3. Request approval
-4. Execute deployment
-5. Post-deployment tests
-6. Update documentation
-
-**Production:**
-- Extra confirmations required
-- Cannot skip with flags
-- Type "yes" to confirm
-
-#### show-resources
-
-Display deployed resources.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage show-resources --env=<env>
-```
-
-**Options:**
-- `--env=<env>`: Environment (required)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage show-resources --env=test
-/fractary-faber-cloud:infra-manage show-resources --env=prod
-```
-
-**Shows:**
-- Resource type and name
-- ARN/ID
-- AWS Console link
-- Deployment timestamp
-
-#### debug
-
-Analyze and troubleshoot errors.
-
-**Syntax:**
-```bash
-/fractary-faber-cloud:infra-manage debug --error="<error>" [options]
-```
-
-**Options:**
-- `--error="<text>"`: Error message (required)
-- `--operation=<op>`: Operation that failed (optional)
-- `--env=<env>`: Environment (optional)
-
-**Examples:**
-```bash
-/fractary-faber-cloud:infra-manage debug --error="AccessDenied: s3:PutObject"
-/fractary-faber-cloud:infra-manage debug --error="<full error>" --operation=deploy --env=test
-```
-
-**Provides:**
-- Error categorization
-- Root cause analysis
-- Solution proposals
-- Automation availability
+**Support Timeline:**
+- Current version: Both old and new work
+- faber-cloud v2.0.0: This command will be removed
+- Migration period: 6 months
 
 ---
 
 ## Operations Commands
 
-### /fractary-faber-cloud:ops-manage
+**⚠️ Phase 2 Update:** Operations monitoring has moved to the `helm-cloud` plugin.
+
+**New commands:**
+- `/fractary-helm-cloud:health` - Check health of services
+- `/fractary-helm-cloud:investigate` - Investigate incidents and analyze logs
+- `/fractary-helm-cloud:remediate` - Apply remediations
+- `/fractary-helm-cloud:audit` - Cost, security, and compliance audits
+
+See [helm-cloud documentation](../../helm-cloud/README.md) for details.
+
+---
+
+### /fractary-faber-cloud:ops-manage (Deprecated)
+
+**⚠️ DEPRECATED:** This command now delegates to helm-cloud commands.
+
+**Migration:**
+- Old: `/fractary-faber-cloud:ops-manage check-health --env=prod`
+- New: `/fractary-helm-cloud:health --env=prod`
 
 **Description:** Manage runtime operations
 
@@ -490,31 +565,52 @@ Audit costs, security, or compliance.
 
 ## Quick Reference
 
-### Most Common Commands
+### Most Common Commands (Phase 1 & 2 Updates)
+
+**Infrastructure (faber-cloud):**
+
+**Design:**
+```bash
+/fractary-faber-cloud:architect "S3 bucket for uploads"
+```
 
 **Deploy:**
 ```bash
-/fractary-faber-cloud:director "deploy to test"
+/fractary-faber-cloud:deploy --env=test
 ```
 
-**Check health:**
+**Validate:**
 ```bash
-/fractary-faber-cloud:director "check health"
-```
-
-**Investigate:**
-```bash
-/fractary-faber-cloud:director "investigate errors"
+/fractary-faber-cloud:validate --env=test
 ```
 
 **Show resources:**
 ```bash
-/fractary-faber-cloud:director "show resources"
+/fractary-faber-cloud:resources --env=test
+```
+
+**Operations (helm-cloud):**
+
+**Check health:**
+```bash
+/fractary-helm-cloud:health --env=prod
+```
+
+**Investigate:**
+```bash
+/fractary-helm-cloud:investigate --env=prod
 ```
 
 **Analyze costs:**
 ```bash
-/fractary-faber-cloud:director "analyze costs"
+/fractary-helm-cloud:audit --type=cost --env=prod
+```
+
+**Natural Language (works for both):**
+```bash
+/fractary-faber-cloud:director "deploy to test"
+/fractary-faber-cloud:director "check health"
+/fractary-faber-cloud:director "investigate errors"
 ```
 
 ### Environment Flags

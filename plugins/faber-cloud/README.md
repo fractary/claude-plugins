@@ -1,8 +1,22 @@
 # Fractary DevOps Plugin
 
-**Version:** 1.0.0 (Phase 4 Complete)
+**Version:** 1.2.0 (Phases 1 & 2 Complete - FABER/Helm Separation)
 
 Comprehensive DevOps automation for Claude Code - infrastructure lifecycle, testing, debugging, and runtime operations.
+
+## Recent Updates
+
+**Phase 1 (Command Reorganization) - v1.1.0:**
+- ✅ Simplified command structure: Direct action-based commands
+- ✅ `/{plugin}:{action}` pattern for consistency
+- ✅ Backward compatibility via delegation
+- ✅ Migration: Old commands still work with deprecation warnings
+
+**Phase 2 (Extract helm-cloud) - v1.2.0:**
+- ✅ Operations monitoring moved to `helm-cloud` plugin
+- ✅ Shared configuration structure (`.fractary/registry/`, `.fractary/shared/`)
+- ✅ FABER (creation) / Helm (operations) architectural separation
+- ✅ Backward compatibility maintained
 
 ## Overview
 
@@ -92,62 +106,71 @@ Route natural language requests to appropriate operations:
 /fractary-faber-cloud:director "analyze costs for test environment"
 ```
 
-### Infrastructure Commands
+### Infrastructure Commands (Simplified)
 
-#### /fractary-faber-cloud:infra-manage
-
-Manage infrastructure lifecycle:
+**New direct commands (Phase 1):**
 
 ```bash
 # Design infrastructure
-/fractary-faber-cloud:infra-manage architect --feature="API service with database"
+/fractary-faber-cloud:architect "API service with database"
 
 # Generate Terraform code
-/fractary-faber-cloud:infra-manage engineer --design=api-service.md
+/fractary-faber-cloud:engineer api-service
 
 # Validate configuration
-/fractary-faber-cloud:infra-manage validate-config --env=test
+/fractary-faber-cloud:validate --env=test
 
 # Run tests (security, cost, compliance)
-/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:test --env=test --phase=pre-deployment
 
 # Preview changes
-/fractary-faber-cloud:infra-manage preview-changes --env=test
+/fractary-faber-cloud:preview --env=test
 
 # Deploy infrastructure
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:deploy --env=test
+
+# Check status
+/fractary-faber-cloud:status --env=test
 
 # Show deployed resources
-/fractary-faber-cloud:infra-manage show-resources --env=test
+/fractary-faber-cloud:resources --env=test
 
 # Debug errors
-/fractary-faber-cloud:infra-manage debug --error="<error message>"
+/fractary-faber-cloud:debug --error="<error message>"
+```
+
+**Legacy command (deprecated but still works):**
+```bash
+/fractary-faber-cloud:infra-manage deploy --env=test
+# Shows deprecation warning, delegates to /fractary-faber-cloud:deploy
 ```
 
 ### Operations Commands
 
-#### /fractary-faber-cloud:ops-manage
+**⚠️ Moved to helm-cloud plugin (Phase 2):**
 
-Manage runtime operations:
+Operations monitoring is now handled by the separate `helm-cloud` plugin:
 
 ```bash
 # Check health
-/fractary-faber-cloud:ops-manage check-health --env=prod
-
-# Query logs
-/fractary-faber-cloud:ops-manage query-logs --env=prod --service=api-lambda --filter=ERROR
+/fractary-helm-cloud:health --env=prod
 
 # Investigate incidents
-/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda --timeframe=2h
-
-# Analyze performance
-/fractary-faber-cloud:ops-manage analyze-performance --env=prod --service=api-lambda
+/fractary-helm-cloud:investigate --env=prod
 
 # Apply remediation
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-helm-cloud:remediate --env=prod --service=api-lambda --action=restart
 
 # Audit costs/security
-/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-helm-cloud:audit --type=cost --env=test
+```
+
+See [helm-cloud documentation](../helm-cloud/README.md) for details.
+
+**Legacy command (deprecated but still works):**
+```bash
+/fractary-faber-cloud:ops-manage check-health --env=prod
+# Shows deprecation warning, delegates to /fractary-helm-cloud:health
 ```
 
 ### Configuration Command
@@ -305,54 +328,72 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 
 ### End-to-End Infrastructure Deployment
 
+**Using simplified commands (Phase 1):**
+
 ```bash
 # 1. Design infrastructure
-/fractary-faber-cloud:director "design an API service with RDS database"
+/fractary-faber-cloud:architect "API service with RDS database"
 # → Creates design document
 
 # 2. Generate Terraform code
-/fractary-faber-cloud:director "implement the API service design"
+/fractary-faber-cloud:engineer api-service
 # → Generates main.tf, variables.tf, outputs.tf
 
-# 3. Deploy to test
-/fractary-faber-cloud:director "deploy to test environment"
-# → Security scans (Checkov, tfsec)
-# → Cost estimation
-# → Preview changes
+# 3. Validate and test
+/fractary-faber-cloud:validate --env=test
+/fractary-faber-cloud:test --env=test --phase=pre-deployment
+# → Security scans, cost estimation
+
+# 4. Preview changes
+/fractary-faber-cloud:preview --env=test
+# → Shows what will be created/changed
+
+# 5. Deploy to test
+/fractary-faber-cloud:deploy --env=test
 # → User approval
 # → Execute deployment
 # → Post-deployment verification
-# → Health checks
 # → Registry updated
 # → DEPLOYED.md generated
 
-# 4. Monitor health
-/fractary-faber-cloud:director "check health of test services"
+# 6. Monitor health (using helm-cloud - Phase 2)
+/fractary-helm-cloud:health --env=test
 # → CloudWatch metrics
 # → Status report
 
 # If errors occur:
+/fractary-faber-cloud:debug --error="<error message>"
 # → infra-debugger analyzes
 # → Solution proposed
 # → Automated fix if possible
-# → Retry deployment
+```
+
+**Using natural language:**
+
+```bash
+/fractary-faber-cloud:director "design an API service with RDS database"
+/fractary-faber-cloud:director "implement the API service design"
+/fractary-faber-cloud:director "deploy to test environment"
+/fractary-faber-cloud:director "check health of test services"
 ```
 
 ### Incident Response Workflow
 
+**Using helm-cloud commands (Phase 2):**
+
 ```bash
 # 1. Detect issue
-/fractary-faber-cloud:director "check health of production"
+/fractary-helm-cloud:health --env=prod
 # → Identifies degraded Lambda
 
 # 2. Investigate
-/fractary-faber-cloud:director "investigate API Lambda errors"
+/fractary-helm-cloud:investigate --env=prod --service=api-lambda
 # → Queries CloudWatch logs
 # → Correlates events
-# → Identifies root cause: Database connections exhausted
+# → Identifies root cause
 
 # 3. Remediate
-/fractary-faber-cloud:director "restart API Lambda in production"
+/fractary-helm-cloud:remediate --env=prod --service=api-lambda --action=restart
 # → Impact assessment
 # → User confirmation (production)
 # → Restart service
@@ -360,10 +401,19 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 # → Document remediation
 
 # 4. Audit and optimize
-/fractary-faber-cloud:director "analyze costs for production"
+/fractary-helm-cloud:audit --type=cost --env=prod
 # → Cost breakdown
 # → Optimization recommendations
 # → Potential savings identified
+```
+
+**Using natural language:**
+
+```bash
+/fractary-faber-cloud:director "check health of production"
+/fractary-faber-cloud:director "investigate API Lambda errors"
+/fractary-faber-cloud:director "restart API Lambda in production"
+/fractary-faber-cloud:director "analyze costs for production"
 ```
 
 ## Safety Features
