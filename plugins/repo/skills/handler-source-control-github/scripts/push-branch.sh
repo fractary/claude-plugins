@@ -22,6 +22,18 @@ else
     SYNC_STRATEGY="${4:-auto-merge}"
 fi
 
+# Validate sync strategy - only allow known values
+case "$SYNC_STRATEGY" in
+    auto-merge|pull-rebase|pull-merge|manual|fail)
+        # Valid strategy
+        ;;
+    *)
+        echo "Error: Invalid sync strategy: $SYNC_STRATEGY" >&2
+        echo "Valid options: auto-merge, pull-rebase, pull-merge, manual, fail" >&2
+        exit 2
+        ;;
+esac
+
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
     echo "Error: Not in a git repository" >&2
@@ -36,27 +48,28 @@ fi
 
 # Function to attempt push
 attempt_push() {
-    local push_cmd="git push"
+    # Build git push arguments array to avoid eval and ensure proper quoting
+    local -a git_args=(push)
 
     # Add force flag if requested
     if [ "$FORCE" = "true" ]; then
-        push_cmd="$push_cmd --force-with-lease"
+        git_args+=(--force-with-lease)
     fi
 
     # Add upstream flag if requested
     if [ "$SET_UPSTREAM" = "true" ]; then
-        push_cmd="$push_cmd -u"
+        git_args+=(-u)
     fi
 
-    # Add remote and branch
-    push_cmd="$push_cmd origin $BRANCH_NAME"
+    # Add remote and branch (using -- to separate options from arguments)
+    git_args+=(origin "$BRANCH_NAME")
 
     # Capture push output and return code
     local push_output
-    local push_rc
-    push_output=$(eval $push_cmd 2>&1) || push_rc=$?
+    local push_rc=0
+    push_output=$(git "${git_args[@]}" 2>&1) || push_rc=$?
 
-    if [ "${push_rc:-0}" -eq 0 ]; then
+    if [ "${push_rc}" -eq 0 ]; then
         echo "Branch '$BRANCH_NAME' pushed to origin"
         return 0
     fi
@@ -84,7 +97,7 @@ sync_branch() {
             echo "Pulling and merging remote changes..." >&2
             if ! git pull origin "$BRANCH_NAME" --no-edit 2>&1; then
                 echo "Error: Auto-merge failed. Manual intervention required." >&2
-                echo "Run: git pull origin $BRANCH_NAME" >&2
+                echo "Run: git pull origin \"$BRANCH_NAME\"" >&2
                 return 13
             fi
             echo "✓ Auto-merge successful" >&2
@@ -95,7 +108,7 @@ sync_branch() {
             echo "Pulling and rebasing local commits..." >&2
             if ! git pull origin "$BRANCH_NAME" --rebase 2>&1; then
                 echo "Error: Rebase failed. Manual intervention required." >&2
-                echo "Run: git pull origin $BRANCH_NAME --rebase" >&2
+                echo "Run: git pull origin \"$BRANCH_NAME\" --rebase" >&2
                 echo "Resolve conflicts and run: git rebase --continue" >&2
                 return 13
             fi
@@ -107,7 +120,7 @@ sync_branch() {
             echo "Pulling with merge commit..." >&2
             if ! git pull origin "$BRANCH_NAME" 2>&1; then
                 echo "Error: Pull merge failed. Manual intervention required." >&2
-                echo "Run: git pull origin $BRANCH_NAME" >&2
+                echo "Run: git pull origin \"$BRANCH_NAME\"" >&2
                 return 13
             fi
             echo "✓ Pull merge successful" >&2
@@ -117,19 +130,20 @@ sync_branch() {
         manual)
             echo "Manual sync required. Please resolve the conflict manually:" >&2
             echo "  git fetch origin" >&2
-            echo "  git merge origin/$BRANCH_NAME  # or git rebase origin/$BRANCH_NAME" >&2
-            echo "  git push origin $BRANCH_NAME" >&2
+            echo "  git merge origin/\"$BRANCH_NAME\"  # or git rebase origin/\"$BRANCH_NAME\"" >&2
+            echo "  git push origin \"$BRANCH_NAME\"" >&2
             return 13
             ;;
 
         fail)
             echo "Push failed due to out-of-sync branch. Sync strategy is 'fail'." >&2
             echo "Please sync manually before pushing:" >&2
-            echo "  git pull origin $BRANCH_NAME" >&2
+            echo "  git pull origin \"$BRANCH_NAME\"" >&2
             return 13
             ;;
 
         *)
+            # This should never happen due to earlier validation, but included for defense in depth
             echo "Error: Unknown sync strategy: $strategy" >&2
             return 2
             ;;
