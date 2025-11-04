@@ -6,7 +6,6 @@ Comprehensive cloud infrastructure lifecycle management plugin for Claude Code.
 
 Focus: Infrastructure architecture, engineering, deployment, and lifecycle management (FABER framework for cloud).
 
-> **📋 Note**: This README contains examples using old command names from v2.1. See [Migration from v2.1](#migration-from-v21) for command name changes. A comprehensive documentation update is in progress.
 
 ---
 
@@ -57,7 +56,7 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 **New Command:**
 - `/fractary-faber-cloud:audit` - Infrastructure health and drift detection
 
-**No Breaking Changes**: Old command names supported with deprecation warnings until v3.0
+**⚠️ BREAKING CHANGE**: Old command names have been removed. Update all references to use new command names.
 
 ---
 
@@ -157,7 +156,7 @@ Route natural language requests to appropriate operations:
 
 ```bash
 # Infrastructure examples
-/fractary-faber-cloud:director "design an S3 bucket for user uploads"
+/fractary-faber-cloud:director "architect an S3 bucket for user uploads"
 /fractary-faber-cloud:director "deploy to production"
 /fractary-faber-cloud:director "validate my terraform configuration"
 
@@ -170,10 +169,10 @@ Route natural language requests to appropriate operations:
 
 ### Infrastructure Commands (Simplified)
 
-**New direct commands (Phase 1):**
+**Direct Commands:**
 
 ```bash
-# Design infrastructure
+# Design infrastructure architecture
 /fractary-faber-cloud:architect "API service with database"
 
 # Generate Terraform code
@@ -185,26 +184,32 @@ Route natural language requests to appropriate operations:
 # Run tests (security, cost, compliance)
 /fractary-faber-cloud:test --env=test --phase=pre-deployment
 
+# Audit infrastructure (non-destructive)
+/fractary-faber-cloud:audit --env=test --check=drift
+
 # Preview changes
-/fractary-faber-cloud:preview --env=test
+/fractary-faber-cloud:deploy-plan --env=test
 
 # Deploy infrastructure
-/fractary-faber-cloud:deploy --env=test
+/fractary-faber-cloud:deploy-execute --env=test
 
 # Check status
 /fractary-faber-cloud:status --env=test
 
-# Show deployed resources
-/fractary-faber-cloud:resources --env=test
+# List deployed resources
+/fractary-faber-cloud:list --env=test
 
 # Debug errors
 /fractary-faber-cloud:debug --error="<error message>"
 ```
 
-**Legacy command (deprecated but still works):**
+**Legacy command (removed in v2.2.0):**
 ```bash
+# OLD (no longer works):
 /fractary-faber-cloud:infra-manage deploy --env=test
-# Shows deprecation warning, delegates to /fractary-faber-cloud:deploy
+
+# NEW (use instead):
+/fractary-faber-cloud:deploy-execute --env=test
 ```
 
 ### Operations Commands
@@ -281,7 +286,7 @@ Handlers (providers)  Handlers (CloudWatch)
 
 **infra-manager:**
 - Infrastructure lifecycle orchestration
-- Workflow: design → engineer → validate → test → preview → deploy
+- Workflow: architect → engineer → validate → test → audit → deploy-plan → deploy-execute
 - Delegates to infrastructure skills
 
 **ops-manager:**
@@ -397,10 +402,10 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 
 ### End-to-End Infrastructure Deployment
 
-**Using simplified commands (Phase 1):**
+**Using direct commands:**
 
 ```bash
-# 1. Design infrastructure
+# 1. Design infrastructure architecture
 /fractary-faber-cloud:architect "API service with RDS database"
 # → Creates design document
 
@@ -413,12 +418,16 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 /fractary-faber-cloud:test --env=test --phase=pre-deployment
 # → Security scans, cost estimation
 
-# 4. Preview changes
-/fractary-faber-cloud:preview --env=test
+# 4. Audit infrastructure (optional)
+/fractary-faber-cloud:audit --env=test --check=full
+# → Pre-deployment health check
+
+# 5. Preview changes
+/fractary-faber-cloud:deploy-plan --env=test
 # → Shows what will be created/changed
 
-# 5. Deploy to test
-/fractary-faber-cloud:deploy --env=test
+# 6. Deploy to test
+/fractary-faber-cloud:deploy-execute --env=test
 # → User approval
 # → Execute deployment
 # → Post-deployment verification
@@ -440,8 +449,8 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 **Using natural language:**
 
 ```bash
-/fractary-faber-cloud:director "design an API service with RDS database"
-/fractary-faber-cloud:director "implement the API service design"
+/fractary-faber-cloud:director "architect an API service with RDS database"
+/fractary-faber-cloud:director "engineer the API service design"
 /fractary-faber-cloud:director "deploy to test environment"
 /fractary-faber-cloud:director "check health of test services"
 ```
@@ -675,7 +684,7 @@ git clone https://github.com/fractary/claude-plugins.git
 - Design (infra-architect)
 - Code generation (infra-engineer)
 - Validation (infra-validator)
-- Preview (infra-previewer)
+- Plan/Preview (infra-planner)
 - Deployment (infra-deployer)
 - Permission management (infra-permission-manager)
 - AWS + Terraform support
@@ -686,11 +695,11 @@ git clone https://github.com/fractary/claude-plugins.git
 
 **Migration Guide:**
 
-| Old Command | New Command | Natural Language |
+| Old Command (v1.0) | v2.1 Command | v2.2 Command (Current) |
 |------------|-------------|------------------|
-| `/faber-cloud:deploy test` | `/fractary-faber-cloud:infra-manage deploy --env=test` | `/fractary-faber-cloud:director "deploy to test"` |
-| `/faber-cloud:validate` | `/fractary-faber-cloud:infra-manage validate-config` | `/fractary-faber-cloud:director "validate configuration"` |
-| `/faber-cloud:status test` | `/fractary-faber-cloud:infra-manage show-resources --env=test` | `/fractary-faber-cloud:director "show test resources"` |
+| `/faber-cloud:deploy test` | `/fractary-faber-cloud:deploy-apply --env=test` | `/fractary-faber-cloud:deploy-execute --env=test` |
+| `/faber-cloud:validate` | `/fractary-faber-cloud:validate` | `/fractary-faber-cloud:validate` |
+| `/faber-cloud:status test` | `/fractary-faber-cloud:resources --env=test` | `/fractary-faber-cloud:list --env=test` |
 
 **Deprecated agents:** devops-deployer, devops-debugger, devops-permissions (superseded by infra-manager, ops-manager, and skills)
 
