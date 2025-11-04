@@ -4,7 +4,7 @@
   "description": "Infrastructure lifecycle management for Claude Code - design, build, test, and deploy cloud infrastructure (FABER workflow). For operations monitoring, use fractary-helm-cloud.",
   "commands": "./commands/",
   "agents": [
-    "./agents/devops-director.md",
+    "./agents/cloud-director.md",
     "./agents/infra-manager.md"
   ],
   "skills": "./skills/"
