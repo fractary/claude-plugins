@@ -3,13 +3,14 @@
 # Update Git Status Cache
 # This script queries git status and stores it in a structured cache file
 # Part of fractary-repo plugin - reduces concurrent git operations
-# Safe to run concurrently (uses atomic writes)
+# Safe to run concurrently (uses flock for serialization)
 
 set -e
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
 CACHE_FILE="${CACHE_DIR}/status.cache"
+LOCK_FILE="${CACHE_DIR}/status.lock"
 TEMP_FILE="${CACHE_FILE}.tmp.$$"
 
 # Colors for output
@@ -21,6 +22,31 @@ NC='\033[0m' # No Color
 
 # Ensure cache directory exists
 mkdir -p "${CACHE_DIR}"
+
+# Parse arguments to check if we should skip locking
+SKIP_LOCK=false
+for arg in "$@"; do
+    if [ "$arg" = "--skip-lock" ]; then
+        SKIP_LOCK=true
+        break
+    fi
+done
+
+# Acquire exclusive lock (wait up to 5 seconds, then fail)
+# This ensures only one update runs at a time, preventing git lock conflicts
+# Skip lock acquisition if --skip-lock flag is passed (caller already holds lock)
+if [ "$SKIP_LOCK" = false ]; then
+    exec 200>"${LOCK_FILE}"
+    if ! flock -w 5 200; then
+        if [ "${1}" != "--quiet" ]; then
+            echo -e "${RED}❌ Could not acquire lock (another update in progress)${NC}" >&2
+        fi
+        exit 1
+    fi
+
+    # Ensure lock is released on exit (trap cleanup)
+    trap "flock -u 200 2>/dev/null || true" EXIT
+fi
 
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -34,8 +60,11 @@ REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 # Get current branch
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 
+# Get git status once and reuse for multiple checks (reduces git operations)
+GIT_STATUS_OUTPUT=$(git status --porcelain 2>/dev/null)
+
 # Count uncommitted changes (both staged and unstaged)
-UNCOMMITTED_CHANGES=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+UNCOMMITTED_CHANGES=$(echo "$GIT_STATUS_OUTPUT" | wc -l | tr -d ' ')
 
 # Count untracked files
 UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
@@ -56,9 +85,9 @@ if git rev-parse --abbrev-ref @{u} >/dev/null 2>&1; then
     COMMITS_BEHIND=$(git rev-list --count HEAD..${UPSTREAM} 2>/dev/null || echo "0")
 fi
 
-# Check for merge conflicts
+# Check for merge conflicts (reuse status output from above)
 HAS_CONFLICTS=false
-if git status --porcelain 2>/dev/null | grep -q "^UU\|^AA\|^DD"; then
+if echo "$GIT_STATUS_OUTPUT" | grep -q "^UU\|^AA\|^DD"; then
     HAS_CONFLICTS=true
 fi
 

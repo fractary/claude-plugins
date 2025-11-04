@@ -17,6 +17,21 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Acquire lock to prevent concurrent cache updates during commit
+# This prevents UserPromptSubmit hook from updating cache while we're committing
+CACHE_DIR="${HOME}/.fractary/repo"
+LOCK_FILE="${CACHE_DIR}/status.lock"
+mkdir -p "${CACHE_DIR}"
+
+exec 200>"${LOCK_FILE}"
+if ! flock -w 10 200; then
+    echo -e "${YELLOW}⚠️  Another git operation in progress, skipping auto-commit${NC}"
+    exit 0
+fi
+
+# Ensure lock is released on exit
+trap "flock -u 200 2>/dev/null || true" EXIT
+
 echo -e "${YELLOW}🔄 Checking for git changes...${NC}"
 
 # Check if we're in a git repository
@@ -25,15 +40,53 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 0
 fi
 
-# Check for changes
-if git diff-index --quiet HEAD -- && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-    echo -e "${GREEN}✅ No changes to commit${NC}"
-    exit 0
+# Get script directory for accessing cache utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Update cache first to ensure we have fresh data
+# Pass --skip-lock because we already hold the lock
+if [ -f "${SCRIPT_DIR}/update-status-cache.sh" ]; then
+    "${SCRIPT_DIR}/update-status-cache.sh" --quiet --skip-lock 2>/dev/null || {
+        echo -e "${YELLOW}⚠️  Could not update cache, falling back to direct git check${NC}"
+        # Fallback to direct git check if cache update fails
+        if git diff-index --quiet HEAD -- && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo -e "${GREEN}✅ No changes to commit${NC}"
+            exit 0
+        fi
+        echo -e "${YELLOW}📊 Git status:${NC}"
+        git status --short
+    }
+else
+    echo -e "${YELLOW}⚠️  Cache script not found, using direct git commands${NC}"
+    # Fallback to direct git check if cache script missing
+    if git diff-index --quiet HEAD -- && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+        echo -e "${GREEN}✅ No changes to commit${NC}"
+        exit 0
+    fi
+    echo -e "${YELLOW}📊 Git status:${NC}"
+    git status --short
 fi
 
-# Show current status
-echo -e "${YELLOW}📊 Git status:${NC}"
-git status --short
+# Read from cache (cache was just updated above)
+if [ -f "${SCRIPT_DIR}/read-status-cache.sh" ]; then
+    CACHE_UNCOMMITTED=$("${SCRIPT_DIR}/read-status-cache.sh" uncommitted_changes 2>/dev/null || echo "0")
+    CACHE_UNTRACKED=$("${SCRIPT_DIR}/read-status-cache.sh" untracked_files 2>/dev/null || echo "0")
+
+    # Check for changes using cache
+    if [ "$CACHE_UNCOMMITTED" -eq 0 ] && [ "$CACHE_UNTRACKED" -eq 0 ]; then
+        echo -e "${GREEN}✅ No changes to commit${NC}"
+        exit 0
+    fi
+
+    # Show status summary from cache
+    echo -e "${YELLOW}📊 Status: $CACHE_UNCOMMITTED uncommitted changes, $CACHE_UNTRACKED untracked files${NC}"
+
+    # Show detailed status for user visibility (single git call)
+    echo -e "${YELLOW}📊 Git status:${NC}"
+    git status --short
+else
+    echo -e "${YELLOW}⚠️  Cache read script not found, relying on direct git status shown above${NC}"
+fi
 
 # Attempt to use fractary-repo plugin commands (respects configured provider)
 echo -e "${BLUE}💾 Using fractary-repo plugin to commit changes...${NC}"
@@ -52,10 +105,10 @@ if [ -n "$CLAUDE_PROJECT_DIR" ] && command -v claude &> /dev/null; then
         echo -e "${GREEN}✅ Commit created via fractary-repo plugin${NC}"
 
         # Update status cache for status line consumption
+        # Pass --skip-lock because we already hold the lock
         echo -e "${BLUE}📊 Updating status cache...${NC}"
-        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         if [ -f "${SCRIPT_DIR}/update-status-cache.sh" ]; then
-            "${SCRIPT_DIR}/update-status-cache.sh" --quiet || echo -e "${YELLOW}⚠️  Status cache update failed (non-critical)${NC}"
+            "${SCRIPT_DIR}/update-status-cache.sh" --quiet --skip-lock || echo -e "${YELLOW}⚠️  Status cache update failed (non-critical)${NC}"
         fi
 
         echo -e "${GREEN}✨ Auto-commit hook completed successfully${NC}"
@@ -181,10 +234,10 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Changes committed successfully${NC}"
 
     # Update status cache for status line consumption
+    # Pass --skip-lock because we already hold the lock
     echo -e "${BLUE}📊 Updating status cache...${NC}"
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     if [ -f "${SCRIPT_DIR}/update-status-cache.sh" ]; then
-        "${SCRIPT_DIR}/update-status-cache.sh" --quiet || echo -e "${YELLOW}⚠️  Status cache update failed (non-critical)${NC}"
+        "${SCRIPT_DIR}/update-status-cache.sh" --quiet --skip-lock || echo -e "${YELLOW}⚠️  Status cache update failed (non-critical)${NC}"
     fi
 
     echo -e "${GREEN}✨ Auto-commit hook completed${NC}"

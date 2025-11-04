@@ -47,15 +47,12 @@ is_cache_stale() {
 }
 
 # Function to update cache if needed
+# DISABLED: Auto-refresh is disabled to prevent git lock conflicts
+# Cache is kept fresh by hooks (UserPromptSubmit, Stop) instead
+# This ensures cache updates don't interleave with git operations
 ensure_fresh_cache() {
-    if is_cache_stale; then
-        # Update cache silently
-        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        "${SCRIPT_DIR}/update-status-cache.sh" --quiet 2>/dev/null || {
-            echo -e "${YELLOW}⚠️  Warning: Could not update stale cache${NC}" >&2
-            return 1
-        }
-    fi
+    # No-op: Rely on hooks to keep cache fresh
+    # This prevents race conditions with auto-commit and other git operations
     return 0
 }
 
