@@ -1,20 +1,20 @@
 ---
-name: /fractary-faber-cloud:resources
-description: Show deployed infrastructure resources
+name: fractary-faber-cloud:list
+description: List deployed infrastructure resources
 examples:
-  - /fractary-faber-cloud:resources --env=test
-  - /fractary-faber-cloud:resources --env=prod
+  - /fractary-faber-cloud:list --env=test
+  - /fractary-faber-cloud:list --env=prod
 argument-hint: "--env=<environment>"
 ---
 
-# Resources Command
+# List Command
 
-Show detailed information about deployed infrastructure resources.
+List detailed information about deployed infrastructure resources.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:resources --env=<environment>
+/fractary-faber-cloud:list --env=<environment>
 ```
 
 ## Parameters
@@ -33,12 +33,12 @@ Show detailed information about deployed infrastructure resources.
 
 **List test resources:**
 ```
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:list --env=test
 ```
 
 **List production resources:**
 ```
-/fractary-faber-cloud:resources --env=prod
+/fractary-faber-cloud:list --env=prod
 ```
 
 ## Output Includes
@@ -96,6 +96,6 @@ After viewing resources:
 
 ## Invocation
 
-This command invokes the `infra-manager` agent with the `show-resources` operation.
+This command invokes the `infra-manager` agent with the `list-resources` operation.
 
-USE AGENT: infra-manager with operation=show-resources and environment from --env parameter
+USE AGENT: infra-manager with operation=list-resources and environment from --env parameter

@@ -1,20 +1,20 @@
 ---
-name: /fractary-faber-cloud:configure
-description: Generate Infrastructure as Code from design
+name: fractary-faber-cloud:engineer
+description: Generate Infrastructure as Code from architecture design
 examples:
-  - /fractary-faber-cloud:configure
-  - /fractary-faber-cloud:configure --validate
+  - /fractary-faber-cloud:engineer
+  - /fractary-faber-cloud:engineer --validate
 argument-hint: "[--validate]"
 ---
 
-# Configure Command
+# Engineer Command
 
-Generate Infrastructure as Code (Terraform) from a design document.
+Generate Infrastructure as Code (Terraform) from an architecture design document.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:configure [--validate]
+/fractary-faber-cloud:engineer [--validate]
 ```
 
 ## Parameters
@@ -34,12 +34,12 @@ Generate Infrastructure as Code (Terraform) from a design document.
 
 **Generate code from latest design:**
 ```
-/fractary-faber-cloud:configure
+/fractary-faber-cloud:engineer
 ```
 
 **Generate and validate:**
 ```
-/fractary-faber-cloud:configure --validate
+/fractary-faber-cloud:engineer --validate
 ```
 
 ## Next Steps
@@ -48,10 +48,10 @@ After generating code, you should:
 - Validate: `/fractary-faber-cloud:validate`
 - Test: `/fractary-faber-cloud:test`
 - Preview: `/fractary-faber-cloud:deploy-plan`
-- Deploy: `/fractary-faber-cloud:deploy-apply --env=test`
+- Deploy: `/fractary-faber-cloud:deploy-execute --env=test`
 
 ## Invocation
 
-This command invokes the `infra-manager` agent with the `configure` operation.
+This command invokes the `infra-manager` agent with the `engineer` operation.
 
-USE AGENT: infra-manager with operation=configure
+USE AGENT: infra-manager with operation=engineer

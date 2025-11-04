@@ -1,20 +1,20 @@
 ---
-name: /fractary-faber-cloud:teardown
-description: Destroy infrastructure (terraform destroy)
+name: fractary-faber-cloud:deploy-destroy
+description: Destroy deployed infrastructure (terraform destroy)
 examples:
-  - /fractary-faber-cloud:teardown --env=test
-  - /fractary-faber-cloud:teardown --env=staging
+  - /fractary-faber-cloud:deploy-destroy --env=test
+  - /fractary-faber-cloud:deploy-destroy --env=staging
 argument-hint: "--env=<environment> [--confirm]"
 ---
 
-# Teardown Infrastructure
+# Deploy-Destroy Command
 
 Destroy deployed infrastructure in the specified environment.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:teardown --env=<environment> [options]
+/fractary-faber-cloud:deploy-destroy --env=<environment> [options]
 ```
 
 ## Arguments
@@ -26,10 +26,10 @@ Destroy deployed infrastructure in the specified environment.
 
 ```bash
 # Destroy test environment (with confirmation)
-/fractary-faber-cloud:teardown --env=test
+/fractary-faber-cloud:deploy-destroy --env=test
 
 # Destroy with auto-confirmation (be careful!)
-/fractary-faber-cloud:teardown --env=test --confirm
+/fractary-faber-cloud:deploy-destroy --env=test --confirm
 ```
 
 ## Safety
@@ -67,9 +67,9 @@ For test/staging environments:
 
 ## After Teardown
 
-Teardown automatically:
+Destruction automatically:
 - ✅ Backs up Terraform state to `infrastructure/backups/`
-- ✅ Documents teardown in `docs/infrastructure/deployments.md`
+- ✅ Documents destruction in `docs/infrastructure/deployments.md`
 - ✅ Verifies all resources removed from AWS
 - ✅ Cleans up workspace (optional)
 
@@ -83,6 +83,6 @@ If destruction fails:
 
 ## Agent Invocation
 
-This command invokes the infra-manager agent with operation="teardown".
+This command invokes the infra-manager agent with operation="deploy-destroy".
 
-USE AGENT: infra-manager with operation=teardown and environment from --env parameter
+USE AGENT: infra-manager with operation=deploy-destroy and environment from --env parameter

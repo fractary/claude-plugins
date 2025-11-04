@@ -51,13 +51,13 @@ Invoke cloud-director agent with user's full natural language request
 <example>
 User: /fractary-faber-cloud:director "deploy infrastructure to test"
 Action: Invoke cloud-director agent with request
-Director will route to: /fractary-faber-cloud:deploy-apply --env=test
+Director will route to: /fractary-faber-cloud:deploy-execute --env=test
 </example>
 
 <example>
 User: /fractary-faber-cloud:director "design an S3 bucket for uploads"
 Action: Invoke cloud-director agent with request
-Director will route to: /fractary-faber-cloud:design "S3 bucket for uploads"
+Director will route to: /fractary-faber-cloud:architect "S3 bucket for uploads"
 </example>
 
 <example>
@@ -69,7 +69,7 @@ Director will route to: /fractary-faber-cloud:validate
 <example>
 User: /fractary-faber-cloud:director "show me deployed resources in production"
 Action: Invoke cloud-director agent with request
-Director will route to: /fractary-faber-cloud:resources --env=prod
+Director will route to: /fractary-faber-cloud:list --env=prod
 </example>
 </EXAMPLES>
 
@@ -79,14 +79,14 @@ Users can describe what they want in plain English, and the director agent will
 determine the appropriate command to execute.
 
 Alternative: Users can also invoke commands directly if they prefer:
-- /fractary-faber-cloud:design [description]
-- /fractary-faber-cloud:configure
+- /fractary-faber-cloud:architect [description]
+- /fractary-faber-cloud:engineer
 - /fractary-faber-cloud:validate
 - /fractary-faber-cloud:deploy-plan --env=<env>
-- /fractary-faber-cloud:deploy-apply --env=<env>
-- /fractary-faber-cloud:resources --env=<env>
+- /fractary-faber-cloud:deploy-execute --env=<env>
+- /fractary-faber-cloud:deploy-destroy --env=<env>
+- /fractary-faber-cloud:list --env=<env>
 - /fractary-faber-cloud:status --env=<env>
-- /fractary-faber-cloud:teardown --env=<env>
 - /fractary-faber-cloud:debug
 
 Note: For runtime operations monitoring, use fractary-helm-cloud plugin:
