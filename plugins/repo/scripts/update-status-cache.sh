@@ -23,13 +23,18 @@ NC='\033[0m' # No Color
 # Ensure cache directory exists
 mkdir -p "${CACHE_DIR}"
 
-# Parse arguments to check if we should skip locking
+# Parse arguments
 SKIP_LOCK=false
+QUIET_MODE=false
 for arg in "$@"; do
-    if [ "$arg" = "--skip-lock" ]; then
-        SKIP_LOCK=true
-        break
-    fi
+    case "$arg" in
+        --skip-lock)
+            SKIP_LOCK=true
+            ;;
+        --quiet)
+            QUIET_MODE=true
+            ;;
+    esac
 done
 
 # Acquire exclusive lock (wait up to 5 seconds, then fail)
@@ -38,7 +43,7 @@ done
 if [ "$SKIP_LOCK" = false ]; then
     exec 200>"${LOCK_FILE}"
     if ! flock -w 5 200; then
-        if [ "${1}" != "--quiet" ]; then
+        if [ "$QUIET_MODE" = false ]; then
             echo -e "${RED}❌ Could not acquire lock (another update in progress)${NC}" >&2
         fi
         exit 1
@@ -64,7 +69,12 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 GIT_STATUS_OUTPUT=$(git status --porcelain 2>/dev/null)
 
 # Count uncommitted changes (both staged and unstaged)
-UNCOMMITTED_CHANGES=$(echo "$GIT_STATUS_OUTPUT" | wc -l | tr -d ' ')
+# Check if output is empty first to avoid wc -l counting trailing newline as 1
+if [ -n "$GIT_STATUS_OUTPUT" ]; then
+    UNCOMMITTED_CHANGES=$(echo "$GIT_STATUS_OUTPUT" | wc -l | tr -d ' ')
+else
+    UNCOMMITTED_CHANGES=0
+fi
 
 # Count untracked files
 UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
@@ -123,7 +133,7 @@ EOF
 mv -f "${TEMP_FILE}" "${CACHE_FILE}"
 
 # Output success message (can be silenced if called in quiet mode)
-if [ "${1}" != "--quiet" ]; then
+if [ "$QUIET_MODE" = false ]; then
     echo -e "${GREEN}✅ Status cache updated${NC}"
 fi
 

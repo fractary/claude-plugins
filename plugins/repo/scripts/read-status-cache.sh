@@ -10,17 +10,19 @@ set -e
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
 CACHE_FILE="${CACHE_DIR}/status.cache"
-MAX_AGE_SECONDS=30  # Cache is considered stale after 30 seconds
+MAX_AGE_SECONDS=30  # Normal staleness threshold (not used for auto-refresh)
+CRITICAL_AGE_SECONDS=300  # Emergency refresh if cache is > 5 minutes old
 
 # Colors for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Function to check if cache is stale
-is_cache_stale() {
+# Function to get cache age in seconds
+get_cache_age() {
     if [ ! -f "${CACHE_FILE}" ]; then
-        return 0  # Cache doesn't exist, is stale
+        echo "999999"  # Very old if doesn't exist
+        return
     fi
 
     # Get cache file modification time
@@ -37,22 +39,44 @@ is_cache_stale() {
 
     # Calculate age
     AGE=$((CURRENT_TIME - CACHE_MTIME))
+    echo "$AGE"
+}
 
-    # Check if stale
-    if [ "$AGE" -gt "$MAX_AGE_SECONDS" ]; then
+# Function to check if cache is stale
+is_cache_stale() {
+    local age=$(get_cache_age)
+    if [ "$age" -gt "$MAX_AGE_SECONDS" ]; then
         return 0  # Stale
     fi
-
     return 1  # Fresh
 }
 
+# Function to check if cache is critically stale (emergency recovery)
+is_cache_critically_stale() {
+    local age=$(get_cache_age)
+    if [ "$age" -gt "$CRITICAL_AGE_SECONDS" ]; then
+        return 0  # Critically stale
+    fi
+    return 1  # Not critically stale
+}
+
 # Function to update cache if needed
-# DISABLED: Auto-refresh is disabled to prevent git lock conflicts
-# Cache is kept fresh by hooks (UserPromptSubmit, Stop) instead
-# This ensures cache updates don't interleave with git operations
+# Auto-refresh is MOSTLY disabled to prevent git lock conflicts during normal operations
+# Cache is kept fresh by hooks (UserPromptSubmit, Stop) in normal circumstances
+# However, if cache becomes critically stale (>5 min), attempt emergency recovery
 ensure_fresh_cache() {
-    # No-op: Rely on hooks to keep cache fresh
-    # This prevents race conditions with auto-commit and other git operations
+    # Check if cache is critically stale (hooks may have failed)
+    if is_cache_critically_stale; then
+        # Emergency recovery: cache is > 5 minutes old, hooks likely failed
+        echo -e "${YELLOW}⚠️  Warning: Cache is very stale (>5 min), attempting emergency refresh...${NC}" >&2
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        if "${SCRIPT_DIR}/update-status-cache.sh" --quiet 2>/dev/null; then
+            echo -e "${YELLOW}✓ Cache refreshed${NC}" >&2
+        else
+            echo -e "${YELLOW}⚠️  Could not refresh cache (may be locked)${NC}" >&2
+        fi
+    fi
+    # Normal staleness (30s-5min): no action, rely on hooks
     return 0
 }
 
