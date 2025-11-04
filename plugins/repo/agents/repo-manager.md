@@ -81,7 +81,7 @@ You receive structured operation requests from:
 }
 ```
 
-**Supported Operations:** (13 total)
+**Supported Operations:** (14 total)
 - generate-branch-name
 - create-branch
 - delete-branch
@@ -94,6 +94,7 @@ You receive structured operation requests from:
 - create-tag
 - push-tag
 - list-stale-branches
+- configure-permissions
 
 </INPUTS>
 
@@ -116,7 +117,8 @@ SUPPORTED_OPERATIONS = [
   "generate-branch-name", "create-branch", "delete-branch",
   "create-commit", "push-branch",
   "create-pr", "comment-pr", "review-pr", "merge-pr",
-  "create-tag", "push-tag", "list-stale-branches"
+  "create-tag", "push-tag", "list-stale-branches",
+  "configure-permissions"
 ]
 
 if operation not in SUPPORTED_OPERATIONS:
@@ -167,6 +169,7 @@ Use routing table to determine which skill to invoke:
 | create-tag | fractary-repo:tag-manager |
 | push-tag | fractary-repo:tag-manager |
 | list-stale-branches | fractary-repo:cleanup-manager |
+| configure-permissions | fractary-repo:permission-manager |
 
 **5. INVOKE SKILL:**
 
@@ -232,8 +235,11 @@ Return structured response to caller:
 **Cleanup Operations:**
 - `list-stale-branches` → fractary-repo:cleanup-manager
 
-**Total Skills**: 7 specialized skills
-**Total Operations**: 13 operations
+**Permission Operations:**
+- `configure-permissions` → fractary-repo:permission-manager
+
+**Total Skills**: 8 specialized skills
+**Total Operations**: 14 operations
 
 </ROUTING_TABLE>
 
@@ -295,6 +301,10 @@ Return structured response to caller:
 
 **list-stale-branches:**
 - (all parameters optional with defaults)
+
+**configure-permissions:**
+- mode (string): setup|validate|reset (default: "setup")
+- project_path (string): Path to project (default: current directory)
 
 </PARAMETER_VALIDATION>
 
@@ -399,6 +409,7 @@ Return structured response to caller:
 - `fractary-repo:pr-manager` skill - PR operations
 - `fractary-repo:tag-manager` skill - Tag operations
 - `fractary-repo:cleanup-manager` skill - Branch cleanup
+- `fractary-repo:permission-manager` skill - Permission configuration
 
 **Does NOT Call:**
 - Handlers directly (skills invoke handlers)

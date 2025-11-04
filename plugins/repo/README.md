@@ -104,6 +104,23 @@ EOF
 
    See [GitHub Setup Guide](docs/setup/github-setup.md) for detailed instructions.
 
+### Configure Permissions (Recommended)
+
+Before using repo commands, configure permissions to eliminate prompts:
+
+```bash
+# Setup permissions once per project
+/repo:init-permissions
+```
+
+This configures `.claude/settings.json` to:
+- ✅ Allow safe git and GitHub CLI commands
+- ✅ Deny dangerous operations (rm -rf, force push to main, etc.)
+- ✅ Eliminate permission prompts during workflow
+- ✅ Prevent catastrophic mistakes
+
+See [Permission Management Guide](docs/permissions-guide.md) for details.
+
 ### Start Using Commands
 
 ```bash
@@ -121,6 +138,29 @@ EOF
 ```
 
 ## User Commands
+
+### /repo:init-permissions - Permission Management
+
+Configure Claude Code permissions to allow repo operations while preventing dangerous commands.
+
+```bash
+# Setup permissions (first time or update)
+/repo:init-permissions
+
+# Validate current permissions
+/repo:init-permissions --mode validate
+
+# Reset to defaults
+/repo:init-permissions --mode reset
+```
+
+**Benefits:**
+- ⚡ No prompts for git/gh commands
+- 🛡️ Protection against catastrophic operations
+- 🚀 Faster FABER workflows
+- 📋 Clear audit trail in `.claude/settings.json`
+
+[Full documentation](commands/init-permissions.md) | [Permission Guide](docs/permissions-guide.md)
 
 ### /repo:branch - Branch Management
 
@@ -241,7 +281,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 }
 ```
 
-**Supported Operations** (13 total):
+**Supported Operations** (14 total):
 - `generate-branch-name` - Generate semantic branch name
 - `create-branch` - Create new branch
 - `delete-branch` - Delete branch locally/remotely
@@ -254,6 +294,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 - `create-tag` - Create version tag
 - `push-tag` - Push tag to remote
 - `list-stale-branches` - Find stale branches
+- `configure-permissions` - Manage Claude Code permissions
 
 ## Components
 
@@ -267,7 +308,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 
 [Agent documentation](agents/repo-manager.md)
 
-### Skills (7 Specialized)
+### Skills (8 Specialized)
 
 1. **branch-namer** - Generate semantic branch names
 2. **branch-manager** - Create and manage branches
@@ -276,6 +317,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 5. **pr-manager** - Complete PR lifecycle
 6. **tag-manager** - Version tag management
 7. **cleanup-manager** - Branch cleanup operations
+8. **permission-manager** - Claude Code permission configuration
 
 [Skills documentation](skills/)
 
