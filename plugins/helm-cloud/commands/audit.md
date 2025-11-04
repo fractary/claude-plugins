@@ -2,20 +2,39 @@
 name: audit
 description: Audit cost, security, and compliance
 examples:
-  - /fractary-helm-cloud:audit --type=cost --env=prod
-  - /fractary-helm-cloud:audit --type=security --env=prod
-  - /fractary-helm-cloud:audit --type=compliance --env=test
-argument-hint: "--type=<audit-type> [--env=<environment>]"
+  - /fractary-helm-cloud:audit --type=cost --env prod
+  - /fractary-helm-cloud:audit --type=security --env prod
+  - /fractary-helm-cloud:audit --type=compliance --env test
+argument-hint: "--type <audit-type> [--env <environment>]"
 ---
 
 # Audit Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm-cloud:audit --env test
+
+# Incorrect ❌
+/fractary-helm-cloud:audit --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Perform audits for cost optimization, security posture, and compliance.
 
 ## Usage
 
 ```bash
-/fractary-helm-cloud:audit --type=<audit-type> [--env=<environment>]
+/fractary-helm-cloud:audit --type <audit-type> [--env <environment>]
 ```
 
 ## Parameters
@@ -53,17 +72,17 @@ Perform audits for cost optimization, security posture, and compliance.
 
 **Cost audit:**
 ```
-/fractary-helm-cloud:audit --type=cost --env=prod
+/fractary-helm-cloud:audit --type=cost --env prod
 ```
 
 **Security audit:**
 ```
-/fractary-helm-cloud:audit --type=security --env=prod
+/fractary-helm-cloud:audit --type=security --env prod
 ```
 
 **Compliance audit:**
 ```
-/fractary-helm-cloud:audit --type=compliance --env=test
+/fractary-helm-cloud:audit --type=compliance --env test
 ```
 
 ## Output

@@ -2,20 +2,39 @@
 name: health
 description: Check health of deployed cloud infrastructure
 examples:
-  - /fractary-helm-cloud:health --env=test
-  - /fractary-helm-cloud:health --env=prod
+  - /fractary-helm-cloud:health --env test
+  - /fractary-helm-cloud:health --env prod
   - /fractary-helm-cloud:health
-argument-hint: "--env=<environment>"
+argument-hint: "--env <environment>"
 ---
 
 # Health Check Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm-cloud:health --env test
+
+# Incorrect ❌
+/fractary-helm-cloud:health --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Check the health status of deployed infrastructure resources.
 
 ## Usage
 
 ```bash
-/fractary-helm-cloud:health [--env=<environment>]
+/fractary-helm-cloud:health [--env <environment>]
 ```
 
 ## Parameters
@@ -33,12 +52,12 @@ Check the health status of deployed infrastructure resources.
 
 **Check test environment:**
 ```
-/fractary-helm-cloud:health --env=test
+/fractary-helm-cloud:health --env test
 ```
 
 **Check production:**
 ```
-/fractary-helm-cloud:health --env=prod
+/fractary-helm-cloud:health --env prod
 ```
 
 ## Invocation

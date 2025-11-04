@@ -4,12 +4,31 @@ description: List and manage active issues across all domains with priority rank
 examples:
   - /fractary-helm:issues
   - /fractary-helm:issues --critical
-  - /fractary-helm:issues --domain=infrastructure
+  - /fractary-helm:issues --domain infrastructure
   - /fractary-helm:issues --top 10
-argument-hint: "[--critical|--high|--medium|--low] [--domain=<domain>] [--env=<environment>] [--top <n>]"
+argument-hint: "[--critical|--high|--medium|--low] [--domain <domain>] [--env <environment>] [--top <n>]"
 ---
 
 # Issues Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm:issues --env test
+
+# Incorrect ❌
+/fractary-helm:issues --env=test
+```
+</ARGUMENT_SYNTAX>
 
 List, filter, and prioritize active issues across all monitored domains.
 
@@ -25,8 +44,8 @@ List, filter, and prioritize active issues across all monitored domains.
 - `--high`: Show only high severity issues
 - `--medium`: Show only medium severity issues
 - `--low`: Show only low severity issues
-- `--domain=<domain>`: Filter by domain (infrastructure, application, all). Default: all
-- `--env=<environment>`: Filter by environment (test, prod, all). Default: all
+- `--domain <domain>`: Filter by domain (infrastructure, application, all). Default: all
+- `--env <environment>`: Filter by environment (test, prod, all). Default: all
 - `--top <n>`: Limit to top N issues by priority. Default: all
 
 ## What This Does
@@ -65,7 +84,7 @@ Where:
 
 **Infrastructure issues:**
 ```
-/fractary-helm:issues --domain=infrastructure
+/fractary-helm:issues --domain infrastructure
 ```
 
 **Top 5 issues:**
@@ -75,7 +94,7 @@ Where:
 
 **Production critical issues:**
 ```
-/fractary-helm:issues --critical --env=prod
+/fractary-helm:issues --critical --env prod
 ```
 
 ## Output Format
@@ -159,7 +178,7 @@ After viewing issues:
 - Investigate specific issue: Use provided command
 - Escalate to FABER: `/fractary-helm:escalate <issue-id>`
 - View dashboard: `/fractary-helm:dashboard`
-- Check domain health: `/fractary-helm:status --domain=<domain>`
+- Check domain health: `/fractary-helm:status --domain <domain>`
 
 ## Invocation
 

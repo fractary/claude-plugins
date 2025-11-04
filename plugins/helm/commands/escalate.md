@@ -4,10 +4,29 @@ description: Escalate an issue to FABER workflow for systematic resolution
 examples:
   - /fractary-helm:escalate infra-001
   - /fractary-helm:escalate app-002 --priority=critical
-argument-hint: "<issue-id> [--priority=<priority>]"
+argument-hint: "<issue-id> [--priority <priority>]"
 ---
 
 # Escalate Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm:escalate --env test
+
+# Incorrect ❌
+/fractary-helm:escalate --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Escalate an active issue to FABER workflow system for systematic resolution and tracking.
 
@@ -20,7 +39,7 @@ Escalate an active issue to FABER workflow system for systematic resolution and 
 ## Parameters
 
 - `<issue-id>`: Issue ID to escalate (required)
-- `--priority=<priority>`: Override priority (critical, high, medium, low). Optional
+- `--priority <priority>`: Override priority (critical, high, medium, low). Optional
 
 ## What This Does
 

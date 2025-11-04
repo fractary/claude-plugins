@@ -2,20 +2,39 @@
 name: remediate
 description: Apply remediations to resolve issues
 examples:
-  - /fractary-helm-cloud:remediate --action=restart_lambda --env=test
-  - /fractary-helm-cloud:remediate --issue=infra-001 --env=prod
-  - /fractary-helm-cloud:remediate "restart the API Lambda" --env=prod
-argument-hint: "[<description>] [--action=<action>] [--issue=<issue-id>] [--env=<environment>]"
+  - /fractary-helm-cloud:remediate --action=restart_lambda --env test
+  - /fractary-helm-cloud:remediate --issue=infra-001 --env prod
+  - /fractary-helm-cloud:remediate "restart the API Lambda" --env prod
+argument-hint: "[<description>] [--action <action>] [--issue <issue-id>] [--env <environment>]"
 ---
 
 # Remediate Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm-cloud:remediate --env test
+
+# Incorrect ❌
+/fractary-helm-cloud:remediate --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Apply remediation actions to resolve detected issues.
 
 ## Usage
 
 ```bash
-/fractary-helm-cloud:remediate [<description>] [--action=<action>] [--issue=<issue-id>] [--env=<environment>]
+/fractary-helm-cloud:remediate [<description>] [--action <action>] [--issue <issue-id>] [--env <environment>]
 ```
 
 ## Parameters
@@ -48,17 +67,17 @@ Actions are categorized by safety level:
 
 **Restart a Lambda function:**
 ```
-/fractary-helm-cloud:remediate --action=restart_lambda --env=test
+/fractary-helm-cloud:remediate --action=restart_lambda --env test
 ```
 
 **Remediate specific issue:**
 ```
-/fractary-helm-cloud:remediate --issue=infra-001 --env=prod
+/fractary-helm-cloud:remediate --issue=infra-001 --env prod
 ```
 
 **Natural language remediation:**
 ```
-/fractary-helm-cloud:remediate "increase RDS max connections to 200" --env=prod
+/fractary-helm-cloud:remediate "increase RDS max connections to 200" --env prod
 ```
 
 ## Invocation
