@@ -101,6 +101,6 @@ mv "$TEMP_FILE" "$REGISTRY_FILE"
 log_success "Registry updated: ${REGISTRY_FILE}"
 
 # Generate DEPLOYED.md
-"${SCRIPT_DIR}/generate-deployed-doc.sh" --environment="${ENVIRONMENT}"
+"${SCRIPT_DIR}/generate-deployed-doc.sh" --environment "${ENVIRONMENT}"
 
 log_success "Documentation generated: ${DEPLOYED_DOC}"

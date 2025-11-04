@@ -106,6 +106,118 @@ Also acceptable:
 ❌ --auto-merge "yes"
 ```
 
+## Common Gotchas
+
+### 1. Forgetting Quotes for Multi-Word Values
+
+**Problem:**
+```bash
+❌ /command --description This is a description
+```
+
+**What happens:** Only "This" is parsed as the value, "is a description" becomes unexpected arguments.
+
+**Solution:**
+```bash
+✅ /command --description "This is a description"
+```
+
+### 2. Using Equals Syntax
+
+**Problem:**
+```bash
+❌ /command --env=test
+❌ /command --type=feature
+```
+
+**What happens:** You'll see an error:
+```
+Error: Use space-separated syntax, not equals syntax
+Use: --env <value>
+Not: --env=test
+```
+
+**Solution:**
+```bash
+✅ /command --env test
+✅ /command --type feature
+```
+
+### 3. Adding Values to Boolean Flags
+
+**Problem:**
+```bash
+❌ /command --auto-merge true
+❌ /command --dry-run=true
+```
+
+**What happens:** "true" is parsed as an unexpected argument, or equals syntax error.
+
+**Solution:**
+```bash
+✅ /command --auto-merge
+✅ /command --dry-run
+```
+
+### 4. Missing Quotes for Values with Special Characters
+
+**Problem:**
+```bash
+❌ /command --url https://example.com/path?param=value
+❌ /command --query status:open label:bug
+```
+
+**What happens:** Shell interprets special characters (`?`, `:`, etc.) causing unexpected behavior.
+
+**Solution:**
+```bash
+✅ /command --url "https://example.com/path?param=value"
+✅ /command --query "status:open label:bug"
+```
+
+### 5. Mixing Positional Args Without Quotes
+
+**Problem:**
+```bash
+❌ /command Multi word title --type feature
+```
+
+**What happens:** "Multi" is positional arg, "word title" becomes unexpected arguments.
+
+**Solution:**
+```bash
+✅ /command "Multi word title" --type feature
+```
+
+### 6. Using Single Quotes Instead of Double Quotes
+
+**Problem:**
+```bash
+⚠️ /command --description 'This is a description'
+```
+
+**What might happen:** Single quotes work in most cases, but double quotes are the standard and handle variable expansion consistently.
+
+**Best practice:**
+```bash
+✅ /command --description "This is a description"
+```
+
+### Quick Reference Card
+
+```bash
+# ✅ CORRECT USAGE
+/command "positional arg" --flag value --boolean-flag
+/command "multi word" --flag "multi word value"
+/command arg --url "https://example.com/path?x=y"
+
+# ❌ COMMON MISTAKES
+/command multi word arg              # Missing quotes on multi-word
+/command --flag=value                # Using equals syntax
+/command --boolean-flag true         # Value on boolean flag
+/command --url https://example.com   # Missing quotes on URL
+```
+
 ## Complete Examples
 
 ### Work Plugin
