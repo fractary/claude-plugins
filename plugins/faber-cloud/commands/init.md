@@ -1,18 +1,18 @@
 ---
-name: fractary-faber-cloud:devops-init
-description: Initialize faber-cloud plugin configuration for cloud infrastructure management - routes to init-manager agent
+name: /fractary-faber-cloud:init
+description: Initialize faber-cloud plugin configuration for cloud infrastructure management
 argument-hint: [--provider=aws] [--iac=terraform]
 tags: [faber-cloud, initialization, configuration, setup]
 examples:
   - trigger: "/fractary-faber-cloud:init"
-    action: "Invoke init-manager agent to initialize faber-cloud configuration"
+    action: "Initialize faber-cloud configuration"
   - trigger: "/fractary-faber-cloud:init --provider=aws --iac=terraform"
-    action: "Invoke init-manager with specified provider and IaC tool"
+    action: "Initialize with specified provider and IaC tool"
 ---
 
 # fractary-faber-cloud:init
 
-Initializes the DevOps plugin configuration for your project. Creates the configuration file at `.fractary/plugins/faber-cloud/config/devops.json` with project-specific settings for cloud infrastructure management.
+Initializes the faber-cloud plugin configuration for your project. Creates the configuration file at `.fractary/plugins/faber-cloud/config/faber-cloud.json` with project-specific settings for cloud infrastructure management.
 
 <CRITICAL_RULES>
 **YOU MUST:**
@@ -20,7 +20,7 @@ Initializes the DevOps plugin configuration for your project. Creates the config
 - Do NOT invoke any agents (this is an exception to the normal pattern)
 - Prompt user for required configuration values
 - Create `.fractary/plugins/faber-cloud/config/` directory
-- Generate `devops.json` from template at `skills/devops-common/templates/devops.json.template`
+- Generate `faber-cloud.json` from template at `skills/cloud-common/templates/faber-cloud.json.template`
 - Validate all inputs before saving
 - Do NOT commit the config file (contains secrets/profiles)
 - Add config directory to `.gitignore` if not already present
@@ -34,18 +34,18 @@ This is an exception to the normal pattern because it's a one-time setup command
 2. Detect project information from Git (or prompt)
 3. Prompt for provider (AWS, GCP) and IaC tool (Terraform, Pulumi)
 4. For AWS: Get account ID via `aws sts get-caller-identity`, prompt for region
-5. Read template from `skills/devops-common/templates/devops.json.template`
+5. Read template from `skills/cloud-common/templates/faber-cloud.json.template`
 6. Substitute all placeholders with user values
 7. Create config directory: `.fractary/plugins/faber-cloud/config/`
-8. Save to `.fractary/plugins/faber-cloud/config/devops.json`
+8. Save to `.fractary/plugins/faber-cloud/config/faber-cloud.json`
 9. Display configuration summary and next steps
 </IMPLEMENTATION>
 
-Create `.fractary/plugins/faber-cloud/config/devops.json` configuration file for this project.
+Create `.fractary/plugins/faber-cloud/config/faber-cloud.json` configuration file for this project.
 
 ## Your Task
 
-Set up DevOps automation configuration by:
+Set up cloud infrastructure automation configuration by:
 
 1. **Detect Project Information**
    - Extract project name from Git repository
@@ -58,7 +58,7 @@ Set up DevOps automation configuration by:
    - Detect cloud provider and IaC tool
 
 3. **Generate Configuration**
-   - Use template from `skills/devops-common/templates/devops-config.json.template`
+   - Use template from `skills/cloud-common/templates/faber-cloud.json.template`
    - Substitute detected values
    - Create `.fractary/plugins/faber-cloud/config/faber-cloud.json`
 
@@ -121,7 +121,7 @@ command -v pulumi && pulumi version
 
 ## Configuration Template
 
-Source: `skills/devops-common/templates/devops-config.json.template`
+Source: `skills/cloud-common/templates/faber-cloud.json.template`
 
 Placeholders to substitute:
 - `{{PROJECT_NAME}}` - Project name from Git
@@ -166,11 +166,11 @@ After generating configuration:
 2. **AWS Profile Validation**
    ```bash
    # Source config loader
-   source skills/devops-common/scripts/config-loader.sh
-   load_devops_config
+   source skills/cloud-common/scripts/config-loader.sh
+   load_config
 
    # Validate profiles
-   source skills/devops-deployer/providers/aws/auth.sh
+   source skills/handler-hosting-aws/scripts/auth.sh
    validate_all_profiles
    ```
 
@@ -187,7 +187,7 @@ After generating configuration:
 
 Display configuration summary:
 ```
-✓ DevOps configuration initialized
+✓ faber-cloud configuration initialized
 
 Project: corthography
 Namespace: corthuxa-core
@@ -209,8 +209,8 @@ Configuration saved to: .fractary/plugins/faber-cloud/config/faber-cloud.json
 
 Next steps:
   - Review configuration: cat .fractary/plugins/faber-cloud/config/faber-cloud.json
-  - Validate setup: /faber-cloud:validate
-  - Deploy infrastructure: /faber-cloud:deploy test
+  - Validate setup: /fractary-faber-cloud:validate
+  - Deploy infrastructure: /fractary-faber-cloud:deploy-apply --env=test
 ```
 
 ## Error Handling
@@ -245,6 +245,6 @@ Next steps:
 
 ## Related Commands
 
-- `/faber-cloud:validate` - Validate existing configuration
-- `/faber-cloud:status` - Show current configuration status
-- `/faber-cloud:deploy` - Deploy infrastructure using configuration
+- `/fractary-faber-cloud:validate` - Validate existing configuration
+- `/fractary-faber-cloud:status` - Show current configuration status
+- `/fractary-faber-cloud:deploy-apply` - Deploy infrastructure using configuration

@@ -1,5 +1,5 @@
 ---
-name: validate
+name: /fractary-faber-cloud:validate
 description: Validate Terraform configuration syntax and structure
 examples:
   - /fractary-faber-cloud:validate

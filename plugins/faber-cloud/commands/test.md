@@ -1,5 +1,5 @@
 ---
-name: test
+name: /fractary-faber-cloud:test
 description: Run security scans and cost estimates on infrastructure
 examples:
   - /fractary-faber-cloud:test --env=test

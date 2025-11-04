@@ -1,5 +1,5 @@
 ---
-name: resources
+name: /fractary-faber-cloud:resources
 description: Show deployed infrastructure resources
 examples:
   - /fractary-faber-cloud:resources --env=test

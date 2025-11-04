@@ -1,5 +1,5 @@
 ---
-name: status
+name: /fractary-faber-cloud:status
 description: Check deployment status and configuration
 examples:
   - /fractary-faber-cloud:status
