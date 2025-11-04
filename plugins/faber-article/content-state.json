@@ -1,0 +1,17 @@
+{
+  "posts": {},
+  "metadata": {
+    "version": "1.0",
+    "created": "2025-04-19T00:00:00Z",
+    "description": "Content workflow state tracking for Realized Self blog",
+    "states": [
+      "idea",
+      "outline",
+      "draft",
+      "review",
+      "seo",
+      "scheduled",
+      "published"
+    ]
+  }
+}

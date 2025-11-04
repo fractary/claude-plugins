@@ -7,19 +7,5 @@
     "./agents/devops-director.md",
     "./agents/infra-manager.md"
   ],
-  "skills": "./skills/",
-  "related_plugins": {
-    "monitoring": "fractary-helm-cloud",
-    "unified_dashboard": "fractary-helm"
-  },
-  "breaking_changes": {
-    "v2.0.0": {
-      "removed": [
-        "ops-manager agent (moved to helm-cloud)",
-        "ops-* skills (moved to helm-cloud)",
-        "ops-manage command (moved to helm-cloud)"
-      ],
-      "migration_guide": "docs/MIGRATION-V2.md"
-    }
-  }
+  "skills": "./skills/"
 }
