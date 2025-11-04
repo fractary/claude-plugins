@@ -1,0 +1,35 @@
+{
+  "name": "fractary-helm",
+  "version": "1.0.0",
+  "description": "Central Helm orchestrator - unified monitoring, dashboard, and issue management across all domains",
+  "author": "Fractary",
+  "license": "MIT",
+  "dependencies": {},
+  "provides": {
+    "helm_orchestration": true,
+    "unified_dashboard": true,
+    "cross_domain_monitoring": true,
+    "issue_prioritization": true
+  },
+  "capabilities": {
+    "monitoring": {
+      "domains": ["infrastructure", "application", "content", "data"],
+      "aggregation": true,
+      "prioritization": true
+    },
+    "dashboard": {
+      "formats": ["text", "json", "voice"],
+      "real_time": true
+    },
+    "issue_management": {
+      "registry": true,
+      "escalation": true,
+      "faber_integration": true
+    }
+  },
+  "registry": {
+    "domain_monitors": "registry/domain-monitors.json",
+    "active_issues": "issues/active/",
+    "resolved_issues": "issues/resolved/"
+  }
+}

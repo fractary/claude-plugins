@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "created_at": "2025-11-03T20:00:00Z",
+  "updated_at": "2025-11-03T20:00:00Z",
+  "monitors": [
+    {
+      "domain": "infrastructure",
+      "plugin": "fractary-helm-cloud",
+      "manager": "ops-manager",
+      "capabilities": ["health", "logs", "metrics", "remediation", "audit"],
+      "environments": ["test", "staging", "prod"],
+      "priority_weight": 1.0,
+      "commands": {
+        "health": "/fractary-helm-cloud:health",
+        "investigate": "/fractary-helm-cloud:investigate",
+        "remediate": "/fractary-helm-cloud:remediate",
+        "audit": "/fractary-helm-cloud:audit"
+      },
+      "status": "active",
+      "registered_at": "2025-11-03T20:00:00Z"
+    }
+  ],
+  "planned_domains": [
+    {
+      "domain": "application",
+      "plugin": "fractary-helm-app",
+      "description": "Application runtime monitoring (planned)",
+      "capabilities": ["health", "logs", "metrics", "profiling", "traces"],
+      "status": "planned"
+    },
+    {
+      "domain": "content",
+      "plugin": "fractary-helm-content",
+      "description": "Content delivery monitoring (planned)",
+      "capabilities": ["health", "cdn_metrics", "cache_performance"],
+      "status": "planned"
+    },
+    {
+      "domain": "data",
+      "plugin": "fractary-helm-data",
+      "description": "Data pipeline monitoring (planned)",
+      "capabilities": ["health", "pipeline_status", "data_quality"],
+      "status": "planned"
+    }
+  ]
+}

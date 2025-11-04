@@ -1,14 +1,27 @@
 # Helm-Cloud Plugin
 
-**Version:** 1.0.0
+**Version:** 1.1.0 (Phase 3 Complete - Central Helm Integration)
 **Domain:** Infrastructure
 **Purpose:** Runtime operations and monitoring for cloud infrastructure
+
+---
+
+## Recent Updates
+
+**Phase 3 (Central Helm Integration) - v1.1.0:**
+- ✅ Registered with central Helm orchestrator
+- ✅ Accessible via unified dashboard (`/fractary-helm:dashboard`)
+- ✅ Cross-domain issue prioritization
+- ✅ FABER escalation integration
+- ✅ Maintains backward compatibility
 
 ---
 
 ## Overview
 
 Helm-cloud handles the **operations lifecycle** for cloud infrastructure deployed by faber-cloud. It implements the **Monitor → Analyze → Alert → Remediate** workflow for continuous monitoring and incident response.
+
+**Integration with Central Helm:** As of Phase 3, helm-cloud is now part of the unified Helm orchestration system, enabling cross-domain monitoring alongside helm-app, helm-content, and other domain monitors.
 
 ### What is Helm?
 
