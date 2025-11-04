@@ -1,0 +1,217 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Codex Plugin Configuration",
+  "description": "Configuration schema for the Fractary codex plugin - documentation and knowledge sync across organization projects",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration version",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "default": "1.0"
+    },
+    "organization": {
+      "type": "string",
+      "description": "GitHub/GitLab organization name",
+      "minLength": 1
+    },
+    "codex_repo": {
+      "type": "string",
+      "description": "Codex core repository name (e.g., codex.fractary.com)",
+      "pattern": "^codex\\.[a-zA-Z0-9-]+\\.[a-z]{2,}$"
+    },
+    "default_sync_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Default glob patterns for files to sync across all projects",
+      "default": [
+        "docs/**",
+        "CLAUDE.md",
+        "README.md",
+        ".claude/**"
+      ]
+    },
+    "sync_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Project-specific glob patterns for files to sync (overrides defaults)"
+    },
+    "default_exclude_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Default glob patterns for files to exclude from sync",
+      "default": [
+        "**/.git/**",
+        "**/node_modules/**",
+        "**/.env",
+        "**/*.log"
+      ]
+    },
+    "exclude_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Project-specific glob patterns for files to exclude (added to defaults)"
+    },
+    "auto_sync": {
+      "type": "boolean",
+      "description": "Enable automatic sync on repository changes",
+      "default": false
+    },
+    "sync_direction": {
+      "type": "string",
+      "enum": ["to-codex", "from-codex", "bidirectional"],
+      "description": "Default sync direction for operations",
+      "default": "bidirectional"
+    },
+    "handlers": {
+      "type": "object",
+      "description": "Handler configuration for sync mechanisms",
+      "properties": {
+        "sync": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "string",
+              "enum": ["github", "vector", "mcp"],
+              "description": "Active sync handler (github: script-based, vector: vector DB, mcp: MCP server)",
+              "default": "github"
+            },
+            "options": {
+              "type": "object",
+              "description": "Handler-specific configuration options",
+              "properties": {
+                "github": {
+                  "type": "object",
+                  "properties": {
+                    "parallel_repos": {
+                      "type": "integer",
+                      "description": "Maximum number of repositories to sync in parallel",
+                      "minimum": 1,
+                      "maximum": 20,
+                      "default": 5
+                    },
+                    "deletion_threshold": {
+                      "type": "integer",
+                      "description": "Maximum number of files that can be deleted in a single sync before requiring confirmation",
+                      "minimum": 1,
+                      "default": 50
+                    },
+                    "deletion_threshold_percent": {
+                      "type": "number",
+                      "description": "Maximum percentage of files that can be deleted (0-100)",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "default": 20
+                    },
+                    "sparse_checkout": {
+                      "type": "boolean",
+                      "description": "Use git sparse checkout for efficiency (only clone sync patterns)",
+                      "default": true
+                    },
+                    "retry_attempts": {
+                      "type": "integer",
+                      "description": "Number of retry attempts for failed sync operations",
+                      "minimum": 0,
+                      "maximum": 10,
+                      "default": 3
+                    },
+                    "retry_delay": {
+                      "type": "integer",
+                      "description": "Delay in seconds between retry attempts",
+                      "minimum": 1,
+                      "default": 5
+                    }
+                  }
+                },
+                "vector": {
+                  "type": "object",
+                  "description": "Vector database sync configuration (future)",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": ["pinecone", "weaviate", "qdrant"],
+                      "description": "Vector database provider"
+                    },
+                    "endpoint": {
+                      "type": "string",
+                      "description": "Vector database endpoint URL"
+                    }
+                  }
+                },
+                "mcp": {
+                  "type": "object",
+                  "description": "MCP server sync configuration (future)",
+                  "properties": {
+                    "server_url": {
+                      "type": "string",
+                      "description": "MCP server URL"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": ["active"]
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging and audit configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable audit logging of sync operations",
+          "default": true
+        },
+        "log_file": {
+          "type": "string",
+          "description": "Path to audit log file (relative to project root or absolute)",
+          "default": ".fractary/plugins/codex/logs/audit.log"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "description": "Logging level",
+          "default": "info"
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "description": "Notification configuration for sync events",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable notifications",
+          "default": false
+        },
+        "on_success": {
+          "type": "boolean",
+          "description": "Notify on successful sync",
+          "default": false
+        },
+        "on_failure": {
+          "type": "boolean",
+          "description": "Notify on failed sync",
+          "default": true
+        },
+        "webhook_url": {
+          "type": "string",
+          "description": "Webhook URL for notifications (Slack, Discord, etc.)",
+          "format": "uri"
+        }
+      }
+    }
+  },
+  "required": ["version", "organization", "codex_repo"],
+  "additionalProperties": false
+}

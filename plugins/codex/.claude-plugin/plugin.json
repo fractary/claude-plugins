@@ -1,9 +1,10 @@
 {
   "name": "fractary-codex",
-  "version": "1.0.1",
-  "description": "Fractary codex commands, agents, hooks, and skills.",
+  "version": "2.0.0",
+  "description": "Documentation and knowledge sync across organization projects - memory fabric for AI agents.",
+  "requires": ["fractary-repo"],
   "commands": "./commands/",
-  "agents": ["./agents/sync-manager.md"],
+  "agents": ["./agents/codex-manager.md"],
   "skills": "./skills/"
 }
   

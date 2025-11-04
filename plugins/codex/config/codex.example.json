@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "organization": "fractary",
+  "codex_repo": "codex.fractary.com",
+  "default_sync_patterns": [
+    "docs/**",
+    "CLAUDE.md",
+    "README.md",
+    ".claude/**",
+    "standards/**",
+    "guides/**"
+  ],
+  "default_exclude_patterns": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.env",
+    "**/.env.*",
+    "**/*.log",
+    "**/dist/**",
+    "**/build/**",
+    "**/.DS_Store",
+    "**/credentials.json",
+    "**/*secret*",
+    "**/*password*"
+  ],
+  "auto_sync": false,
+  "sync_direction": "bidirectional",
+  "handlers": {
+    "sync": {
+      "active": "github",
+      "options": {
+        "github": {
+          "parallel_repos": 5,
+          "deletion_threshold": 50,
+          "deletion_threshold_percent": 20,
+          "sparse_checkout": true,
+          "retry_attempts": 3,
+          "retry_delay": 5
+        }
+      }
+    }
+  },
+  "logging": {
+    "enabled": true,
+    "log_file": ".fractary/plugins/codex/logs/audit.log",
+    "level": "info"
+  },
+  "notifications": {
+    "enabled": false,
+    "on_success": false,
+    "on_failure": true,
+    "webhook_url": ""
+  }
+}
