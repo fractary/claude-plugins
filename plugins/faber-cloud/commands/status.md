@@ -3,18 +3,38 @@ name: /fractary-faber-cloud:status
 description: Check deployment status and configuration
 examples:
   - /fractary-faber-cloud:status
-  - /fractary-faber-cloud:status --env=prod
-argument-hint: "[--env=<environment>]"
+  - /fractary-faber-cloud:status --env prod
+argument-hint: "[--env <environment>]"
 ---
 
 # Status Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:status --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:status --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Check deployment status and configuration.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:status [--env=<environment>]
+/fractary-faber-cloud:status [--env <environment>]
 ```
 
 ## Parameters
@@ -38,7 +58,7 @@ Check deployment status and configuration.
 
 **Check specific environment:**
 ```
-/fractary-faber-cloud:status --env=prod
+/fractary-faber-cloud:status --env prod
 ```
 
 ## Output Includes
@@ -79,8 +99,13 @@ Check status:
 ## Next Steps
 
 Based on status:
+<<<<<<< HEAD
 - If not deployed: `/fractary-faber-cloud:deploy --env=test`
 - If deployed: `/fractary-faber-cloud:list --env=test`
+=======
+- If not deployed: `/fractary-faber-cloud:deploy --env test`
+- If deployed: `/fractary-faber-cloud:resources --env test`
+>>>>>>> origin/main
 - If issues: `/fractary-faber-cloud:debug`
 - If healthy: Continue monitoring with helm-cloud
 

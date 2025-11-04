@@ -149,9 +149,17 @@ Additional configuration:
   Default branch [main]:
   Protected branches [main,master,production]:
   Merge strategy (no-ff/squash/ff-only) [no-ff]:
+  Push sync strategy (auto-merge/pull-rebase/pull-merge/manual/fail) [auto-merge]:
 
 Use defaults? (y/n):
 ```
+
+**Push Sync Strategy Options:**
+- `auto-merge`: Automatically pull and merge when branch is out of sync (recommended for solo developers)
+- `pull-rebase`: Automatically pull and rebase local commits
+- `pull-merge`: Pull with explicit merge commit
+- `manual`: Prompt for action when out of sync
+- `fail`: Abort push if out of sync
 
 ### Step 7: Summary & Completion
 
@@ -286,7 +294,8 @@ The wizard creates a configuration file with this structure:
   "defaults": {
     "default_branch": "main",
     "protected_branches": ["main", "master", "production"],
-    "merge_strategy": "no-ff"
+    "merge_strategy": "no-ff",
+    "push_sync_strategy": "auto-merge"
   }
 }
 ```
@@ -450,7 +459,8 @@ You detect platform, authentication, and create appropriate configuration files.
 7. **Additional options** (interactive mode)
    - Default branch
    - Protected branches
-   - Merge strategy
+   - Merge strategy (for PR merging)
+   - Push sync strategy (for handling out-of-sync branches)
    - Or accept defaults
 
 8. **Create configuration**
@@ -505,7 +515,8 @@ Invoke the `repo-manager` agent with operation `initialize-configuration`:
     "options": {
       "default_branch": "main",
       "protected_branches": ["main", "master"],
-      "merge_strategy": "no-ff"
+      "merge_strategy": "no-ff",
+      "push_sync_strategy": "auto-merge"
     }
   }
 }

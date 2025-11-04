@@ -88,7 +88,7 @@ Terraform Files Created:
 Resources Implemented: {count}
 Next Steps:
 - Review Terraform code
-- Run: /fractary-faber-cloud:infra-manage validate --env=test
+- Run: /fractary-faber-cloud:infra-manage validate --env test
 ───────────────────────────────────────
 ```
 

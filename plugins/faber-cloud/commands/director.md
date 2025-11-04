@@ -13,6 +13,26 @@ examples:
 
 # Cloud Director Command
 
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:director --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:director --env=test
+```
+</ARGUMENT_SYNTAX>
+
 <CRITICAL_RULES>
 **YOU MUST:**
 - Invoke the cloud-director agent immediately
@@ -49,9 +69,21 @@ Invoke cloud-director agent with user's full natural language request
 
 <EXAMPLES>
 <example>
+<<<<<<< HEAD
 User: /fractary-faber-cloud:director "deploy infrastructure to test"
 Action: Invoke cloud-director agent with request
 Director will route to: /fractary-faber-cloud:deploy-execute --env=test
+=======
+User: /fractary-faber-cloud:director "check health of production services"
+Action: Invoke devops-director agent with request
+Director will route to: /fractary-faber-cloud:ops-manage check-health --env prod
+</example>
+
+<example>
+User: /fractary-faber-cloud:director "deploy infrastructure to test"
+Action: Invoke devops-director agent with request
+Director will route to: /fractary-faber-cloud:infra-manage deploy --env test
+>>>>>>> origin/main
 </example>
 
 <example>

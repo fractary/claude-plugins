@@ -2,19 +2,39 @@
 name: /fractary-faber-cloud:test
 description: Run security scans and cost estimates on infrastructure
 examples:
-  - /fractary-faber-cloud:test --env=test
-  - /fractary-faber-cloud:test --env=prod --phase=pre-deployment
-argument-hint: "[--env=<environment>] [--phase=<pre-deployment|post-deployment>]"
+  - /fractary-faber-cloud:test --env test
+  - /fractary-faber-cloud:test --env prod --phase=pre-deployment
+argument-hint: "[--env <environment>] [--phase=<pre-deployment|post-deployment>]"
 ---
 
 # Test Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:test --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:test --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Run security scans, cost estimates, and compliance checks on infrastructure.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:test [--env=<environment>] [--phase=<phase>]
+/fractary-faber-cloud:test [--env <environment>] [--phase=<phase>]
 ```
 
 ## Parameters
@@ -42,12 +62,12 @@ Run security scans, cost estimates, and compliance checks on infrastructure.
 
 **Test before deployment:**
 ```
-/fractary-faber-cloud:test --env=test --phase=pre-deployment
+/fractary-faber-cloud:test --env test --phase=pre-deployment
 ```
 
 **Test after deployment:**
 ```
-/fractary-faber-cloud:test --env=prod --phase=post-deployment
+/fractary-faber-cloud:test --env prod --phase=post-deployment
 ```
 
 **Test with defaults:**
@@ -77,8 +97,13 @@ Run security scans, cost estimates, and compliance checks on infrastructure.
 ## Next Steps
 
 After tests pass:
+<<<<<<< HEAD
 - Preview changes: `/fractary-faber-cloud:deploy-plan --env=test`
 - Deploy: `/fractary-faber-cloud:deploy --env=test`
+=======
+- Preview changes: `/fractary-faber-cloud:preview --env test`
+- Deploy: `/fractary-faber-cloud:deploy --env test`
+>>>>>>> origin/main
 
 If tests fail:
 - Review findings

@@ -10,6 +10,26 @@ argument-hint: "[--error=<error-message>] [--operation=<operation>]"
 
 # Debug Command
 
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:debug --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:debug --env=test
+```
+</ARGUMENT_SYNTAX>
+
 Debug deployment errors and permission issues.
 
 ## Usage
@@ -128,7 +148,7 @@ Some issues can be automatically fixed:
 
 **After deployment failure:**
 ```
-/fractary-faber-cloud:deploy --env=test
+/fractary-faber-cloud:deploy --env test
 # Error: AccessDenied for CreateFunction
 
 /fractary-faber-cloud:debug --error="AccessDenied for CreateFunction"
@@ -155,7 +175,7 @@ Run debug:
 
 After debugging:
 - Apply suggested fixes
-- Retry operation: `/fractary-faber-cloud:deploy --env=test`
+- Retry operation: `/fractary-faber-cloud:deploy --env test`
 - If still failing: Review AWS console
 - Document issue for team
 

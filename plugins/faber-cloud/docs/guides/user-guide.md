@@ -39,7 +39,7 @@ The fractary-faber-cloud plugin provides complete DevOps automation from infrast
 
 **2. Direct Commands:**
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 ```
 
 Both approaches work identically. Natural language is easier to remember.
@@ -85,8 +85,8 @@ The director agent understands natural language and routes to appropriate operat
 ### Environment Detection
 
 The director automatically detects environments:
-- "test", "testing", "dev", "development" → `--env=test`
-- "prod", "production", "live" → `--env=prod`
+- "test", "testing", "dev", "development" → `--env test`
+- "prod", "production", "live" → `--env prod`
 - Default: test (if not specified)
 
 ### Handling Ambiguity
@@ -165,7 +165,7 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:infra-manage validate-config --env=test
+/fractary-faber-cloud:infra-manage validate-config --env test
 ```
 
 **What it checks:**
@@ -184,7 +184,7 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:infra-manage test --env test --phase=pre-deployment
 ```
 
 **Pre-deployment tests:**
@@ -205,7 +205,7 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:infra-manage preview-changes --env=test
+/fractary-faber-cloud:infra-manage preview-changes --env test
 ```
 
 **What it shows:**
@@ -223,7 +223,7 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 ```
 
 **Deployment workflow:**
@@ -250,7 +250,7 @@ Complete infrastructure lifecycle from design through deployment.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env test
 ```
 
 **What you see:**
@@ -279,7 +279,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env prod
 ```
 
 **What it checks:**
@@ -296,7 +296,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **For specific services:**
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env prod --service=api-lambda
 ```
 
 ### 2. Query Logs
@@ -308,7 +308,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:ops-manage query-logs --env=prod --service=api-lambda --filter=ERROR
+/fractary-faber-cloud:ops-manage query-logs --env prod --service=api-lambda --filter=ERROR
 ```
 
 **Query options:**
@@ -333,7 +333,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda --timeframe=2h
+/fractary-faber-cloud:ops-manage investigate --env prod --service=api-lambda --timeframe=2h
 ```
 
 **Investigation includes:**
@@ -356,7 +356,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:ops-manage analyze-performance --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage analyze-performance --env prod --service=api-lambda
 ```
 
 **Metrics analyzed:**
@@ -375,7 +375,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env prod --service=api-lambda --action=restart
 ```
 
 **Remediation actions:**
@@ -402,7 +402,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Direct Command:**
 ```bash
-/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env test --focus=cost
 ```
 
 **Cost audit includes:**
@@ -415,7 +415,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 **Security audit:**
 ```bash
-/fractary-faber-cloud:ops-manage audit --env=prod --focus=security
+/fractary-faber-cloud:ops-manage audit --env prod --focus=security
 ```
 
 **Security audit includes:**
@@ -437,7 +437,7 @@ The plugin is configured via `.fractary/plugins/faber-cloud/config/devops.json`.
 ### Initialize Configuration
 
 ```bash
-/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider aws --iac terraform
 ```
 
 ### Configuration Structure
@@ -561,7 +561,7 @@ Automatic before every deployment:
 
 **Skip tests (not recommended):**
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env=test --skip-tests
+/fractary-faber-cloud:infra-manage deploy --env test --skip-tests
 ```
 
 ### Post-Deployment Testing
@@ -608,7 +608,7 @@ When deployments fail, the debugger automatically analyzes errors.
 
 Or:
 ```bash
-/fractary-faber-cloud:infra-manage debug --error="<error message>" --operation=deploy --env=test
+/fractary-faber-cloud:infra-manage debug --error="<error message>" --operation=deploy --env test
 ```
 
 **Issue log location:**
@@ -717,7 +717,7 @@ git revert <commit>
 
 **Check specific service:**
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env prod --service=api-lambda
 ```
 
 **Recommended frequency:**
@@ -733,7 +733,7 @@ git revert <commit>
 
 **Search for specific pattern:**
 ```bash
-/fractary-faber-cloud:ops-manage query-logs --env=prod --filter="Database timeout" --timeframe=24h
+/fractary-faber-cloud:ops-manage query-logs --env prod --filter="Database timeout" --timeframe=24h
 ```
 
 ### Cost Auditing
@@ -767,7 +767,7 @@ git revert <commit>
 
 **Configuration compliance:**
 ```bash
-/fractary-faber-cloud:ops-manage audit --env=prod --focus=compliance
+/fractary-faber-cloud:ops-manage audit --env prod --focus=compliance
 ```
 
 **Verifies:**
@@ -919,7 +919,7 @@ Use in automation pipelines:
 # GitHub Actions example
 - name: Deploy infrastructure
   run: |
-    /fractary-faber-cloud:infra-manage deploy --env=test
+    /fractary-faber-cloud:infra-manage deploy --env test
 ```
 
 ### Multi-Region Deployments

@@ -2,19 +2,53 @@
 name: fractary-faber-cloud:list
 description: List deployed infrastructure resources
 examples:
+<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
   - /fractary-faber-cloud:list --env=test
   - /fractary-faber-cloud:list --env=prod
 argument-hint: "--env=<environment>"
+=======
+  - /fractary-faber-cloud:resources --env test
+  - /fractary-faber-cloud:resources --env prod
+argument-hint: "--env <environment>"
+>>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
 ---
 
 # List Command
 
+<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
 List detailed information about deployed infrastructure resources.
+=======
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:resources --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:resources --env=test
+```
+</ARGUMENT_SYNTAX>
+
+Show detailed information about deployed infrastructure resources.
+>>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
 
 ## Usage
 
 ```bash
+<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
 /fractary-faber-cloud:list --env=<environment>
+=======
+/fractary-faber-cloud:resources --env <environment>
+>>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
 ```
 
 ## Parameters
@@ -33,12 +67,20 @@ List detailed information about deployed infrastructure resources.
 
 **List test resources:**
 ```
+<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
 /fractary-faber-cloud:list --env=test
+=======
+/fractary-faber-cloud:resources --env test
+>>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
 ```
 
 **List production resources:**
 ```
+<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
 /fractary-faber-cloud:list --env=prod
+=======
+/fractary-faber-cloud:resources --env prod
+>>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
 ```
 
 ## Output Includes
@@ -90,8 +132,8 @@ List resources:
 ## Next Steps
 
 After viewing resources:
-- Monitor health: `/fractary-helm-cloud:health --env=test`
-- Check costs: `/fractary-helm-cloud:audit --type=cost --env=test`
+- Monitor health: `/fractary-helm-cloud:health --env test`
+- Check costs: `/fractary-helm-cloud:audit --type=cost --env test`
 - Make changes: `/fractary-faber-cloud:architect "modify..."`
 
 ## Invocation

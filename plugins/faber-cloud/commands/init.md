@@ -1,18 +1,36 @@
 ---
 name: /fractary-faber-cloud:init
 description: Initialize faber-cloud plugin configuration for cloud infrastructure management
-argument-hint: [--provider=aws] [--iac=terraform]
+argument-hint: [--provider aws] [--iac terraform]
 tags: [faber-cloud, initialization, configuration, setup]
 examples:
   - trigger: "/fractary-faber-cloud:init"
     action: "Initialize faber-cloud configuration"
-  - trigger: "/fractary-faber-cloud:init --provider=aws --iac=terraform"
+  - trigger: "/fractary-faber-cloud:init --provider aws --iac terraform"
     action: "Initialize with specified provider and IaC tool"
 ---
 
 # fractary-faber-cloud:init
 
 Initializes the faber-cloud plugin configuration for your project. Creates the configuration file at `.fractary/plugins/faber-cloud/config/faber-cloud.json` with project-specific settings for cloud infrastructure management.
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:init
+/fractary-faber-cloud:init --provider aws --iac terraform
+
+# Incorrect ❌
+/fractary-faber-cloud:init --provider=aws --iac=terraform
+```
+</ARGUMENT_SYNTAX>
 
 <CRITICAL_RULES>
 **YOU MUST:**
@@ -210,7 +228,11 @@ Configuration saved to: .fractary/plugins/faber-cloud/config/faber-cloud.json
 Next steps:
   - Review configuration: cat .fractary/plugins/faber-cloud/config/faber-cloud.json
   - Validate setup: /fractary-faber-cloud:validate
+<<<<<<< HEAD
   - Deploy infrastructure: /fractary-faber-cloud:deploy-execute --env=test
+=======
+  - Deploy infrastructure: /fractary-faber-cloud:deploy-apply --env test
+>>>>>>> origin/main
 ```
 
 ## Error Handling

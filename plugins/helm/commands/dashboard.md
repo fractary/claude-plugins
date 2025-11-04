@@ -4,11 +4,30 @@ description: Show unified Helm dashboard with health, issues, and recommendation
 examples:
   - /fractary-helm:dashboard
   - /fractary-helm:dashboard --format=json
-  - /fractary-helm:dashboard --env=prod
-argument-hint: "[--format=<text|json|voice>] [--env=<environment>] [--domain=<domain>] [--issues=<n>]"
+  - /fractary-helm:dashboard --env prod
+argument-hint: "[--format=<text|json|voice>] [--env <environment>] [--domain <domain>] [--issues=<n>]"
 ---
 
 # Dashboard Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm:dashboard --env test
+
+# Incorrect ❌
+/fractary-helm:dashboard --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Show a unified dashboard with system health, top issues, and recommended actions across all monitored domains.
 
@@ -21,8 +40,8 @@ Show a unified dashboard with system health, top issues, and recommended actions
 ## Parameters
 
 - `--format=<format>`: Output format (text, json, voice). Default: text
-- `--env=<environment>`: Filter by environment (test, prod, all). Default: all
-- `--domain=<domain>`: Filter by domain (infrastructure, application, all). Default: all
+- `--env <environment>`: Filter by environment (test, prod, all). Default: all
+- `--domain <domain>`: Filter by domain (infrastructure, application, all). Default: all
 - `--issues=<n>`: Number of top issues to show. Default: 5
 
 ## What This Does
@@ -42,7 +61,7 @@ Show a unified dashboard with system health, top issues, and recommended actions
 
 **Production-only dashboard:**
 ```
-/fractary-helm:dashboard --env=prod
+/fractary-helm:dashboard --env prod
 ```
 
 **JSON output for programmatic use:**
@@ -57,7 +76,7 @@ Show a unified dashboard with system health, top issues, and recommended actions
 
 **Infrastructure-only:**
 ```
-/fractary-helm:dashboard --domain=infrastructure
+/fractary-helm:dashboard --domain infrastructure
 ```
 
 ## Dashboard Sections
@@ -122,7 +141,7 @@ Use the dashboard:
 
 After viewing dashboard:
 - Investigate critical issues: `/helm:issues --critical`
-- Check specific domain: `/helm:status --domain=infrastructure`
+- Check specific domain: `/helm:status --domain infrastructure`
 - Escalate issues: `/helm:escalate <issue-id>`
 - Refresh: `/fractary-helm:dashboard --refresh`
 

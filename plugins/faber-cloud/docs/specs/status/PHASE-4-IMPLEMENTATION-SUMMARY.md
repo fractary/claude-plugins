@@ -33,7 +33,7 @@ Phase 4 successfully delivers the natural language interface and production-read
 - Passes all context to managers
 
 **Examples:**
-- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env=prod`
+- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env prod`
 - "check health" → `/fractary-faber-cloud:ops-manage check-health`
 
 ### 2. Director Command ✅

@@ -105,7 +105,7 @@ Phase 1 delivers a **working infrastructure lifecycle management system** with A
 
 ```bash
 # 1. Initialize project
-/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider aws --iac terraform
 
 # 2. Design infrastructure
 /fractary-faber-cloud:infra-manage architect --feature="S3 bucket for user uploads"
@@ -114,19 +114,19 @@ Phase 1 delivers a **working infrastructure lifecycle management system** with A
 /fractary-faber-cloud:infra-manage engineer --design=user-uploads.md
 
 # 4. Validate configuration
-/fractary-faber-cloud:infra-manage validate --env=test
+/fractary-faber-cloud:infra-manage validate --env test
 
 # 5. Preview changes
-/fractary-faber-cloud:infra-manage preview --env=test
+/fractary-faber-cloud:infra-manage preview --env test
 
 # 6. Deploy to test
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 
 # 7. View deployed resources
-/fractary-faber-cloud:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env test
 
 # 8. Deploy to production (with confirmations)
-/fractary-faber-cloud:infra-manage deploy --env=prod
+/fractary-faber-cloud:infra-manage deploy --env prod
 ```
 
 ## Architecture Patterns
@@ -238,7 +238,7 @@ plugins/fractary-faber-cloud/
 ✅ Can implement designs with `engineer` command
 ✅ Can validate terraform with `validate-config` command
 ✅ Can preview changes with `preview-changes` command
-✅ Can deploy to test environment with `deploy --env=test`
+✅ Can deploy to test environment with `deploy --env test`
 ✅ Permission errors auto-fixed via discover-deploy
 ✅ Registry tracks all deployed resources with ARNs and console links
 ✅ DEPLOYED.md shows human-readable resource list

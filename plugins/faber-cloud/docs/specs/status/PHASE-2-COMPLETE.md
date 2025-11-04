@@ -170,7 +170,7 @@ agents/infra-manager.md                # Updated with testing & debugging
 
 ```bash
 # Run security scans and cost estimation before deployment
-/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:infra-manage test --env test --phase=pre-deployment
 
 # Output:
 🔍 STARTING: Infrastructure Testing
@@ -189,7 +189,7 @@ Tests Run: 6 / Passed: 6
 
 ```bash
 # Deploy with automatic pre and post testing
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 
 # Workflow:
 # 1. Pre-deployment tests run automatically
@@ -204,7 +204,7 @@ Tests Run: 6 / Passed: 6
 
 ```bash
 # Deployment encounters permission error
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 
 # Error occurs: AccessDenied for s3:PutObject
 
@@ -233,7 +233,7 @@ Apply automated fix? (yes/no)
 /fractary-faber-cloud:infra-manage debug \
   --error="ValidationException: SecurityGroup sg-123 does not exist" \
   --operation=deploy \
-  --env=test
+  --env test
 
 # Output:
 🔧 STARTING: Infrastructure Debugging
@@ -258,7 +258,7 @@ Can Automate: No (requires code change)
 
 ```bash
 # First occurrence of novel error
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 # Error: Some new error never seen before
 
 # debugger response:
@@ -270,7 +270,7 @@ Error logged: issue-xyz789
 # User resolves manually and documents solution
 # Next time same error occurs:
 
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 # Same error occurs
 
 # debugger response:
@@ -414,7 +414,7 @@ Solution: [steps from previous resolution]
 ### Testing Workflow
 
 ```
-User: deploy --env=test
+User: deploy --env test
   ↓
 infra-manager
   ↓
@@ -699,7 +699,7 @@ To test Phase 2 functionality:
    ```bash
    # Create terraform with security issue (e.g., public S3)
    # Run pre-deployment tests
-   /fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
+   /fractary-faber-cloud:infra-manage test --env test --phase=pre-deployment
    # Should report security findings
    ```
 
@@ -713,7 +713,7 @@ To test Phase 2 functionality:
 3. **Test Error Debugging:**
    ```bash
    # Trigger permission error (remove IAM permission)
-   /fractary-faber-cloud:infra-manage deploy --env=test
+   /fractary-faber-cloud:infra-manage deploy --env test
    # Should automatically debug and propose solution
    ```
 

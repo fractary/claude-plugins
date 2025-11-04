@@ -99,8 +99,11 @@ Load repo configuration to determine:
 - Default remote name
 - Protected branches list
 - Force push policies
+- Push sync strategy (auto-merge|pull-rebase|pull-merge|manual|fail)
 
 Use repo-common skill to load configuration.
+
+**Note**: If config doesn't exist, defaults will be used (including push_sync_strategy: "auto-merge")
 
 **3. VALIDATE INPUTS:**
 
@@ -160,11 +163,15 @@ Invoke the active source control handler:
 ```
 USE SKILL handler-source-control-{platform}
 OPERATION: push-branch
-PARAMETERS: {branch_name, remote, set_upstream, force, push_flags}
+PARAMETERS: {branch_name, remote, set_upstream, force, push_flags, sync_strategy}
 ```
 
 The handler will:
 - Execute Git push with appropriate flags
+- If push fails due to non-fast-forward (branch out of sync):
+  - Apply configured sync_strategy (auto-merge, pull-rebase, pull-merge, manual, fail)
+  - Retry push after sync (unless strategy is 'fail')
+  - Report sync actions taken
 - Set upstream tracking if requested
 - Handle authentication and network errors
 - Return push status and details
@@ -176,7 +183,25 @@ The handler will:
 - Confirm upstream was set if requested
 - Check remote ref matches local ref
 
-**9. OUTPUT COMPLETION MESSAGE:**
+**9. CHECK CONFIG AND OUTPUT COMPLETION MESSAGE:**
+
+Check if configuration file exists using repo-common:check-config-exists utility.
+
+If config_exists is false, include the recommendation in completion message:
+
+```
+✅ COMPLETED: Branch Pusher
+Branch Pushed: {branch_name} → {remote}/{branch_name}
+Upstream Set: {upstream_set}
+Commits Pushed: {commit_count}
+───────────────────────────────────────
+Next: Run /repo:pr create to open pull request when ready
+
+💡 Tip: Run /repo:init to create a configuration file for this repository.
+   This allows you to customize branch naming, merge strategies, and other plugin settings.
+```
+
+If config exists, omit the recommendation:
 
 ```
 ✅ COMPLETED: Branch Pusher

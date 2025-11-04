@@ -3,18 +3,38 @@ name: /fractary-faber-cloud:validate
 description: Validate Terraform configuration syntax and structure
 examples:
   - /fractary-faber-cloud:validate
-  - /fractary-faber-cloud:validate --env=test
-argument-hint: "[--env=<environment>]"
+  - /fractary-faber-cloud:validate --env test
+argument-hint: "[--env <environment>]"
 ---
 
 # Validate Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:validate --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:validate --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Validate Terraform configuration syntax and structure.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:validate [--env=<environment>]
+/fractary-faber-cloud:validate [--env <environment>]
 ```
 
 ## Parameters
@@ -33,12 +53,12 @@ Validate Terraform configuration syntax and structure.
 
 **Validate test configuration:**
 ```
-/fractary-faber-cloud:validate --env=test
+/fractary-faber-cloud:validate --env test
 ```
 
 **Validate production configuration:**
 ```
-/fractary-faber-cloud:validate --env=prod
+/fractary-faber-cloud:validate --env prod
 ```
 
 **Validate with default environment:**
@@ -57,9 +77,15 @@ Run validation:
 ## Next Steps
 
 After validation passes:
+<<<<<<< HEAD
 - Test security: `/fractary-faber-cloud:test --env=test`
 - Preview changes: `/fractary-faber-cloud:deploy-plan --env=test`
 - Deploy: `/fractary-faber-cloud:deploy --env=test`
+=======
+- Test security: `/fractary-faber-cloud:test --env test`
+- Preview changes: `/fractary-faber-cloud:preview --env test`
+- Deploy: `/fractary-faber-cloud:deploy --env test`
+>>>>>>> origin/main
 
 ## Invocation
 

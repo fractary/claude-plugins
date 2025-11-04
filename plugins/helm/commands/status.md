@@ -3,12 +3,31 @@ name: status
 description: Check status of monitored systems across domains
 examples:
   - /fractary-helm:status
-  - /fractary-helm:status --domain=infrastructure
-  - /fractary-helm:status --env=prod
-argument-hint: "[--domain=<domain>] [--env=<environment>]"
+  - /fractary-helm:status --domain infrastructure
+  - /fractary-helm:status --env prod
+argument-hint: "[--domain <domain>] [--env <environment>]"
 ---
 
 # Status Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-helm:status --env test
+
+# Incorrect ❌
+/fractary-helm:status --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Check health and status of monitored systems across all domains or specific domain.
 
@@ -20,8 +39,8 @@ Check health and status of monitored systems across all domains or specific doma
 
 ## Parameters
 
-- `--domain=<domain>`: Specific domain (infrastructure, application) or all. Default: all
-- `--env=<environment>`: Filter by environment (test, prod). Default: all
+- `--domain <domain>`: Specific domain (infrastructure, application) or all. Default: all
+- `--env <environment>`: Filter by environment (test, prod). Default: all
 
 ## What This Does
 
@@ -39,17 +58,17 @@ Check health and status of monitored systems across all domains or specific doma
 
 **Infrastructure status:**
 ```
-/fractary-helm:status --domain=infrastructure
+/fractary-helm:status --domain infrastructure
 ```
 
 **Production infrastructure:**
 ```
-/fractary-helm:status --domain=infrastructure --env=prod
+/fractary-helm:status --domain infrastructure --env prod
 ```
 
 **Application status:**
 ```
-/fractary-helm:status --domain=application
+/fractary-helm:status --domain application
 ```
 
 ## Output Includes
@@ -87,8 +106,8 @@ Check status:
 ## Next Steps
 
 After checking status:
-- Investigate issues: `/fractary-helm-cloud:investigate --service=<name>`
-- View details: `/fractary-helm-cloud:health --env=prod`
+- Investigate issues: `/fractary-helm-cloud:investigate --service <name>`
+- View details: `/fractary-helm-cloud:health --env prod`
 - Check dashboard: `/fractary-helm:dashboard`
 
 ## Invocation
