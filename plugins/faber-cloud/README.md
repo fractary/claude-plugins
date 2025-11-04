@@ -1,26 +1,63 @@
-# Fractary DevOps Plugin
+# Fractary FABER Cloud Plugin
 
-**Version:** 1.2.0 (Phases 1 & 2 Complete - FABER/Helm Separation)
+**Version:** 2.0.0 (Phase 4 Complete - Clean Separation)
 
-Comprehensive DevOps automation for Claude Code - infrastructure lifecycle, testing, debugging, and runtime operations.
+**⚠️ BREAKING CHANGES:** Operations monitoring completely removed. Infrastructure lifecycle management only.
+
+Pure infrastructure lifecycle management for Claude Code - design, build, test, and deploy cloud infrastructure using the FABER workflow.
+
+## ⚠️ Version 2.0.0 Breaking Changes
+
+**Operations Monitoring Removed:**
+- `ops-manager` agent → Moved to `helm-cloud`
+- `ops-*` skills → Moved to `helm-cloud`
+- `ops-manage` command → Removed (use `helm-cloud`)
+
+**For operations monitoring, use:**
+- `fractary-helm-cloud` - Infrastructure operations
+- `fractary-helm` - Unified dashboard across domains
+
+**Migration Guide:** See [docs/MIGRATION-V2.md](docs/MIGRATION-V2.md)
+
+---
 
 ## Recent Updates
 
-**Phase 1 (Command Reorganization) - v1.1.0:**
-- ✅ Simplified command structure: Direct action-based commands
-- ✅ `/{plugin}:{action}` pattern for consistency
-- ✅ Backward compatibility via delegation
-- ✅ Migration: Old commands still work with deprecation warnings
+**Phase 4 (Clean Separation) - v2.0.0:**
+- ✅ **BREAKING:** Operations monitoring completely removed
+- ✅ Pure infrastructure lifecycle management (FABER workflow)
+- ✅ Clean architectural boundaries
+- ✅ Focused on design → build → test → deploy
+- ✅ See migration guide for upgrade path
 
-**Phase 2 (Extract helm-cloud) - v1.2.0:**
-- ✅ Operations monitoring moved to `helm-cloud` plugin
-- ✅ Shared configuration structure (`.fractary/registry/`, `.fractary/shared/`)
-- ✅ FABER (creation) / Helm (operations) architectural separation
-- ✅ Backward compatibility maintained
+**Phase 1-3 (Complete):**
+- ✅ Simplified command structure
+- ✅ Operations extracted to helm-cloud
+- ✅ Central Helm orchestrator created
+- ✅ Backward compatibility maintained (through v1.x)
 
 ## Overview
 
-The Fractary DevOps plugin provides end-to-end DevOps automation from infrastructure design through production operations. It features natural language commands, intelligent error debugging with learning, comprehensive testing, and runtime monitoring.
+The Fractary FABER Cloud plugin (v2.0.0) provides infrastructure lifecycle management following the FABER workflow:
+
+- **Frame:** Understand requirements and context
+- **Architect:** Design infrastructure solutions
+- **Build:** Generate Terraform/IaC code
+- **Evaluate:** Test security, cost, and compliance
+- **Release:** Deploy to AWS/cloud
+
+**What's included:**
+- Infrastructure design and architecture
+- Terraform code generation
+- Security scanning and cost estimation
+- Deployment automation
+- Intelligent error debugging
+
+**What's NOT included (use helm-cloud instead):**
+- Health monitoring
+- Log analysis and investigation
+- Incident remediation
+- Cost/security auditing of running systems
 
 ### Key Features
 
@@ -147,9 +184,9 @@ Route natural language requests to appropriate operations:
 
 ### Operations Commands
 
-**⚠️ Moved to helm-cloud plugin (Phase 2):**
+**⚠️ REMOVED in v2.0.0 - Use helm-cloud plugin:**
 
-Operations monitoring is now handled by the separate `helm-cloud` plugin:
+Operations monitoring has been completely removed from faber-cloud. Use the `helm-cloud` plugin instead:
 
 ```bash
 # Check health
@@ -163,14 +200,21 @@ Operations monitoring is now handled by the separate `helm-cloud` plugin:
 
 # Audit costs/security
 /fractary-helm-cloud:audit --type=cost --env=test
+
+# Unified dashboard (all domains)
+/fractary-helm:dashboard
 ```
 
-See [helm-cloud documentation](../helm-cloud/README.md) for details.
+See [helm-cloud documentation](../helm-cloud/docs/README.md) for details.
 
-**Legacy command (deprecated but still works):**
+**Breaking change:**
 ```bash
+# NO LONGER WORKS in v2.0.0
 /fractary-faber-cloud:ops-manage check-health --env=prod
-# Shows deprecation warning, delegates to /fractary-helm-cloud:health
+# Error: Command not found
+
+# Use instead:
+/fractary-helm-cloud:health --env=prod
 ```
 
 ### Configuration Command
