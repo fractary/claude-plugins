@@ -18,7 +18,7 @@ Before you begin, ensure you have:
 In your project directory, initialize the plugin:
 
 ```bash
-/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider aws --iac terraform
 ```
 
 This creates `.fractary/plugins/faber-cloud/config/devops.json` with your project configuration.
@@ -84,7 +84,7 @@ Your config should look like:
 ### Option B: Direct Command
 
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 ```
 
 **What happens:**
@@ -105,7 +105,7 @@ Your config should look like:
 
 Or:
 ```bash
-/fractary-faber-cloud:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env test
 ```
 
 You'll see:
@@ -122,7 +122,7 @@ You'll see:
 
 Or:
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=test
+/fractary-faber-cloud:ops-manage check-health --env test
 ```
 
 **What it checks:**
@@ -254,10 +254,10 @@ Now that you're set up:
 ```bash
 # Infrastructure
 /fractary-faber-cloud:infra-manage architect --feature="..."
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 
 # Operations
-/fractary-faber-cloud:ops-manage check-health --env=test
+/fractary-faber-cloud:ops-manage check-health --env test
 /fractary-faber-cloud:ops-manage investigate --service=...
 ```
 

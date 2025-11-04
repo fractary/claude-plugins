@@ -291,13 +291,13 @@ A unified, intelligent DevOps plugin that:
 
 ```bash
 # Initialize configuration
-/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider aws --iac terraform
 
 # Infrastructure Management
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 /fractary-faber-cloud:infra-manage architect --feature="user uploads"
 /fractary-faber-cloud:infra-manage validate-config
-/fractary-faber-cloud:infra-manage show-resources --env=test
+/fractary-faber-cloud:infra-manage show-resources --env test
 
 # Operations Management
 /fractary-faber-cloud:ops-manage check-health --service=api

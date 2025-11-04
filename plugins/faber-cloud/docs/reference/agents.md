@@ -50,14 +50,14 @@ Agents are workflow orchestrators that coordinate skill invocations to accomplis
 ```bash
 # Infrastructure
 /fractary-faber-cloud:director "deploy my infrastructure to test"
-# Routes to: /fractary-faber-cloud:infra-manage deploy --env=test
+# Routes to: /fractary-faber-cloud:infra-manage deploy --env test
 
 /fractary-faber-cloud:director "design an S3 bucket"
-# Routes to: /fractary-faber-cloud:infra-manage architect --feature="S3 bucket"
+# Routes to: /fractary-faber-cloud:infra-manage architect --feature "S3 bucket"
 
 # Operations
 /fractary-faber-cloud:director "check if production is healthy"
-# Routes to: /fractary-faber-cloud:ops-manage check-health --env=prod
+# Routes to: /fractary-faber-cloud:ops-manage check-health --env prod
 
 /fractary-faber-cloud:director "investigate API errors"
 # Routes to: /fractary-faber-cloud:ops-manage investigate --service=API
@@ -144,7 +144,7 @@ architect → engineer → validate → test → preview → deploy → (debug i
 /fractary-faber-cloud:infra-manage architect --feature="API service"
 
 # Deploy
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 
 # Debug
 /fractary-faber-cloud:infra-manage debug --error="<error message>"
@@ -209,16 +209,16 @@ monitor → investigate → respond → audit
 
 ```bash
 # Health check
-/fractary-faber-cloud:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env prod
 
 # Investigate
 /fractary-faber-cloud:ops-manage investigate --service=api-lambda
 
 # Remediate
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env prod --service=api-lambda --action=restart
 
 # Audit
-/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env test --focus=cost
 ```
 
 ### File
@@ -302,7 +302,7 @@ All agents enforce:
 
 ```bash
 # Skip director, go straight to manager
-/fractary-faber-cloud:infra-manage deploy --env=prod
+/fractary-faber-cloud:infra-manage deploy --env prod
 
 # Manager orchestrates
 → Skills execute deployment

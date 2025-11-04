@@ -41,7 +41,7 @@ Layer 5: Provider Adapters
 5. Route to infra-manager or ops-manager
 
 **Examples:**
-- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env=prod`
+- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env prod`
 - "check health" → `/fractary-faber-cloud:ops-manage check-health`
 - "investigate errors" → `/fractary-faber-cloud:ops-manage investigate`
 

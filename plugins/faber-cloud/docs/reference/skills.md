@@ -96,7 +96,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-faber-cloud:infra-manage validate-config --env=test
+/fractary-faber-cloud:infra-manage validate-config --env test
 ```
 
 ### infra-previewer
@@ -126,7 +126,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-faber-cloud:infra-manage preview-changes --env=test
+/fractary-faber-cloud:infra-manage preview-changes --env test
 ```
 
 ### infra-deployer
@@ -160,7 +160,7 @@ Skills are single-purpose execution units that perform focused tasks. The plugin
 
 **Example:**
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 ```
 
 ### infra-permission-manager
@@ -237,7 +237,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-faber-cloud:infra-manage test --env=test --phase=pre-deployment
+/fractary-faber-cloud:infra-manage test --env test --phase=pre-deployment
 ```
 
 ### infra-debugger
@@ -329,7 +329,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env prod
 ```
 
 ### ops-investigator
@@ -363,7 +363,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage investigate --env prod --service=api-lambda
 ```
 
 ### ops-responder
@@ -404,7 +404,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env prod --service=api-lambda --action=restart
 ```
 
 ### ops-auditor
@@ -450,7 +450,7 @@ Automatically invoked when permission errors occur during deployment.
 
 **Example:**
 ```bash
-/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env test --focus=cost
 ```
 
 ---

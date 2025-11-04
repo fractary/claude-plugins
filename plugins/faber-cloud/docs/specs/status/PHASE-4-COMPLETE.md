@@ -29,7 +29,7 @@ Phase 4 delivers **natural language interface and production-ready polish** to c
   - Constructs proper slash command invocation
   - Passes context to manager
 - **Example triggers:**
-  - "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env=prod`
+  - "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env prod`
   - "check health" → `/fractary-faber-cloud:ops-manage check-health`
   - "investigate errors" → `/fractary-faber-cloud:ops-manage investigate`
   - "design S3 bucket" → `/fractary-faber-cloud:infra-manage architect --feature="S3 bucket"`
@@ -223,10 +223,10 @@ docs/
 Intent: Infrastructure lifecycle
 Manager: infra-manager
 Command: deploy
-Arguments: --env=test
+Arguments: --env test
 ───────────────────────────────────────
 
-# Invokes: /fractary-faber-cloud:infra-manage deploy --env=test
+# Invokes: /fractary-faber-cloud:infra-manage deploy --env test
 # infra-manager handles complete workflow:
 # → Pre-deployment tests
 # → Preview changes
@@ -246,10 +246,10 @@ Arguments: --env=test
 Intent: Runtime operations
 Manager: ops-manager
 Command: check-health
-Arguments: --env=prod
+Arguments: --env prod
 ───────────────────────────────────────
 
-# Invokes: /fractary-faber-cloud:ops-manage check-health --env=prod
+# Invokes: /fractary-faber-cloud:ops-manage check-health --env prod
 # ops-manager handles monitoring workflow:
 # → Query resource status
 # → Collect CloudWatch metrics
@@ -263,7 +263,7 @@ Arguments: --env=prod
 /fractary-faber-cloud:director "deploy to production"
 
 # Director detects production environment
-# Routes to infra-manager with --env=prod
+# Routes to infra-manager with --env prod
 
 # Manager shows extra warnings:
 ⚠️  WARNING: Production Deployment
@@ -658,7 +658,7 @@ To test Phase 4 functionality:
 **1. Test Natural Language Routing:**
 ```bash
 /fractary-faber-cloud:director "deploy to test"
-# Verify routes to infra-manage deploy --env=test
+# Verify routes to infra-manage deploy --env test
 
 /fractary-faber-cloud:director "check health"
 # Verify routes to ops-manage check-health
