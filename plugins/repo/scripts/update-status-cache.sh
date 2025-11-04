@@ -40,6 +40,12 @@ done
 # Acquire exclusive lock (wait up to 5 seconds, then fail)
 # This ensures only one update runs at a time, preventing git lock conflicts
 # Skip lock acquisition if --skip-lock flag is passed (caller already holds lock)
+#
+# File Descriptor 200 is used for locking throughout this script and auto-commit-on-stop.sh
+# Assumptions:
+#   - FD 200 is not used by calling scripts or processes
+#   - FD 200 is available for exclusive lock coordination
+#   - Same FD number must be used across all scripts sharing this lock
 if [ "$SKIP_LOCK" = false ]; then
     exec 200>"${LOCK_FILE}"
     if ! flock -w 5 200; then
@@ -50,7 +56,10 @@ if [ "$SKIP_LOCK" = false ]; then
     fi
 
     # Ensure lock is released on exit (trap cleanup)
-    trap "flock -u 200 2>/dev/null || true" EXIT
+    trap "flock -u 200 2>/dev/null || true; rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
+else
+    # Even when skipping lock, ensure temp file cleanup on interruption
+    trap "rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
 fi
 
 # Check if we're in a git repository
@@ -69,12 +78,9 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 GIT_STATUS_OUTPUT=$(git status --porcelain 2>/dev/null)
 
 # Count uncommitted changes (both staged and unstaged)
-# Check if output is empty first to avoid wc -l counting trailing newline as 1
-if [ -n "$GIT_STATUS_OUTPUT" ]; then
-    UNCOMMITTED_CHANGES=$(echo "$GIT_STATUS_OUTPUT" | wc -l | tr -d ' ')
-else
-    UNCOMMITTED_CHANGES=0
-fi
+# Use grep to filter empty lines before counting (more robust than wc -l alone)
+# grep -c outputs 0 and exits with code 1 when no matches, so we need || true to ignore exit code
+UNCOMMITTED_CHANGES=$(echo "$GIT_STATUS_OUTPUT" | grep -c . || true)
 
 # Count untracked files
 UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
