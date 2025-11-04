@@ -56,7 +56,9 @@ provision, setup
 
 **Action:** Route to `/fractary-faber-cloud:infra-manage [command] [args]`
 
-## Runtime Operations Intent → ops-manager
+## Runtime Operations Intent → helm-cloud
+
+**⚠️ NOTE:** Operations monitoring has moved to the helm-cloud plugin.
 
 **Keywords:** monitor, check, health, status, logs, investigate, debug, analyze,
 fix, remediate, respond, restart, scale, audit, cost, security, performance,
@@ -73,7 +75,9 @@ running, live, production issues, incidents, errors
 - "Monitor performance"
 - "Fix the issue"
 
-**Action:** Route to `/fractary-faber-cloud:ops-manage [command] [args]`
+**Action:** Route to helm-cloud commands (recommended) or delegate via ops-manage (deprecated)
+- **Recommended:** `/fractary-helm-cloud:health`, `/fractary-helm-cloud:investigate`, etc.
+- **Backward compatible:** `/fractary-faber-cloud:ops-manage` (will delegate to helm-cloud)
 </INTENT_CATEGORIES>
 
 <PARSING_LOGIC>
@@ -112,13 +116,15 @@ Scan for keywords in <INTENT_CATEGORIES>:
 - show/list resources → `show-resources`
 - status/check deployment → `check-status`
 
-### For Operations Intent:
-- health/status/check/alive → `check-health`
-- logs/query/search → `query-logs`
-- investigate/debug/analyze error → `investigate`
-- performance/metrics/analyze → `analyze-performance`
-- fix/remediate/restart/scale → `remediate`
-- audit/cost/security/compliance → `audit`
+### For Operations Intent (helm-cloud):
+- health/status/check/alive → `/fractary-helm-cloud:health`
+- logs/query/search/investigate → `/fractary-helm-cloud:investigate`
+- debug/analyze error/investigate → `/fractary-helm-cloud:investigate`
+- fix/remediate/restart/scale → `/fractary-helm-cloud:remediate`
+- audit/cost/security/compliance → `/fractary-helm-cloud:audit`
+
+**Note:** You should route directly to helm-cloud commands for best user experience.
+For backward compatibility, you can also route to `/fractary-faber-cloud:ops-manage` which will delegate.
 
 ## Step 4: Extract Arguments
 

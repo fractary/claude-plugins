@@ -13,28 +13,67 @@ examples:
 
 # Operations Management Command
 
+# ⚠️  DELEGATION NOTICE
+
+**This command now delegates to the helm-cloud plugin for operations monitoring.**
+
+**Current (still works):**
+```bash
+/fractary-faber-cloud:ops-manage check-health --env=test
+```
+
+**Recommended (use helm-cloud directly):**
+```bash
+/fractary-helm-cloud:health --env=test
+/fractary-helm-cloud:investigate --env=prod
+/fractary-helm-cloud:remediate --issue=infra-001 --env=prod
+/fractary-helm-cloud:audit --type=cost --env=prod
+```
+
+**Migration Timeline:**
+- **Now:** Both old and new commands work (delegation in place)
+- **faber-cloud v2.0.0:** This command will be removed
+- **Support period:** 6 months after v2.0.0 release
+
+This delegation will be removed in faber-cloud v2.0.0.
+
+---
+
 <CRITICAL_RULES>
 **YOU MUST:**
-- Invoke the ops-manager agent immediately
-- Pass all arguments to the agent
+- Delegate to helm-cloud plugin immediately
+- Map old operations to new helm-cloud commands
+- Show deprecation warning to user
 - Do NOT perform any work yourself
 
-**THIS COMMAND IS ONLY AN ENTRY POINT.**
+**THIS COMMAND IS A DELEGATION LAYER ONLY.**
 </CRITICAL_RULES>
 
 <ROUTING>
-Parse user input and invoke agent:
+Parse user input and delegate to helm-cloud:
+
+**Operation Mapping:**
+- `check-health` → `/fractary-helm-cloud:health`
+- `query-logs` → `/fractary-helm-cloud:investigate`
+- `investigate` → `/fractary-helm-cloud:investigate`
+- `remediate` → `/fractary-helm-cloud:remediate`
+- `audit` → `/fractary-helm-cloud:audit`
+
+**Delegation Process:**
+1. Show deprecation warning
+2. Parse operation and arguments
+3. Map to appropriate helm-cloud command
+4. Invoke helm-cloud command via SlashCommand
+5. Return results to user
 
 ```bash
 # Example: /fractary-faber-cloud:ops-manage check-health --env=test
 
-# YOU MUST INVOKE AGENT:
-Invoke ops-manager with parsed arguments
+# Step 1: Show deprecation warning
+"⚠️ NOTE: This command is deprecated. Please use /fractary-helm-cloud:health instead."
 
-# DO NOT:
-# - Read files yourself
-# - Execute commands yourself
-# - Try to solve the problem yourself
+# Step 2: Delegate to helm-cloud
+Invoke: /fractary-helm-cloud:health --env=test
 ```
 </ROUTING>
 

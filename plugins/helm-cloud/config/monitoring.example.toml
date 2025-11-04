@@ -1,0 +1,92 @@
+# Helm-Cloud Monitoring Configuration
+# Copy this file to .fractary/plugins/helm-cloud/config/monitoring.toml and customize
+
+[helm-cloud]
+domain = "infrastructure"
+environments = ["test", "prod"]
+
+[monitoring]
+health_check_interval = "5m"
+enabled_checks = [
+  "resource_status",
+  "cloudwatch_metrics",
+  "cloudwatch_alarms",
+  "cost_anomalies"
+]
+
+# Service Level Objectives (SLOs)
+[slos]
+
+[slos.lambda]
+error_rate_percent = 0.1
+p95_latency_ms = 200
+availability_percent = 99.9
+
+[slos.rds]
+error_rate_percent = 0.01
+connection_time_ms = 100
+availability_percent = 99.95
+
+[slos.ecs]
+error_rate_percent = 0.1
+p95_response_time_ms = 500
+availability_percent = 99.9
+
+[slos.s3]
+error_rate_percent = 0.01
+put_latency_ms = 100
+get_latency_ms = 50
+
+# Remediation Configuration
+[remediation]
+# Actions that can be auto-remediated without confirmation
+auto_remediate = [
+  "restart_lambda",
+  "clear_cache",
+  "invalidate_cloudfront"
+]
+
+# Actions that require explicit confirmation
+require_confirmation = [
+  "scale_resources",
+  "increase_capacity",
+  "modify_autoscaling",
+  "restart_ecs_service"
+]
+
+# Actions that must never be automated
+never_auto = [
+  "delete_resources",
+  "modify_security_groups",
+  "change_iam_policies",
+  "terminate_instances"
+]
+
+# Escalation Configuration
+[escalation]
+channels = ["slack-ops"]
+on_call_schedule = "pagerduty-infra-oncall"
+
+# Auto-escalation rules
+auto_escalate_on = [
+  "critical_slo_breach",
+  "extended_outage",
+  "repeated_degradation"
+]
+
+# Issue Registry
+[issues]
+active_path = "helm/issues/active/"
+resolved_path = "helm/issues/resolved/"
+retention_days = 90
+
+# Metrics and Logging
+[cloudwatch]
+log_retention_days = 30
+metric_namespace = "Fractary/Infrastructure"
+
+# Cost Monitoring
+[cost]
+alert_on_spike_percent = 20
+daily_budget_usd = 100
+monthly_budget_usd = 3000

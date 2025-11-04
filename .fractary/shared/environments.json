@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "environments": {
+    "test": {
+      "name": "test",
+      "description": "Test/development environment",
+      "requires_confirmation": false
+    },
+    "prod": {
+      "name": "prod",
+      "description": "Production environment",
+      "requires_confirmation": true
+    }
+  }
+}
