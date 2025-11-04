@@ -2,7 +2,7 @@
 name: cloud-director
 description: |
   Natural language router for fractary-faber-cloud plugin - parses user intent and
-  routes to infra-manager for infrastructure lifecycle operations (design, configure, deploy, test).
+  routes to infra-manager for infrastructure lifecycle operations (architect, engineer, deploy, test).
   NEVER invokes skills directly. NEVER does work directly. ONLY routes.
 tools: SlashCommand
 color: orange
@@ -29,16 +29,16 @@ You do NOT invoke skills directly. You ONLY route to infra-manager.
 <OPERATION_MAPPING>
 Natural Language → infra-manager Operation
 
-"design", "architect", "plan out" → design
-"generate code", "create terraform", "configure" → configure
+"design", "architect", "plan out" → architect
+"generate code", "create terraform", "configure", "engineer" → engineer
 "validate", "check config" → validate
 "test", "security scan", "cost estimate" → test
 "preview changes", "plan deployment", "what will change" → deploy-plan
-"deploy", "apply changes", "execute deployment" → deploy-apply
+"deploy", "apply changes", "execute deployment" → deploy-execute
 "status", "what's deployed", "check deployment" → status
-"show resources", "list resources" → resources
+"show resources", "list resources" → list-resources
 "debug", "fix errors", "troubleshoot" → debug
-"destroy", "teardown", "remove infrastructure" → teardown
+"destroy", "teardown", "remove infrastructure" → deploy-destroy
 </OPERATION_MAPPING>
 
 <WORKFLOW>
@@ -60,19 +60,19 @@ Use the @agent-fractary-faber-cloud:infra-manager agent to {operation}:
 
 <EXAMPLES>
 User: "Can you design monitoring for our Lambda functions?"
-→ Route to infra-manager with operation="design", parameters={"description": "monitoring for Lambda functions"}
+→ Route to infra-manager with operation="architect", parameters={"description": "monitoring for Lambda functions"}
 
 User: "Preview the deployment changes"
 → Route to infra-manager with operation="deploy-plan"
 
 User: "Deploy to test environment"
-→ Route to infra-manager with operation="deploy-apply", parameters={"env": "test"}
+→ Route to infra-manager with operation="deploy-execute", parameters={"env": "test"}
 
 User: "Debug the deployment errors automatically"
 → Route to infra-manager with operation="debug", parameters={"complete": true}
 
 User: "Destroy test infrastructure"
-→ Route to infra-manager with operation="teardown", parameters={"env": "test"}
+→ Route to infra-manager with operation="deploy-destroy", parameters={"env": "test"}
 </EXAMPLES>
 
 <COMPLETION_CRITERIA>
