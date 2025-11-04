@@ -1,19 +1,83 @@
-# Helm-Cloud Plugin
+# Fractary Helm-Cloud Plugin
 
-**Version:** 1.1.0 (Phase 3 Complete - Central Helm Integration)
-**Domain:** Infrastructure
+**Version:** 1.1.0 (All Phases Complete)
+**Domain:** Infrastructure Operations
 **Purpose:** Runtime operations and monitoring for cloud infrastructure
 
 ---
 
+## Quick Start
+
+Check infrastructure health:
+```bash
+/fractary-helm-cloud:health --env=prod
+```
+
+View unified dashboard (includes infrastructure + other domains):
+```bash
+/fractary-helm:dashboard
+```
+
+Investigate issues:
+```bash
+/fractary-helm-cloud:investigate "Lambda errors" --env=prod
+```
+
+---
+
+## What is helm-cloud?
+
+**helm-cloud** is the operations monitoring plugin for cloud infrastructure deployed by faber-cloud. It implements the **Helm workflow** (Monitor → Analyze → Alert → Remediate) for continuous operations.
+
+### Relationship with faber-cloud
+
+Starting with **faber-cloud v2.0.0**, operations monitoring has been completely separated:
+
+- **faber-cloud v2.0.0** = Infrastructure lifecycle (FABER workflow)
+  - Design → Build → Test → Deploy
+
+- **helm-cloud v1.1.0** = Operations monitoring (Helm workflow)
+  - Monitor → Analyze → Alert → Remediate
+
+```
+faber-cloud creates → helm-cloud monitors → helm escalates issues → faber-cloud fixes
+```
+
+---
+
 ## Recent Updates
+
+**Phase 4 (Clean Separation) - Works with faber-cloud v2.0.0:**
+- ✅ Now the **only** operations monitoring for infrastructure
+- ✅ All operations commands moved from faber-cloud to helm-cloud
+- ✅ Clean architectural boundaries established
 
 **Phase 3 (Central Helm Integration) - v1.1.0:**
 - ✅ Registered with central Helm orchestrator
 - ✅ Accessible via unified dashboard (`/fractary-helm:dashboard`)
 - ✅ Cross-domain issue prioritization
 - ✅ FABER escalation integration
-- ✅ Maintains backward compatibility
+
+**Phase 2 (Initial Extraction) - v1.0.0:**
+- ✅ Extracted from faber-cloud plugin
+- ✅ Shared configuration structure
+- ✅ Independent operations plugin
+
+---
+
+## Migration from faber-cloud v1.x
+
+**If you used faber-cloud v1.x operations commands**, they have moved here:
+
+| Old Command (faber-cloud v1.x) | New Command (helm-cloud) |
+|--------------------------------|--------------------------|
+| `/fractary-faber-cloud:ops-manage check-health` | `/fractary-helm-cloud:health` |
+| `/fractary-faber-cloud:ops-manage query-logs` | `/fractary-helm-cloud:investigate` |
+| `/fractary-faber-cloud:ops-manage investigate` | `/fractary-helm-cloud:investigate` |
+| `/fractary-faber-cloud:ops-manage remediate` | `/fractary-helm-cloud:remediate` |
+| `/fractary-faber-cloud:ops-manage audit` | `/fractary-helm-cloud:audit` |
+
+**Note:** As of faber-cloud v2.0.0, all operations commands have been removed. See the [migration guide](../faber-cloud/docs/MIGRATION-V2.md) for details.
 
 ---
 
