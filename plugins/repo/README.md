@@ -1,6 +1,6 @@
 # Fractary Repo Plugin
 
-**Version**: 2.0.0
+**Version**: 2.2.0
 **Universal source control operations across GitHub, GitLab, and Bitbucket**
 
 ## Overview
@@ -12,8 +12,9 @@ The `fractary-repo` plugin provides a unified, platform-agnostic interface for s
 - 🌍 **Multi-Platform Support**: GitHub (complete), GitLab (stub), Bitbucket (stub)
 - 🎯 **Context Efficient**: 55-60% reduction in context usage through modular design
 - 🔒 **Safety First**: Protected branch checks, force-with-lease, confirmation prompts
+- ⚡ **Branch-Aware Permissions**: Fast workflow on feature branches, protection for production
 - 📝 **Semantic Commits**: Conventional Commits + FABER metadata
-- 🎨 **User-Friendly**: 6 slash commands for direct interaction
+- 🎨 **User-Friendly**: 7 slash commands for direct interaction
 - 🔌 **FABER Integration**: Full workflow integration with traceability
 
 ## Architecture
@@ -104,6 +105,49 @@ EOF
 
    See [GitHub Setup Guide](docs/setup/github-setup.md) for detailed instructions.
 
+### Configure Permissions (Highly Recommended) ⚡
+
+**Run this immediately for the best experience**:
+
+```bash
+# Setup permissions once per project
+/repo:init-permissions
+```
+
+This configures `.claude/settings.json` with a **branch-aware permission system**:
+
+**Feature Branches (Fast Workflow)**:
+```bash
+# All execute immediately, no prompts!
+git commit -m "Add feature"
+git push origin feat/123
+gh pr create
+```
+
+**Protected Branches (Requires Approval)**:
+```bash
+# Only these require approval
+git push origin main
+git push origin master
+git push origin production
+```
+
+**Always Denied (Safety Net)**:
+```bash
+# Always blocked
+git push --force origin main
+rm -rf /
+gh repo delete
+```
+
+**Benefits**:
+- ⚡ **Fast workflow** - No prompts on feature branches
+- 🛡️ **Protection** - Approval required for production branches only
+- 🚫 **Safety** - Catastrophic operations always blocked
+- 📋 **Customizable** - Add your own protected branches
+
+See [Branch-Aware Permissions Guide](docs/branch-aware-permissions.md) for full details.
+
 ### Start Using Commands
 
 ```bash
@@ -121,6 +165,64 @@ EOF
 ```
 
 ## User Commands
+
+### /repo:init-permissions - Permission Management ⚡
+
+Configure Claude Code permissions with **branch-aware intelligence**.
+
+```bash
+# Setup permissions (first time or update)
+/repo:init-permissions
+
+# Validate current permissions
+/repo:init-permissions --mode validate
+
+# Reset to defaults
+/repo:init-permissions --mode reset
+```
+
+**What It Does:**
+
+Creates a 3-tier permission system in `.claude/settings.json`:
+
+1. **Auto-Allow** (55 commands): Fast workflow on feature branches
+   - All git operations: `commit`, `push`, `merge`, `rebase`, `reset`
+   - All GitHub CLI: `gh pr create`, `gh issue create`, etc.
+   - Result: **Zero prompts** for normal development
+
+2. **Require Approval** (9 commands - Protected branches only): Production safety
+   - `git push origin main/master/production`
+   - Result: **Approval required** only when it matters
+
+3. **Always Deny** (39 commands): Catastrophic operations blocked
+   - Force push to protected branches
+   - System destruction: `rm -rf /`, `sudo`, `shutdown`
+   - Result: **Always blocked**, no exceptions
+
+**Workflow Comparison:**
+
+Before:
+```bash
+git commit → prompt ⏱️
+git push → prompt ⏱️
+gh pr create → prompt ⏱️
+= 3 prompts per workflow 🐢
+```
+
+After:
+```bash
+git commit → ✅ Done
+git push origin feat/123 → ✅ Done
+gh pr create → ✅ Done
+git push origin main → ⚠️ Approve? (only this one)
+= 0 prompts on features, 1 on production ⚡
+```
+
+**Documentation:**
+- [Command Reference](commands/init-permissions.md)
+- [Branch-Aware Guide](docs/branch-aware-permissions.md) - Comprehensive
+- [Permission Behavior](docs/permissions-behavior.md) - Technical details
+- [Original Guide](docs/permissions-guide.md) - Historical reference
 
 ### /repo:branch - Branch Management
 
@@ -241,7 +343,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 }
 ```
 
-**Supported Operations** (13 total):
+**Supported Operations** (14 total):
 - `generate-branch-name` - Generate semantic branch name
 - `create-branch` - Create new branch
 - `delete-branch` - Delete branch locally/remotely
@@ -254,6 +356,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 - `create-tag` - Create version tag
 - `push-tag` - Push tag to remote
 - `list-stale-branches` - Find stale branches
+- `configure-permissions` - Manage Claude Code permissions
 
 ## Components
 
@@ -267,7 +370,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 
 [Agent documentation](agents/repo-manager.md)
 
-### Skills (7 Specialized)
+### Skills (8 Specialized)
 
 1. **branch-namer** - Generate semantic branch names
 2. **branch-manager** - Create and manage branches
@@ -276,6 +379,7 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 5. **pr-manager** - Complete PR lifecycle
 6. **tag-manager** - Version tag management
 7. **cleanup-manager** - Branch cleanup operations
+8. **permission-manager** - Claude Code permission configuration
 
 [Skills documentation](skills/)
 
@@ -352,16 +456,159 @@ Configuration is loaded from:
 
 [Full configuration schema](config/repo.example.json)
 
+## Permission Management
+
+The repo plugin includes a sophisticated **branch-aware permission management system** that optimizes for developer velocity while maintaining security.
+
+### Overview
+
+Traditional permission systems require approval for every operation, creating friction and slowing down development. The repo plugin's branch-aware system recognizes that:
+- Most work happens on feature branches (should be fast)
+- Production branches need protection (should require approval)
+- Catastrophic operations should never execute (should be denied)
+
+### Three-Tier System
+
+#### 1. Auto-Allow (55 commands)
+
+Commands execute **immediately without prompts** on feature branches:
+
+**Git Operations:**
+- Read: `status`, `log`, `diff`, `show`, `branch`
+- Write: `commit`, `push`, `merge`, `rebase`, `reset`, `add`, `tag`
+- Navigation: `checkout`, `switch`, `fetch`, `pull`, `stash`
+
+**GitHub CLI:**
+- PR: `gh pr create`, `gh pr comment`, `gh pr review`, `gh pr close`
+- Issues: `gh issue create`, `gh issue comment`, `gh issue close`
+- Repository: `gh repo view`, `gh repo clone`, `gh auth status`
+
+**Safe Utilities:**
+- `cat`, `head`, `tail`, `grep`, `find`, `ls`, `pwd`, `jq`, `sed`, `awk`
+
+#### 2. Require Approval (9 commands - Protected Branches Only)
+
+Commands prompt for approval **ONLY when targeting protected branches**:
+
+**Protected Branch Patterns:**
+- `git push origin main`
+- `git push origin master`
+- `git push origin production`
+- `git push -u origin main/master/production`
+- `gh pr merge` (when targeting protected branch)
+
+**Feature Branch Behavior:**
+```bash
+git push origin feat/123     # ✅ Auto-allowed
+git push origin main         # ⚠️ Requires approval
+```
+
+#### 3. Always Deny (39 commands)
+
+Commands are **always blocked**, regardless of branch:
+
+**Destructive File Operations:**
+- `rm -rf /`, `rm -rf *`, `rm -rf .`, `rm -rf ~`
+- `dd if=`, `mkfs`, `format`, `> /dev/sd`
+
+**Dangerous Git Operations:**
+- `git push --force origin main/master/production`
+- `git reset --hard origin/main/master/production`
+- `git clean -fdx`, `git filter-branch`
+
+**Dangerous GitHub Operations:**
+- `gh repo delete`, `gh repo archive`, `gh secret delete`
+
+**System Operations:**
+- `sudo`, `su`, `chmod 777`, `shutdown`, `reboot`, `systemctl`
+
+**Remote Code Execution:**
+- `curl | sh`, `wget | bash`
+
+### Customization
+
+Add your own protected branches by editing `.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "bash": {
+      "requireApproval": [
+        "git push origin staging",
+        "git push origin release",
+        "git push -u origin staging",
+        "git push -u origin release"
+      ]
+    }
+  }
+}
+```
+
+### Skip Mode Warning
+
+**⚠️ CRITICAL: `--dangerously-skip-permissions` Bypasses Everything**
+
+When running Claude Code with the `--dangerously-skip-permissions` flag:
+
+- ❌ **Allow list** - Not checked
+- ❌ **RequireApproval list** - NOT PROMPTED (executes immediately)
+- ❌ **Deny list** - NOT ENFORCED (executes anyway)
+
+This means even `rm -rf /` will execute without protection.
+
+**Only use skip mode**:
+- ✅ In isolated Docker containers
+- ✅ In sandboxed VMs
+- ✅ In CI/CD with full code review
+- ✅ When you trust 100% of the code
+
+**Never use skip mode**:
+- ❌ On production systems
+- ❌ On your development machine
+- ❌ When running untrusted code
+- ❌ If unsure what commands will execute
+
+### Setup
+
+```bash
+# Run once per project
+cd your-project
+/repo:init-permissions
+
+# Output shows:
+# - ~50 auto-allowed commands
+# - Protected branch patterns
+# - ~25 denied commands
+```
+
+### Documentation
+
+- **[Branch-Aware Permissions Guide](docs/branch-aware-permissions.md)** - Comprehensive guide with examples
+- **[Permission Behavior](docs/permissions-behavior.md)** - Technical details and edge cases
+- **[Permission Guide](docs/permissions-guide.md)** - Original permission system documentation
+- **[Command Reference](commands/init-permissions.md)** - `/repo:init-permissions` command details
+
+### Benefits
+
+| Metric | Before Permissions | After Permissions |
+|--------|-------------------|-------------------|
+| **Feature branch workflow** | 3 prompts per cycle | 0 prompts |
+| **Production push** | Inconsistent | Always prompted |
+| **Catastrophic commands** | Sometimes prompted | Always blocked |
+| **Developer velocity** | Slow 🐢 | Fast ⚡ |
+
 ## FABER Integration
 
 The plugin is fully integrated with FABER workflows:
 
 - **Frame Phase**: Automatic branch creation
-- **Architect/Build Phases**: Semantic commits with author context
-- **Evaluate Phase**: Test commits and fixes
-- **Release Phase**: PR creation and merging
+- **Architect/Build Phases**: Semantic commits with author context (no prompts!)
+- **Evaluate Phase**: Test commits and fixes (no prompts!)
+- **Release Phase**: PR creation and merging (prompted only for protected branches)
 
 All operations include FABER metadata for full traceability.
+
+**With Permissions Configured**: FABER workflows run dramatically faster with zero unnecessary interruptions.
 
 ## Git Status Cache
 
@@ -458,9 +705,13 @@ repo/
 │   │   ├── github-setup.md
 │   │   ├── gitlab-setup.md
 │   │   └── bitbucket-setup.md
+│   ├── branch-aware-permissions.md  # Branch-aware permission system (comprehensive)
+│   ├── permissions-behavior.md      # Permission behavior and technical details
+│   ├── permissions-guide.md         # Original permission guide
 │   ├── status-cache-statusline-examples.md  # Status line integration
 │   └── status-cache-migration-guide.md      # Migration from custom hooks
 ├── commands/                        # User commands (Layer 1)
+│   ├── init-permissions.md          # Permission management command
 │   ├── branch.md
 │   ├── commit.md
 │   ├── push.md
@@ -476,6 +727,7 @@ repo/
 ├── hooks/
 │   └── hooks.json                   # Plugin hook configuration
 └── skills/                          # Workflows & handlers (Layer 3)
+    ├── permission-manager/          # Permission configuration
     ├── branch-namer/
     ├── branch-manager/
     ├── commit-creator/
@@ -593,9 +845,23 @@ If you're upgrading from the monolithic v1.x architecture:
 
 ## Version History
 
+- **v2.2.0** (Current) - Branch-aware permission system
+  - Branch-aware permissions (fast on features, protected on production)
+  - Auto-allow ~50 commands for feature branches
+  - Require approval only for protected branch operations
+  - Always deny ~25 catastrophic operations
+  - Comprehensive permission documentation
+  - Dramatic workflow velocity improvement
+
+- **v2.1.0** - Permission management
+  - Initial 3-tier permission system (allow/requireApproval/deny)
+  - Permission configuration command
+  - Smart conflict resolution
+  - Custom permission preservation
+
 - **v2.0.0** (2025-10-29) - Modular architecture refactoring
-  - 7 specialized skills
-  - 6 user commands
+  - 8 specialized skills (added permission-manager)
+  - 7 user commands (added init-permissions)
   - Handler pattern implementation
   - 55-60% context reduction
 
