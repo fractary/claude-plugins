@@ -34,8 +34,100 @@ What this skill receives:
 - operation: What was being attempted (deploy/destroy/validate/preview)
 - environment: Target environment (test/prod)
 - resource_context: Information about resources involved
-- config: Configuration from .fractary/plugins/faber-cloud/config/devops.json
+- config: Configuration from .fractary/plugins/faber-cloud/config/faber-cloud.json
+- --complete (optional): Enable automated mode - apply fixes without prompts and return to parent
 </INPUTS>
+
+<COMPLETE_FLAG_BEHAVIOR>
+When --complete flag is present:
+
+**Automated Mode Enabled:**
+1. Skip all user prompts/confirmations
+2. Automatically apply fixes that can be automated
+3. If fix requires delegation (e.g., permission manager), invoke automatically
+4. Wait for delegated skill to complete
+5. Return control to parent (infra-deployer) automatically
+6. Parent continues workflow from where it failed
+
+**Interactive Mode (default, no --complete):**
+1. Show proposed solution to user
+2. Request approval before applying fix
+3. If approved, apply fix and show result
+4. DO NOT return to parent automatically
+5. User decides next steps manually
+
+**Example Flow with --complete:**
+```
+deploy-apply fails with AccessDenied
+  ↓
+infra-deployer offers 3 options, user selects Option 2: "Run debug --complete"
+  ↓
+infra-debugger --complete invoked
+  ↓
+Categorizes as permission error
+  ↓
+Delegates to infra-permission-manager automatically
+  ↓
+Permission added to audit file and applied to AWS
+  ↓
+infra-debugger returns to infra-deployer with success
+  ↓
+infra-deployer continues deployment automatically
+  ↓
+Deployment completes successfully
+```
+
+**When to Use:**
+- Use --complete for automated fix-and-continue workflows
+- Especially useful in CI/CD pipelines
+- User trusts automated fixes
+- DO NOT use --complete for production environments (requires manual review)
+
+**When NOT to Use:**
+- Production deployments (always review fixes manually)
+- Complex multi-step fixes
+- When user wants to review proposed solution first
+</COMPLETE_FLAG_BEHAVIOR>
+
+<ERROR_CATEGORIES>
+Errors are categorized into these types:
+
+**1. Permission Errors**
+- Symptoms: AccessDenied, UnauthorizedOperation, InvalidPermissions
+- Delegation: infra-permission-manager
+- Automation: High (can add permissions to audit file)
+- Common causes: Missing IAM permissions, wrong AWS profile
+
+**2. Configuration Errors**
+- Symptoms: InvalidConfiguration, ValidationError, MissingParameter
+- Delegation: None (fix locally)
+- Automation: Medium (can update config files)
+- Common causes: Typos, invalid values, missing required fields
+
+**3. Resource Errors**
+- Symptoms: ResourceNotFound, ResourceAlreadyExists, DependencyViolation
+- Delegation: Varies by resource type
+- Automation: Low (usually requires manual review)
+- Common causes: Resource conflicts, incorrect references, missing dependencies
+
+**4. State Errors**
+- Symptoms: StateLockedError, StateMismatch, BackendError
+- Delegation: None (state management)
+- Automation: Medium (can unlock state, refresh)
+- Common causes: Concurrent operations, corrupted state, backend issues
+
+**5. Network Errors**
+- Symptoms: TimeoutError, ConnectionRefused, DNSResolutionFailed
+- Delegation: None (external dependency)
+- Automation: Low (retry possible)
+- Common causes: Network connectivity, AWS service outages, firewall rules
+
+**6. Quota Errors**
+- Symptoms: LimitExceeded, QuotaExceeded, ThrottlingException
+- Delegation: None (requires AWS support)
+- Automation: None
+- Common causes: Account limits reached, need quota increase
+</ERROR_CATEGORIES>
 
 <WORKFLOW>
 **OUTPUT START MESSAGE:**
@@ -69,7 +161,7 @@ Error: ${error_summary}
 
 **Step 4: Search Issue Log**
 - Read: workflow/search-solutions.md
-- Execute: ../devops-common/scripts/log-resolution.sh --action=search-solutions
+- Execute: ../cloud-common/scripts/log-resolution.sh --action=search-solutions
 - Rank solutions by relevance and success rate
 - Output: "✓ Found ${solution_count} potential solutions"
 
@@ -95,16 +187,28 @@ Error: ${error_summary}
 
 **Step 7: Log Error**
 - If error is new or updated:
-  - Execute: ../devops-common/scripts/log-resolution.sh --action=log-issue
+  - Execute: ../cloud-common/scripts/log-resolution.sh --action=log-issue
   - Document error with full context
 - Output: "✓ Error logged: ${issue_id}"
 
-**Step 8: Delegate if Automated**
-- If solution can be automated:
+**Step 8: Apply Fix (if --complete flag)**
+- If --complete flag present AND solution can be automated:
+  - Skip user confirmation
   - Determine which skill to delegate to
-  - Prepare delegation parameters
-  - Return delegation instructions to manager
-- Output: "✓ Delegation prepared: ${target_skill}"
+  - Invoke skill automatically (e.g., infra-permission-manager)
+  - Wait for skill completion
+  - Log resolution success/failure
+  - Return control to parent (infra-deployer) automatically
+- Output: "✓ Fix applied automatically: ${fix_description}"
+
+**Step 8 Alternative: Propose Fix (interactive mode)**
+- If --complete flag NOT present:
+  - Show proposed solution to user
+  - Request approval: "Apply this fix? (yes/no)"
+  - If approved: Apply fix
+  - If declined: User chooses next steps
+  - DO NOT return to parent automatically
+- Output: "✓ Solution proposed to user"
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
