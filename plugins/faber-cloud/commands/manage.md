@@ -4,13 +4,33 @@ description: Unified infrastructure lifecycle management - routes operations to 
 argument-hint: <operation> [options]
 tags: [faber-cloud, infrastructure, deployment, management]
 examples:
-  - trigger: "/fractary-faber-cloud:manage deploy-apply --env=test"
+  - trigger: "/fractary-faber-cloud:manage deploy-apply --env test"
     action: "Deploy infrastructure to test environment"
   - trigger: "/fractary-faber-cloud:manage design \"Add monitoring\""
     action: "Design infrastructure from requirements"
 ---
 
 # fractary-faber-cloud:manage
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:manage --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:manage --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Unified command for managing complete infrastructure lifecycle through the infra-manager agent.
 
@@ -29,11 +49,11 @@ Unified command for managing complete infrastructure lifecycle through the infra
 | `validate` | Validate configuration files | `manage validate` |
 | `test` | Run security and cost tests | `manage test` |
 | `deploy-plan` | Preview deployment changes | `manage deploy-plan` |
-| `deploy-apply --env=<env>` | Execute infrastructure deployment | `manage deploy-apply --env=test` |
+| `deploy-apply --env=<env>` | Execute infrastructure deployment | `manage deploy-apply --env test` |
 | `status [--env <env>]` | Check deployment status | `manage status` |
-| `resources [--env <env>]` | Show deployed resources | `manage resources --env=test` |
+| `resources [--env <env>]` | Show deployed resources | `manage resources --env test` |
 | `debug [--complete]` | Analyze and fix deployment errors | `manage debug --complete` |
-| `teardown --env=<env>` | Destroy infrastructure | `manage teardown --env=test` |
+| `teardown --env=<env>` | Destroy infrastructure | `manage teardown --env test` |
 
 ## Examples
 
@@ -44,12 +64,12 @@ Unified command for managing complete infrastructure lifecycle through the infra
 /fractary-faber-cloud:manage validate
 /fractary-faber-cloud:manage test
 /fractary-faber-cloud:manage deploy-plan
-/fractary-faber-cloud:manage deploy-apply --env=test
+/fractary-faber-cloud:manage deploy-apply --env test
 ```
 
 **Quick deployment:**
 ```bash
-/fractary-faber-cloud:manage deploy-apply --env=test
+/fractary-faber-cloud:manage deploy-apply --env test
 ```
 
 **Error recovery:**
@@ -59,7 +79,7 @@ Unified command for managing complete infrastructure lifecycle through the infra
 
 **Infrastructure teardown:**
 ```bash
-/fractary-faber-cloud:manage teardown --env=test
+/fractary-faber-cloud:manage teardown --env test
 ```
 
 ## Invocation

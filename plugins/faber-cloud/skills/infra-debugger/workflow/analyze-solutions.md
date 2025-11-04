@@ -307,7 +307,7 @@ export AWS_PROFILE=deployment
 ### 7. Retry Deployment
 ```bash
 # Return to infra-manager and retry deployment
-/fractary-faber-cloud:infra-manage deploy --env=test
+/fractary-faber-cloud:infra-manage deploy --env test
 ```
 
 ## Verification

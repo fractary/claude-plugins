@@ -2,19 +2,39 @@
 name: /fractary-faber-cloud:resources
 description: Show deployed infrastructure resources
 examples:
-  - /fractary-faber-cloud:resources --env=test
-  - /fractary-faber-cloud:resources --env=prod
-argument-hint: "--env=<environment>"
+  - /fractary-faber-cloud:resources --env test
+  - /fractary-faber-cloud:resources --env prod
+argument-hint: "--env <environment>"
 ---
 
 # Resources Command
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:resources --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:resources --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Show detailed information about deployed infrastructure resources.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:resources --env=<environment>
+/fractary-faber-cloud:resources --env <environment>
 ```
 
 ## Parameters
@@ -33,12 +53,12 @@ Show detailed information about deployed infrastructure resources.
 
 **List test resources:**
 ```
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:resources --env test
 ```
 
 **List production resources:**
 ```
-/fractary-faber-cloud:resources --env=prod
+/fractary-faber-cloud:resources --env prod
 ```
 
 ## Output Includes
@@ -90,8 +110,8 @@ List resources:
 ## Next Steps
 
 After viewing resources:
-- Monitor health: `/fractary-helm-cloud:health --env=test`
-- Check costs: `/fractary-helm-cloud:audit --type=cost --env=test`
+- Monitor health: `/fractary-helm-cloud:health --env test`
+- Check costs: `/fractary-helm-cloud:audit --type=cost --env test`
 - Make changes: `/fractary-faber-cloud:architect "modify..."`
 
 ## Invocation

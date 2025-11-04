@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # generate-deployed-doc.sh - Generate DEPLOYED.md from registry
-# Usage: generate-deployed-doc.sh --environment=<env>
+# Usage: generate-deployed-doc.sh --environment <env>
 
 set -euo pipefail
 
@@ -14,12 +14,25 @@ ENVIRONMENT=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --environment=*)
-            ENVIRONMENT="${1#*=}"
-            shift
+        --environment)
+            if [[ $# -lt 2 || "$2" =~ ^-- ]]; then
+                echo "Error: --environment requires a value" >&2
+                echo "Usage: $0 --environment <env>" >&2
+                exit 2
+            fi
+            ENVIRONMENT="$2"
+            shift 2
+            ;;
+        --*=*)
+            # Reject equals syntax with helpful error
+            FLAG_NAME="${1%%=*}"
+            echo "Error: Use space-separated syntax, not equals syntax" >&2
+            echo "Use: $FLAG_NAME <value>" >&2
+            echo "Not: $1" >&2
+            exit 2
             ;;
         *)
-            echo "Unknown argument: $1"
+            echo "Unknown argument: $1" >&2
             exit 1
             ;;
     esac

@@ -6,7 +6,7 @@ description: |
   Examples:
 
   <example>
-  user: "/fractary-faber-cloud:infra-manage deploy --env=test"
+  user: "/fractary-faber-cloud:infra-manage deploy --env test"
   assistant: "I'll use the infra-manager agent to deploy infrastructure to test environment."
   <commentary>
   The agent orchestrates the full deployment workflow: deploy-plan → approve → deploy → verify
@@ -48,7 +48,7 @@ You are the infrastructure lifecycle manager for the Fractary DevOps plugin. You
 
 **IMPORTANT:** YOU MUST NEVER operate on production without explicit request
 - Default to test environment
-- Production requires explicit `--env=prod` or `env=prod`
+- Production requires explicit `--env prod` or `env=prod`
 - Always require confirmation for production operations
 - Validate environment before invoking skills
 </CRITICAL_RULES>
@@ -282,34 +282,34 @@ Action:
 </example>
 
 <example>
-Command: /fractary-faber-cloud:infra-manage deploy --env=test
+Command: /fractary-faber-cloud:infra-manage deploy --env test
 Action:
   1. Parse: env=test
   2. Validate: test is valid environment
   3. Check: Not production, no confirmation needed
-  4. Invoke: /fractary-faber-cloud:skill:infra-planner --env=test
+  4. Invoke: /fractary-faber-cloud:skill:infra-planner --env test
   5. Show deploy-plan to user
   6. Ask: "Approve deployment to test? (yes/no)"
-  7. If yes: Invoke /fractary-faber-cloud:skill:infra-deployer --env=test
+  7. If yes: Invoke /fractary-faber-cloud:skill:infra-deployer --env test
   8. Report: Deployment results with resource links
 </example>
 
 <example>
-Command: /fractary-faber-cloud:infra-manage deploy --env=prod
+Command: /fractary-faber-cloud:infra-manage deploy --env prod
 Action:
   1. Parse: env=prod
   2. Validate: prod is valid environment
   3. Confirm: "⚠️  You are deploying to PRODUCTION. This will affect live systems. Are you sure? (yes/no)"
   4. If no: Stop and inform user
-  5. If yes: Invoke /fractary-faber-cloud:skill:infra-planner --env=prod
+  5. If yes: Invoke /fractary-faber-cloud:skill:infra-planner --env prod
   6. Show deploy-plan with PRODUCTION warning
   7. Ask again: "Final confirmation - Deploy to PRODUCTION? (yes/no)"
-  8. If yes: Invoke /fractary-faber-cloud:skill:infra-deployer --env=prod
+  8. If yes: Invoke /fractary-faber-cloud:skill:infra-deployer --env prod
   9. Report: Deployment results with extra verification
 </example>
 
 <example>
-Command: /fractary-faber-cloud:infra-manage show-resources --env=test
+Command: /fractary-faber-cloud:infra-manage show-resources --env test
 Action:
   1. Parse: env=test
   2. Read: .fractary/plugins/faber-cloud/deployments/test/DEPLOYED.md
@@ -321,9 +321,9 @@ Action:
 Command: /fractary-faber-cloud:infra-manage validate
 Action:
   1. Parse: No environment specified, default to test
-  2. Invoke: /fractary-faber-cloud:skill:infra-validator --env=test
+  2. Invoke: /fractary-faber-cloud:skill:infra-validator --env test
   3. Report: Validation results
-  4. If passed: Suggest "Next: deploy-plan changes with 'deploy-plan --env=test'"
+  4. If passed: Suggest "Next: deploy-plan changes with 'deploy-plan --env test'"
   5. If failed: Show errors and suggest fixes
 </example>
 </EXAMPLES>
@@ -347,11 +347,11 @@ Skills are invoked using the SlashCommand tool:
 ```bash
 /fractary-faber-cloud:skill:infra-designer --feature="user uploads"
 /fractary-faber-cloud:skill:infra-configurator --design="user-uploads.md"
-/fractary-faber-cloud:skill:infra-validator --env=test
-/fractary-faber-cloud:skill:infra-tester --env=test --phase=pre-deployment
-/fractary-faber-cloud:skill:infra-planner --env=test
-/fractary-faber-cloud:skill:infra-deployer --env=test
-/fractary-faber-cloud:skill:infra-debugger --error="AccessDenied" --operation=deploy --env=test
+/fractary-faber-cloud:skill:infra-validator --env test
+/fractary-faber-cloud:skill:infra-tester --env test --phase=pre-deployment
+/fractary-faber-cloud:skill:infra-planner --env test
+/fractary-faber-cloud:skill:infra-deployer --env test
+/fractary-faber-cloud:skill:infra-debugger --error="AccessDenied" --operation=deploy --env test
 ```
 </SKILL_INVOCATION_FORMAT>
 

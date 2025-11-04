@@ -201,7 +201,7 @@ commands/ops-manage.md                # Operations command
 ### Example 1: Check Health
 
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=test
+/fractary-faber-cloud:ops-manage check-health --env test
 
 # Output:
 📊 STARTING: Operations Monitoring
@@ -219,7 +219,7 @@ Healthy: 5 / Degraded: 0 / Unhealthy: 0
 ### Example 2: Query Logs
 
 ```bash
-/fractary-faber-cloud:ops-manage query-logs --env=prod --service=api-lambda --filter=ERROR
+/fractary-faber-cloud:ops-manage query-logs --env prod --service=api-lambda --filter=ERROR
 
 # Output:
 🔧 OPERATIONS MANAGER: query-logs
@@ -239,7 +239,7 @@ Would you like to investigate these errors? (yes/no)
 ### Example 3: Investigate Incident
 
 ```bash
-/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda --timeframe=2h
+/fractary-faber-cloud:ops-manage investigate --env prod --service=api-lambda --timeframe=2h
 
 # Output:
 Incident Report
@@ -275,7 +275,7 @@ Apply remediation? (yes/no)
 ### Example 4: Apply Remediation
 
 ```bash
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env prod --service=api-lambda --action=restart
 
 # Output:
 ⚠️  WARNING: Production Remediation
@@ -303,7 +303,7 @@ Remediation documented and logged.
 ### Example 5: Cost Audit
 
 ```bash
-/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env test --focus=cost
 
 # Output:
 Cost Audit Report
@@ -348,7 +348,7 @@ Apply recommendations? (Review each)
 ### Operations Workflow
 
 ```
-User: ops-manage check-health --env=test
+User: ops-manage check-health --env test
   ↓
 ops-manager
   ↓
@@ -530,7 +530,7 @@ plugins/fractary-faber-cloud/
 2. infra-manager engineer --design=api-service.md
    → Terraform code generated
 
-3. infra-manager deploy --env=test
+3. infra-manager deploy --env test
    → infra-tester runs security scans
    → infra-previewer shows plan
    → infra-deployer deploys resources
@@ -538,12 +538,12 @@ plugins/fractary-faber-cloud/
    → ops-monitor checks health
    ✅ Deployment complete and healthy
 
-4. ops-monitor check-health --env=test
+4. ops-monitor check-health --env test
    → All resources healthy
 
 5. [Later: Issue occurs]
 
-6. ops-monitor check-health --env=test
+6. ops-monitor check-health --env test
    → Detects degraded Lambda
 
 7. ops-manager investigate --service=api-lambda

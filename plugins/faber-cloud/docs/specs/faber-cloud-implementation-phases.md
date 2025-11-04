@@ -71,7 +71,7 @@ Working infra-manager with AWS + Terraform support
 ✅ Can implement designs with `engineer` command
 ✅ Can validate terraform with `validate-config` command
 ✅ Can preview changes with `preview-changes` command
-✅ Can deploy to test environment with `deploy --env=test`
+✅ Can deploy to test environment with `deploy --env test`
 ✅ Permission errors auto-fixed via discover-deploy
 ✅ Registry tracks all deployed resources with ARNs and console links
 ✅ DEPLOYED.md shows human-readable resource list

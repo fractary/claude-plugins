@@ -97,7 +97,7 @@ Validate Terraform configuration.
 **Examples:**
 ```bash
 /fractary-faber-cloud:validate
-/fractary-faber-cloud:validate --env=test
+/fractary-faber-cloud:validate --env test
 ```
 
 **Checks:**
@@ -122,8 +122,8 @@ Run pre or post-deployment tests.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:test --env=test --phase=pre-deployment
-/fractary-faber-cloud:test --env=test --phase=post-deployment
+/fractary-faber-cloud:test --env test --phase=pre-deployment
+/fractary-faber-cloud:test --env test --phase=post-deployment
 ```
 
 **Pre-deployment tests:**
@@ -150,8 +150,8 @@ Generate Terraform execution plan.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:preview --env=test
-/fractary-faber-cloud:preview --env=prod
+/fractary-faber-cloud:preview --env test
+/fractary-faber-cloud:preview --env prod
 ```
 
 **Shows:**
@@ -175,8 +175,8 @@ Execute infrastructure deployment.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:deploy --env=test
-/fractary-faber-cloud:deploy --env=prod
+/fractary-faber-cloud:deploy --env test
+/fractary-faber-cloud:deploy --env prod
 ```
 
 **Workflow:**
@@ -207,7 +207,7 @@ Check configuration and deployment status.
 **Examples:**
 ```bash
 /fractary-faber-cloud:status
-/fractary-faber-cloud:status --env=prod
+/fractary-faber-cloud:status --env prod
 ```
 
 **Shows:**
@@ -230,8 +230,8 @@ Display deployed resources.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:resources --env=test
-/fractary-faber-cloud:resources --env=prod
+/fractary-faber-cloud:resources --env test
+/fractary-faber-cloud:resources --env prod
 ```
 
 **Shows:**
@@ -272,8 +272,8 @@ Analyze and troubleshoot errors.
 **⚠️ DEPRECATED:** This command now delegates to the simplified commands above.
 
 **Migration:**
-- Old: `/fractary-faber-cloud:infra-manage deploy --env=test`
-- New: `/fractary-faber-cloud:deploy --env=test`
+- Old: `/fractary-faber-cloud:infra-manage deploy --env test`
+- New: `/fractary-faber-cloud:deploy --env test`
 
 **Description:** Manage infrastructure lifecycle
 
@@ -333,8 +333,8 @@ See [helm-cloud documentation](../../helm-cloud/README.md) for details.
 **⚠️ DEPRECATED:** This command now delegates to helm-cloud commands.
 
 **Migration:**
-- Old: `/fractary-faber-cloud:ops-manage check-health --env=prod`
-- New: `/fractary-helm-cloud:health --env=prod`
+- Old: `/fractary-faber-cloud:ops-manage check-health --env prod`
+- New: `/fractary-helm-cloud:health --env prod`
 
 **Description:** Manage runtime operations
 
@@ -358,8 +358,8 @@ Check health of deployed services.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env=prod
-/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env prod
+/fractary-faber-cloud:ops-manage check-health --env prod --service=api-lambda
 ```
 
 **Checks:**
@@ -391,9 +391,9 @@ Query CloudWatch logs.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:ops-manage query-logs --env=prod --filter=ERROR
-/fractary-faber-cloud:ops-manage query-logs --env=prod --service=api-lambda --filter="Database timeout"
-/fractary-faber-cloud:ops-manage query-logs --env=prod --timeframe=24h
+/fractary-faber-cloud:ops-manage query-logs --env prod --filter=ERROR
+/fractary-faber-cloud:ops-manage query-logs --env prod --service=api-lambda --filter="Database timeout"
+/fractary-faber-cloud:ops-manage query-logs --env prod --timeframe=24h
 ```
 
 **Timeframe formats:**
@@ -417,8 +417,8 @@ Investigate incidents with root cause analysis.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:ops-manage investigate --env=prod
-/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda --timeframe=4h
+/fractary-faber-cloud:ops-manage investigate --env prod
+/fractary-faber-cloud:ops-manage investigate --env prod --service=api-lambda --timeframe=4h
 ```
 
 **Provides:**
@@ -444,8 +444,8 @@ Analyze performance metrics.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:ops-manage analyze-performance --env=prod
-/fractary-faber-cloud:ops-manage analyze-performance --env=prod --service=api-lambda
+/fractary-faber-cloud:ops-manage analyze-performance --env prod
+/fractary-faber-cloud:ops-manage analyze-performance --env prod --service=api-lambda
 ```
 
 **Analyzes:**
@@ -476,8 +476,8 @@ Apply remediations to fix issues.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
-/fractary-faber-cloud:ops-manage remediate --env=prod --service=ecs-service --action=scale
+/fractary-faber-cloud:ops-manage remediate --env prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env prod --service=ecs-service --action=scale
 ```
 
 **Production:**
@@ -507,9 +507,9 @@ Audit costs, security, or compliance.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
-/fractary-faber-cloud:ops-manage audit --env=prod --focus=security
-/fractary-faber-cloud:ops-manage audit --env=prod
+/fractary-faber-cloud:ops-manage audit --env test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env prod --focus=security
+/fractary-faber-cloud:ops-manage audit --env prod
 ```
 
 **Cost audit provides:**
@@ -546,8 +546,8 @@ Audit costs, security, or compliance.
 
 **Examples:**
 ```bash
-/fractary-faber-cloud:init --provider=aws --iac=terraform
-/fractary-faber-cloud:init --provider=aws --iac=terraform --env=test
+/fractary-faber-cloud:init --provider aws --iac terraform
+/fractary-faber-cloud:init --provider aws --iac terraform --env test
 ```
 
 **Creates:**
@@ -576,34 +576,34 @@ Audit costs, security, or compliance.
 
 **Deploy:**
 ```bash
-/fractary-faber-cloud:deploy --env=test
+/fractary-faber-cloud:deploy --env test
 ```
 
 **Validate:**
 ```bash
-/fractary-faber-cloud:validate --env=test
+/fractary-faber-cloud:validate --env test
 ```
 
 **Show resources:**
 ```bash
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:resources --env test
 ```
 
 **Operations (helm-cloud):**
 
 **Check health:**
 ```bash
-/fractary-helm-cloud:health --env=prod
+/fractary-helm-cloud:health --env prod
 ```
 
 **Investigate:**
 ```bash
-/fractary-helm-cloud:investigate --env=prod
+/fractary-helm-cloud:investigate --env prod
 ```
 
 **Analyze costs:**
 ```bash
-/fractary-helm-cloud:audit --type=cost --env=prod
+/fractary-helm-cloud:audit --type=cost --env prod
 ```
 
 **Natural Language (works for both):**
@@ -616,9 +616,9 @@ Audit costs, security, or compliance.
 ### Environment Flags
 
 All commands support `--env` flag:
-- `--env=test`: Test environment
-- `--env=prod`: Production environment
-- `--env=staging`: Staging environment (if configured)
+- `--env test`: Test environment
+- `--env prod`: Production environment
+- `--env staging`: Staging environment (if configured)
 
 ### Common Options
 

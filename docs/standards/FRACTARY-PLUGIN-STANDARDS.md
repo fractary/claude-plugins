@@ -590,6 +590,124 @@ Related commands:
 </NOTES>
 ```
 
+### Command Argument Syntax
+
+**All commands MUST use space-separated syntax for arguments.**
+
+**Standard:** `--flag value` (NOT `--flag=value`)
+
+**Reference:** See [COMMAND-ARGUMENT-SYNTAX.md](./COMMAND-ARGUMENT-SYNTAX.md) for complete specification.
+
+#### Key Rules
+
+1. **Flags with values:** `--flag value`
+   - Single-word values: `--env test`
+   - Multi-word values: `--description "multi word value"` (MUST use quotes)
+
+2. **Boolean flags:** `--flag` (no value)
+   - Example: `--auto-approve`, `--dry-run`, `--force`
+   - Never: `--flag true` or `--flag=true`
+
+3. **Positional arguments:**
+   - Single-word: `argument`
+   - Multi-word: `"argument with spaces"` (MUST use quotes)
+
+#### Error Detection
+
+Commands MUST reject equals syntax with helpful errors:
+
+```bash
+# In parsing logic
+--*=*)
+    FLAG_NAME="${1%%=*}"
+    echo "Error: Use space-separated syntax, not equals syntax" >&2
+    echo "Use: $FLAG_NAME <value>" >&2
+    echo "Not: $1" >&2
+    exit 2
+    ;;
+```
+
+#### Example Command Usage
+
+```bash
+# Correct ✅
+/plugin:command "argument" --flag value --boolean-flag
+/plugin:command "multi word arg" --description "multi word value"
+
+# Incorrect ❌
+/plugin:command argument --flag=value
+/plugin:command multi word arg --description multi word value
+```
+
+#### Standard Parsing Pattern
+
+Copy this pattern when creating command parsing logic:
+
+```bash
+#!/bin/bash
+# Standard argument parsing pattern
+
+# Initialize variables
+FLAG_VALUE=""
+BOOLEAN_FLAG=""
+POSITIONAL=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --flag)
+            if [[ $# -lt 2 || "$2" =~ ^-- ]]; then
+                echo "Error: --flag requires a value" >&2
+                echo "Usage: /command --flag <value>" >&2
+                exit 2
+            fi
+            FLAG_VALUE="$2"
+            shift 2
+            ;;
+        --boolean-flag)
+            BOOLEAN_FLAG="true"
+            shift
+            ;;
+        --*=*)
+            # Reject equals syntax
+            FLAG_NAME="${1%%=*}"
+            echo "Error: Use space-separated syntax" >&2
+            echo "Use: $FLAG_NAME <value>" >&2
+            echo "Not: $1" >&2
+            exit 2
+            ;;
+        --*)
+            echo "Error: Unknown flag: $1" >&2
+            exit 2
+            ;;
+        *)
+            POSITIONAL="$1"
+            shift
+            ;;
+    esac
+done
+```
+
+#### Rationale
+
+**Industry Standard:**
+- Git, npm, Docker, kubectl, AWS CLI all use space-separated syntax
+- POSIX/GNU standards recommend space-separated for long options
+- 90%+ of major CLI tools use this pattern
+
+**Parsing Reliability:**
+- Shell handles tokenization automatically
+- Clear token boundaries
+- Easy error detection
+- Fewer edge cases
+
+**Developer Familiarity:**
+- Matches developer expectations
+- Consistent with familiar tools
+- Clear when quotes are needed
+
+See [RESEARCH-CLI-ARGUMENT-STANDARDS.md](../../RESEARCH-CLI-ARGUMENT-STANDARDS.md) for detailed analysis.
+
 ### Agent Invocation Syntax
 
 Commands invoke agents using **declarative statements** in markdown. Claude Code automatically routes to registered agents in `marketplace.json`.

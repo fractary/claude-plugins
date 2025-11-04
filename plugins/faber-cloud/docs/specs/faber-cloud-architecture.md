@@ -415,7 +415,7 @@ Step 3: Verify with hosting
 ### Standard Deployment Workflow
 
 ```
-User: /fractary-faber-cloud:infra-manage deploy --env=test
+User: /fractary-faber-cloud:infra-manage deploy --env test
   ↓
 infra-manage command
   ↓

@@ -91,7 +91,7 @@ Error: Configuration file not found at .fractary/plugins/faber-cloud/config/devo
 **Solution:**
 Initialize the configuration:
 ```bash
-/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider aws --iac terraform
 ```
 
 ## Deployment Errors
@@ -256,7 +256,7 @@ pip install tfsec
 
 Or skip tests (not recommended):
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env=test --skip-tests
+/fractary-faber-cloud:infra-manage deploy --env test --skip-tests
 ```
 
 ### Issue: Cost estimation errors
@@ -286,7 +286,7 @@ Cannot estimate costs
 1. **Reduce resources checked:**
    Check specific services instead of all:
    ```bash
-   /fractary-faber-cloud:ops-manage check-health --env=test --service=api-lambda
+   /fractary-faber-cloud:ops-manage check-health --env test --service=api-lambda
    ```
 
 2. **Optimize Terraform:**

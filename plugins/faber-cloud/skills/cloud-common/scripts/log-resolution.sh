@@ -9,9 +9,9 @@
 # - Updating statistics
 #
 # Usage:
-#   log-resolution.sh --action=log-issue --error-message="..." --category="permission" ...
-#   log-resolution.sh --action=log-solution --issue-id="..." --success=true ...
-#   log-resolution.sh --action=search-solutions --error-message="..." ...
+#   log-resolution.sh --action log-issue --error-message "..." --category permission ...
+#   log-resolution.sh --action log-solution --issue-id "..." --success true ...
+#   log-resolution.sh --action search-solutions --error-message "..." ...
 
 set -euo pipefail
 
@@ -43,76 +43,84 @@ RESOLUTION_TIME=""
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --action=*)
-      ACTION="${1#*=}"
-      shift
+    --action)
+      ACTION="$2"
+      shift 2
       ;;
-    --error-message=*)
-      ERROR_MESSAGE="${1#*=}"
-      shift
+    --error-message)
+      ERROR_MESSAGE="$2"
+      shift 2
       ;;
-    --error-code=*)
-      ERROR_CODE="${1#*=}"
-      shift
+    --error-code)
+      ERROR_CODE="$2"
+      shift 2
       ;;
-    --category=*)
-      CATEGORY="${1#*=}"
-      shift
+    --category)
+      CATEGORY="$2"
+      shift 2
       ;;
-    --resource-type=*)
-      RESOURCE_TYPE="${1#*=}"
-      shift
+    --resource-type)
+      RESOURCE_TYPE="$2"
+      shift 2
       ;;
-    --resource-name=*)
-      RESOURCE_NAME="${1#*=}"
-      shift
+    --resource-name)
+      RESOURCE_NAME="$2"
+      shift 2
       ;;
-    --environment=*)
-      ENVIRONMENT="${1#*=}"
-      shift
+    --environment)
+      ENVIRONMENT="$2"
+      shift 2
       ;;
-    --operation=*)
-      OPERATION="${1#*=}"
-      shift
+    --operation)
+      OPERATION="$2"
+      shift 2
       ;;
-    --issue-id=*)
-      ISSUE_ID="${1#*=}"
-      shift
+    --issue-id)
+      ISSUE_ID="$2"
+      shift 2
       ;;
-    --description=*)
-      SOLUTION_DESCRIPTION="${1#*=}"
-      shift
+    --description)
+      SOLUTION_DESCRIPTION="$2"
+      shift 2
       ;;
-    --steps=*)
-      SOLUTION_STEPS="${1#*=}"
-      shift
+    --steps)
+      SOLUTION_STEPS="$2"
+      shift 2
       ;;
-    --solution-category=*)
-      SOLUTION_CATEGORY="${1#*=}"
-      shift
+    --solution-category)
+      SOLUTION_CATEGORY="$2"
+      shift 2
       ;;
-    --automated=*)
-      AUTOMATED="${1#*=}"
-      shift
+    --automated)
+      AUTOMATED="$2"
+      shift 2
       ;;
-    --skill=*)
-      SKILL="${1#*=}"
-      shift
+    --skill)
+      SKILL="$2"
+      shift 2
       ;;
-    --skill-operation=*)
-      SKILL_OPERATION="${1#*=}"
-      shift
+    --skill-operation)
+      SKILL_OPERATION="$2"
+      shift 2
       ;;
-    --success=*)
-      SUCCESS="${1#*=}"
-      shift
+    --success)
+      SUCCESS="$2"
+      shift 2
       ;;
-    --resolution-time=*)
-      RESOLUTION_TIME="${1#*=}"
-      shift
+    --resolution-time)
+      RESOLUTION_TIME="$2"
+      shift 2
+      ;;
+    --*=*)
+      # Reject equals syntax with helpful error
+      FLAG_NAME="${1%%=*}"
+      echo "Error: Use space-separated syntax, not equals syntax" >&2
+      echo "Use: $FLAG_NAME <value>" >&2
+      echo "Not: $1" >&2
+      exit 2
       ;;
     *)
-      echo "Unknown argument: $1"
+      echo "Unknown argument: $1" >&2
       exit 1
       ;;
   esac

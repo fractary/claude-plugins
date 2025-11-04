@@ -2,34 +2,54 @@
 name: /fractary-faber-cloud:teardown
 description: Destroy infrastructure (terraform destroy)
 examples:
-  - /fractary-faber-cloud:teardown --env=test
-  - /fractary-faber-cloud:teardown --env=staging
-argument-hint: "--env=<environment> [--confirm]"
+  - /fractary-faber-cloud:teardown --env test
+  - /fractary-faber-cloud:teardown --env staging
+argument-hint: "--env <environment> [--confirm]"
 ---
 
 # Teardown Infrastructure
+
+
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+- **Boolean flags**: No value needed, just include the flag
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:teardown --env test
+
+# Incorrect ❌
+/fractary-faber-cloud:teardown --env=test
+```
+</ARGUMENT_SYNTAX>
 
 Destroy deployed infrastructure in the specified environment.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:teardown --env=<environment> [options]
+/fractary-faber-cloud:teardown --env <environment> [options]
 ```
 
 ## Arguments
 
-- `--env=<environment>` (required): Environment to destroy (test, staging, prod)
+- `--env <environment>` (required): Environment to destroy (test, staging, prod)
 - `--confirm` (optional): Skip confirmation prompts (dangerous! Not allowed for production)
 
 ## Examples
 
 ```bash
 # Destroy test environment (with confirmation)
-/fractary-faber-cloud:teardown --env=test
+/fractary-faber-cloud:teardown --env test
 
 # Destroy with auto-confirmation (be careful!)
-/fractary-faber-cloud:teardown --env=test --confirm
+/fractary-faber-cloud:teardown --env test --confirm
 ```
 
 ## Safety
