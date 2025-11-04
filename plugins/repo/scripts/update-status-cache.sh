@@ -23,6 +23,10 @@ NC='\033[0m' # No Color
 # Ensure cache directory exists
 mkdir -p "${CACHE_DIR}"
 
+# Clean up old orphaned temp files (older than 1 hour)
+# These can accumulate if processes crash before trap cleanup fires
+find "${CACHE_DIR}" -name "status.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
+
 # Parse arguments
 SKIP_LOCK=false
 QUIET_MODE=false
@@ -46,8 +50,11 @@ done
 #   - FD 200 is not used by calling scripts or processes
 #   - FD 200 is available for exclusive lock coordination
 #   - Same FD number must be used across all scripts sharing this lock
+#
+# Using <> (read-write) instead of > (write/truncate) for atomic lock file access
 if [ "$SKIP_LOCK" = false ]; then
-    exec 200>"${LOCK_FILE}"
+    # Open lock file atomically with read-write mode (no truncation)
+    exec 200<>"${LOCK_FILE}"
     if ! flock -w 5 200; then
         if [ "$QUIET_MODE" = false ]; then
             echo -e "${RED}❌ Could not acquire lock (another update in progress)${NC}" >&2
@@ -55,8 +62,9 @@ if [ "$SKIP_LOCK" = false ]; then
         exit 1
     fi
 
-    # Ensure lock is released on exit (trap cleanup)
-    trap "flock -u 200 2>/dev/null || true; rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
+    # Lock auto-releases when FD closes (on script exit)
+    # Temp file cleanup on exit/interrupt
+    trap "rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
 else
     # Even when skipping lock, ensure temp file cleanup on interruption
     trap "rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
@@ -78,9 +86,12 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 GIT_STATUS_OUTPUT=$(git status --porcelain 2>/dev/null)
 
 # Count uncommitted changes (both staged and unstaged)
-# Use grep to filter empty lines before counting (more robust than wc -l alone)
-# grep -c outputs 0 and exits with code 1 when no matches, so we need || true to ignore exit code
-UNCOMMITTED_CHANGES=$(echo "$GIT_STATUS_OUTPUT" | grep -c . || true)
+# Explicit empty check for clarity and portability (avoids grep -c fragility)
+if [ -z "$GIT_STATUS_OUTPUT" ]; then
+    UNCOMMITTED_CHANGES=0
+else
+    UNCOMMITTED_CHANGES=$(printf '%s\n' "$GIT_STATUS_OUTPUT" | wc -l | tr -d ' ')
+fi
 
 # Count untracked files
 UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')

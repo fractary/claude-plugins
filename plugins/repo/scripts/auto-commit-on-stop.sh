@@ -17,20 +17,52 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Acquire lock to prevent concurrent cache updates during commit
-# This prevents UserPromptSubmit hook from updating cache while we're committing
+# Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
 LOCK_FILE="${CACHE_DIR}/status.lock"
+LOG_FILE="${CACHE_DIR}/auto-commit.log"
+MAX_LOCK_RETRIES=2
+RETRY_DELAY=2
+
 mkdir -p "${CACHE_DIR}"
 
-exec 200>"${LOCK_FILE}"
-if ! flock -w 10 200; then
-    echo -e "${YELLOW}⚠️  Another git operation in progress, skipping auto-commit${NC}"
+# Logging function
+log_message() {
+    local level="$1"
+    local message="$2"
+    echo "[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] [$level] $message" >> "${LOG_FILE}"
+}
+
+# Acquire lock to prevent concurrent cache updates during commit
+# This prevents UserPromptSubmit hook from updating cache while we're committing
+# Using <> (read-write) instead of > (write/truncate) for atomic lock file access
+# Retry logic: If lock acquisition fails, retry up to MAX_LOCK_RETRIES times
+LOCK_ACQUIRED=false
+for attempt in $(seq 1 $((MAX_LOCK_RETRIES + 1))); do
+    exec 200<>"${LOCK_FILE}"
+    if flock -w 10 200; then
+        LOCK_ACQUIRED=true
+        break
+    fi
+
+    # Lock failed
+    if [ $attempt -le $MAX_LOCK_RETRIES ]; then
+        echo -e "${YELLOW}⚠️  Lock acquisition failed (attempt $attempt/$((MAX_LOCK_RETRIES + 1))), retrying in ${RETRY_DELAY}s...${NC}"
+        log_message "WARN" "Lock acquisition failed (attempt $attempt/$((MAX_LOCK_RETRIES + 1))), retrying in ${RETRY_DELAY}s"
+        sleep $RETRY_DELAY
+    fi
+done
+
+if [ "$LOCK_ACQUIRED" = false ]; then
+    MSG="Failed to acquire lock after $((MAX_LOCK_RETRIES + 1)) attempts. Skipping auto-commit to prevent data loss."
+    echo -e "${RED}❌ $MSG${NC}"
+    echo -e "${YELLOW}ℹ️  Changes remain uncommitted. Review manually or commit will retry on next session end.${NC}"
+    log_message "ERROR" "$MSG"
     exit 0
 fi
 
-# Ensure lock is released on exit
-trap "flock -u 200 2>/dev/null || true" EXIT
+# Lock auto-releases when FD closes (on script exit)
+trap "log_message 'INFO' 'Auto-commit hook completed'" EXIT
 
 echo -e "${YELLOW}🔄 Checking for git changes...${NC}"
 

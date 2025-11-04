@@ -11,7 +11,18 @@ set -e
 CACHE_DIR="${HOME}/.fractary/repo"
 CACHE_FILE="${CACHE_DIR}/status.cache"
 MAX_AGE_SECONDS=30  # Normal staleness threshold (not used for auto-refresh)
-CRITICAL_AGE_SECONDS=300  # Emergency refresh if cache is > 5 minutes old
+
+# Emergency refresh threshold: 300 seconds (5 minutes)
+# Rationale: Hooks (UserPromptSubmit, Stop) keep cache fresh under normal operation.
+# If cache exceeds 5 minutes, hooks likely failed due to:
+#   - Hook disabled/removed by user
+#   - Hook execution errors (permissions, missing deps)
+#   - System issues (disk full, process limits)
+# 5 minutes chosen as balance between:
+#   - Long enough to avoid false positives during normal multi-minute operations
+#   - Short enough to prevent stale data causing confusion
+#   - Typical session length (most coding sessions have activity within 5 min)
+CRITICAL_AGE_SECONDS=300
 
 # Colors for output
 RED='\033[0;31m'

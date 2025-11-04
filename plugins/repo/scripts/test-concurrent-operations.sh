@@ -88,14 +88,15 @@ echo -e "${BLUE}Test 5: Simulating cache update during simulated commit${NC}"
 echo "────────────────────────────────────────"
 echo -e "${YELLOW}  Simulating lock held by auto-commit...${NC}"
 
-# Simulate auto-commit holding lock
+# Simulate auto-commit holding lock (uses 10-second timeout like production)
 (
     CACHE_DIR="${HOME}/.fractary/repo"
     LOCK_FILE="${CACHE_DIR}/status.lock"
     mkdir -p "${CACHE_DIR}"
 
-    exec 200>"${LOCK_FILE}"
-    if flock -w 5 200; then
+    # Use <> for read-write access (matches production code)
+    exec 200<>"${LOCK_FILE}"
+    if flock -w 10 200; then
         echo -e "${YELLOW}    🔒 Lock acquired (simulating auto-commit in progress)${NC}"
 
         # While holding lock, call update with --skip-lock
@@ -158,3 +159,4 @@ echo -e "  ✓ Consolidated git status calls (no duplicate queries)"
 echo -e "  ✓ Auto-refresh disabled (no unexpected updates)"
 echo -e "  ✓ --skip-lock allows nested calls from auto-commit"
 echo -e "  ✓ Lock timeout prevents indefinite blocking"
+echo -e "  ✓ Timeout values match production (5s for cache, 10s for auto-commit)"
