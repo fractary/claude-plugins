@@ -185,16 +185,16 @@ Configure Claude Code permissions with **branch-aware intelligence**.
 
 Creates a 3-tier permission system in `.claude/settings.json`:
 
-1. **Auto-Allow** (~50 commands): Fast workflow on feature branches
+1. **Auto-Allow** (55 commands): Fast workflow on feature branches
    - All git operations: `commit`, `push`, `merge`, `rebase`, `reset`
    - All GitHub CLI: `gh pr create`, `gh issue create`, etc.
    - Result: **Zero prompts** for normal development
 
-2. **Require Approval** (Protected branches only): Production safety
+2. **Require Approval** (9 commands - Protected branches only): Production safety
    - `git push origin main/master/production`
    - Result: **Approval required** only when it matters
 
-3. **Always Deny** (~25 commands): Catastrophic operations blocked
+3. **Always Deny** (39 commands): Catastrophic operations blocked
    - Force push to protected branches
    - System destruction: `rm -rf /`, `sudo`, `shutdown`
    - Result: **Always blocked**, no exceptions
@@ -469,7 +469,7 @@ Traditional permission systems require approval for every operation, creating fr
 
 ### Three-Tier System
 
-#### 1. Auto-Allow (~50 commands)
+#### 1. Auto-Allow (55 commands)
 
 Commands execute **immediately without prompts** on feature branches:
 
@@ -486,7 +486,7 @@ Commands execute **immediately without prompts** on feature branches:
 **Safe Utilities:**
 - `cat`, `head`, `tail`, `grep`, `find`, `ls`, `pwd`, `jq`, `sed`, `awk`
 
-#### 2. Require Approval (Protected Branches Only)
+#### 2. Require Approval (9 commands - Protected Branches Only)
 
 Commands prompt for approval **ONLY when targeting protected branches**:
 
@@ -503,7 +503,7 @@ git push origin feat/123     # ✅ Auto-allowed
 git push origin main         # ⚠️ Requires approval
 ```
 
-#### 3. Always Deny (~25 commands)
+#### 3. Always Deny (39 commands)
 
 Commands are **always blocked**, regardless of branch:
 
