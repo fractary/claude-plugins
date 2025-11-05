@@ -32,7 +32,7 @@
           "./commands/sync-project.md"
         ],
         "agents": [
-          "./agents/sync-manager.md"
+          "./agents/codex-manager.md"
         ]
       },
       {
@@ -204,15 +204,13 @@
         "category": "development",
         "strict": true,
         "commands": [
-          "./commands/devops-init.md",
+          "./commands/init.md",
           "./commands/director.md",
-          "./commands/infra-manage.md",
-          "./commands/ops-manage.md"
+          "./commands/manage.md"
         ],
         "agents": [
-          "./agents/devops-director.md",
-          "./agents/infra-manager.md",
-          "./agents/ops-manager.md"
+          "./agents/cloud-director.md",
+          "./agents/infra-manager.md"
         ]
       }
     ]
