@@ -1,0 +1,8 @@
+{
+  "name": "fractary-docs",
+  "version": "1.0.0",
+  "description": "Living documentation management with template-based generation, updating, validation, and linking",
+  "agents": ["./agents/docs-manager.md"],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}

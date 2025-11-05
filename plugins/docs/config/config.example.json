@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "output_paths": {
+    "documentation": "docs",
+    "adrs": "docs/architecture/adrs",
+    "designs": "docs/architecture/designs",
+    "runbooks": "docs/operations/runbooks",
+    "api_docs": "docs/api",
+    "guides": "docs/guides",
+    "testing": "docs/testing",
+    "deployments": "docs/deployments"
+  },
+  "templates": {
+    "custom_template_dir": null,
+    "use_project_templates": true
+  },
+  "frontmatter": {
+    "always_include": true,
+    "codex_sync": true,
+    "default_fields": {
+      "author": "Claude Code",
+      "generated": true
+    }
+  },
+  "validation": {
+    "lint_on_generate": true,
+    "check_links_on_generate": false,
+    "required_sections": {
+      "adr": ["Status", "Context", "Decision", "Consequences"],
+      "design": ["Overview", "Architecture", "Implementation"],
+      "runbook": ["Purpose", "Prerequisites", "Steps", "Troubleshooting"],
+      "api-spec": ["Overview", "Endpoints", "Authentication"],
+      "test-report": ["Summary", "Test Cases", "Results"],
+      "deployment": ["Overview", "Infrastructure", "Deployment Steps"]
+    },
+    "status_values": {
+      "adr": ["proposed", "accepted", "deprecated", "superseded"]
+    }
+  },
+  "linking": {
+    "auto_update_index": true,
+    "check_broken_links": true,
+    "generate_graph": true
+  }
+}
