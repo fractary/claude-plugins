@@ -41,7 +41,7 @@ Layer 5: Provider Adapters
 5. Route to infra-manager or ops-manager
 
 **Examples:**
-- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy-execute --env=prod`
+- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy-apply --env=prod`
 - "check health" → `/fractary-faber-cloud:ops-manage check-health`
 - "investigate errors" → `/fractary-faber-cloud:ops-manage investigate`
 
@@ -51,7 +51,7 @@ Layer 5: Provider Adapters
 
 **Workflow:**
 ```
-architect → engineer → validate → test → deploy-plan → deploy-execute → (debug if needed)
+architect → engineer → validate → test → deploy-plan → deploy-apply → (debug if needed)
 ```
 
 **Delegations:**
@@ -60,7 +60,7 @@ architect → engineer → validate → test → deploy-plan → deploy-execute 
 - validate → infra-validator skill
 - test → infra-tester skill
 - deploy-plan → infra-previewer skill
-- deploy-execute → infra-deployer skill
+- deploy-apply → infra-deployer skill
 - debug → infra-debugger skill
 
 **Commands:** architect, engineer, validate-config, test-changes, preview-changes, deploy, show-resources, check-status, debug
@@ -499,8 +499,8 @@ plugins/fractary-faber-cloud/
 │   ├── test.md                   (Phase 2)
 │   ├── audit.md                  (SPEC-0013)
 │   ├── deploy-plan.md            (Phase 1)
-│   ├── deploy-execute.md         (Phase 1)
-│   ├── deploy-destroy.md         (Phase 2)
+│   ├── deploy-apply.md           (Phase 1)
+│   ├── teardown.md               (Phase 2)
 │   ├── list.md                   (Phase 1)
 │   ├── status.md                 (Phase 1)
 │   ├── debug.md                  (Phase 2)

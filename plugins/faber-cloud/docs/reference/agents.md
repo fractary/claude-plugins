@@ -97,7 +97,7 @@ Choose one: (1/2)
 ### Workflow
 
 ```
-architect → engineer → validate → test → deploy-plan → deploy-execute → (debug if needed)
+architect → engineer → validate → test → deploy-plan → deploy-apply → (debug if needed)
 ```
 
 ### Commands Handled

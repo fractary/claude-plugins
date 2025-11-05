@@ -415,7 +415,7 @@ Step 3: Verify with hosting
 ### Standard Deployment Workflow
 
 ```
-User: /fractary-faber-cloud:infra-manage deploy-execute --env=test
+User: /fractary-faber-cloud:infra-manage deploy-apply --env=test
   ↓
 infra-manage command
   ↓
@@ -619,8 +619,8 @@ plugins/fractary-faber-cloud/
 │   ├── test.md                   # Security and cost tests
 │   ├── audit.md                  # Audit infrastructure health
 │   ├── deploy-plan.md            # Preview deployment
-│   ├── deploy-execute.md         # Execute deployment
-│   ├── deploy-destroy.md         # Destroy infrastructure
+│   ├── deploy-apply.md           # Apply deployment
+│   ├── teardown.md               # Teardown infrastructure
 │   ├── list.md                   # List resources
 │   ├── status.md                 # Check status
 │   ├── debug.md                  # Debug issues
