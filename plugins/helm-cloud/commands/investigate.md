@@ -5,7 +5,7 @@ examples:
   - /fractary-helm-cloud:investigate "Lambda errors" --env prod
   - /fractary-helm-cloud:investigate --issue=infra-001
   - /fractary-helm-cloud:investigate "high latency" --env test
-argument-hint: "<query> [--env <environment>] [--issue <issue-id>]"
+argument-hint: '"<query>" [--env <environment>] [--issue <issue-id>]'
 ---
 
 # Investigate Command

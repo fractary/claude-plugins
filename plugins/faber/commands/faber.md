@@ -1,7 +1,7 @@
 ---
 name: faber
 description: FABER main entry point - intelligent router for init, run, status, and freeform requests
-argument-hint: init | run <id> [...] | status [...] | help | <question>
+argument-hint: 'init | run <id> [...] | status [...] | help | "<question>"'
 tools: Bash, SlashCommand, Read, Glob, Grep
 model: inherit
 ---

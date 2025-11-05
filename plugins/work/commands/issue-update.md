@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-update
 description: Update issue title or description
-argument-hint: <number> [--title <title>] [--body <text>]
+argument-hint: '<number> [--title "<title>"] [--body "<text>"]'
 ---
 
 <CONTEXT>

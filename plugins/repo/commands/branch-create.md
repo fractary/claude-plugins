@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
-argument-hint: [work_id] <branch-name-or-description> [--base <branch>] [--prefix <prefix>]
+argument-hint: '[work_id] "<branch-name-or-description>" [--base <branch>] [--prefix <prefix>]'
 ---
 
 <CONTEXT>

@@ -1,7 +1,7 @@
 ---
 name: fractary-work:comment-create
 description: Add a comment to an issue
-argument-hint: <issue_number> <text> [--faber-context <context>]
+argument-hint: '<issue_number> "<text>" [--faber-context <context>]'
 ---
 
 <CONTEXT>
