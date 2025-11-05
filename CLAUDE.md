@@ -245,7 +245,7 @@ Next: [What to do next]
 
 ### Standards & Architecture
 - `docs/standards/FRACTARY-PLUGIN-STANDARDS.md` - **Read this first** for plugin development patterns
-- `docs/specs/fractary-faber-architecture.md` - FABER framework specification
+- `docs/specs/SPEC-0002-faber-architecture.md` - FABER framework specification
 - `docs/conversations/2025-10-22-cli-tool-reorganization-faber-details.md` - Tool philosophy and vision
 
 ### Example Implementations
