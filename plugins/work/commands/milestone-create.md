@@ -1,7 +1,7 @@
 ---
 name: fractary-work:milestone-create
 description: Create a new milestone
-argument-hint: <title> [--due <date>] [--description <text>] [--state <state>]
+argument-hint: '"<title>" [--due <date>] [--description "<text>"] [--state <state>]'
 ---
 
 <CONTEXT>

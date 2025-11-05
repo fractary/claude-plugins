@@ -323,7 +323,7 @@ Use the @agent-fractary-faber-cloud:cloud-director to design infrastructure
 
 - **Related Specifications**:
   - `FRACTARY-PLUGIN-STANDARDS.md` - Plugin development standards
-  - `fractary-faber-architecture.md` - FABER framework architecture
+  - `SPEC-0002-faber-architecture.md` - FABER framework architecture
   - `faber-cloud-v2.1-phase1-commands.md` - Detailed command specifications
   - `faber-cloud-v2.1-phase2-agents.md` - Detailed agent specifications
   - `faber-cloud-v2.1-phase3-skills.md` - Detailed skill specifications

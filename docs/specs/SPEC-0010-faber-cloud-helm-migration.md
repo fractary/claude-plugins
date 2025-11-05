@@ -4,8 +4,8 @@
 **Date:** 2025-11-03
 **Status:** Proposed
 **Depends On:**
-- `faber-helm-architecture.md`
-- `helm-system-specification.md`
+- `SPEC-0008-faber-helm-architecture.md`
+- `SPEC-0007-helm-system-specification.md`
 
 ---
 
@@ -1070,8 +1070,8 @@ This migration plan provides a **structured, phased approach** to evolving faber
 **End of Document**
 
 **Related Documents:**
-- `faber-helm-architecture.md` - Vision and philosophy
-- `helm-system-specification.md` - Detailed Helm design
-- `faber-cloud-command-reorganization.md` - Phase 1 details
+- `SPEC-0008-faber-helm-architecture.md` - Vision and philosophy
+- `SPEC-0007-helm-system-specification.md` - Detailed Helm design
+- `SPEC-0013-faber-cloud-command-reorganization.md` - Phase 1 details
 - `helm-cloud-plugin-specification.md` - Phase 2 details
 - `adr-001-faber-helm-separation.md` - Decision rationale

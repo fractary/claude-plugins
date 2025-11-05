@@ -1,7 +1,7 @@
 ---
 name: fractary-work:label-add
 description: Add a label to an issue
-argument-hint: <number> <label> [--color <hex>] [--description <text>]
+argument-hint: '<number> <label> [--color <hex>] [--description "<text>"]'
 ---
 
 <CONTEXT>

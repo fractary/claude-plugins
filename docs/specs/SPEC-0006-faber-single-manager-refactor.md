@@ -16,7 +16,7 @@ visibility: internal
 **Status**: Proposed
 **Date**: 2025-11-01
 **Author**: Architecture Discussion
-**Related**: [FRACTARY-PLUGIN-STANDARDS.md](../standards/FRACTARY-PLUGIN-STANDARDS.md), [fractary-faber-architecture.md](./fractary-faber-architecture.md)
+**Related**: [FRACTARY-PLUGIN-STANDARDS.md](../standards/FRACTARY-PLUGIN-STANDARDS.md), [SPEC-0002-faber-architecture.md](./SPEC-0002-faber-architecture.md)
 
 ## Executive Summary
 
@@ -667,7 +667,7 @@ depends_on = ["test_unit", "test_integration", "security_scan"]
 ## References
 
 - [FRACTARY-PLUGIN-STANDARDS.md](../standards/FRACTARY-PLUGIN-STANDARDS.md) - Plugin architecture patterns
-- [fractary-faber-architecture.md](./fractary-faber-architecture.md) - Original FABER specification
+- [SPEC-0002-faber-architecture.md](./SPEC-0002-faber-architecture.md) - Original FABER specification
 - [faber-cloud plugin](../../plugins/faber-cloud/) - Example of single-manager pattern
 - [work plugin](../../plugins/work/) - Example of pure router pattern
 - [repo plugin](../../plugins/repo/) - Example of pure router pattern

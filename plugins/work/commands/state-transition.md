@@ -1,7 +1,7 @@
 ---
 name: fractary-work:state-transition
 description: Transition issue to a specific workflow state
-argument-hint: <number> <state> [--comment <text>]
+argument-hint: '<number> <state> [--comment "<text>"]'
 ---
 
 <CONTEXT>

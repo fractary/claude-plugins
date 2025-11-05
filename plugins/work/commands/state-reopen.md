@@ -1,7 +1,7 @@
 ---
 name: fractary-work:state-reopen
 description: Reopen a closed issue
-argument-hint: <number> [--comment <text>]
+argument-hint: '<number> [--comment "<text>"]'
 ---
 
 <CONTEXT>

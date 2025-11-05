@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:tag-create
 description: Create a new Git tag
-argument-hint: <tag_name> [--message <text>] [--commit <sha>] [--sign] [--force]
+argument-hint: '<tag_name> [--message "<text>"] [--commit <sha>] [--sign] [--force]'
 ---
 
 <CONTEXT>

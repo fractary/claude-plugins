@@ -1,7 +1,7 @@
 # Fractary Plugin Development Standards
 
 **Version:** 1.0.0
-**Last Updated:** 2025-10-28
+**Last Updated:** 2025-11-05
 **Purpose:** Universal patterns and best practices for all Fractary Claude Code plugins
 
 ---
@@ -18,6 +18,9 @@
 8. [Documentation Standards](#documentation-standards)
 9. [XML Markup Standards](#xml-markup-standards)
 10. [Example: DevOps Plugin](#example-devops-plugin)
+11. [Checklist for New Plugins](#checklist-for-new-plugins)
+12. [Development Tools](#development-tools)
+13. [Best Practices Summary](#best-practices-summary)
 
 ---
 
@@ -706,7 +709,7 @@ done
 - Consistent with familiar tools
 - Clear when quotes are needed
 
-See [RESEARCH-CLI-ARGUMENT-STANDARDS.md](../../RESEARCH-CLI-ARGUMENT-STANDARDS.md) for detailed analysis.
+See [SPEC-0014: CLI Argument Standards](../specs/SPEC-0014-cli-argument-standards.md) for detailed analysis.
 
 ### Agent Invocation Syntax
 
@@ -1000,6 +1003,103 @@ Ensure all criteria in <COMPLETION_CRITERIA> are met.
 - [ ] Version and release
 - [ ] Gather user feedback
 - [ ] Iterate based on feedback
+
+---
+
+## Development Tools
+
+### Command Frontmatter Linter
+
+A validation script is available to catch common frontmatter errors in command files:
+
+```bash
+./scripts/lint-command-frontmatter.sh [OPTIONS] [path]
+```
+
+#### Options
+
+- `--verbose` - Show detailed output including files that pass
+- `--quiet` - Only show summary, no file-by-file output
+- `--fix` - Automatically fix issues where possible (e.g., leading slashes)
+- `--help` - Show usage information
+
+#### What it validates
+
+**Errors (must fix):**
+- Missing frontmatter structure (must start with `---`)
+- Missing required `name` field
+- Leading slashes in `name` field (e.g., `/fractary-faber:run` → should be `fractary-faber:run`)
+  - **Auto-fixable with `--fix` flag**
+
+**Warnings (recommended to fix):**
+- `name` field doesn't follow `plugin-name:command-name` pattern
+- Missing recommended `description` field
+
+#### Frontmatter Name Pattern Requirements
+
+The linter enforces strict naming patterns for command frontmatter:
+
+**Required Pattern:** `plugin-name:command-name`
+
+- **Plugin name**: Lowercase alphanumeric with hyphens (e.g., `fractary-repo`, `faber-cloud`)
+- **Command name**: Lowercase alphanumeric with hyphens (e.g., `commit`, `branch-create`)
+- **Separator**: Single colon (`:`)
+- **No leading slashes**: The name should never start with `/`
+
+**Valid examples:**
+```yaml
+name: fractary-repo:commit
+name: fractary-work:issue-create
+name: faber-cloud:deploy-execute
+name: faber:run
+```
+
+**Invalid examples:**
+```yaml
+name: /fractary-repo:commit        # Leading slash
+name: FractaryRepo:Commit          # Uppercase letters
+name: fractary_repo:commit         # Underscores
+name: commit                       # Missing plugin prefix
+name: fractary-repo/commit         # Wrong separator
+```
+
+**Pattern strictness rationale:**
+- Ensures consistent naming across all plugins
+- Makes command names predictable and discoverable
+- Prevents namespace collisions
+- Enables tooling and automation
+- Matches slash command invocation pattern (e.g., `/fractary-repo:commit`)
+
+#### Multi-line YAML Support
+
+The linter properly handles multi-line YAML values using `>` or `|` syntax:
+
+```yaml
+name: plugin:command
+description: >
+  This is a long description
+  that spans multiple lines
+  and will be properly parsed
+```
+
+#### Usage in Development
+
+**Before committing:**
+```bash
+./scripts/lint-command-frontmatter.sh plugins/your-plugin/
+```
+
+**Auto-fix issues:**
+```bash
+./scripts/lint-command-frontmatter.sh --fix plugins/
+```
+
+**CI/CD Integration:**
+The linter is integrated into GitHub Actions (`.github/workflows/lint-frontmatter.yml`) and runs automatically on PRs that modify command files.
+
+**See also:** `scripts/README.md` for full documentation and `tests/test-lint-frontmatter.sh` for test suite.
+
+This tool was created to prevent issues like those fixed in commit `b7f661e` where 7 command files had incorrect leading slashes in their frontmatter name fields.
 
 ---
 

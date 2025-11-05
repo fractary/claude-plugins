@@ -1,7 +1,7 @@
 ---
 name: fractary-faber-article:content-image
 description: Generate hero image using DALL-E 3 with brand-consistent visual style
-argument-hint: <slug> [--prompt "custom prompt"]
+argument-hint: '<slug> [--prompt "custom prompt"]'
 ---
 
 Invoke the content-manager agent to generate a hero image for a blog post.

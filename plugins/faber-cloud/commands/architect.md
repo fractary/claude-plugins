@@ -5,7 +5,7 @@ examples:
   - /fractary-faber-cloud:architect "S3 bucket for user uploads"
   - /fractary-faber-cloud:architect "VPC with public and private subnets"
   - /fractary-faber-cloud:architect "Lambda function with API Gateway"
-argument-hint: "<description>"
+argument-hint: '"<description>"'
 ---
 
 # Architect Command

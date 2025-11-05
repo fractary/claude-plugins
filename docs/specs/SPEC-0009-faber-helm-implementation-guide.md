@@ -15,16 +15,16 @@ This guide provides a **practical roadmap** for implementing the FABER/Helm arch
 ## Documentation Index
 
 ### Core Architecture
-- **[faber-helm-architecture.md](./faber-helm-architecture.md)** - Vision, philosophy, and system boundaries
+- **[SPEC-0008: Faber Helm Architecture](./SPEC-0008-faber-helm-architecture.md)** - Vision, philosophy, and system boundaries
   - Read this **first** to understand the overall vision
   - 991 lines covering: separation of concerns, integration model, universal pattern
 
 ### Detailed Specifications
-- **[helm-system-specification.md](./helm-system-specification.md)** - Complete Helm system design
+- **[SPEC-0007: Helm System Specification](./SPEC-0007-helm-system-specification.md)** - Complete Helm system design
   - 1778 lines covering: central Helm, domain plugins, workflows, dashboard, voice interface
 
 ### Migration Plan
-- **[faber-cloud-helm-migration.md](./faber-cloud-helm-migration.md)** - Multi-phase implementation roadmap
+- **[SPEC-0010: Faber Cloud Helm Migration](./SPEC-0010-faber-cloud-helm-migration.md)** - Multi-phase implementation roadmap
   - 642 lines covering: 5 phases over 12-16 weeks, rollback plans, testing strategy
 
 ---
@@ -410,7 +410,7 @@ helm-content/
 
 ## Next Steps
 
-1. **Review:** Read core architecture document (faber-helm-architecture.md)
+1. **Review:** Read core architecture document (SPEC-0008-faber-helm-architecture.md)
 2. **Approve:** Get stakeholder sign-off on this approach
 3. **Plan:** Schedule Phase 1 kickoff
 4. **Implement:** Begin command reorganization in faber-cloud
@@ -422,9 +422,9 @@ helm-content/
 ## Resources
 
 ### Documentation
-- [faber-helm-architecture.md](./faber-helm-architecture.md) - Vision & philosophy
-- [helm-system-specification.md](./helm-system-specification.md) - Detailed Helm design
-- [faber-cloud-helm-migration.md](./faber-cloud-helm-migration.md) - Migration roadmap
+- [SPEC-0008-faber-helm-architecture.md](./SPEC-0008-faber-helm-architecture.md) - Vision & philosophy
+- [SPEC-0007-helm-system-specification.md](./SPEC-0007-helm-system-specification.md) - Detailed Helm design
+- [SPEC-0010-faber-cloud-helm-migration.md](./SPEC-0010-faber-cloud-helm-migration.md) - Migration roadmap
 
 ### Plugin Ecosystem
 - `plugins/faber/` - Core FABER workflows

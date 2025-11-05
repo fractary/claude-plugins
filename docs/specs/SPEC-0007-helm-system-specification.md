@@ -3,7 +3,7 @@
 **Version:** 1.0.0
 **Date:** 2025-11-03
 **Status:** Proposed
-**Depends On:** `faber-helm-architecture.md`
+**Depends On:** `SPEC-0008-faber-helm-architecture.md`
 
 ---
 
@@ -1773,6 +1773,6 @@ def verify_issue_resolved(issue_id):
 **End of Document**
 
 **See Also:**
-- `faber-helm-architecture.md` - Overall vision and philosophy
-- `faber-cloud-helm-migration.md` - Migration roadmap
+- `SPEC-0008-faber-helm-architecture.md` - Overall vision and philosophy
+- `SPEC-0010-faber-cloud-helm-migration.md` - Migration roadmap
 - `helm-cloud-plugin-specification.md` - Detailed helm-cloud spec

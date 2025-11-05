@@ -5,7 +5,7 @@ examples:
   - /fractary-helm-cloud:remediate --action=restart_lambda --env test
   - /fractary-helm-cloud:remediate --issue=infra-001 --env prod
   - /fractary-helm-cloud:remediate "restart the API Lambda" --env prod
-argument-hint: "[<description>] [--action <action>] [--issue <issue-id>] [--env <environment>]"
+argument-hint: '["<description>"] [--action <action>] [--issue <issue-id>] [--env <environment>]'
 ---
 
 # Remediate Command

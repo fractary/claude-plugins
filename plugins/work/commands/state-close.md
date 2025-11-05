@@ -1,7 +1,7 @@
 ---
 name: fractary-work:state-close
 description: Close an issue and optionally post a comment
-argument-hint: <number> [--comment <text>] [--reason <reason>]
+argument-hint: '<number> [--comment "<text>"] [--reason <reason>]'
 ---
 
 <CONTEXT>
