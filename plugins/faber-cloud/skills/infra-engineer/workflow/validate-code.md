@@ -4,6 +4,8 @@ This workflow step validates the generated Terraform code using terraform fmt an
 
 **IMPORTANT:** This step is ALWAYS executed - validation is not optional.
 
+**IMPORTANT:** This step uses the `validate-terraform.sh` script for deterministic validation operations, keeping them outside LLM context to reduce token usage.
+
 ## Input
 
 - Generated Terraform files in `./infrastructure/terraform/`
@@ -11,85 +13,51 @@ This workflow step validates the generated Terraform code using terraform fmt an
 
 ## Process
 
-### 1. Format Code
+### 1. Invoke Validation Script
 
-Run `terraform fmt` to ensure consistent formatting:
+Execute the validate-terraform.sh script:
 
 ```bash
 TF_DIR="./infrastructure/terraform"
 
-echo "🔧 Formatting Terraform code..."
+# Run validation script
+VALIDATE_RESULT=$(./scripts/validate-terraform.sh "$TF_DIR")
+VALIDATE_EXIT=$?
 
-cd "$TF_DIR"
-terraform fmt -recursive
-
-if [ $? -eq 0 ]; then
-    echo "✅ Terraform code formatted"
-else
-    echo "❌ Terraform fmt failed"
+if [ $VALIDATE_EXIT -ne 0 ]; then
+    echo "❌ Terraform validation failed"
+    echo "$VALIDATE_RESULT"
     exit 1
 fi
+
+echo "✅ Terraform validation passed"
 ```
 
-**What terraform fmt does:**
-- Fixes indentation
-- Aligns equals signs
-- Sorts arguments
-- Removes trailing whitespace
+The script handles all validation steps:
+- Terraform fmt (formatting)
+- Terraform init (if needed)
+- Terraform validate (syntax/config)
+- Common issue checks
+- Report generation
+
+### 2. What the Script Does
+
+**Step 1: Format Code**
+- Run `terraform fmt -recursive`
+- Fixes indentation, aligns equals signs, sorts arguments
 - Ensures consistent style
 
-### 2. Initialize Terraform
+**Step 2: Initialize Terraform (if needed)**
+- Check for .terraform directory
+- Load backend config from devops.json
+- Run terraform init with backend or local state
 
-Initialize Terraform with backend configuration:
-
-```bash
-echo "🔧 Initializing Terraform..."
-
-# Load backend config from devops.json
-CONFIG_FILE="../../.fractary/plugins/faber-cloud/config/devops.json"
-if [ -f "$CONFIG_FILE" ]; then
-    BACKEND_BUCKET=$(jq -r '.terraform.backend.bucket' "$CONFIG_FILE")
-    BACKEND_KEY=$(jq -r '.terraform.backend.key' "$CONFIG_FILE")
-    BACKEND_REGION=$(jq -r '.terraform.backend.region' "$CONFIG_FILE")
-
-    terraform init \
-        -backend-config="bucket=$BACKEND_BUCKET" \
-        -backend-config="key=$BACKEND_KEY" \
-        -backend-config="region=$BACKEND_REGION" \
-        -reconfigure
-else
-    # Initialize without backend (local state)
-    terraform init
-fi
-
-if [ $? -eq 0 ]; then
-    echo "✅ Terraform initialized"
-else
-    echo "❌ Terraform init failed"
-    exit 1
-fi
-```
-
-### 3. Validate Syntax
-
-Run `terraform validate` to check syntax and configuration:
-
-```bash
-echo "🔍 Validating Terraform configuration..."
-
-terraform validate
-
-if [ $? -eq 0 ]; then
-    echo "✅ Terraform validation passed"
-else
-    echo "❌ Terraform validation failed"
-
-    # Show validation errors
-    terraform validate 2>&1
-
-    exit 1
-fi
-```
+**Step 3: Validate Syntax**
+- Run `terraform validate -json`
+- Check HCL syntax correctness
+- Verify resource attributes
+- Validate variable references
+- Check module configuration
 
 **What terraform validate checks:**
 - HCL syntax correctness
