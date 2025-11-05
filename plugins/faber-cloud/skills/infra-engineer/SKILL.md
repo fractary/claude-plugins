@@ -32,63 +32,82 @@ Terraform configurations.
 </CRITICAL_RULES>
 
 <INPUTS>
-This skill receives:
+This skill receives free-text instructions that can include:
 
-- **design**: Path to design document (e.g., "user-uploads.md")
-- **feature**: Optional feature description if no design document
+- **Design file reference**: "user-uploads.md" or ".fractary/plugins/faber-cloud/designs/api-backend.md"
+- **FABER spec reference**: ".faber/specs/123-add-uploads.md"
+- **Direct instructions**: "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+- **Mixed context**: "Implement design from api-backend.md and add CloudWatch alarms"
+- **No arguments**: Will look for the most recent design document
+
+The skill intelligently parses the input to determine:
+1. If a file is referenced, read and use it as the source
+2. If direct instructions are provided, use them as implementation guidance
+3. If no input is provided, find and use the latest design document
+
+Additionally receives:
 - **config**: Configuration from config-loader.sh
+- **retry_context**: If this is a retry from evaluate phase
 </INPUTS>
 
 <WORKFLOW>
 **OUTPUT START MESSAGE:**
 ```
 🔧 STARTING: Infrastructure Engineer
-Design: {design document or feature}
+Instructions: {instructions or file reference}
 Output: {terraform directory}
 ───────────────────────────────────────
 ```
 
 **EXECUTE STEPS:**
 
-1. **Read: workflow/read-design.md**
-   - Load design document or parse feature description
-   - Extract resource specifications
-   - Identify dependencies
-   - Output: "✓ Step 1 complete: Design loaded"
+1. **Parse Input and Determine Source**
+   - Analyze the instructions text
+   - Check for file references (paths ending in .md)
+   - Identify if this is a design doc, FABER spec, or direct instructions
+   - If no input provided, find latest design document
+   - Output: "✓ Source determined: {source_type}"
 
-2. **Read: workflow/generate-code.md**
+2. **Load Context**
+   - If design document: Read from `.fractary/plugins/faber-cloud/designs/`
+   - If FABER spec: Read from `.faber/specs/`
+   - If direct instructions: Use as implementation guidance
+   - Extract resource specifications and requirements
+   - Identify dependencies
+   - Output: "✓ Context loaded from {source}"
+
+3. **Generate Terraform Code**
    - Generate Terraform resource blocks
    - Create variable definitions
    - Define outputs
    - Add provider configuration if needed
-   - Output: "✓ Step 2 complete: Terraform code generated"
-
-3. **Read: workflow/apply-patterns.md**
    - Apply naming patterns from config
    - Add standard tags
    - Implement security best practices
-   - Add lifecycle policies
-   - Output: "✓ Step 3 complete: Patterns applied"
+   - Output: "✓ Terraform code generated"
 
-4. **Read: workflow/validate-implementation.md**
-   - Run terraform fmt
-   - Run terraform validate (via handler)
+4. **Validate Implementation (ALWAYS)**
+   - Run terraform fmt (fix formatting)
+   - Run terraform validate via handler
    - Check for common issues
-   - Output: "✓ Step 4 complete: Code validated"
+   - Verify all resources defined
+   - Output: "✓ Code validated successfully"
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
 ✅ COMPLETED: Infrastructure Engineer
+Source: {source description}
 Terraform Files Created:
 - {terraform_directory}/main.tf
 - {terraform_directory}/variables.tf
 - {terraform_directory}/outputs.tf
-- {terraform_directory}/{environment}.tfvars (if needed)
 
 Resources Implemented: {count}
+Validation: ✅ Passed
+
 Next Steps:
-- Review Terraform code
-- Run: /fractary-faber-cloud:infra-manage validate --env test
+- Test: /fractary-faber-cloud:test
+- Preview: /fractary-faber-cloud:deploy-plan
 ───────────────────────────────────────
 ```
 
@@ -459,22 +478,112 @@ aws_region   = "us-east-1"
 
 </FILE_STRUCTURE>
 
+<INPUT_PARSING_LOGIC>
+
+**Determining Input Type:**
+
+1. **Check for file paths** - Contains `.md` extension or starts with path separators:
+   ```
+   "user-uploads.md" → design file
+   ".fractary/plugins/faber-cloud/designs/api-backend.md" → design file
+   ".faber/specs/123-add-feature.md" → FABER spec
+   ```
+
+2. **Check for design directory reference** - Mentions design directory:
+   ```
+   "Implement design from user-uploads.md" → extract: user-uploads.md
+   "Use the design in api-backend.md" → extract: api-backend.md
+   ```
+
+3. **Check for spec directory reference** - Mentions .faber/specs:
+   ```
+   "Implement infrastructure for .faber/specs/123-add-api.md" → extract spec path
+   ```
+
+4. **Direct instructions** - Doesn't match above patterns:
+   ```
+   "Fix IAM permissions - Lambda needs s3:PutObject"
+   "Add CloudWatch alarms for all Lambda functions"
+   ```
+
+5. **No input** - Empty or null:
+   ```
+   "" → Find latest design in .fractary/plugins/faber-cloud/designs/
+   ```
+
+**File Path Resolution:**
+
+- Relative design files: Resolve to `.fractary/plugins/faber-cloud/designs/{filename}`
+- Absolute paths: Use as-is
+- FABER specs: Must be absolute or start with `.faber/`
+
+</INPUT_PARSING_LOGIC>
+
 <EXAMPLES>
 <example>
-Input: Design for "User Uploads" with S3 bucket and Lambda processor
+Input: "user-uploads.md"
+Parse Result:
+  - Type: design_file
+  - Path: .fractary/plugins/faber-cloud/designs/user-uploads.md
 Process:
   1. Read design document
-  2. Generate main.tf with:
-     - S3 bucket resource
-     - S3 bucket versioning
-     - S3 encryption configuration
+  2. Extract S3 bucket and Lambda processor requirements
+  3. Generate main.tf with:
+     - S3 bucket resource with versioning and encryption
      - Lambda function
      - IAM role for Lambda
      - S3 event notification to trigger Lambda
-  3. Generate variables.tf with standard variables
-  4. Generate outputs.tf with bucket name, ARN, Lambda ARN
-  5. Run terraform fmt
-  6. Validate syntax
-Output: Complete Terraform configuration in ./infrastructure/terraform/
+  4. Generate variables.tf with standard variables
+  5. Generate outputs.tf with bucket name, ARN, Lambda ARN
+  6. Run terraform fmt
+  7. Run terraform validate
+Output: Complete validated Terraform configuration in ./infrastructure/terraform/
+</example>
+
+<example>
+Input: ".faber/specs/123-add-api-backend.md"
+Parse Result:
+  - Type: faber_spec
+  - Path: .faber/specs/123-add-api-backend.md
+Process:
+  1. Read FABER spec
+  2. Extract infrastructure requirements from software spec
+  3. Determine needed AWS resources (API Gateway, Lambda, DynamoDB)
+  4. Generate main.tf with:
+     - API Gateway REST API
+     - Lambda functions for endpoints
+     - DynamoDB table for data storage
+     - IAM roles and policies
+  5. Generate variables.tf and outputs.tf
+  6. Run terraform fmt and validate
+Output: Complete validated Terraform configuration
+</example>
+
+<example>
+Input: "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+Parse Result:
+  - Type: direct_instructions
+  - Instructions: "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+Process:
+  1. Read existing Terraform code
+  2. Locate Lambda IAM role
+  3. Add s3:PutObject permission for uploads bucket
+  4. Update IAM policy document
+  5. Run terraform fmt and validate
+Output: Updated Terraform with corrected IAM permissions
+</example>
+
+<example>
+Input: "" (no input)
+Parse Result:
+  - Type: latest_design
+  - Path: (auto-detected from designs directory)
+Process:
+  1. List files in .fractary/plugins/faber-cloud/designs/
+  2. Find most recently modified .md file
+  3. Read and implement that design
+  4. Generate Terraform code
+  5. Validate
+Output: Complete validated Terraform configuration
 </example>
 </EXAMPLES>

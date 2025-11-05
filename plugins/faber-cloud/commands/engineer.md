@@ -1,71 +1,92 @@
 ---
 name: fractary-faber-cloud:engineer
-description: Generate Infrastructure as Code from architecture design
+description: Generate Infrastructure as Code from architecture design, specification, or direct instructions
 examples:
-  - /fractary-faber-cloud:engineer
-  - /fractary-faber-cloud:engineer --validate
-argument-hint: "[--validate]"
+  - /fractary-faber-cloud:engineer "user-uploads.md"
+  - /fractary-faber-cloud:engineer "Implement design from .fractary/plugins/faber-cloud/designs/api-backend.md"
+  - /fractary-faber-cloud:engineer ".faber/specs/123-add-uploads.md"
+  - /fractary-faber-cloud:engineer "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+argument-hint: "[instructions]"
 ---
 
 # Engineer Command
 
+Generate Infrastructure as Code (Terraform) from architecture designs, specifications, or direct instructions.
 
 <ARGUMENT_SYNTAX>
 ## Command Argument Syntax
 
-This command follows the standard space-separated syntax:
-- **Format**: `--flag value` (NOT `--flag=value`)
-- **Multi-word values**: MUST be enclosed in double quotes
-- **Boolean flags**: No value needed, just include the flag
+This command accepts free-text instructions that can include:
+- **Design file reference**: "user-uploads.md" or path to design document
+- **Spec file reference**: ".faber/specs/123-feature.md" or path to FABER spec
+- **Direct instructions**: "Fix IAM permissions issue from debugger"
+- **Mixed context**: "Implement design from api-backend.md and fix the timeout issue"
+
+The engineer skill will intelligently parse the input and determine what to do.
 
 ### Examples
 
 ```bash
-# Correct ✅
-/fractary-faber-cloud:engineer --validate
+# Reference a design document
+/fractary-faber-cloud:engineer "user-uploads.md"
 
-# Incorrect ❌
-# (No flag with = syntax for this command)
+# Reference a FABER spec
+/fractary-faber-cloud:engineer ".faber/specs/123-add-uploads.md"
+
+# Direct instructions (e.g., from debugger)
+/fractary-faber-cloud:engineer "Fix the Lambda IAM permissions - needs s3:PutObject"
+
+# Mixed context
+/fractary-faber-cloud:engineer "Implement api-backend.md and add CloudWatch alarms"
 ```
 </ARGUMENT_SYNTAX>
-
-Generate Infrastructure as Code (Terraform) from an architecture design document.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:engineer [--validate]
+/fractary-faber-cloud:engineer [instructions]
 ```
 
 ## Parameters
 
-- `--validate`: Automatically validate after generating code (optional)
+- `instructions`: Free-text instructions, file references, or context (optional - will look for latest design if omitted)
 
 ## What This Does
 
-1. Reads design document
-2. Generates Terraform configuration
-3. Creates resource definitions
-4. Configures providers and backends
-5. Applies naming conventions
-6. Saves IaC code to terraform directory
+1. Parses instructions to determine input source
+2. Reads design documents or specs if referenced
+3. Generates Terraform configuration
+4. Creates resource definitions
+5. Configures providers and backends
+6. Applies naming conventions and best practices
+7. **Always validates** generated code (terraform fmt + validate)
+8. Saves IaC code to terraform directory
 
 ## Examples
 
-**Generate code from latest design:**
+**Generate from latest design:**
 ```
 /fractary-faber-cloud:engineer
 ```
 
-**Generate and validate:**
+**Generate from specific design:**
 ```
-/fractary-faber-cloud:engineer --validate
+/fractary-faber-cloud:engineer "user-uploads.md"
+```
+
+**Generate from FABER spec:**
+```
+/fractary-faber-cloud:engineer ".faber/specs/123-add-uploads.md"
+```
+
+**Fix specific issue:**
+```
+/fractary-faber-cloud:engineer "Fix IAM permissions from debugger - Lambda needs DynamoDB access"
 ```
 
 ## Next Steps
 
 After generating code, you should:
-- Validate: `/fractary-faber-cloud:validate`
 - Test: `/fractary-faber-cloud:test`
 - Preview: `/fractary-faber-cloud:deploy-plan`
 - Deploy: `/fractary-faber-cloud:deploy-execute --env test`
@@ -74,4 +95,4 @@ After generating code, you should:
 
 This command invokes the `infra-manager` agent with the `engineer` operation.
 
-USE AGENT: infra-manager with operation=engineer
+USE AGENT: infra-manager with operation=engineer and instructions
