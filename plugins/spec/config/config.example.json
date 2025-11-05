@@ -3,7 +3,10 @@
   "storage": {
     "local_path": "/specs",
     "cloud_archive_path": "archive/specs/{year}/{issue_number}.md",
-    "archive_index_file": ".fractary/plugins/spec/archive-index.json"
+    "archive_index": {
+      "local_cache": ".fractary/plugins/spec/archive-index.json",
+      "cloud_backup": "archive/specs/.archive-index.json"
+    }
   },
   "naming": {
     "pattern": "spec-{issue_number}-{slug}.md",

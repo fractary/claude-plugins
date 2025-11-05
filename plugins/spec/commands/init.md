@@ -27,9 +27,15 @@ This command:
    - Creates `/specs` directory (or configured path)
    - This is where active specs are stored
 
-3. **Initialize Archive Index**:
-   - Creates `.fractary/plugins/spec/archive-index.json`
-   - Empty index ready for archival entries
+3. **Initialize Archive Index** (Two-Tier Storage):
+   - **Local Cache**: `.fractary/plugins/spec/archive-index.json`
+     - Fast access for lookups
+     - Git-ignored (not in version control)
+   - **Cloud Backup**: `archive/specs/.archive-index.json`
+     - Durable storage, recoverable if local lost
+     - Synced automatically during archival
+   - On init, attempts to sync from cloud if available
+   - If cloud unavailable or empty, creates new local index
 
 4. **Verify Dependencies**:
    - Checks fractary-work plugin installed
@@ -38,21 +44,46 @@ This command:
 
 ## Output
 
+### First-Time Init (No Cloud Index)
+
 ```
 🎯 Initializing fractary-spec plugin...
 
 ✓ Configuration created: .fractary/plugins/spec/config.json
 ✓ Specs directory created: /specs
+ℹ No cloud index found, creating new local index
 ✓ Archive index initialized: .fractary/plugins/spec/archive-index.json
 ✓ Dependencies verified:
   - fractary-work: ✓ Installed
-  - fractary-file: ✓ Installed
+  - fractary-file: ⚠ Not available (cloud sync disabled)
 
 ✅ fractary-spec plugin initialized!
 
 Next steps:
 1. Review configuration: .fractary/plugins/spec/config.json
 2. Generate your first spec: /fractary-spec:generate <issue>
+```
+
+### Init with Cloud Sync (Recovering Lost Local Environment)
+
+```
+🎯 Initializing fractary-spec plugin...
+
+✓ Configuration created: .fractary/plugins/spec/config.json
+✓ Specs directory created: /specs
+Syncing archive index from cloud...
+✓ Archive index synced from cloud
+✓ Local cache updated: .fractary/plugins/spec/archive-index.json
+✓ Dependencies verified:
+  - fractary-work: ✓ Installed
+  - fractary-file: ✓ Installed
+
+✅ fractary-spec plugin initialized!
+✅ Recovered 15 archived specs from cloud index!
+
+Next steps:
+1. Review configuration: .fractary/plugins/spec/config.json
+2. Read archived specs: /fractary-spec:read <issue>
 ```
 
 ## Configuration

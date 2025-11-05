@@ -473,3 +473,81 @@ Same as parent repository.
 ## Changelog
 
 See CHANGELOG.md for version history.
+
+## Archive Index: Two-Tier Storage
+
+To prevent data loss, the archive index uses a **two-tier storage system**:
+
+### Why Two-Tier?
+
+The `.fractary` directory is git-ignored. If you lose your local environment (new machine, deleted directory), you lose the index of all archived specs. Without the index, you can't look up where specs are stored in the cloud.
+
+### How It Works
+
+**Tier 1: Local Cache**
+- Location: `.fractary/plugins/spec/archive-index.json`
+- Purpose: Fast lookups during normal operations
+- Status: Git-ignored, not backed up
+- Risk: Lost if local environment lost
+
+**Tier 2: Cloud Backup**
+- Location: `archive/specs/.archive-index.json` (in cloud storage)
+- Purpose: Durable backup, recoverable
+- Status: Automatically synced during archival
+- Recovery: Synced on init if local missing
+
+### Archival Process
+
+When you archive specs:
+1. ✅ Specs uploaded to cloud
+2. ✅ Local index updated
+3. ✅ **Index backed up to cloud** ← Prevents data loss
+4. ✅ Local specs removed
+
+### Recovery Process
+
+If you lose your local environment:
+1. Clone repo on new machine
+2. Run `/fractary-spec:init`
+3. **Index automatically synced from cloud**
+4. All archived specs accessible via `/fractary-spec:read`
+
+### Example: Recovering After Data Loss
+
+```bash
+# Scenario: New machine, lost .fractary directory
+
+# Initialize plugin
+/fractary-spec:init
+
+# Output:
+# 🎯 Initializing fractary-spec plugin...
+# Syncing archive index from cloud...
+# ✓ Archive index synced from cloud
+# ✓ Recovered 15 archived specs from cloud index!
+
+# Now you can read any archived spec
+/fractary-spec:read 123
+```
+
+### Fallback Behavior
+
+If fractary-file plugin not available:
+- ⚠️ Cloud sync disabled
+- ⚠️ Index only stored locally
+- ⚠️ Recommendation: Backup `.fractary` directory manually
+- ⚠️ Or implement cloud sync when fractary-file available
+
+### Configuration
+
+```json
+{
+  "storage": {
+    "archive_index": {
+      "local_cache": ".fractary/plugins/spec/archive-index.json",
+      "cloud_backup": "archive/specs/.archive-index.json"
+    }
+  }
+}
+```
+
