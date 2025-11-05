@@ -15,9 +15,21 @@ if [ ${#INSTRUCTIONS} -gt $MAX_INPUT_LENGTH ]; then
     exit 1
 fi
 
-# Allowed directories for security
-DESIGN_DIR=".fractary/plugins/faber-cloud/designs"
-SPEC_DIR=".faber/specs"
+# Allowed directories for security (parameterized for testability)
+DESIGN_DIR="${FABER_CLOUD_DESIGN_DIR:-.fractary/plugins/faber-cloud/designs}"
+SPEC_DIR="${FABER_SPEC_DIR:-.faber/specs}"
+
+# Detect stat platform once for performance (LOW PRIORITY optimization)
+STAT_FORMAT=""
+if command -v stat &> /dev/null; then
+    # Test GNU stat format (Linux)
+    if stat --format='%Y' /dev/null 2>/dev/null | grep -q '^[0-9]'; then
+        STAT_FORMAT="gnu"
+    # Test BSD stat format (macOS)
+    elif stat -f '%m' /dev/null 2>/dev/null | grep -q '^[0-9]'; then
+        STAT_FORMAT="bsd"
+    fi
+fi
 
 # Check if realpath is available (required for security)
 if ! command -v realpath &> /dev/null; then
@@ -196,27 +208,33 @@ main() {
         latest_design)
             # Find most recent design
             if [ ! -d "$DESIGN_DIR" ]; then
-                mkdir -p "$DESIGN_DIR" 2>/dev/null || true
-            fi
-
-            # Cross-platform file sorting by modification time
-            # Uses stat command which works on both Linux and macOS/BSD
-            local latest=""
-
-            if command -v stat &> /dev/null; then
-                # Try GNU stat format first (Linux)
-                if stat --format='%Y %n' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- &> /dev/null; then
-                    latest=$(stat --format='%Y %n' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-                # Fall back to BSD stat format (macOS)
-                elif stat -f '%m %N' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- &> /dev/null; then
-                    latest=$(stat -f '%m %N' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+                if ! mkdir -p "$DESIGN_DIR" 2>/dev/null; then
+                    jq -n \
+                        --arg error "Failed to create design directory: $DESIGN_DIR" \
+                        --arg reason "Permission denied or invalid path" \
+                        --arg suggestion "Check directory permissions or use an explicit design file path" \
+                        '{error: $error, reason: $reason, suggestion: $suggestion}' >&2
+                    exit 1
                 fi
             fi
 
-            # Final fallback: use ls (less reliable but portable)
-            if [ -z "$latest" ]; then
-                latest=$(ls -t "$DESIGN_DIR"/*.md 2>/dev/null | head -1 || echo "")
-            fi
+            # Cross-platform file sorting by modification time (using cached platform detection)
+            local latest=""
+
+            case "$STAT_FORMAT" in
+                gnu)
+                    # GNU stat format (Linux)
+                    latest=$(stat --format='%Y %n' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- || echo "")
+                    ;;
+                bsd)
+                    # BSD stat format (macOS)
+                    latest=$(stat -f '%m %N' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- || echo "")
+                    ;;
+                *)
+                    # Fallback: use ls (less reliable but portable)
+                    latest=$(ls -t "$DESIGN_DIR"/*.md 2>/dev/null | head -1 || echo "")
+                    ;;
+            esac
 
             if [ -z "$latest" ]; then
                 jq -n \

@@ -7,7 +7,7 @@ set -euo pipefail
 # Output: JSON with validation results
 
 TF_DIR="${1:-./infrastructure/terraform}"
-CONFIG_FILE=".fractary/plugins/faber-cloud/config/devops.json"
+CONFIG_FILE="${FABER_CLOUD_CONFIG_FILE:-.fractary/plugins/faber-cloud/config/devops.json}"
 
 # Check Terraform directory exists
 if [ ! -d "$TF_DIR" ]; then
@@ -110,12 +110,44 @@ if echo "$TF_CONTENT" | grep "us-east-1" | grep -vq "variable\|default"; then
     WARNINGS+=("Found potentially hardcoded AWS region")
 fi
 
-# Check for missing tags (simplified check)
-RESOURCE_COUNT=$(echo "$TF_CONTENT" | grep -c '^resource "aws_' || echo "0")
+# Check for missing tags (improved check - skip resources that don't support tags)
+# List of AWS resources that DON'T support tags (as of 2025)
+# Source: AWS documentation - these resources lack tag support
+NON_TAGGABLE_RESOURCES=(
+    "aws_iam_policy_attachment"
+    "aws_iam_role_policy_attachment"
+    "aws_iam_user_policy_attachment"
+    "aws_route_table_association"
+    "aws_subnet_route_table_association"
+    "aws_vpc_endpoint_route_table_association"
+    "aws_main_route_table_association"
+    "aws_route"
+    "aws_security_group_rule"
+    "aws_network_interface_sg_attachment"
+    "aws_lb_target_group_attachment"
+    "aws_iam_account_alias"
+    "aws_iam_account_password_policy"
+)
+
+# Count total AWS resources
+TOTAL_RESOURCE_COUNT=$(echo "$TF_CONTENT" | grep -c '^resource "aws_' || echo "0")
+
+# Count non-taggable resources
+NON_TAGGABLE_COUNT=0
+for resource_type in "${NON_TAGGABLE_RESOURCES[@]}"; do
+    count=$(echo "$TF_CONTENT" | grep -c "^resource \"$resource_type\"" || echo "0")
+    NON_TAGGABLE_COUNT=$((NON_TAGGABLE_COUNT + count))
+done
+
+# Calculate taggable resources count
+TAGGABLE_COUNT=$((TOTAL_RESOURCE_COUNT - NON_TAGGABLE_COUNT))
+
+# Count resources with tags
 TAGGED_COUNT=$(echo "$TF_CONTENT" | grep -c 'tags.*=' || echo "0")
 
-if [ "$RESOURCE_COUNT" -gt 0 ] && [ "$TAGGED_COUNT" -lt "$RESOURCE_COUNT" ]; then
-    WARNINGS+=("Some resources may be missing tags")
+# Warn only if taggable resources are missing tags
+if [ "$TAGGABLE_COUNT" -gt 0 ] && [ "$TAGGED_COUNT" -lt "$TAGGABLE_COUNT" ]; then
+    WARNINGS+=("Some taggable resources may be missing tags ($TAGGED_COUNT/$TAGGABLE_COUNT tagged)")
 fi
 
 # Check S3 buckets have encryption

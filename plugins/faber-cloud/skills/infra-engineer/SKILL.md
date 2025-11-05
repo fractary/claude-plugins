@@ -152,7 +152,6 @@ This workflow follows the 3-layer architecture:
 
 This reduces context usage by ~55-60% by keeping deterministic operations in scripts.
 </WORKFLOW>
-</WORKFLOW>
 
 <COMPLETION_CRITERIA>
 This skill is complete and successful when ALL verified:
