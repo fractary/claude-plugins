@@ -53,7 +53,10 @@ Refactor the fractary-file plugin to use the handler pattern (consistent with wo
 3. **Security**
    - Credentials never logged or exposed
    - Support for environment variable credentials
-   - Secure credential storage options
+   - Support for cloud provider IAM roles (AWS, GCS)
+   - Secure credential storage with restricted file permissions (0600)
+   - Credential rotation support
+   - See "Security Considerations" section below for detailed guidance
 
 4. **Maintainability**
    - Clear separation between routing and implementation
@@ -193,8 +196,11 @@ get-url <remote_path> [--expires-in=3600]
   Returns: accessible URL
 
 # Read file content without downloading (NEW)
-read <remote_path>
-  Returns: file contents to stdout
+read <remote_path> [--max-bytes=10485760] [--offset=0]
+  Returns: file contents to stdout (truncated if exceeds max_bytes)
+  Default max: 10MB, Hard limit: 50MB
+  Use cases: Read archived specs/logs without downloading
+  WARNING: Files > 50MB should be downloaded, not read
 ```
 
 ### Configuration Schema
@@ -290,15 +296,22 @@ Available handler skills:
 - handler-storage-gdrive
 
 Handler invocation pattern:
-Use the @agent-fractary-file:handler-storage-{provider} skill to {operation}:
+**IMPORTANT**: Always invoke file-manager agent, NOT handler skills directly.
+
+CORRECT:
+Use the @agent-fractary-file:file-manager agent to {operation}:
 {
   "operation": "{operation}",
   "parameters": {
     "local_path": "...",
-    "remote_path": "...",
-    ...
+    "remote_path": "..."
   }
 }
+
+INCORRECT:
+Use the @agent-fractary-file:handler-storage-s3 skill...  ❌
+
+The agent routes to handler skills internally. Handler skills are implementation details.
 </HANDLERS>
 
 <OUTPUTS>
@@ -397,6 +410,192 @@ Each handler implements 6 operations: upload, download, delete, list, get-url, r
 2. Verify configuration loading
 3. Test handler routing logic
 4. Verify error handling
+
+## Security Considerations
+
+### Credential Storage Best Practices
+
+**Priority Order** (most secure to least):
+
+1. **Cloud Provider IAM Roles** (BEST - Recommended for Production)
+   - AWS: EC2 instance profiles, ECS task roles, EKS service accounts
+   - GCS: Workload Identity, service account impersonation
+   - No credentials in config files
+   - Automatic rotation by cloud provider (hourly)
+   - Zero credential management overhead
+
+2. **Environment Variables** (GOOD - Recommended for Development/CI)
+   - Store credentials in environment, reference in config
+   - Config: `"access_key": "${AWS_ACCESS_KEY_ID}"`
+   - Never commit actual credentials to version control
+   - Use secrets management (AWS Secrets Manager, HashiCorp Vault)
+   - Enable easier rotation and auditing
+
+3. **Config Files with Restricted Permissions** (ACCEPTABLE - Last Resort)
+   - File permissions: 0600 (owner read/write only)
+   - Located outside version control (add to .gitignore)
+   - Encrypted at rest (OS-level encryption)
+   - Automatic permission check on plugin init
+
+4. **Hardcoded in Config** (NEVER - Development Only)
+   - Only acceptable for local development testing
+   - Must never be committed to version control
+   - Add `.fractary/plugins/file/config.json` to .gitignore
+
+### Handler-Specific Security
+
+#### AWS S3
+**IAM Role Configuration (Recommended)**:
+```json
+{
+  "handlers": {
+    "s3": {
+      "region": "us-east-1",
+      "bucket_name": "my-bucket"
+      // No access_key_id or secret_access_key = use IAM role
+    }
+  }
+}
+```
+
+**Required IAM Policy**:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FractaryFilePlugin",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetObjectMetadata"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-bucket",
+        "arn:aws:s3:::my-bucket/*"
+      ]
+    }
+  ]
+}
+```
+
+#### Google Cloud Storage
+**Workload Identity (Recommended)**:
+```json
+{
+  "handlers": {
+    "gcs": {
+      "project_id": "my-project",
+      "bucket_name": "my-bucket"
+      // No service_account_key = use Application Default Credentials
+    }
+  }
+}
+```
+
+**Required IAM Roles**:
+- `roles/storage.objectCreator` - Upload files
+- `roles/storage.objectViewer` - Download/read files
+- `roles/storage.objectAdmin` - Full access (if delete needed)
+
+#### Cloudflare R2
+**API Token Best Practices**:
+- Create API token with minimal permissions
+- Scope: Object Read & Write only (not Admin)
+- Restrict to specific bucket
+- Set expiration date (90 days recommended)
+- Rotate regularly
+
+#### Local Filesystem
+**Security**:
+- Directory permissions: 0755 (default)
+- File permissions: 0644 (default)
+- Consider OS-level encryption (FileVault, BitLocker, LUKS)
+- Restrict access to specific users/groups
+
+### Credential Rotation Strategy
+
+**Automated Rotation** (Recommended):
+- Cloud provider rotates IAM role credentials automatically
+- Application uses SDK to fetch current credentials
+- Rotation happens transparently (hourly for IAM roles)
+- No manual intervention required
+
+**Manual Rotation Schedule**:
+- IAM role credentials: Automatic (no action needed)
+- API tokens: Every 90 days
+- Service account keys: Every 90 days
+- Emergency rotation: Immediate if compromise suspected
+
+**Rotation Process**:
+1. Generate new credentials in cloud provider console
+2. Update environment variables or secrets manager
+3. Test new credentials with read-only operation
+4. Update production configuration
+5. Revoke old credentials after verification period (7 days)
+6. Document rotation in audit log
+
+### Audit and Monitoring
+
+**Log Security Events** (Do):
+- Failed authentication attempts
+- Unusual access patterns (volume, location, time)
+- Credential configuration changes
+- Permission errors
+- File access by user/session
+
+**Never Log** (Don't):
+- Actual credential values
+- Full API tokens or keys
+- Secret keys or passwords
+- Raw authentication headers
+
+**Redaction Pattern**:
+```bash
+# Good: "Using access key: AKIA****EXAMPLE"
+# Bad:  "Using access key: AKIAIOSFODNN7EXAMPLE"
+
+# Implementation
+access_key="${ACCESS_KEY:0:4}****${ACCESS_KEY: -7}"
+```
+
+### Compliance Considerations
+
+**PCI-DSS / SOC 2 / HIPAA Requirements**:
+- ✓ Encryption in transit (HTTPS/TLS 1.2+)
+- ✓ Encryption at rest (provider-managed or customer-managed keys)
+- ✓ Access logging and monitoring
+- ✓ Regular credential rotation (90 days max)
+- ✓ Principle of least privilege (minimal IAM permissions)
+- ✓ Audit trail of all file operations
+
+**GDPR Compliance**:
+- Don't log personally identifiable information in file paths
+- Implement data retention policies
+- Support data deletion requests (delete operation)
+- Document data processing activities
+- Ensure data residency requirements (region selection)
+
+### File Permissions
+
+**Configuration Files**:
+```bash
+# Automatically set by init command
+chmod 0600 .fractary/plugins/file/config.json
+chmod 0600 ~/.config/fractary/file/config.json
+```
+
+**Verification Check**:
+```bash
+# Plugin automatically checks on load
+if [[ $(stat -c %a "$CONFIG_FILE") != "600" ]]; then
+    echo "Warning: Config file permissions too open"
+    echo "Run: chmod 0600 $CONFIG_FILE"
+fi
+```
 
 ## Integration Points
 
