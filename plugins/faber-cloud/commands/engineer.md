@@ -1,14 +1,17 @@
 ---
-name: /fractary-faber-cloud:configure
-description: Generate Infrastructure as Code from design
+name: fractary-faber-cloud:engineer
+description: Generate Infrastructure as Code from architecture design
 examples:
-  - /fractary-faber-cloud:configure
-  - /fractary-faber-cloud:configure --validate
+  - /fractary-faber-cloud:engineer
+  - /fractary-faber-cloud:engineer --validate
 argument-hint: "[--validate]"
 ---
 
-# Configure Command
+# Engineer Command
 
+<<<<<<< HEAD:plugins/faber-cloud/commands/engineer.md
+Generate Infrastructure as Code (Terraform) from an architecture design document.
+=======
 
 <ARGUMENT_SYNTAX>
 ## Command Argument Syntax
@@ -30,11 +33,12 @@ This command follows the standard space-separated syntax:
 </ARGUMENT_SYNTAX>
 
 Generate Infrastructure as Code (Terraform) from a design document.
+>>>>>>> origin/main:plugins/faber-cloud/commands/configure.md
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:configure [--validate]
+/fractary-faber-cloud:engineer [--validate]
 ```
 
 ## Parameters
@@ -54,12 +58,12 @@ Generate Infrastructure as Code (Terraform) from a design document.
 
 **Generate code from latest design:**
 ```
-/fractary-faber-cloud:configure
+/fractary-faber-cloud:engineer
 ```
 
 **Generate and validate:**
 ```
-/fractary-faber-cloud:configure --validate
+/fractary-faber-cloud:engineer --validate
 ```
 
 ## Next Steps
@@ -68,10 +72,14 @@ After generating code, you should:
 - Validate: `/fractary-faber-cloud:validate`
 - Test: `/fractary-faber-cloud:test`
 - Preview: `/fractary-faber-cloud:deploy-plan`
+<<<<<<< HEAD:plugins/faber-cloud/commands/engineer.md
+- Deploy: `/fractary-faber-cloud:deploy-execute --env=test`
+=======
 - Deploy: `/fractary-faber-cloud:deploy-apply --env test`
+>>>>>>> origin/main:plugins/faber-cloud/commands/configure.md
 
 ## Invocation
 
-This command invokes the `infra-manager` agent with the `configure` operation.
+This command invokes the `infra-manager` agent with the `engineer` operation.
 
-USE AGENT: infra-manager with operation=configure
+USE AGENT: infra-manager with operation=engineer

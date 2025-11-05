@@ -172,8 +172,8 @@ plugins/fractary-faber-cloud/
 ├── agents/
 │   └── infra-manager.md
 ├── commands/
-│   ├── devops-init.md
-│   └── infra-manage.md
+│   ├── init.md                 (was devops-init.md)
+│   └── manage.md               (was infra-manage.md)
 ├── skills/
 │   ├── devops-common/
 │   │   ├── scripts/

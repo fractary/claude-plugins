@@ -99,8 +99,13 @@ Check status:
 ## Next Steps
 
 Based on status:
+<<<<<<< HEAD
+- If not deployed: `/fractary-faber-cloud:deploy --env=test`
+- If deployed: `/fractary-faber-cloud:list --env=test`
+=======
 - If not deployed: `/fractary-faber-cloud:deploy --env test`
 - If deployed: `/fractary-faber-cloud:resources --env test`
+>>>>>>> origin/main
 - If issues: `/fractary-faber-cloud:debug`
 - If healthy: Continue monitoring with helm-cloud
 

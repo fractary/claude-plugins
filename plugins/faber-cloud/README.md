@@ -1,25 +1,36 @@
 # Fractary faber-cloud Plugin
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 
 Comprehensive cloud infrastructure lifecycle management plugin for Claude Code.
 
-Focus: Infrastructure design, configuration, deployment, and teardown (FABER framework for cloud).
+Focus: Infrastructure architecture, engineering, deployment, and lifecycle management (FABER framework for cloud).
+
 
 ---
 
-## What's New in v2.1.0
+## What's New in v2.2.0 (SPEC-0013)
 
-**Simplified Command Structure**: All commands renamed for clarity and Terraform alignment
-- `devops-init` → `init`
-- `architect` → `design`
-- `engineer` → `configure`
-- `preview` → `deploy-plan`
-- `deploy` → `deploy-apply`
-- `infra-manage` → `manage`
+**Command Reorganization**: Commands renamed for clarity and FABER phase alignment
+- `architect` (was `design` - aligns with FABER Architect phase)
+- `engineer` (was `configure` - better describes IaC generation)
+- `deploy-execute` (was `deploy-apply` - clearer intent)
+- `deploy-destroy` (was `teardown` - parallel naming with deploy-execute)
+- `list` (was `resources` - simpler, more intuitive)
 
 **New Commands**:
-- `teardown` - Safely destroy infrastructure with production safeguards
+- `audit` - Infrastructure observability without modification (corthos pattern)
+  - Fast targeted checks: config-valid, iam-health, drift, cost, security
+  - Comprehensive full audit
+  - Pre/post-deployment verification
+  - Non-destructive, safe for production
+
+**Continuing from v2.1.0**:
+- `init` - Plugin configuration wizard
+- `deploy-plan` - Preview deployment changes
+- `validate` - Terraform syntax validation
+- `test` - Security scans and cost estimation
+- `manage` - Unified management interface
 
 **Enhanced Automation**:
 - **Automated error fixing** with `--complete` flag on debug command
@@ -33,23 +44,19 @@ Focus: Infrastructure design, configuration, deployment, and teardown (FABER fra
 
 ---
 
-## Migration from v2.0
+## Migration from v2.1
 
-**Configuration File:**
-```bash
-# Rename config file
-mv .fractary/plugins/faber-cloud/config/devops.json \
-   .fractary/plugins/faber-cloud/config/faber-cloud.json
+**Command Name Changes (v2.2.0 - SPEC-0013):**
+- `/fractary-faber-cloud:design` → `/fractary-faber-cloud:architect`
+- `/fractary-faber-cloud:configure` → `/fractary-faber-cloud:engineer`
+- `/fractary-faber-cloud:deploy-apply` → `/fractary-faber-cloud:deploy-execute`
+- `/fractary-faber-cloud:teardown` → `/fractary-faber-cloud:deploy-destroy`
+- `/fractary-faber-cloud:resources` → `/fractary-faber-cloud:list`
 
-# Or use migration script
-./plugins/faber-cloud/scripts/migrate-config.sh
-```
+**New Command:**
+- `/fractary-faber-cloud:audit` - Infrastructure health and drift detection
 
-**Command Updates:**
-- Replace `/fractary-faber-cloud:architect` with `/fractary-faber-cloud:design`
-- Replace `/fractary-faber-cloud:engineer` with `/fractary-faber-cloud:configure`
-- Replace `/fractary-faber-cloud:preview` with `/fractary-faber-cloud:deploy-plan`
-- Replace `/fractary-faber-cloud:deploy` with `/fractary-faber-cloud:deploy-apply`
+**⚠️ BREAKING CHANGE**: Old command names have been removed. Update all references to use new command names.
 
 ---
 
@@ -110,7 +117,7 @@ The Fractary FABER Cloud plugin (v2.0.0) provides infrastructure lifecycle manag
 
 ```bash
 # In your project directory
-/fractary-faber-cloud:init --provider aws --iac terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
 This creates `.fractary/plugins/faber-cloud/config/faber-cloud.json` with your project configuration.
@@ -124,7 +131,7 @@ Using natural language:
 
 Or direct command:
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env test
+/fractary-faber-cloud:infra-manage deploy --env=test
 ```
 
 ### 3. Monitor Operations
@@ -136,7 +143,7 @@ Check health of deployed services:
 
 Or direct command:
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env test
+/fractary-faber-cloud:ops-manage check-health --env=test
 ```
 
 ## Commands
@@ -149,7 +156,7 @@ Route natural language requests to appropriate operations:
 
 ```bash
 # Infrastructure examples
-/fractary-faber-cloud:director "design an S3 bucket for user uploads"
+/fractary-faber-cloud:director "architect an S3 bucket for user uploads"
 /fractary-faber-cloud:director "deploy to production"
 /fractary-faber-cloud:director "validate my terraform configuration"
 
@@ -162,41 +169,47 @@ Route natural language requests to appropriate operations:
 
 ### Infrastructure Commands (Simplified)
 
-**New direct commands (Phase 1):**
+**Direct Commands:**
 
 ```bash
-# Design infrastructure
+# Design infrastructure architecture
 /fractary-faber-cloud:architect "API service with database"
 
 # Generate Terraform code
 /fractary-faber-cloud:engineer api-service
 
 # Validate configuration
-/fractary-faber-cloud:validate --env test
+/fractary-faber-cloud:validate --env=test
 
 # Run tests (security, cost, compliance)
-/fractary-faber-cloud:test --env test --phase pre-deployment
+/fractary-faber-cloud:test --env=test --phase=pre-deployment
+
+# Audit infrastructure (non-destructive)
+/fractary-faber-cloud:audit --env=test --check=drift
 
 # Preview changes
-/fractary-faber-cloud:preview --env test
+/fractary-faber-cloud:deploy-plan --env=test
 
 # Deploy infrastructure
-/fractary-faber-cloud:deploy --env test
+/fractary-faber-cloud:deploy-execute --env=test
 
 # Check status
-/fractary-faber-cloud:status --env test
+/fractary-faber-cloud:status --env=test
 
-# Show deployed resources
-/fractary-faber-cloud:resources --env test
+# List deployed resources
+/fractary-faber-cloud:list --env=test
 
 # Debug errors
-/fractary-faber-cloud:debug --error "<error message>"
+/fractary-faber-cloud:debug --error="<error message>"
 ```
 
-**Legacy command (deprecated but still works):**
+**Legacy command (removed in v2.2.0):**
 ```bash
-/fractary-faber-cloud:infra-manage deploy --env test
-# Shows deprecation warning, delegates to /fractary-faber-cloud:deploy
+# OLD (no longer works):
+/fractary-faber-cloud:infra-manage deploy --env=test
+
+# NEW (use instead):
+/fractary-faber-cloud:deploy-execute --env=test
 ```
 
 ### Operations Commands
@@ -207,16 +220,16 @@ Operations monitoring has been completely removed from faber-cloud. Use the `hel
 
 ```bash
 # Check health
-/fractary-helm-cloud:health --env prod
+/fractary-helm-cloud:health --env=prod
 
 # Investigate incidents
-/fractary-helm-cloud:investigate --env prod
+/fractary-helm-cloud:investigate --env=prod
 
 # Apply remediation
-/fractary-helm-cloud:remediate --env prod --service=api-lambda --action=restart
+/fractary-helm-cloud:remediate --env=prod --service=api-lambda --action=restart
 
 # Audit costs/security
-/fractary-helm-cloud:audit --type=cost --env test
+/fractary-helm-cloud:audit --type=cost --env=test
 
 # Unified dashboard (all domains)
 /fractary-helm:dashboard
@@ -227,11 +240,11 @@ See [helm-cloud documentation](../helm-cloud/docs/README.md) for details.
 **Breaking change:**
 ```bash
 # NO LONGER WORKS in v2.0.0
-/fractary-faber-cloud:ops-manage check-health --env prod
+/fractary-faber-cloud:ops-manage check-health --env=prod
 # Error: Command not found
 
 # Use instead:
-/fractary-helm-cloud:health --env prod
+/fractary-helm-cloud:health --env=prod
 ```
 
 ### Configuration Command
@@ -241,8 +254,8 @@ See [helm-cloud documentation](../helm-cloud/docs/README.md) for details.
 Initialize plugin configuration:
 
 ```bash
-/fractary-faber-cloud:init --provider aws --iac terraform
-/fractary-faber-cloud:init --provider aws --iac terraform --env test
+/fractary-faber-cloud:init --provider=aws --iac=terraform
+/fractary-faber-cloud:init --provider=aws --iac=terraform --env=test
 ```
 
 ## Architecture
@@ -273,7 +286,7 @@ Handlers (providers)  Handlers (CloudWatch)
 
 **infra-manager:**
 - Infrastructure lifecycle orchestration
-- Workflow: design → engineer → validate → test → preview → deploy
+- Workflow: architect → engineer → validate → test → audit → deploy-plan → deploy-execute
 - Delegates to infrastructure skills
 
 **ops-manager:**
@@ -389,10 +402,10 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 
 ### End-to-End Infrastructure Deployment
 
-**Using simplified commands (Phase 1):**
+**Using direct commands:**
 
 ```bash
-# 1. Design infrastructure
+# 1. Design infrastructure architecture
 /fractary-faber-cloud:architect "API service with RDS database"
 # → Creates design document
 
@@ -401,16 +414,20 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 # → Generates main.tf, variables.tf, outputs.tf
 
 # 3. Validate and test
-/fractary-faber-cloud:validate --env test
-/fractary-faber-cloud:test --env test --phase pre-deployment
+/fractary-faber-cloud:validate --env=test
+/fractary-faber-cloud:test --env=test --phase=pre-deployment
 # → Security scans, cost estimation
 
-# 4. Preview changes
-/fractary-faber-cloud:preview --env test
+# 4. Audit infrastructure (optional)
+/fractary-faber-cloud:audit --env=test --check=full
+# → Pre-deployment health check
+
+# 5. Preview changes
+/fractary-faber-cloud:deploy-plan --env=test
 # → Shows what will be created/changed
 
-# 5. Deploy to test
-/fractary-faber-cloud:deploy --env test
+# 6. Deploy to test
+/fractary-faber-cloud:deploy-execute --env=test
 # → User approval
 # → Execute deployment
 # → Post-deployment verification
@@ -418,12 +435,12 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 # → DEPLOYED.md generated
 
 # 6. Monitor health (using helm-cloud - Phase 2)
-/fractary-helm-cloud:health --env test
+/fractary-helm-cloud:health --env=test
 # → CloudWatch metrics
 # → Status report
 
 # If errors occur:
-/fractary-faber-cloud:debug --error "<error message>"
+/fractary-faber-cloud:debug --error="<error message>"
 # → infra-debugger analyzes
 # → Solution proposed
 # → Automated fix if possible
@@ -432,8 +449,8 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 **Using natural language:**
 
 ```bash
-/fractary-faber-cloud:director "design an API service with RDS database"
-/fractary-faber-cloud:director "implement the API service design"
+/fractary-faber-cloud:director "architect an API service with RDS database"
+/fractary-faber-cloud:director "engineer the API service design"
 /fractary-faber-cloud:director "deploy to test environment"
 /fractary-faber-cloud:director "check health of test services"
 ```
@@ -444,17 +461,17 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 
 ```bash
 # 1. Detect issue
-/fractary-helm-cloud:health --env prod
+/fractary-helm-cloud:health --env=prod
 # → Identifies degraded Lambda
 
 # 2. Investigate
-/fractary-helm-cloud:investigate --env prod --service=api-lambda
+/fractary-helm-cloud:investigate --env=prod --service=api-lambda
 # → Queries CloudWatch logs
 # → Correlates events
 # → Identifies root cause
 
 # 3. Remediate
-/fractary-helm-cloud:remediate --env prod --service=api-lambda --action=restart
+/fractary-helm-cloud:remediate --env=prod --service=api-lambda --action=restart
 # → Impact assessment
 # → User confirmation (production)
 # → Restart service
@@ -462,7 +479,7 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 # → Document remediation
 
 # 4. Audit and optimize
-/fractary-helm-cloud:audit --type=cost --env prod
+/fractary-helm-cloud:audit --type=cost --env=prod
 # → Cost breakdown
 # → Optimization recommendations
 # → Potential savings identified
@@ -667,7 +684,7 @@ git clone https://github.com/fractary/claude-plugins.git
 - Design (infra-architect)
 - Code generation (infra-engineer)
 - Validation (infra-validator)
-- Preview (infra-previewer)
+- Plan/Preview (infra-planner)
 - Deployment (infra-deployer)
 - Permission management (infra-permission-manager)
 - AWS + Terraform support
@@ -678,11 +695,11 @@ git clone https://github.com/fractary/claude-plugins.git
 
 **Migration Guide:**
 
-| Old Command | New Command | Natural Language |
+| Old Command (v1.0) | v2.1 Command | v2.2 Command (Current) |
 |------------|-------------|------------------|
-| `/faber-cloud:deploy test` | `/fractary-faber-cloud:infra-manage deploy --env test` | `/fractary-faber-cloud:director "deploy to test"` |
-| `/faber-cloud:validate` | `/fractary-faber-cloud:infra-manage validate-config` | `/fractary-faber-cloud:director "validate configuration"` |
-| `/faber-cloud:status test` | `/fractary-faber-cloud:infra-manage show-resources --env test` | `/fractary-faber-cloud:director "show test resources"` |
+| `/faber-cloud:deploy test` | `/fractary-faber-cloud:deploy-apply --env=test` | `/fractary-faber-cloud:deploy-execute --env=test` |
+| `/faber-cloud:validate` | `/fractary-faber-cloud:validate` | `/fractary-faber-cloud:validate` |
+| `/faber-cloud:status test` | `/fractary-faber-cloud:resources --env=test` | `/fractary-faber-cloud:list --env=test` |
 
 **Deprecated agents:** devops-deployer, devops-debugger, devops-permissions (superseded by infra-manager, ops-manager, and skills)
 

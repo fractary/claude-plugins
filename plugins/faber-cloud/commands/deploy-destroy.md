@@ -1,13 +1,19 @@
 ---
-name: /fractary-faber-cloud:teardown
-description: Destroy infrastructure (terraform destroy)
+name: fractary-faber-cloud:deploy-destroy
+description: Destroy deployed infrastructure (terraform destroy)
 examples:
+<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-destroy.md
+  - /fractary-faber-cloud:deploy-destroy --env=test
+  - /fractary-faber-cloud:deploy-destroy --env=staging
+argument-hint: "--env=<environment> [--confirm]"
+=======
   - /fractary-faber-cloud:teardown --env test
   - /fractary-faber-cloud:teardown --env staging
 argument-hint: "--env <environment> [--confirm]"
+>>>>>>> origin/main:plugins/faber-cloud/commands/teardown.md
 ---
 
-# Teardown Infrastructure
+# Deploy-Destroy Command
 
 
 <ARGUMENT_SYNTAX>
@@ -34,7 +40,11 @@ Destroy deployed infrastructure in the specified environment.
 ## Usage
 
 ```bash
+<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-destroy.md
+/fractary-faber-cloud:deploy-destroy --env=<environment> [options]
+=======
 /fractary-faber-cloud:teardown --env <environment> [options]
+>>>>>>> origin/main:plugins/faber-cloud/commands/teardown.md
 ```
 
 ## Arguments
@@ -46,10 +56,17 @@ Destroy deployed infrastructure in the specified environment.
 
 ```bash
 # Destroy test environment (with confirmation)
+<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-destroy.md
+/fractary-faber-cloud:deploy-destroy --env=test
+
+# Destroy with auto-confirmation (be careful!)
+/fractary-faber-cloud:deploy-destroy --env=test --confirm
+=======
 /fractary-faber-cloud:teardown --env test
 
 # Destroy with auto-confirmation (be careful!)
 /fractary-faber-cloud:teardown --env test --confirm
+>>>>>>> origin/main:plugins/faber-cloud/commands/teardown.md
 ```
 
 ## Safety
@@ -87,9 +104,9 @@ For test/staging environments:
 
 ## After Teardown
 
-Teardown automatically:
+Destruction automatically:
 - ✅ Backs up Terraform state to `infrastructure/backups/`
-- ✅ Documents teardown in `docs/infrastructure/deployments.md`
+- ✅ Documents destruction in `docs/infrastructure/deployments.md`
 - ✅ Verifies all resources removed from AWS
 - ✅ Cleans up workspace (optional)
 
@@ -103,6 +120,6 @@ If destruction fails:
 
 ## Agent Invocation
 
-This command invokes the infra-manager agent with operation="teardown".
+This command invokes the infra-manager agent with operation="deploy-destroy".
 
-USE AGENT: infra-manager with operation=teardown and environment from --env parameter
+USE AGENT: infra-manager with operation=deploy-destroy and environment from --env parameter

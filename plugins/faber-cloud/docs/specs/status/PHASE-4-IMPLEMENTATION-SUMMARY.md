@@ -282,12 +282,12 @@ docs/reference/                                     # Reference docs
 
 ### Existing Files (Unchanged)
 
-All Phase 1-3 files remain functional and unchanged:
-- All agents (infra-manager, ops-manager)
-- All commands (infra-manage, ops-manage, devops-init)
+All Phase 1-3 files remain functional (with renames in v2.0+):
+- All agents (infra-manager, cloud-director; ops-manager moved to helm-cloud)
+- All commands (init, manage, design, configure, etc.; ops commands moved to helm-cloud)
 - All skills (14 skills total)
 - All specifications and phase completion docs
-- plugin.json (already at v1.0.0)
+- plugin.json (v2.0.0+)
 
 ---
 

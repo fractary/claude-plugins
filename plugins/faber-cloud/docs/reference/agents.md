@@ -97,7 +97,7 @@ Choose one: (1/2)
 ### Workflow
 
 ```
-architect → engineer → validate → test → preview → deploy → (debug if needed)
+architect → engineer → validate → test → deploy-plan → deploy-execute → (debug if needed)
 ```
 
 ### Commands Handled
@@ -232,7 +232,7 @@ monitor → investigate → respond → audit
 ### Workflow Ownership
 
 Each agent owns a complete domain workflow:
-- **infra-manager**: Infrastructure (design → deploy)
+- **infra-manager**: Infrastructure (architect → deploy)
 - **ops-manager**: Operations (monitor → remediate)
 - **devops-director**: Routing (parse → route)
 

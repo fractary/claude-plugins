@@ -24,7 +24,7 @@ This comprehensive guide covers all features and operations of the fractary-fabe
 The fractary-faber-cloud plugin provides complete DevOps automation from infrastructure design through production operations. It features:
 
 - **Natural language interface** for intuitive commands
-- **Infrastructure lifecycle** management (design → deploy)
+- **Infrastructure lifecycle** management (architect → deploy)
 - **Intelligent debugging** with learning from past errors
 - **Runtime operations** (monitoring, incident response, auditing)
 - **Production safety** with multiple confirmation levels

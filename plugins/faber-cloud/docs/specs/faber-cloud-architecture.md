@@ -415,7 +415,7 @@ Step 3: Verify with hosting
 ### Standard Deployment Workflow
 
 ```
-User: /fractary-faber-cloud:infra-manage deploy --env test
+User: /fractary-faber-cloud:infra-manage deploy-execute --env=test
   ↓
 infra-manage command
   ↓
@@ -609,13 +609,21 @@ plugins/fractary-faber-cloud/
 │
 ├── agents/
 │   ├── infra-manager.md          # Infrastructure manager
-│   ├── ops-manager.md            # Operations manager
-│   └── devops-director.md        # Natural language router
+│   └── cloud-director.md         # Natural language router
 │
 ├── commands/
-│   ├── devops-init.md            # Initialize config
-│   ├── infra-manage.md           # Infrastructure commands
-│   ├── ops-manage.md             # Operations commands
+│   ├── init.md                   # Initialize config
+│   ├── design.md                 # Design infrastructure
+│   ├── configure.md              # Generate IaC code
+│   ├── validate.md               # Validate configuration
+│   ├── test.md                   # Security and cost tests
+│   ├── deploy-plan.md            # Preview deployment
+│   ├── deploy-apply.md           # Execute deployment
+│   ├── teardown.md               # Destroy infrastructure
+│   ├── resources.md              # List resources
+│   ├── status.md                 # Check status
+│   ├── debug.md                  # Debug issues
+│   ├── manage.md                 # Unified management
 │   └── director.md               # Natural language entry
 │
 ├── skills/

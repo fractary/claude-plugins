@@ -9,7 +9,7 @@
 ## Overview
 
 Version 2.0.0 of faber-cloud represents a **clean architectural separation** where:
-- **faber-cloud** = Infrastructure lifecycle (design → build → test → deploy)
+- **faber-cloud** = Infrastructure lifecycle (architect → build → test → deploy)
 - **helm-cloud** = Operations monitoring (monitor → investigate → remediate → audit)
 
 This separation creates cleaner boundaries, better maintainability, and prepares for unified cross-domain monitoring via the central `helm` plugin.
@@ -76,15 +76,15 @@ If you have scripts or workflows using faber-cloud operations commands:
 **Before (v1.x):**
 ```bash
 #!/bin/bash
-/fractary-faber-cloud:ops-manage check-health --env prod
+/fractary-faber-cloud:ops-manage check-health --env=prod
 /fractary-faber-cloud:ops-manage investigate --service=api-lambda
 ```
 
 **After (v2.0.0):**
 ```bash
 #!/bin/bash
-/fractary-helm-cloud:health --env prod
-/fractary-helm-cloud:investigate --env prod --service=api-lambda
+/fractary-helm-cloud:health --env=prod
+/fractary-helm-cloud:investigate --env=prod --service=api-lambda
 ```
 
 ### Step 3: Update Natural Language Commands
@@ -102,10 +102,10 @@ If using the director with natural language:
 # Director will inform you to use helm-cloud:
 /fractary-faber-cloud:director "check health of production"
 # Response: "Operations monitoring has moved to helm-cloud. Please use:"
-#           "/fractary-helm-cloud:health --env prod"
+#           "/fractary-helm-cloud:health --env=prod"
 
 # Use helm-cloud directly:
-/fractary-helm-cloud:health --env prod
+/fractary-helm-cloud:health --env=prod
 
 # Or use unified dashboard:
 /fractary-helm:dashboard
@@ -128,9 +128,9 @@ Verify infrastructure commands still work:
 ```bash
 # These should work unchanged:
 /fractary-faber-cloud:architect "S3 bucket for uploads"
-/fractary-faber-cloud:validate --env test
-/fractary-faber-cloud:deploy --env test
-/fractary-faber-cloud:resources --env test
+/fractary-faber-cloud:validate --env=test
+/fractary-faber-cloud:deploy --env=test
+/fractary-faber-cloud:list --env=test
 ```
 
 ### Step 6: Test Operations Monitoring
@@ -139,8 +139,8 @@ Verify operations commands work with helm-cloud:
 
 ```bash
 # New commands:
-/fractary-helm-cloud:health --env test
-/fractary-helm-cloud:investigate --env test
+/fractary-helm-cloud:health --env=test
+/fractary-helm-cloud:investigate --env=test
 /fractary-helm:dashboard
 ```
 
@@ -165,54 +165,54 @@ cat plugins/faber-cloud/.claude-plugin/plugin.json
 
 **Old:**
 ```bash
-/fractary-faber-cloud:ops-manage check-health --env prod
-/fractary-faber-cloud:ops-manage check-health --env prod --service=api-lambda
+/fractary-faber-cloud:ops-manage check-health --env=prod
+/fractary-faber-cloud:ops-manage check-health --env=prod --service=api-lambda
 ```
 
 **New:**
 ```bash
-/fractary-helm-cloud:health --env prod
-/fractary-helm-cloud:health --env prod --service=api-lambda
+/fractary-helm-cloud:health --env=prod
+/fractary-helm-cloud:health --env=prod --service=api-lambda
 ```
 
 ### Log Investigation
 
 **Old:**
 ```bash
-/fractary-faber-cloud:ops-manage query-logs --env prod --filter=ERROR
-/fractary-faber-cloud:ops-manage investigate --env prod --service=api-lambda
+/fractary-faber-cloud:ops-manage query-logs --env=prod --filter=ERROR
+/fractary-faber-cloud:ops-manage investigate --env=prod --service=api-lambda
 ```
 
 **New:**
 ```bash
-/fractary-helm-cloud:investigate --env prod --filter=ERROR
-/fractary-helm-cloud:investigate --env prod --service=api-lambda
+/fractary-helm-cloud:investigate --env=prod --filter=ERROR
+/fractary-helm-cloud:investigate --env=prod --service=api-lambda
 ```
 
 ### Remediation
 
 **Old:**
 ```bash
-/fractary-faber-cloud:ops-manage remediate --env prod --service=api-lambda --action=restart
+/fractary-faber-cloud:ops-manage remediate --env=prod --service=api-lambda --action=restart
 ```
 
 **New:**
 ```bash
-/fractary-helm-cloud:remediate --env prod --service=api-lambda --action=restart
+/fractary-helm-cloud:remediate --env=prod --service=api-lambda --action=restart
 ```
 
 ### Auditing
 
 **Old:**
 ```bash
-/fractary-faber-cloud:ops-manage audit --env test --focus=cost
-/fractary-faber-cloud:ops-manage audit --env prod --focus=security
+/fractary-faber-cloud:ops-manage audit --env=test --focus=cost
+/fractary-faber-cloud:ops-manage audit --env=prod --focus=security
 ```
 
 **New:**
 ```bash
-/fractary-helm-cloud:audit --type=cost --env test
-/fractary-helm-cloud:audit --type=security --env prod
+/fractary-helm-cloud:audit --type=cost --env=test
+/fractary-helm-cloud:audit --type=security --env=prod
 ```
 
 ### Unified Dashboard (NEW in Helm)
@@ -220,7 +220,7 @@ cat plugins/faber-cloud/.claude-plugin/plugin.json
 **No equivalent in v1.x:**
 ```bash
 /fractary-helm:dashboard
-/fractary-helm:dashboard --env prod
+/fractary-helm:dashboard --env=prod
 /fractary-helm:issues --critical
 /fractary-helm:status
 ```
@@ -241,22 +241,22 @@ All infrastructure lifecycle commands remain unchanged:
 /fractary-faber-cloud:engineer api-service
 
 # Validate
-/fractary-faber-cloud:validate --env test
+/fractary-faber-cloud:validate --env=test
 
 # Test
-/fractary-faber-cloud:test --env test --phase=pre-deployment
+/fractary-faber-cloud:test --env=test --phase=pre-deployment
 
 # Preview
-/fractary-faber-cloud:preview --env test
+/fractary-faber-cloud:deploy-plan --env=test
 
 # Deploy
-/fractary-faber-cloud:deploy --env test
+/fractary-faber-cloud:deploy --env=test
 
 # Status
-/fractary-faber-cloud:status --env test
+/fractary-faber-cloud:status --env=test
 
 # Resources
-/fractary-faber-cloud:resources --env test
+/fractary-faber-cloud:list --env=test
 
 # Debug
 /fractary-faber-cloud:debug --error="AccessDenied"
@@ -305,10 +305,10 @@ Infrastructure configuration remains the same:
 **Solution:**
 ```bash
 # Instead of:
-/fractary-faber-cloud:ops-manage check-health --env prod
+/fractary-faber-cloud:ops-manage check-health --env=prod
 
 # Use:
-/fractary-helm-cloud:health --env prod
+/fractary-helm-cloud:health --env=prod
 ```
 
 ### Error: "Agent not found: ops-manager"
@@ -321,7 +321,7 @@ Infrastructure configuration remains the same:
 ls plugins/helm-cloud/
 
 # Use helm-cloud commands
-/fractary-helm-cloud:health --env prod
+/fractary-helm-cloud:health --env=prod
 ```
 
 ### Operations commands don't work

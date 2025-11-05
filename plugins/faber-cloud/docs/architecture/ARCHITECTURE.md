@@ -41,7 +41,7 @@ Layer 5: Provider Adapters
 5. Route to infra-manager or ops-manager
 
 **Examples:**
-- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy --env prod`
+- "deploy to production" → `/fractary-faber-cloud:infra-manage deploy-execute --env=prod`
 - "check health" → `/fractary-faber-cloud:ops-manage check-health`
 - "investigate errors" → `/fractary-faber-cloud:ops-manage investigate`
 
@@ -51,7 +51,7 @@ Layer 5: Provider Adapters
 
 **Workflow:**
 ```
-architect → engineer → validate → test → preview → deploy → (debug if needed)
+architect → engineer → validate → test → deploy-plan → deploy-execute → (debug if needed)
 ```
 
 **Delegations:**
@@ -59,8 +59,8 @@ architect → engineer → validate → test → preview → deploy → (debug i
 - engineer → infra-engineer skill
 - validate → infra-validator skill
 - test → infra-tester skill
-- preview → infra-previewer skill
-- deploy → infra-deployer skill
+- deploy-plan → infra-previewer skill
+- deploy-execute → infra-deployer skill
 - debug → infra-debugger skill
 
 **Commands:** architect, engineer, validate-config, test-changes, preview-changes, deploy, show-resources, check-status, debug
@@ -488,14 +488,22 @@ plugins/fractary-faber-cloud/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── agents/
-│   ├── devops-director.md         (Phase 4)
-│   ├── infra-manager.md          (Phase 1)
-│   └── ops-manager.md            (Phase 3)
+│   ├── cloud-director.md         (Phase 4)
+│   └── infra-manager.md          (Phase 1)
 ├── commands/
 │   ├── director.md               (Phase 4)
-│   ├── devops-init.md            (Phase 1)
-│   ├── infra-manage.md           (Phase 1)
-│   └── ops-manage.md             (Phase 3)
+│   ├── init.md                   (Phase 1)
+│   ├── design.md                 (Phase 1)
+│   ├── configure.md              (Phase 1)
+│   ├── validate.md               (Phase 1)
+│   ├── test.md                   (Phase 2)
+│   ├── deploy-plan.md            (Phase 1)
+│   ├── deploy-apply.md           (Phase 1)
+│   ├── teardown.md               (Phase 2)
+│   ├── resources.md              (Phase 1)
+│   ├── status.md                 (Phase 1)
+│   ├── debug.md                  (Phase 2)
+│   └── manage.md                 (Phase 1)
 ├── skills/
 │   ├── devops-common/            (Phase 1)
 │   ├── infra-architect/          (Phase 1)

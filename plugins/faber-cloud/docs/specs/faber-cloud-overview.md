@@ -36,7 +36,7 @@ Current challenges in infrastructure management:
 ### Solution
 
 A unified, intelligent DevOps plugin that:
-- ✅ Automates complete infrastructure lifecycle (design → deploy → monitor)
+- ✅ Automates complete infrastructure lifecycle (architect → deploy-execute → monitor)
 - ✅ Provides consistent patterns across cloud providers and IaC tools
 - ✅ Manages IAM permissions with audit trails
 - ✅ Maintains comprehensive resource registry and documentation
@@ -311,7 +311,7 @@ A unified, intelligent DevOps plugin that:
 
 ### Managers
 
-- **infra-manager**: Infrastructure lifecycle (design → deploy)
+- **infra-manager**: Infrastructure lifecycle (architect → deploy)
 - **ops-manager**: Runtime operations (monitor → remediate)
 - **devops-director**: Natural language routing
 

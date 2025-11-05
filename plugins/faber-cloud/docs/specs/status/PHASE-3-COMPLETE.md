@@ -450,11 +450,11 @@ Phase 3 (Operations):
 plugins/fractary-faber-cloud/
 ├── agents/
 │   ├── infra-manager.md              # Phase 1
-│   └── ops-manager.md                # NEW - Phase 3
+│   └── ops-manager.md                # NEW - Phase 3 (now in helm-cloud)
 ├── commands/
-│   ├── devops-init.md                # Phase 1
-│   ├── infra-manage.md               # Phase 1
-│   └── ops-manage.md                 # NEW - Phase 3
+│   ├── init.md                       # Phase 1 (was devops-init.md)
+│   ├── manage.md                     # Phase 1 (was infra-manage.md)
+│   └── [ops commands moved to helm-cloud]  # Phase 3
 ├── skills/
 │   ├── ops-monitor/                  # NEW - Phase 3
 │   │   ├── SKILL.md

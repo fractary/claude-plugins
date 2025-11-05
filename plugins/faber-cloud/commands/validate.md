@@ -77,9 +77,15 @@ Run validation:
 ## Next Steps
 
 After validation passes:
+<<<<<<< HEAD
+- Test security: `/fractary-faber-cloud:test --env=test`
+- Preview changes: `/fractary-faber-cloud:deploy-plan --env=test`
+- Deploy: `/fractary-faber-cloud:deploy --env=test`
+=======
 - Test security: `/fractary-faber-cloud:test --env test`
 - Preview changes: `/fractary-faber-cloud:preview --env test`
 - Deploy: `/fractary-faber-cloud:deploy --env test`
+>>>>>>> origin/main
 
 ## Invocation
 

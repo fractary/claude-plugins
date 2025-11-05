@@ -97,8 +97,13 @@ Run security scans, cost estimates, and compliance checks on infrastructure.
 ## Next Steps
 
 After tests pass:
+<<<<<<< HEAD
+- Preview changes: `/fractary-faber-cloud:deploy-plan --env=test`
+- Deploy: `/fractary-faber-cloud:deploy --env=test`
+=======
 - Preview changes: `/fractary-faber-cloud:preview --env test`
 - Deploy: `/fractary-faber-cloud:deploy --env test`
+>>>>>>> origin/main
 
 If tests fail:
 - Review findings
