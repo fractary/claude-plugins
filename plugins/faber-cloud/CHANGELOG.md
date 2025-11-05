@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING**: Revised command names for clarity and Terraform alignment
+  - `deploy-execute` → `deploy-apply` (matches `terraform apply` terminology)
+  - `deploy-destroy` → `teardown` (clearer opposite of deploy, less contradictory)
+  - These names better align with industry standards and improve intuitive understanding
+  - Note: Previously renamed in opposite direction; this revision restores better naming
+
 - **BREAKING**: Standardized command argument syntax to space-separated format
   - Changed from `--flag=value` to `--flag value` syntax
   - All 13 commands updated with new argument format
@@ -20,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makes it clearer what kind of input is expected
 
 - **BREAKING**: Standardized confirmation flag to `--auto-approve`
-  - Changed from `--confirm` to `--auto-approve` in deploy-destroy command
+  - Changed from `--confirm` to `--auto-approve` in teardown command
   - Matches Terraform's own `--auto-approve` convention
   - More consistent with industry standard tooling
 
@@ -54,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 /fractary-faber-cloud:deploy-plan --env prod
 
 # Confirmation flag
-/fractary-faber-cloud:deploy-destroy --env test --auto-approve
+/fractary-faber-cloud:teardown --env test --auto-approve
 
 # Debug command with description
 /fractary-faber-cloud:debug "AccessDenied error during deployment"

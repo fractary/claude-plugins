@@ -52,7 +52,7 @@ Design cloud infrastructure architecture from natural language requirements.
 After designing, you can:
 - Generate code: `/fractary-faber-cloud:engineer`
 - Validate: `/fractary-faber-cloud:validate`
-- Deploy: `/fractary-faber-cloud:deploy-execute --env test`
+- Deploy: `/fractary-faber-cloud:deploy-apply --env test`
 
 ## Invocation
 

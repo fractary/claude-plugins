@@ -265,4 +265,4 @@ Next steps:
 
 - `/fractary-faber-cloud:validate` - Validate existing configuration
 - `/fractary-faber-cloud:status` - Show current configuration status
-- `/fractary-faber-cloud:deploy-execute` - Deploy infrastructure using configuration
+- `/fractary-faber-cloud:deploy-apply` - Deploy infrastructure using configuration

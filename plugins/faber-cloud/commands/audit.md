@@ -126,13 +126,13 @@ Audit infrastructure status, health, and compliance without making any changes.
 # Audit before deploying
 /fractary-faber-cloud:audit --env test --check full
 # Review output
-/fractary-faber-cloud:deploy-execute --env test
+/fractary-faber-cloud:deploy-apply --env test
 ```
 
 ### Post-Deployment Validation
 ```bash
 # Deploy infrastructure
-/fractary-faber-cloud:deploy-execute --env test
+/fractary-faber-cloud:deploy-apply --env test
 # Verify deployment health
 /fractary-faber-cloud:audit --env test --check full
 ```

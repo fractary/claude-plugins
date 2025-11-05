@@ -14,8 +14,8 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 **Command Reorganization**: Commands renamed for clarity and FABER phase alignment
 - `architect` (was `design` - aligns with FABER Architect phase)
 - `engineer` (was `configure` - better describes IaC generation)
-- `deploy-execute` (was `deploy-apply` - clearer intent)
-- `deploy-destroy` (was `teardown` - parallel naming with deploy-execute)
+- `deploy-apply` (matches Terraform terminology - terraform apply)
+- `teardown` (clearer intent than deploy-destroy - opposite of deploy)
 - `list` (was `resources` - simpler, more intuitive)
 
 **New Commands**:
@@ -49,8 +49,8 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 **Command Name Changes (v2.2.0 - SPEC-0013):**
 - `/fractary-faber-cloud:design` → `/fractary-faber-cloud:architect`
 - `/fractary-faber-cloud:configure` → `/fractary-faber-cloud:engineer`
-- `/fractary-faber-cloud:deploy-apply` → `/fractary-faber-cloud:deploy-execute`
-- `/fractary-faber-cloud:teardown` → `/fractary-faber-cloud:deploy-destroy`
+- `/fractary-faber-cloud:deploy-execute` → `/fractary-faber-cloud:deploy-apply`
+- `/fractary-faber-cloud:deploy-destroy` → `/fractary-faber-cloud:teardown`
 - `/fractary-faber-cloud:resources` → `/fractary-faber-cloud:list`
 
 **New Command:**
@@ -191,7 +191,7 @@ Route natural language requests to appropriate operations:
 /fractary-faber-cloud:deploy-plan --env=test
 
 # Deploy infrastructure
-/fractary-faber-cloud:deploy-execute --env=test
+/fractary-faber-cloud:deploy-apply --env=test
 
 # Check status
 /fractary-faber-cloud:status --env=test
@@ -209,7 +209,7 @@ Route natural language requests to appropriate operations:
 /fractary-faber-cloud:infra-manage deploy --env=test
 
 # NEW (use instead):
-/fractary-faber-cloud:deploy-execute --env=test
+/fractary-faber-cloud:deploy-apply --env=test
 ```
 
 ### Operations Commands
@@ -286,7 +286,7 @@ Handlers (providers)  Handlers (CloudWatch)
 
 **infra-manager:**
 - Infrastructure lifecycle orchestration
-- Workflow: architect → engineer → validate → test → audit → deploy-plan → deploy-execute
+- Workflow: architect → engineer → validate → test → audit → deploy-plan → deploy-apply
 - Delegates to infrastructure skills
 
 **ops-manager:**
@@ -427,7 +427,7 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 # → Shows what will be created/changed
 
 # 6. Deploy to test
-/fractary-faber-cloud:deploy-execute --env=test
+/fractary-faber-cloud:deploy-apply --env=test
 # → User approval
 # → Execute deployment
 # → Post-deployment verification
@@ -697,7 +697,7 @@ git clone https://github.com/fractary/claude-plugins.git
 
 | Old Command (v1.0) | v2.1 Command | v2.2 Command (Current) |
 |------------|-------------|------------------|
-| `/faber-cloud:deploy test` | `/fractary-faber-cloud:deploy-apply --env=test` | `/fractary-faber-cloud:deploy-execute --env=test` |
+| `/faber-cloud:deploy test` | `/fractary-faber-cloud:deploy-execute --env=test` | `/fractary-faber-cloud:deploy-apply --env=test` |
 | `/faber-cloud:validate` | `/fractary-faber-cloud:validate` | `/fractary-faber-cloud:validate` |
 | `/faber-cloud:status test` | `/fractary-faber-cloud:resources --env=test` | `/fractary-faber-cloud:list --env=test` |
 

@@ -303,8 +303,8 @@ fractary-faber-cloud-plugin/
 │   ├── test.md                      # /faber-cloud:test
 │   ├── audit.md                     # /faber-cloud:audit
 │   ├── deploy-plan.md               # /faber-cloud:deploy-plan
-│   ├── deploy-execute.md            # /faber-cloud:deploy-execute
-│   ├── deploy-destroy.md            # /faber-cloud:deploy-destroy
+│   ├── deploy-apply.md              # /faber-cloud:deploy-apply
+│   ├── teardown.md                  # /faber-cloud:teardown
 │   ├── list.md                      # /faber-cloud:list
 │   ├── status.md                    # /faber-cloud:status
 │   ├── debug.md                     # /faber-cloud:debug
@@ -1202,7 +1202,7 @@ The plugin only provides the **template** for the config file.
 ### Integration Testing
 
 **Full Deployment Workflow:**
-- Test init → validate → deploy-execute → verify
+- Test init → validate → deploy-apply → verify
 - Test with multiple providers
 - Test with multiple IaC tools
 - Test error recovery
