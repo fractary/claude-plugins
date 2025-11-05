@@ -1,5 +1,5 @@
 ---
-name: /fractary-faber-cloud:manage
+name: fractary-faber-cloud:manage
 description: Unified infrastructure lifecycle management - routes operations to infra-manager agent
 argument-hint: <operation> [options]
 tags: [faber-cloud, infrastructure, deployment, management]
