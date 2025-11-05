@@ -1,13 +1,15 @@
 ---
 name: fractary-faber-cloud:manage
 description: Unified infrastructure lifecycle management - routes operations to infra-manager agent
-argument-hint: <operation> [options]
+argument-hint: <operation> [--env <environment>] [--complete]
 tags: [faber-cloud, infrastructure, deployment, management]
 examples:
   - trigger: "/fractary-faber-cloud:manage deploy-apply --env test"
     action: "Deploy infrastructure to test environment"
   - trigger: "/fractary-faber-cloud:manage design \"Add monitoring\""
     action: "Design infrastructure from requirements"
+  - trigger: "/fractary-faber-cloud:manage debug --complete"
+    action: "Analyze and fix deployment errors with complete resolution"
 ---
 
 # fractary-faber-cloud:manage
