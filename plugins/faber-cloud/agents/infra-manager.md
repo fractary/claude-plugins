@@ -122,6 +122,11 @@ Parse user command and delegate to appropriate skill:
 - Command: status, check-status
 - Skill: Read config and registry
 - Flow: Show current configuration and deployment status
+
+**ADOPTION**
+- Command: adopt, adopt-infrastructure
+- Skill: infra-adoption
+- Flow: discover → assess → configure → report → confirm → setup
 </WORKFLOW>
 
 <SKILL_ROUTING>
@@ -252,12 +257,40 @@ Workflow:
   3. Show summary of current state
 Output: Configuration and deployment status
 </CHECK_STATUS>
+
+<ADOPT>
+Trigger: adopt, adopt-infrastructure
+Skills: infra-adoption
+Arguments: --project-root=<path> [--dry-run]
+Workflow:
+  1. Parse arguments (project-root, dry-run flag)
+  2. Invoke infra-adoption skill with parameters
+  3. Skill performs 7-step workflow:
+     a. Validate project structure
+     b. Discover Terraform infrastructure
+     c. Discover AWS profiles
+     d. Discover custom agents/scripts
+     e. Analyze discovery results (complexity assessment)
+     f. Present findings to user (exec summary, metrics, recommendations)
+     g. Get user confirmation to proceed
+  4. If dry-run: Generate reports and stop
+  5. If not dry-run and user approves: Install configuration
+  6. Provide next steps for migration
+Output:
+  - Discovery reports (.fractary/adoption/*.json)
+  - Generated configuration (faber-cloud.json)
+  - Migration report (MIGRATION.md)
+  - Configuration installed (if approved)
+Next: Follow migration checklist in MIGRATION.md
+Important: Discovery is read-only, never modifies infrastructure
+</ADOPT>
 </SKILL_ROUTING>
 
 <UNKNOWN_OPERATION>
 If command does not match any known operation:
 1. Stop immediately
 2. Inform user: "Unknown operation. Available commands:"
+   - adopt: Discover and adopt existing infrastructure into faber-cloud
    - architect: Design infrastructure architecture
    - engineer: Generate IaC code from designs
    - validate: Validate configuration and code
@@ -368,6 +401,7 @@ Skills are invoked using the SlashCommand tool:
 **Format:** `/fractary-faber-cloud:skill:{skill-name} [arguments]`
 
 **Available Skills:**
+- infra-adoption: Discover and adopt existing infrastructure
 - infra-architect: Design infrastructure architecture
 - infra-engineer: Generate IaC code
 - infra-validator: Validate configuration
@@ -379,6 +413,7 @@ Skills are invoked using the SlashCommand tool:
 
 **Example Invocations:**
 ```bash
+/fractary-faber-cloud:skill:infra-adoption --project-root=. --dry-run=false
 /fractary-faber-cloud:skill:infra-architect --feature="user uploads"
 /fractary-faber-cloud:skill:infra-engineer --design="user-uploads.md"
 /fractary-faber-cloud:skill:infra-validator --env=test

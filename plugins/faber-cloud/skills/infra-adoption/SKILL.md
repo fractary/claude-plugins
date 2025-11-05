@@ -41,9 +41,11 @@ Use TodoWrite to track adoption progress:
 2. ⏳ Discover Terraform infrastructure
 3. ⏳ Discover AWS profiles
 4. ⏳ Discover custom agents and scripts
-5. ⏳ Analyze discovery results
-6. ⏳ Present findings to user
-7. ⏳ Get user confirmation to proceed
+5. ⏳ Generate faber-cloud configuration
+6. ⏳ Generate migration report
+7. ⏳ Present comprehensive findings to user
+8. ⏳ Get user confirmation to proceed
+9. ⏳ Install configuration (if approved)
 
 Mark each step in_progress → completed as you go.
 
@@ -170,49 +172,238 @@ Ask user:
 2. Are there any additional considerations?
 3. Ready to proceed with configuration generation? (Phase 4)
 
+## Step 5: Generate faber-cloud Configuration
+
+Execute configuration generation:
+```bash
+bash plugins/faber-cloud/skills/infra-adoption/scripts/generate-config.sh \
+  {output_dir}/discovery-terraform.json \
+  {output_dir}/discovery-aws.json \
+  {output_dir}/discovery-custom-agents.json \
+  {output_dir}/faber-cloud.json
+```
+
+This generates:
+- Complete faber-cloud.json configuration
+- Auto-selected template (flat, modular, multi-environment)
+- Environment configurations from AWS profiles
+- Hook suggestions from custom agents
+- Production safety settings
+
+## Step 6: Generate Migration Report
+
+Execute migration report generation:
+```bash
+bash plugins/faber-cloud/skills/infra-adoption/scripts/generate-migration-report.sh \
+  {output_dir}/discovery-terraform.json \
+  {output_dir}/discovery-aws.json \
+  {output_dir}/discovery-custom-agents.json \
+  {output_dir}/MIGRATION.md
+```
+
+This generates:
+- Executive summary with complexity assessment
+- Infrastructure overview
+- Custom script capability mapping
+- Risk assessment with mitigation strategies
+- Timeline estimation
+- 7-phase migration checklist
+- Rollback procedures
+
+## Step 7: Present Comprehensive Findings
+
+Display complete adoption summary:
+
+```
+═══════════════════════════════════════════════════════════
+📊 ADOPTION SUMMARY
+═══════════════════════════════════════════════════════════
+
+🏗️ TERRAFORM INFRASTRUCTURE
+  Structure: {flat|modular|multi-environment}
+  Location: {terraform_directory}
+  Resources: {count} defined
+  Backend: {local|S3|remote}
+  Environments: {environment_strategy}
+
+☁️ AWS CONFIGURATION
+  Profiles Found: {total_profiles}
+  Project-Related: {project_profiles}
+  Environments: {detected_environments}
+  Naming Pattern: {pattern}
+
+🔧 CUSTOM INFRASTRUCTURE CODE
+  Agents/Scripts: {file_count}
+  Purposes: {purposes_list}
+  Version Controlled: {tracked_count}/{total_count}
+
+⚙️ GENERATED CONFIGURATION
+  Template: {flat|modular|multi-environment}
+  Environments: {env_count} configured
+  Hooks: {hook_count} suggested
+  Validation: Enhanced environment validation enabled
+
+📈 COMPLEXITY ASSESSMENT
+  Level: {SIMPLE|MODERATE|COMPLEX}
+  Score: {score}/15
+  Estimated Migration Time: {hours} hours
+
+⚠️ RISKS IDENTIFIED
+  HIGH: {high_risk_count}
+  MEDIUM: {medium_risk_count}
+
+💡 KEY RECOMMENDATIONS
+  {recommendation_1}
+  {recommendation_2}
+  ...
+
+📋 OUTPUT FILES
+  - {output_dir}/discovery-terraform.json
+  - {output_dir}/discovery-aws.json
+  - {output_dir}/discovery-custom-agents.json
+  - {output_dir}/faber-cloud.json
+  - {output_dir}/MIGRATION.md
+
+═══════════════════════════════════════════════════════════
+```
+
+## Step 8: Get User Confirmation
+
+Ask user if they want to proceed:
+
+```
+❓ Ready to install faber-cloud configuration?
+
+This will:
+  ✓ Copy faber-cloud.json to .fractary/plugins/faber-cloud/config/
+  ✓ Set up directory structure
+  ✓ Enable faber-cloud lifecycle management
+
+You can:
+  1. Proceed now (recommended after review)
+  2. Review reports first (.fractary/adoption/)
+  3. Test with dry-run in test environment
+
+Proceed with installation? (yes/no)
+```
+
+If dry-run mode: Skip this step, display reports only
+
+## Step 9: Install Configuration (if approved)
+
+If user approves installation:
+
+1. Create target directory:
+   ```bash
+   mkdir -p .fractary/plugins/faber-cloud/config
+   ```
+
+2. Copy configuration:
+   ```bash
+   cp {output_dir}/faber-cloud.json .fractary/plugins/faber-cloud/config/
+   ```
+
+3. Validate installation:
+   ```bash
+   bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh \
+     .fractary/plugins/faber-cloud/config/faber-cloud.json
+   ```
+
+4. Display success message:
+   ```
+   ✅ faber-cloud configuration installed!
+
+   Next steps:
+   1. Review MIGRATION.md for detailed checklist
+   2. Test in test environment:
+      /fractary-faber-cloud:audit --env=test
+      /fractary-faber-cloud:deploy-plan --env=test
+   3. Follow migration checklist step-by-step
+   4. Gradually roll out (test → staging → prod)
+   ```
+
+If user declines:
+   ```
+   ℹ️  Configuration not installed
+
+   Reports saved to {output_dir}/:
+   - faber-cloud.json (ready to install)
+   - MIGRATION.md (migration guide)
+   - discovery-*.json (discovery reports)
+
+   To install later:
+   1. Review the reports
+   2. Run /fractary-faber-cloud:adopt again
+   3. Or manually copy configuration
+   ```
+
 **OUTPUT COMPLETION MESSAGE:**
 ```
-✅ COMPLETED: Infrastructure Discovery
-Reports saved to: {output_dir}/
+✅ COMPLETED: Infrastructure Adoption
+{Installation status message}
+
+Reports: {output_dir}/
   - discovery-terraform.json
   - discovery-aws.json
   - discovery-custom-agents.json
+  - faber-cloud.json
+  - MIGRATION.md
 
-Next Steps:
-1. Review discovery reports
-2. Run configuration generation (Phase 4)
-3. Review generated faber-cloud.json
-4. Test with audit/plan (read-only)
+{If installed}
+Configuration: .fractary/plugins/faber-cloud/config/faber-cloud.json
+
+Next: Follow migration checklist in MIGRATION.md
 ───────────────────────────────────────
-Ready to proceed? Use infra-adoption for next phase
 ```
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
-✅ All three discovery scripts completed successfully
-✅ Discovery reports generated and saved
-✅ Findings presented to user
-✅ User understands next steps
+✅ All discovery scripts completed successfully
+✅ Configuration generated and validated
+✅ Migration report generated
+✅ Comprehensive findings presented to user
+✅ User confirmation obtained (or dry-run completed)
+✅ Configuration installed (if approved)
+✅ User has clear next steps
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-Return discovery summary:
+Return adoption summary:
 ```json
 {
   "status": "success",
+  "mode": "full|dry-run",
   "reports": {
     "terraform": ".fractary/adoption/discovery-terraform.json",
     "aws": ".fractary/adoption/discovery-aws.json",
-    "custom_agents": ".fractary/adoption/discovery-custom-agents.json"
+    "custom_agents": ".fractary/adoption/discovery-custom-agents.json",
+    "configuration": ".fractary/adoption/faber-cloud.json",
+    "migration_report": ".fractary/adoption/MIGRATION.md"
   },
-  "summary": {
+  "assessment": {
     "infrastructure_found": true,
     "terraform_structure": "modular",
     "aws_profiles_found": 6,
     "custom_scripts_found": 12,
     "complexity": "moderate",
-    "estimated_migration_hours": 5
-  }
+    "complexity_score": 7,
+    "estimated_migration_hours": 12,
+    "risks": {
+      "high": 1,
+      "medium": 2
+    }
+  },
+  "configuration": {
+    "template_used": "modular",
+    "environments_configured": 3,
+    "hooks_generated": 5,
+    "installed": true
+  },
+  "next_steps": [
+    "Review MIGRATION.md",
+    "Test in test environment",
+    "Follow migration checklist"
+  ]
 }
 ```
 </OUTPUTS>
