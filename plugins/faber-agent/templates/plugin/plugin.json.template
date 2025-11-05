@@ -1,0 +1,11 @@
+{
+  "name": "{{PLUGIN_NAME}}",
+  "version": "{{PLUGIN_VERSION}}",
+  "description": "{{PLUGIN_DESCRIPTION}}",
+  "author": "Fractary",
+  "license": "MIT",
+  "requires": {{REQUIRES}},
+  "commands": {{COMMAND_PLACEHOLDERS}},
+  "agents": {{AGENT_PLACEHOLDERS}},
+  "skills": {{SKILL_PLACEHOLDERS}}
+}

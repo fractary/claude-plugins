@@ -2,7 +2,7 @@
 
 **Meta-plugin for creating Claude Code agents, skills, commands, and plugins**
 
-Version: 0.1.0 (Phase 1 - Foundation)
+Version: 0.3.0 (Phase 3 - Advanced Features)
 
 ---
 
@@ -49,16 +49,29 @@ claude plugin install fractary/claude-plugins/faber
 /fractary-faber-agent:create-plugin my-plugin --type workflow
 ```
 
-## Phase 1 Status (Current)
+## Implementation Status
 
-✅ Plugin directory structure
-✅ Basic templates (agent, skill, command)
-✅ Template substitution engine
-✅ XML markup validator
-✅ Frontmatter validator
-🚧 create-agent command (in progress)
-🚧 agent-creator agent (in progress)
-🚧 gather-requirements skill (in progress)
+**Phase 1: Foundation** ✅ Complete
+- ✅ Plugin directory structure
+- ✅ Basic templates (agent, skill, command)
+- ✅ Template substitution engine
+- ✅ XML markup validator
+- ✅ Frontmatter validator
+- ✅ create-agent workflow
+
+**Phase 2: Core Workflows** ✅ Complete
+- ✅ create-skill workflow
+- ✅ create-command workflow
+- ✅ gather-requirements skill (all 3 workflows)
+- ✅ generate-from-template skill
+- ✅ validate-artifact skill
+
+**Phase 3: Advanced Features** 🚧 In Progress
+- ✅ create-plugin workflow
+- ✅ Plugin structure generation
+- ✅ Plugin templates (plugin.json, README)
+- 📋 Handler creation (planned)
+- 📋 Advanced validation (planned)
 
 ## Architecture
 
@@ -79,6 +92,8 @@ Located in `templates/`:
 - `agent/manager.md.template` - Manager agent template
 - `skill/basic-skill.md.template` - Basic skill template
 - `command/command.md.template` - Command template
+- `plugin/plugin.json.template` - Plugin manifest template
+- `plugin/README.md.template` - Plugin README template
 
 ## Validators
 
@@ -92,20 +107,26 @@ Located in `validators/`:
 - **Standards**: `/docs/standards/FRACTARY-PLUGIN-STANDARDS.md`
 - **Examples**: Coming in Phase 4
 
-## Development Status
+## Commands
 
-**Phase 1: Foundation** (In Progress)
-- ✅ Core structure and templates
-- 🚧 First working workflow (create-agent)
+- `/fractary-faber-agent:create-agent <name> --type <manager|handler>` - Create an agent
+- `/fractary-faber-agent:create-skill <name> [--handler-type <type>]` - Create a skill
+- `/fractary-faber-agent:create-command <name> --invokes <agent>` - Create a command
+- `/fractary-faber-agent:create-plugin <name> --type <workflow|primitive|utility>` - Create a plugin
 
-**Phase 2: Core Workflows** (Planned)
-- Complete agent, skill, and command creation workflows
+## Development Roadmap
 
-**Phase 3: Advanced Features** (Planned)
-- Plugin creation, handler support
+**Phase 4: Polish & Documentation** (Next)
+- Comprehensive usage examples
+- Video tutorials
+- Best practices guide
+- Migration guide for existing artifacts
 
-**Phase 4: Polish** (Planned)
-- Comprehensive docs and examples
+**Phase 5: Future Enhancements** (Planned)
+- Multi-framework support (OpenAI, LangChain)
+- Framework conversion tools
+- AI-assisted requirement gathering
+- Visual plugin designer
 
 ## Contributing
 
