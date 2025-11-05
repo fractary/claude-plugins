@@ -1,16 +1,23 @@
 # fractary-logs Plugin
 
-Operational log management for Claude Code development sessions, including session capture, hybrid retention (local + cloud), archival, search, and analysis.
+> ⚠️ **ALPHA/PREVIEW STATUS** - See [STATUS.md](STATUS.md) for details
+>
+> **What Works**: Session capture, local storage, search, analysis
+> **Not Yet Implemented**: Cloud upload integration (files stay local)
+> **Recommended**: Use for development and testing, not production retention
+
+Operational log management for Claude Code development sessions, including session capture, local storage, archival, search, and analysis.
 
 ## Overview
 
 The fractary-logs plugin provides comprehensive logging infrastructure for development workflows:
 
-- **Session Capture**: Record Claude Code conversations in structured markdown
-- **Hybrid Retention**: Local storage (30 days) + Cloud archival (forever)
-- **Smart Archival**: Lifecycle-based (issue complete) + time-based safety net
-- **Search**: Fast local search + comprehensive cloud search
-- **Analysis**: Error extraction, pattern detection, session summaries, time analysis
+- **Session Capture**: Record Claude Code conversations in structured markdown ✅
+- **Local Storage**: 30-day retention in local filesystem ✅
+- **Archival Preparation**: Collect, compress, index logs ✅
+- **Search**: Fast local search with filters ✅
+- **Analysis**: Error extraction, pattern detection, session summaries, time analysis ✅
+- **Cloud Upload**: Architecture designed, implementation pending ⚠️
 
 ## Architecture
 

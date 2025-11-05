@@ -13,26 +13,30 @@ if ! [[ "$ROLE" =~ ^(user|claude|system)$ ]]; then
 fi
 
 # Find active session file in secure temp directory
+ACTIVE_SESSION_FILE=""
+
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -f "$XDG_RUNTIME_DIR/fractary-logs/active-session" ]]; then
+    # Preferred: XDG_RUNTIME_DIR (secure per-user temp)
     ACTIVE_SESSION_FILE="$XDG_RUNTIME_DIR/fractary-logs/active-session"
 else
     # Try to find temp dir from session marker
     LOG_DIR=$(jq -r '.storage.local_path // "/logs"' "$CONFIG_FILE" 2>/dev/null || echo "/logs")
     if [[ -f "${LOG_DIR}/.session-tmp-dir" ]]; then
         SESSION_TMP=$(cat "${LOG_DIR}/.session-tmp-dir")
-        ACTIVE_SESSION_FILE="$SESSION_TMP/active-session"
-    else
-        # Fallback to old location for backwards compatibility (but warn)
-        ACTIVE_SESSION_FILE="/tmp/fractary-logs/active-session"
-        if [[ -f "$ACTIVE_SESSION_FILE" ]]; then
-            echo "Warning: Using insecure temp directory. Please restart session." >&2
+        if [[ -f "$SESSION_TMP/active-session" ]]; then
+            ACTIVE_SESSION_FILE="$SESSION_TMP/active-session"
         fi
     fi
 fi
 
-# Check for active session
-if [[ ! -f "$ACTIVE_SESSION_FILE" ]]; then
-    echo "Error: No active session. Start capture with /fractary-logs:capture <issue>" >&2
+# Check for active session - FAIL HARD if not found in secure location
+if [[ -z "$ACTIVE_SESSION_FILE" || ! -f "$ACTIVE_SESSION_FILE" ]]; then
+    echo "Error: No active session found in secure temp directory." >&2
+    echo "       Please start a new session with: /fractary-logs:capture <issue>" >&2
+    echo "" >&2
+    echo "       If you previously started a session, it may have been created" >&2
+    echo "       with an older version using insecure temp storage." >&2
+    echo "       Restart the session for security." >&2
     exit 1
 fi
 
@@ -54,20 +58,39 @@ fi
 # Apply redaction if enabled
 REDACTED_MESSAGE="$MESSAGE"
 if [[ "$REDACT_SENSITIVE" == "true" ]]; then
-    # Redact API keys (32+ char alphanumeric strings)
-    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/['\''"]?[A-Za-z0-9_-]{32,}['\''"]?/**REDACTED**/g')
+    # Redact AWS Access Key IDs (starts with AKIA, ASIA, AIDA, AROA, AIPA, ANPA, ANVA)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/(A[KSI][ID][AAP])[A-Z0-9]{16}/**AWS_KEY**/g')
 
-    # Redact JWT tokens
+    # Redact AWS Secret Access Keys (40 char base64)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/['\''"]?[A-Za-z0-9/+=]{40}['\''"]?/**AWS_SECRET**/g')
+
+    # Redact AWS Session Tokens (longer base64 strings with AWS context)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/(aws_session_token|SessionToken)['\''"]?[:=]['\''"]?[A-Za-z0-9/+=]{100,}['\''"]?/\1=**AWS_SESSION**/gi')
+
+    # Redact GitHub tokens (ghp_, gho_, ghs_, ghu_, ghr_)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/gh[poshur]_[A-Za-z0-9]{36,}/**GITHUB_TOKEN**/g')
+
+    # Redact Cloudflare API tokens (starts with various prefixes)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/[A-Za-z0-9_-]{40}/**CF_TOKEN**/g')
+
+    # Redact JWT tokens (3 base64 segments)
     REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/**JWT**/g')
 
-    # Redact email addresses (configurable)
-    # REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}/**EMAIL**/g')
+    # Redact generic API keys (with context: "api_key", "apiKey", "token" followed by value)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/(api[_-]?key|apikey|token|secret)['\''"]?[:=]['\''"]?[A-Za-z0-9_-]{20,}['\''"]?/\1=**API_KEY**/gi')
 
-    # Redact password values
-    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/(password|passwd|pwd)[:\s=]+['\''"]?[^'\''" \n]+['\''"]?/\1: **REDACTED**/gi')
+    # Redact password values (with context)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/(password|passwd|pwd)['\''"]?[:=]['\''"]?[^'\''" \n]{6,}['\''"]?/\1=**PASSWORD**/gi')
 
-    # Redact credit card numbers
-    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/\b[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}\b/**CARD**/g')
+    # Redact credit card numbers (with basic Luhn check context)
+    # Only match if surrounded by spaces/boundaries to avoid matching random 16-digit numbers
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/(^|[^0-9])[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}($|[^0-9])/\1**CARD**\2/g')
+
+    # Redact private keys (BEGIN PRIVATE KEY markers)
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/-----BEGIN [A-Z ]+ PRIVATE KEY-----[^-]*-----END [A-Z ]+ PRIVATE KEY-----/**PRIVATE_KEY**/g')
+
+    # Redact Bearer tokens
+    REDACTED_MESSAGE=$(echo "$REDACTED_MESSAGE" | sed -E 's/Bearer [A-Za-z0-9_-]{20,}/Bearer **TOKEN**/gi')
 fi
 
 # Format role name

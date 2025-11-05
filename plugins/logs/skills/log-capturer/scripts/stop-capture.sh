@@ -5,22 +5,24 @@ set -euo pipefail
 CONFIG_FILE="${FRACTARY_LOGS_CONFIG:-.fractary/plugins/logs/config.json}"
 
 # Find active session file in secure temp directory
+ACTIVE_SESSION_FILE=""
+
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -f "$XDG_RUNTIME_DIR/fractary-logs/active-session" ]]; then
+    # Preferred: XDG_RUNTIME_DIR (secure per-user temp)
     ACTIVE_SESSION_FILE="$XDG_RUNTIME_DIR/fractary-logs/active-session"
 else
     # Try to find temp dir from session marker
     LOG_DIR=$(jq -r '.storage.local_path // "/logs"' "$CONFIG_FILE" 2>/dev/null || echo "/logs")
     if [[ -f "${LOG_DIR}/.session-tmp-dir" ]]; then
         SESSION_TMP=$(cat "${LOG_DIR}/.session-tmp-dir")
-        ACTIVE_SESSION_FILE="$SESSION_TMP/active-session"
-    else
-        # Fallback to old location for backwards compatibility
-        ACTIVE_SESSION_FILE="/tmp/fractary-logs/active-session"
+        if [[ -f "$SESSION_TMP/active-session" ]]; then
+            ACTIVE_SESSION_FILE="$SESSION_TMP/active-session"
+        fi
     fi
 fi
 
 # Check for active session
-if [[ ! -f "$ACTIVE_SESSION_FILE" ]]; then
+if [[ -z "$ACTIVE_SESSION_FILE" || ! -f "$ACTIVE_SESSION_FILE" ]]; then
     echo "No active session to stop"
     exit 0
 fi
