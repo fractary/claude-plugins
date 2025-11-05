@@ -105,8 +105,8 @@ WARNINGS=()
 # Cache all .tf file content for multiple checks
 TF_CONTENT=$(cat *.tf 2>/dev/null)
 
-# Check for hardcoded values (Fixed: removed -q to allow pipe to work)
-if echo "$TF_CONTENT" | grep "us-east-1" | grep -vq "variable\|default"; then
+# Check for hardcoded values (Fixed: correct grep order - exclude variable/default lines first)
+if echo "$TF_CONTENT" | grep -v "variable\|default" | grep -q "us-east-1"; then
     WARNINGS+=("Found potentially hardcoded AWS region")
 fi
 
@@ -178,7 +178,7 @@ Syntax: $VALIDATE_STATUS
 Files Validated:
 $(find . -name "*.tf" -type f | sed 's|^./||')
 
-Resource Count: $RESOURCE_COUNT
+Resource Count: $TOTAL_RESOURCE_COUNT
 
 $(if [ -n "$VALIDATE_ERRORS" ]; then
     echo "Validation Errors:"

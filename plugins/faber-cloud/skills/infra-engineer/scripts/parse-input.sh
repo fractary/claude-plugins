@@ -61,8 +61,15 @@ sanitize_path() {
         return 1
     fi
 
+    # Ensure abs_base ends with / to prevent edge case:
+    # /home/user/designs-backup/ should NOT match base /home/user/designs
+    if [[ "$abs_base" != */ ]]; then
+        abs_base="$abs_base/"
+    fi
+
     # Check if resolved path is within allowed directory
-    if [[ "$resolved" != "$abs_base"* ]]; then
+    # Allow exact match (resolved == abs_base without trailing /) or subdirectories
+    if [[ "$resolved/" != "$abs_base"* ]]; then
         jq -n \
             --arg error "Path outside allowed directory" \
             --arg input_path "$input_path" \

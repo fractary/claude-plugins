@@ -87,9 +87,9 @@ assert_success() {
     echo -n "Testing: $test_name... "
 
     local result
-    if result=$(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "$tf_dir" "" "" "" 2>/dev/null); then
-        # Verify JSON structure
-        if echo "$result" | jq -e '.validation_passed == true and .terraform_dir' > /dev/null 2>&1; then
+    if result=$(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "$tf_dir" 2>/dev/null); then
+        # Verify JSON structure (check validation_status, not validation_passed)
+        if echo "$result" | jq -e '.validation_status == "passed" and .terraform_dir' > /dev/null 2>&1; then
             echo -e "${GREEN}✓ PASSED${NC}"
             TESTS_PASSED=$((TESTS_PASSED + 1))
         else
@@ -110,9 +110,9 @@ assert_failure() {
     echo -n "Testing: $test_name... "
 
     local result
-    if result=$(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "$tf_dir" "" "" "" 2>/dev/null); then
-        # Check if validation_passed is false
-        if echo "$result" | jq -e '.validation_passed == false' > /dev/null 2>&1; then
+    if result=$(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "$tf_dir" 2>/dev/null); then
+        # Check if validation_status is "failed" (not validation_passed)
+        if echo "$result" | jq -e '.validation_status == "failed"' > /dev/null 2>&1; then
             echo -e "${GREEN}✓ PASSED${NC}"
             TESTS_PASSED=$((TESTS_PASSED + 1))
         else
@@ -132,7 +132,7 @@ assert_report_exists() {
 
     echo -n "Testing: $test_name... "
 
-    if (cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "$tf_dir" "" "" "" > /dev/null 2>&1); then
+    if (cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "$tf_dir" > /dev/null 2>&1); then
         # Check if validation report was created
         if [ -f "$TEST_DIR/$tf_dir/validation-report-latest.txt" ]; then
             echo -e "${GREEN}✓ PASSED${NC}"
@@ -179,7 +179,7 @@ assert_report_exists "Validation report created" "terraform"
 
 # Test 6: Nonexistent directory
 echo -n "Testing: Nonexistent directory... "
-if (cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "nonexistent" "" "" "" > /dev/null 2>&1); then
+if (cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "nonexistent" > /dev/null 2>&1); then
     echo -e "${RED}✗ FAILED${NC} (expected failure)"
     TESTS_FAILED=$((TESTS_FAILED + 1))
 else
@@ -189,9 +189,9 @@ fi
 
 # Test 7: Check timestamped reports don't overwrite
 echo -n "Testing: Timestamped reports... "
-(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "terraform" "" "" "" > /dev/null 2>&1)
+(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "terraform" > /dev/null 2>&1)
 sleep 1
-(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "terraform" "" "" "" > /dev/null 2>&1)
+(cd "$TEST_DIR" && "$VALIDATE_SCRIPT" "terraform" > /dev/null 2>&1)
 report_count=$(ls "$TEST_DIR/terraform"/validation-report-*.txt 2>/dev/null | wc -l)
 if [ "$report_count" -ge 2 ]; then
     echo -e "${GREEN}✓ PASSED${NC}"
