@@ -1,0 +1,265 @@
+---
+spec_id: spec-{{issue_number}}-{{slug}}
+issue_number: {{issue_number}}
+issue_url: {{issue_url}}
+title: {{title}}
+type: api
+status: draft
+created: {{date}}
+author: {{author}}
+validated: false
+---
+
+# API Specification: {{title}}
+
+**Issue**: [#{{issue_number}}]({{issue_url}})
+**Type**: API
+**Status**: Draft
+**Created**: {{date}}
+
+## Summary
+
+{{summary}}
+
+## API Overview
+
+### Base URL
+{{base_url}}
+
+### Version
+{{api_version}}
+
+### Authentication
+{{authentication}}
+
+## Endpoints
+
+{{#endpoints}}
+### {{method}} {{path}}
+
+**Description**: {{description}}
+
+**Authentication**: {{auth_required}}
+
+**Request Headers**:
+{{#request_headers}}
+- `{{name}}`: {{description}} ({{required}})
+{{/request_headers}}
+
+**Path Parameters**:
+{{#path_params}}
+- `{{name}}` ({{type}}): {{description}}
+{{/path_params}}
+
+**Query Parameters**:
+{{#query_params}}
+- `{{name}}` ({{type}}, {{required}}): {{description}}
+{{/query_params}}
+
+**Request Body**:
+```json
+{{request_body_example}}
+```
+
+**Response Codes**:
+{{#response_codes}}
+- `{{code}}`: {{description}}
+{{/response_codes}}
+
+**Success Response** ({{success_code}}):
+```json
+{{success_response_example}}
+```
+
+**Error Response**:
+```json
+{{error_response_example}}
+```
+
+**Rate Limiting**: {{rate_limit}}
+
+{{/endpoints}}
+
+## Data Models
+
+{{#models}}
+### {{name}}
+
+{{description}}
+
+**Schema**:
+```json
+{
+{{#fields}}
+  "{{name}}": {{type}} // {{description}}{{#required}} (required){{/required}}
+{{/fields}}
+}
+```
+
+**Validation Rules**:
+{{#validation_rules}}
+- {{field}}: {{rule}}
+{{/validation_rules}}
+
+{{/models}}
+
+## Authentication & Authorization
+
+### Authentication Methods
+{{#auth_methods}}
+- **{{method}}**: {{description}}
+{{/auth_methods}}
+
+### Authorization Scopes
+{{#scopes}}
+- `{{scope}}`: {{description}}
+{{/scopes}}
+
+### Token Management
+{{token_management}}
+
+## Error Handling
+
+### Error Response Format
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "details": {}
+  }
+}
+```
+
+### Error Codes
+{{#error_codes}}
+- `{{code}}`: {{description}}
+{{/error_codes}}
+
+## Rate Limiting
+
+{{rate_limiting_policy}}
+
+**Headers**:
+- `X-RateLimit-Limit`: Requests allowed per window
+- `X-RateLimit-Remaining`: Requests remaining
+- `X-RateLimit-Reset`: Time when limit resets
+
+## Pagination
+
+{{#pagination}}
+**Strategy**: {{strategy}}
+
+**Request Parameters**:
+{{#params}}
+- `{{name}}`: {{description}}
+{{/params}}
+
+**Response Format**:
+```json
+{{example}}
+```
+{{/pagination}}
+
+## Versioning
+
+{{versioning_strategy}}
+
+## Implementation Details
+
+### Database Schema Changes
+{{#schema_changes}}
+- {{table}}: {{changes}}
+{{/schema_changes}}
+
+### Business Logic
+{{business_logic}}
+
+### Validation Rules
+{{#validation}}
+- {{rule}}
+{{/validation}}
+
+### Error Handling
+{{error_handling}}
+
+## Testing Strategy
+
+### Unit Tests
+{{#unit_tests}}
+- {{test_name}}: {{description}}
+{{/unit_tests}}
+
+### Integration Tests
+{{#integration_tests}}
+- {{test_name}}: {{description}}
+{{/integration_tests}}
+
+### API Contract Tests
+{{contract_tests}}
+
+### Load Tests
+{{load_tests}}
+
+## Security Considerations
+
+### Input Validation
+{{input_validation}}
+
+### SQL Injection Prevention
+{{sql_injection}}
+
+### XSS Prevention
+{{xss_prevention}}
+
+### CSRF Protection
+{{csrf_protection}}
+
+### Data Sanitization
+{{sanitization}}
+
+## Performance Considerations
+
+### Caching Strategy
+{{caching}}
+
+### Database Optimization
+{{db_optimization}}
+
+### Expected Response Times
+{{#response_times}}
+- {{endpoint}}: {{target}}
+{{/response_times}}
+
+## Documentation
+
+### OpenAPI/Swagger Spec
+{{openapi_location}}
+
+### API Documentation URL
+{{docs_url}}
+
+### Examples
+{{#examples}}
+- {{name}}: {{description}}
+{{/examples}}
+
+## Dependencies
+
+{{#dependencies}}
+- {{.}}
+{{/dependencies}}
+
+## Acceptance Criteria
+
+{{#acceptance_criteria}}
+- [ ] {{.}}
+{{/acceptance_criteria}}
+
+## Migration Notes
+
+{{migration_notes}}
+
+## Implementation Notes
+
+{{notes}}
