@@ -1,0 +1,47 @@
+{
+  "$schema": "https://fractary.com/schemas/file-plugin-config-v1.json",
+  "schema_version": "1.0",
+  "active_handler": "local",
+  "handlers": {
+    "local": {
+      "base_path": "./storage",
+      "create_directories": true,
+      "permissions": "0755"
+    },
+    "r2": {
+      "account_id": "${R2_ACCOUNT_ID}",
+      "access_key_id": "${R2_ACCESS_KEY_ID}",
+      "secret_access_key": "${R2_SECRET_ACCESS_KEY}",
+      "bucket_name": "my-bucket",
+      "public_url": "https://pub-xxxxx.r2.dev",
+      "region": "auto"
+    },
+    "s3": {
+      "region": "us-east-1",
+      "bucket_name": "my-bucket",
+      "access_key_id": "${AWS_ACCESS_KEY_ID}",
+      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
+      "endpoint": null,
+      "public_url": null
+    },
+    "gcs": {
+      "project_id": "my-project",
+      "bucket_name": "my-bucket",
+      "service_account_key": "${GOOGLE_APPLICATION_CREDENTIALS}",
+      "region": "us-central1"
+    },
+    "gdrive": {
+      "client_id": "${GDRIVE_CLIENT_ID}",
+      "client_secret": "${GDRIVE_CLIENT_SECRET}",
+      "folder_id": "root",
+      "auth_method": "oauth2"
+    }
+  },
+  "global_settings": {
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000,
+    "timeout_seconds": 300,
+    "verify_checksums": true,
+    "parallel_uploads": 4
+  }
+}
