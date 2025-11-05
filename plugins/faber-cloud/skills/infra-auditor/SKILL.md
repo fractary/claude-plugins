@@ -162,55 +162,124 @@ Script: `scripts/audit-full.sh`
 </CHECK_TYPES>
 
 <OUTPUT_FORMAT>
-Generate structured markdown report:
+Generate structured reports in both JSON and Markdown formats.
 
+**Report Storage Location:**
+- Base Directory: `.fractary/plugins/faber-cloud/audits/{env}/`
+- JSON Report: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.json`
+- Markdown Report: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.md`
+
+**Timestamp Format:** `YYYYMMDD-HHMMSS` (e.g., `20250105-143022`)
+
+**Markdown Report Format:**
 ```markdown
-## Audit Report: infrastructure/{env}
+# Audit Report: {ENV} Environment
 
 **Check Type**: {check_type}
 **Timestamp**: {ISO8601}
 **Duration**: {duration}s
+**Project**: {project-subsystem}
 
-### Status Summary
-✅ {passing_count} passing
-⚠️  {warning_count} warnings
-❌ {failure_count} failures
+---
 
-### Checks Performed
+## Summary
 
-#### {Status Icon} {Check Name}
-- {Detail line 1}
-- {Detail line 2}
-- {Recommendation (if applicable)}
+**Duration:** {duration}s
 
-[Repeat for each check]
+### Status
+- ✅ **Passing:** {passing_count}
+- ⚠️  **Warnings:** {warning_count}
+- ❌ **Failures:** {failure_count}
 
-### Metrics
-- Total resources: {count}
-- Drift items: {count}
-- Estimated monthly cost: ${amount}
-- Last deployment: {time_ago}
-- {Other relevant metrics}
+---
 
-### Recommendations
-1. {Actionable recommendation 1}
-2. {Actionable recommendation 2}
-[etc.]
+## Checks Performed
+
+### {Status Icon} {Check Name}
+
+{Details}
+
+---
+
+## Metrics
+
+- **metric_name:** value
+
+---
+
+## Recommendations
+
+### 🔴 Critical (Fix Immediately)
+- {recommendation}
+
+### 🟡 Important (Fix Soon)
+- {recommendation}
+
+### 🟢 Optimization (Consider)
+- {recommendation}
+
+---
+
+**Report Files:**
+- JSON: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.json`
+- Markdown: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.md`
+```
+
+**JSON Report Format:**
+```json
+{
+  "audit": {
+    "check_type": "{check_type}",
+    "environment": "{env}",
+    "timestamp": "{ISO8601}",
+    "project": "{project-subsystem}",
+    "status": "completed",
+    "duration_seconds": {duration}
+  },
+  "summary": {
+    "passing": {count},
+    "warnings": {count},
+    "failures": {count}
+  },
+  "checks": [
+    {
+      "name": "{check_name}",
+      "status": "pass|warn|fail",
+      "details": "{details}"
+    }
+  ],
+  "metrics": {
+    "metric_name": "value"
+  },
+  "recommendations": [
+    {
+      "priority": "critical|important|optimization",
+      "recommendation": "{recommendation}"
+    }
+  ]
+}
 ```
 
 **Status Icons**:
 - ✅ = Passed
 - ⚠️  = Warning (non-critical)
 - ❌ = Failed (critical)
+
+**Exit Codes**:
+- 0 = All checks passed
+- 1 = Warnings found (non-critical)
+- 2 = Failures found (critical issues)
 </OUTPUT_FORMAT>
 
 <COMPLETION_CRITERIA>
 - Audit check executed successfully
 - No infrastructure modifications made
-- Structured report generated
+- Structured reports generated (JSON + Markdown)
+- Reports stored in `.fractary/plugins/faber-cloud/audits/{env}/` with timestamps
 - Status code reflects findings (0=pass, 1=warn, 2=fail)
 - Execution time within specified bounds
 - Actionable recommendations provided
+- Historical audit reports preserved
 </COMPLETION_CRITERIA>
 
 <DOCUMENTATION>
@@ -223,9 +292,15 @@ Check Type: {check_type}
 Duration: {duration}s
 Status: {passing/warnings/failures}
 ───────────────────────────────────────
+Reports Generated:
+- JSON: .fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.json
+- Markdown: .fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.md
+
 {Report summary}
 Next: {Recommended action}
 ```
+
+**Important**: All audit reports are timestamped and preserved for historical tracking and trend analysis.
 </DOCUMENTATION>
 
 <ERROR_HANDLING>
