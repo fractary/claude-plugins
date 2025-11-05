@@ -1,7 +1,7 @@
 # Fractary Plugin Development Standards
 
 **Version:** 1.0.0
-**Last Updated:** 2025-10-28
+**Last Updated:** 2025-11-05
 **Purpose:** Universal patterns and best practices for all Fractary Claude Code plugins
 
 ---
@@ -18,6 +18,9 @@
 8. [Documentation Standards](#documentation-standards)
 9. [XML Markup Standards](#xml-markup-standards)
 10. [Example: DevOps Plugin](#example-devops-plugin)
+11. [Checklist for New Plugins](#checklist-for-new-plugins)
+12. [Development Tools](#development-tools)
+13. [Best Practices Summary](#best-practices-summary)
 
 ---
 
@@ -1000,6 +1003,32 @@ Ensure all criteria in <COMPLETION_CRITERIA> are met.
 - [ ] Version and release
 - [ ] Gather user feedback
 - [ ] Iterate based on feedback
+
+---
+
+## Development Tools
+
+### Command Frontmatter Linter
+
+A validation script is available to catch common frontmatter errors in command files:
+
+```bash
+./scripts/lint-command-frontmatter.sh plugins/
+```
+
+**What it checks:**
+- Missing frontmatter structure
+- Missing required `name` field
+- Leading slashes in `name` field (e.g., `/fractary-faber:run` → should be `fractary-faber:run`)
+- Invalid name patterns
+- Missing recommended fields
+
+**Usage in development:**
+- Run before committing command file changes
+- Include in CI/CD pipeline to prevent regressions
+- See `scripts/README.md` for full documentation
+
+This tool was created to prevent issues like those fixed in commit `b7f661e` where 7 command files had incorrect leading slashes in their frontmatter name fields.
 
 ---
 
