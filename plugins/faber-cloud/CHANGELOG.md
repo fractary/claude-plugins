@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **For multi-word values, use quotes:**
 ```bash
-/fractary-faber-cloud:design "S3 bucket with versioning"
+/fractary-faber-cloud:architect "S3 bucket with versioning"
 ```
 
 **Helpful Error Messages:**
@@ -50,7 +50,7 @@ Examples:
 
 ### Commands Affected
 
-All 13 commands now use space-separated syntax:
+All commands now use space-separated syntax:
 - `/fractary-faber-cloud:deploy-apply`
 - `/fractary-faber-cloud:deploy-plan`
 - `/fractary-faber-cloud:init`
@@ -58,7 +58,7 @@ All 13 commands now use space-separated syntax:
 - `/fractary-faber-cloud:validate`
 - `/fractary-faber-cloud:test`
 - `/fractary-faber-cloud:debug`
-- `/fractary-faber-cloud:design`
+- `/fractary-faber-cloud:architect`
 - `/fractary-faber-cloud:status`
 - `/fractary-faber-cloud:resources`
 - `/fractary-faber-cloud:teardown`
