@@ -1,0 +1,31 @@
+{
+  "name": "fractary-logs",
+  "version": "1.0.0",
+  "description": "Operational log management with session capture, hybrid retention, archival, search, and analysis",
+  "author": "Fractary",
+  "requires": ["fractary-file"],
+  "provides": {
+    "agents": ["log-manager"],
+    "commands": [
+      "fractary-logs:init",
+      "fractary-logs:capture",
+      "fractary-logs:stop",
+      "fractary-logs:log",
+      "fractary-logs:archive",
+      "fractary-logs:cleanup",
+      "fractary-logs:search",
+      "fractary-logs:analyze",
+      "fractary-logs:read"
+    ],
+    "skills": [
+      "log-capturer",
+      "log-archiver",
+      "log-searcher",
+      "log-analyzer"
+    ]
+  },
+  "config": {
+    "path": ".fractary/plugins/logs/config.json",
+    "example": "plugins/logs/config/config.example.json"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "storage": {
+    "local_path": "/logs",
+    "cloud_archive_path": "archive/logs/{year}/{month}/{issue_number}",
+    "archive_index_file": ".archive-index.json",
+    "provider": "s3",
+    "bucket": "fractary-logs",
+    "limits": {
+      "max_session_size_mb": 50,
+      "max_log_size_mb": 100,
+      "warn_session_size_mb": 10,
+      "total_storage_warn_gb": 1
+    }
+  },
+  "retention": {
+    "strategy": "hybrid",
+    "local_days": 30,
+    "cloud_days": "forever",
+    "auto_archive_on_age": true
+  },
+  "archive": {
+    "auto_archive_on": {
+      "work_complete": true,
+      "issue_close": true,
+      "manual_trigger": true
+    },
+    "compression": {
+      "enabled": true,
+      "format": "gzip",
+      "threshold_mb": 1
+    },
+    "post_archive": {
+      "update_archive_index": true,
+      "comment_on_issue": true,
+      "remove_from_local": true,
+      "keep_index": true
+    }
+  },
+  "session_logging": {
+    "enabled": true,
+    "auto_capture": false,
+    "format": "markdown",
+    "include_timestamps": true,
+    "redact_sensitive": true,
+    "auto_name_by_issue": true,
+    "model_name": "claude-sonnet-4-5-20250929",
+    "redaction_patterns": {
+      "api_keys": true,
+      "jwt_tokens": true,
+      "passwords": true,
+      "credit_cards": true,
+      "email_addresses": false
+    }
+  },
+  "search": {
+    "index_local": true,
+    "search_cloud": true,
+    "max_results": 100,
+    "default_context_lines": 3
+  },
+  "integration": {
+    "github": {
+      "enabled": true,
+      "comment_on_capture": false,
+      "comment_on_archive": true
+    },
+    "faber": {
+      "auto_capture": true,
+      "auto_archive_on_complete": true
+    }
+  }
+}
