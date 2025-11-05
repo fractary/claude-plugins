@@ -94,7 +94,7 @@ Enter selection [1-3]:
 1. **Find All Specs**: Collects all specs for issue (multi-spec support)
 2. **Check Conditions**: Validates pre-archive requirements
 3. **Upload to Cloud**: Uses fractary-file plugin to upload
-4. **Update Index**: Adds entry to `/specs/.archive-index.json`
+4. **Update Index**: Adds entry to `.fractary/plugins/spec/archive-index.json`
 5. **Comment on GitHub**: Adds archive URLs to issue and PR
 6. **Remove Local**: Cleans up local /specs directory
 7. **Git Commit**: Commits index update and removals
@@ -170,7 +170,7 @@ See issue #123 for complete archive details.
 
 ## Archive Index
 
-Entry added to `/specs/.archive-index.json`:
+Entry added to `.fractary/plugins/spec/archive-index.json`:
 
 ```json
 {

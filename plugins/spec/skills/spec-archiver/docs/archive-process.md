@@ -167,7 +167,7 @@ URL: https://storage.example.com/specs/2025/123-phase2.md
 ### Location
 
 ```
-/specs/.archive-index.json
+.fractary/plugins/spec/archive-index.json
 ```
 
 ### Format
@@ -263,7 +263,7 @@ After successful upload and index update:
 
 3. **Git add index**:
    ```bash
-   git add /specs/.archive-index.json
+   git add .fractary/plugins/spec/archive-index.json
    ```
 
 4. **Git commit**:

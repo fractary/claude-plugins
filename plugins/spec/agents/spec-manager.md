@@ -133,7 +133,7 @@ Archive specifications for completed work.
 7. Spec-archiver will:
    - Upload each spec to cloud via fractary-file plugin
    - Collect cloud URLs
-   - Update archive index at /specs/.archive-index.json
+   - Update archive index at .fractary/plugins/spec/archive-index.json
    - Comment on GitHub issue with archive URLs
    - Comment on PR with archive URLs (if PR exists)
    - Remove specs from local /specs directory
@@ -151,7 +151,7 @@ Read archived specification from cloud storage (no download).
 
 **Steps**:
 1. Validate issue number provided
-2. Load archive index from /specs/.archive-index.json
+2. Load archive index from .fractary/plugins/spec/archive-index.json
 3. Find entry for issue number
 4. If phase specified, filter to that phase
 5. If not found, return error

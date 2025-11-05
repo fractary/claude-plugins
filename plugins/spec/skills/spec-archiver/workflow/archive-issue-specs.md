@@ -173,10 +173,10 @@ If upload fails:
 
 ## Step 7: Update Archive Index
 
-Load archive index from `/specs/.archive-index.json`:
+Load archive index from `.fractary/plugins/spec/archive-index.json`:
 
 ```bash
-INDEX_FILE="/specs/.archive-index.json"
+INDEX_FILE=".fractary/plugins/spec/archive-index.json"
 
 # Create if doesn't exist
 if [[ ! -f "$INDEX_FILE" ]]; then
@@ -309,7 +309,7 @@ done
 Commit both index update and spec removals:
 
 ```bash
-git add /specs/.archive-index.json
+git add .fractary/plugins/spec/archive-index.json
 
 git commit -m "Archive specs for issue #${ISSUE_NUMBER}
 

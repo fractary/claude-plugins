@@ -511,7 +511,7 @@ Check validation status:
 Check archival status:
 
 ```bash
-cat /specs/.archive-index.json | jq '.archives[] | select(.issue_number == "123")'
+cat .fractary/plugins/spec/archive-index.json | jq '.archives[] | select(.issue_number == "123")'
 ```
 
 ## Integration Testing
@@ -574,7 +574,7 @@ Check pre-conditions:
 
 Archival may have failed. Check:
 ```bash
-cat /specs/.archive-index.json
+cat .fractary/plugins/spec/archive-index.json
 ```
 
 If not in index, retry:

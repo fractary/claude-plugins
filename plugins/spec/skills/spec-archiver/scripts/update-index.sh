@@ -13,6 +13,8 @@ ENTRY_JSON="${2:?Entry JSON required}"
 
 # Create index if doesn't exist
 if [[ ! -f "$INDEX_FILE" ]]; then
+    # Create parent directory if needed
+    mkdir -p "$(dirname "$INDEX_FILE")"
     cat > "$INDEX_FILE" <<'EOF'
 {
   "schema_version": "1.0",

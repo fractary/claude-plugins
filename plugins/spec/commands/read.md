@@ -49,7 +49,7 @@ Lists all phases, prompts which to read.
 
 ## What It Does
 
-1. **Look Up in Index**: Finds archive entry in `/specs/.archive-index.json`
+1. **Look Up in Index**: Finds archive entry in `.fractary/plugins/spec/archive-index.json`
 2. **Get Cloud URL**: Retrieves cloud storage URL
 3. **Stream Content**: Reads from cloud via fractary-file plugin
 4. **Display**: Shows spec content
@@ -129,7 +129,7 @@ Cloud URL: https://storage.example.com/specs/2025/123.md
 
 ## Archive Index Lookup
 
-Looks up in `/specs/.archive-index.json`:
+Looks up in `.fractary/plugins/spec/archive-index.json`:
 
 ```json
 {
@@ -182,7 +182,7 @@ Note: Better to use the command directly rather than maintaining local copies.
 **Error: Issue not found in archive**:
 - Check issue number
 - Verify specs were archived
-- Look at archive index: `cat /specs/.archive-index.json`
+- Look at archive index: `cat .fractary/plugins/spec/archive-index.json`
 
 **Error: Cloud storage unavailable**:
 - Check network connection

@@ -192,7 +192,7 @@ When work completes:
 
 ```
 Cloud: archive/specs/{year}/{issue_number}.md
-Index: /specs/.archive-index.json
+Index: .fractary/plugins/spec/archive-index.json
 ```
 
 ## Configuration

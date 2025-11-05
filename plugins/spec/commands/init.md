@@ -28,7 +28,7 @@ This command:
    - This is where active specs are stored
 
 3. **Initialize Archive Index**:
-   - Creates `/specs/.archive-index.json`
+   - Creates `.fractary/plugins/spec/archive-index.json`
    - Empty index ready for archival entries
 
 4. **Verify Dependencies**:
@@ -43,7 +43,7 @@ This command:
 
 ✓ Configuration created: .fractary/plugins/spec/config.json
 ✓ Specs directory created: /specs
-✓ Archive index initialized: /specs/.archive-index.json
+✓ Archive index initialized: .fractary/plugins/spec/archive-index.json
 ✓ Dependencies verified:
   - fractary-work: ✓ Installed
   - fractary-file: ✓ Installed
