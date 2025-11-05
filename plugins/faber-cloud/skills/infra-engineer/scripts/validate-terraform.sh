@@ -46,6 +46,7 @@ else
 fi
 
 # Step 2: Initialize Terraform (if not already initialized)
+BACKEND_MODE="local"
 if [ ! -d ".terraform" ]; then
     echo "🔧 Initializing Terraform..." >&2
 
@@ -56,18 +57,27 @@ if [ ! -d ".terraform" ]; then
         BACKEND_REGION=$(jq -r '.terraform.backend.region // empty' "../../$CONFIG_FILE")
 
         if [ -n "$BACKEND_BUCKET" ] && [ -n "$BACKEND_KEY" ] && [ -n "$BACKEND_REGION" ]; then
-            terraform init \
+            echo "🔧 Configuring S3 backend (bucket: $BACKEND_BUCKET)..." >&2
+            if terraform init \
                 -backend-config="bucket=$BACKEND_BUCKET" \
                 -backend-config="key=$BACKEND_KEY" \
                 -backend-config="region=$BACKEND_REGION" \
-                -reconfigure > /dev/null 2>&1 || {
-                    echo "⚠️  Backend init failed, trying local state..." >&2
-                    terraform init > /dev/null 2>&1
-                }
+                -reconfigure > /dev/null 2>&1; then
+                BACKEND_MODE="s3"
+                echo "✅ S3 backend initialized successfully" >&2
+            else
+                echo "⚠️  WARNING: S3 backend init failed - falling back to local state" >&2
+                echo "⚠️  This may cause state management issues in team environments" >&2
+                echo "⚠️  Check your AWS credentials and S3 bucket permissions" >&2
+                terraform init > /dev/null 2>&1
+                BACKEND_MODE="local (fallback)"
+            fi
         else
+            echo "ℹ️  No backend config found - using local state" >&2
             terraform init > /dev/null 2>&1
         fi
     else
+        echo "ℹ️  Config file not found - using local state" >&2
         terraform init > /dev/null 2>&1
     fi
 fi
@@ -121,12 +131,14 @@ for warning in "${WARNINGS[@]}"; do
     WARNINGS_JSON=$(echo "$WARNINGS_JSON" | jq --arg w "$warning" '. += [$w]')
 done
 
-# Generate validation report
-REPORT_FILE="validation-report.txt"
+# Generate validation report with timestamp
+TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+REPORT_FILE="validation-report-${TIMESTAMP}.txt"
 cat > "$REPORT_FILE" <<EOF
 Terraform Validation Report
 ===========================
-Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+Backend Mode: $BACKEND_MODE
 
 Formatting: $FORMAT_STATUS
 Syntax: $VALIDATE_STATUS
@@ -150,6 +162,9 @@ Next Steps:
 - Test with: /fractary-faber-cloud:test
 - Preview changes: /fractary-faber-cloud:deploy-plan
 EOF
+
+# Also create a symlink to latest report for convenience
+ln -sf "$REPORT_FILE" "validation-report-latest.txt" 2>/dev/null || true
 
 echo "📄 Validation report saved to: $TF_DIR/$REPORT_FILE" >&2
 

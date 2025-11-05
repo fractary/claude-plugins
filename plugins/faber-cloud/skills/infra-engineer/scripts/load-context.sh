@@ -81,7 +81,17 @@ load_source_content() {
 }
 
 # Extract infrastructure requirements from source
-# This is a simple version - in practice, would be more sophisticated
+# IMPORTANT: This is a basic regex-based extractor with known limitations:
+#   - Only detects common AWS services (S3, Lambda, DynamoDB, API Gateway, CloudFront, IAM)
+#   - Does NOT detect: VPC, ECS, EKS, RDS, SQS, SNS, EventBridge, Step Functions, etc.
+#   - May have false positives despite word boundaries
+#   - Primarily used as a fallback; LLM-based generation is more accurate
+#
+# For production use, consider:
+#   - Relying on LLM to interpret requirements during Terraform generation
+#   - Expanding this list to cover more AWS services
+#   - Using a more sophisticated parser
+#
 # SECURITY NOTE: source_content is passed via jq --arg which is safe.
 # DO NOT use this variable in eval or direct bash substitution as it could be dangerous.
 extract_requirements() {
@@ -91,8 +101,9 @@ extract_requirements() {
     # Initialize requirements array
     local resources='[]'
 
-    # Improved keyword detection with word boundaries to prevent false matches
+    # Basic keyword detection with word boundaries to prevent false matches
     # Using grep -E for extended regex with \b word boundaries
+    # NOTE: This list is intentionally limited - expand as needed
 
     # S3/Bucket (word boundaries prevent matches in "has3" or "bucketlist")
     if echo "$content" | grep -qiE '\b(s3|bucket)\b'; then

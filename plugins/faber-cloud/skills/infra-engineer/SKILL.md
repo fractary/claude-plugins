@@ -61,37 +61,60 @@ Output: {terraform directory}
 
 **EXECUTE STEPS:**
 
-1. **Parse Input and Determine Source**
-   - Analyze the instructions text
-   - Check for file references (paths ending in .md)
-   - Identify if this is a design doc, FABER spec, or direct instructions
-   - If no input provided, find latest design document
-   - Output: "✓ Source determined: {source_type}"
+This workflow uses the 3-layer architecture with deterministic operations in shell scripts.
 
-2. **Load Context**
-   - If design document: Read from `.fractary/plugins/faber-cloud/designs/`
-   - If FABER spec: Read from `.faber/specs/`
-   - If direct instructions: Use as implementation guidance
-   - Extract resource specifications and requirements
-   - Identify dependencies
-   - Output: "✓ Context loaded from {source}"
+**Workflow documentation files** (in `workflow/` directory) provide detailed implementation guidance:
+- `workflow/parse-input.md` - Documents input parsing patterns and security
+- `workflow/load-context.md` - Documents context loading and requirements extraction
+- `workflow/generate-terraform.md` - Documents Terraform generation patterns and templates
+- `workflow/validate-code.md` - Documents validation procedures
 
-3. **Generate Terraform Code**
-   - Generate Terraform resource blocks
+**Actual execution** uses shell scripts via Bash tool:
+
+1. **Parse Input (via parse-input.sh script)**
+   - Invoke: `./scripts/parse-input.sh "$INSTRUCTIONS"`
+   - Script handles:
+     * Pattern matching with priority order
+     * File path extraction and sanitization
+     * Security validation (path traversal prevention)
+     * Additional context extraction
+   - Output: JSON with source_type, file_path, additional_context
+   - Display: "✓ Source determined: {source_type}"
+
+2. **Load Context (via load-context.sh script)**
+   - Invoke: `./scripts/load-context.sh "$PARSE_RESULT"`
+   - Script handles:
+     * File loading and validation
+     * Empty file detection
+     * Basic requirement extraction (with documented limitations)
+     * Configuration loading
+     * Mode determination (create vs update)
+   - Output: JSON with source_content, requirements, config
+   - Display: "✓ Context loaded from {source}"
+
+3. **Generate Terraform Code (LLM-based - stays in context)**
+   - Read `workflow/generate-terraform.md` for detailed patterns
+   - Generate Terraform resource blocks based on requirements
+   - Merge additional_context with base requirements
    - Create variable definitions
    - Define outputs
-   - Add provider configuration if needed
+   - Add provider configuration
    - Apply naming patterns from config
    - Add standard tags
    - Implement security best practices
+   - Write files to infrastructure/terraform/
    - Output: "✓ Terraform code generated"
 
-4. **Validate Implementation (ALWAYS)**
-   - Run terraform fmt (fix formatting)
-   - Run terraform validate via handler
-   - Check for common issues
-   - Verify all resources defined
-   - Output: "✓ Code validated successfully"
+4. **Validate Implementation (via validate-terraform.sh script - ALWAYS)**
+   - Invoke: `./scripts/validate-terraform.sh "./infrastructure/terraform"`
+   - Script handles:
+     * terraform fmt (fix formatting)
+     * terraform init (with backend fallback logging)
+     * terraform validate (syntax/config)
+     * Common issue checks
+     * Timestamped report generation
+   - Output: JSON with validation results
+   - Display: "✓ Code validated successfully"
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
@@ -119,6 +142,16 @@ Error: {error message}
 Resolution: {how to fix}
 ───────────────────────────────────────
 ```
+
+**ARCHITECTURE NOTE:**
+This workflow follows the 3-layer architecture:
+- **Scripts** (Layer 4): Deterministic operations (parse, validate) - executed outside LLM context
+- **LLM** (Layer 2): Complex generation requiring AI (Terraform code generation with requirement merging)
+- **Workflows** (Layer 2): Orchestration and coordination
+- **Workflow files**: Documentation and implementation guidance (not executed directly)
+
+This reduces context usage by ~55-60% by keeping deterministic operations in scripts.
+</WORKFLOW>
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>

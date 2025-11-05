@@ -199,13 +199,30 @@ main() {
                 mkdir -p "$DESIGN_DIR" 2>/dev/null || true
             fi
 
-            # Fixed: Use find instead of ls for reliable sorting
-            local latest
-            latest=$(find "$DESIGN_DIR" -maxdepth 1 -name "*.md" -type f -printf '%T@ %p\n' 2>/dev/null | \
-                sort -rn | head -1 | cut -d' ' -f2- || echo "")
+            # Cross-platform file sorting by modification time
+            # Uses stat command which works on both Linux and macOS/BSD
+            local latest=""
+
+            if command -v stat &> /dev/null; then
+                # Try GNU stat format first (Linux)
+                if stat --format='%Y %n' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- &> /dev/null; then
+                    latest=$(stat --format='%Y %n' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+                # Fall back to BSD stat format (macOS)
+                elif stat -f '%m %N' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- &> /dev/null; then
+                    latest=$(stat -f '%m %N' "$DESIGN_DIR"/*.md 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+                fi
+            fi
+
+            # Final fallback: use ls (less reliable but portable)
+            if [ -z "$latest" ]; then
+                latest=$(ls -t "$DESIGN_DIR"/*.md 2>/dev/null | head -1 || echo "")
+            fi
 
             if [ -z "$latest" ]; then
-                jq -n --arg error "No design documents found in $DESIGN_DIR" '{error: $error}' >&2
+                jq -n \
+                    --arg error "No design documents found in $DESIGN_DIR" \
+                    --arg suggestion "Create a design with: /fractary-faber-cloud:architect <feature description>" \
+                    '{error: $error, suggestion: $suggestion}' >&2
                 exit 1
             fi
 
