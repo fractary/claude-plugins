@@ -71,7 +71,7 @@ Invoke cloud-director agent with user's full natural language request
 <example>
 User: /fractary-faber-cloud:director "deploy infrastructure to test"
 Action: Invoke cloud-director agent with request
-Director will route to: /fractary-faber-cloud:deploy-execute --env test
+Director will route to: /fractary-faber-cloud:deploy-apply --env test
 </example>
 
 <example>
@@ -103,8 +103,8 @@ Alternative: Users can also invoke commands directly if they prefer:
 - /fractary-faber-cloud:engineer
 - /fractary-faber-cloud:validate
 - /fractary-faber-cloud:deploy-plan --env <env>
-- /fractary-faber-cloud:deploy-execute --env <env>
-- /fractary-faber-cloud:deploy-destroy --env <env>
+- /fractary-faber-cloud:deploy-apply --env <env>
+- /fractary-faber-cloud:teardown --env <env>
 - /fractary-faber-cloud:list --env <env>
 - /fractary-faber-cloud:status --env <env>
 - /fractary-faber-cloud:debug

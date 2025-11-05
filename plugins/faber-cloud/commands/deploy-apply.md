@@ -1,15 +1,15 @@
 ---
-name: fractary-faber-cloud:deploy-execute
-description: Execute infrastructure deployment (terraform apply)
+name: fractary-faber-cloud:deploy-apply
+description: Apply infrastructure deployment (terraform apply)
 examples:
-  - /fractary-faber-cloud:deploy-execute --env test
-  - /fractary-faber-cloud:deploy-execute --env prod
+  - /fractary-faber-cloud:deploy-apply --env test
+  - /fractary-faber-cloud:deploy-apply --env prod
 argument-hint: "--env <environment> [--auto-approve]"
 ---
 
-# Deploy-Execute Command
+# Deploy-Apply Command
 
-Execute infrastructure deployment to AWS (Terraform apply).
+Apply infrastructure deployment to AWS (Terraform apply).
 
 <ARGUMENT_SYNTAX>
 ## Command Argument Syntax
@@ -23,19 +23,19 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:deploy-execute --env test
-/fractary-faber-cloud:deploy-execute --env prod --auto-approve
+/fractary-faber-cloud:deploy-apply --env test
+/fractary-faber-cloud:deploy-apply --env prod --auto-approve
 
 # Incorrect ❌
-/fractary-faber-cloud:deploy-execute --env=test
-/fractary-faber-cloud:deploy-execute --env=prod --auto-approve=true
+/fractary-faber-cloud:deploy-apply --env=test
+/fractary-faber-cloud:deploy-apply --env=prod --auto-approve=true
 ```
 </ARGUMENT_SYNTAX>
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:deploy-execute --env <environment> [--auto-approve]
+/fractary-faber-cloud:deploy-apply --env <environment> [--auto-approve]
 ```
 
 ## Parameters
@@ -58,17 +58,17 @@ This command follows the standard space-separated syntax:
 
 **Deploy to test:**
 ```
-/fractary-faber-cloud:deploy-execute --env test
+/fractary-faber-cloud:deploy-apply --env test
 ```
 
 **Deploy to production:**
 ```
-/fractary-faber-cloud:deploy-execute --env prod
+/fractary-faber-cloud:deploy-apply --env prod
 ```
 
 ## Complete Workflow
 
-The deploy-execute command orchestrates the full workflow:
+The deploy-apply command orchestrates the full workflow:
 
 ```
 1. Validate  → Environment safety check
@@ -107,7 +107,7 @@ If deployment encounters errors, you'll be offered 3 options:
 
 **Standard test deployment:**
 ```
-/fractary-faber-cloud:deploy-execute --env test
+/fractary-faber-cloud:deploy-apply --env test
 ```
 
 **Production deployment (safe):**
@@ -123,7 +123,7 @@ If deployment encounters errors, you'll be offered 3 options:
 # Review output carefully!
 
 # 4. Deploy with confirmation
-/fractary-faber-cloud:deploy-execute --env prod
+/fractary-faber-cloud:deploy-apply --env prod
 # Will prompt for confirmation at each step
 ```
 
@@ -156,6 +156,6 @@ If deployment fails or causes issues:
 
 ## Invocation
 
-This command invokes the `infra-manager` agent with the `deploy-execute` operation.
+This command invokes the `infra-manager` agent with the `deploy-apply` operation.
 
-USE AGENT: infra-manager with operation=deploy-execute and environment from --env parameter
+USE AGENT: infra-manager with operation=deploy-apply and environment from --env parameter

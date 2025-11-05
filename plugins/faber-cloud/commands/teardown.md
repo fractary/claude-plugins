@@ -1,13 +1,13 @@
 ---
-name: fractary-faber-cloud:deploy-destroy
-description: Destroy deployed infrastructure (terraform destroy)
+name: fractary-faber-cloud:teardown
+description: Teardown deployed infrastructure (terraform destroy)
 examples:
-  - /fractary-faber-cloud:deploy-destroy --env test
-  - /fractary-faber-cloud:deploy-destroy --env staging
+  - /fractary-faber-cloud:teardown --env test
+  - /fractary-faber-cloud:teardown --env staging
 argument-hint: "--env <environment> [--auto-approve]"
 ---
 
-# Deploy-Destroy Command
+# Teardown Command
 
 
 <ARGUMENT_SYNTAX>
@@ -22,19 +22,19 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:deploy-destroy --env test
+/fractary-faber-cloud:teardown --env test
 
 # Incorrect ❌
-/fractary-faber-cloud:deploy-destroy --env=test
+/fractary-faber-cloud:teardown --env=test
 ```
 </ARGUMENT_SYNTAX>
 
-Destroy deployed infrastructure in the specified environment.
+Teardown deployed infrastructure in the specified environment.
 
 ## Usage
 
 ```bash
-/fractary-faber-cloud:deploy-destroy --env <environment> [options]
+/fractary-faber-cloud:teardown --env <environment> [options]
 ```
 
 ## Arguments
@@ -45,11 +45,11 @@ Destroy deployed infrastructure in the specified environment.
 ## Examples
 
 ```bash
-# Destroy test environment (with confirmation)
-/fractary-faber-cloud:deploy-destroy --env test
+# Teardown test environment (with confirmation)
+/fractary-faber-cloud:teardown --env test
 
-# Destroy with auto-confirmation (be careful!)
-/fractary-faber-cloud:deploy-destroy --env test --auto-approve
+# Teardown with auto-confirmation (be careful!)
+/fractary-faber-cloud:teardown --env test --auto-approve
 ```
 
 ## Safety
@@ -103,6 +103,6 @@ If destruction fails:
 
 ## Agent Invocation
 
-This command invokes the infra-manager agent with operation="deploy-destroy".
+This command invokes the infra-manager agent with operation="teardown".
 
-USE AGENT: infra-manager with operation=deploy-destroy and environment from --env parameter
+USE AGENT: infra-manager with operation=teardown and environment from --env parameter

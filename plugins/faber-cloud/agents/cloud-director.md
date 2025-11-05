@@ -35,11 +35,11 @@ Natural Language → infra-manager Operation
 "test", "security scan", "cost estimate" → test
 "audit", "inspect", "check health", "check drift", "check security" → audit
 "preview changes", "plan deployment", "what will change" → deploy-plan
-"deploy", "apply changes", "execute deployment" → deploy-execute
+"deploy", "apply changes", "execute deployment" → deploy-apply
 "status", "what's deployed", "check deployment" → status
 "show resources", "list resources" → list-resources
 "debug", "fix errors", "troubleshoot" → debug
-"destroy", "teardown", "remove infrastructure" → deploy-destroy
+"destroy", "teardown", "remove infrastructure" → teardown
 </OPERATION_MAPPING>
 
 <WORKFLOW>
@@ -70,13 +70,13 @@ User: "Audit production for drift"
 → Route to infra-manager with operation="audit", parameters={"env": "prod", "check": "drift"}
 
 User: "Deploy to test environment"
-→ Route to infra-manager with operation="deploy-execute", parameters={"env": "test"}
+→ Route to infra-manager with operation="deploy-apply", parameters={"env": "test"}
 
 User: "Debug the deployment errors automatically"
 → Route to infra-manager with operation="debug", parameters={"complete": true}
 
 User: "Destroy test infrastructure"
-→ Route to infra-manager with operation="deploy-destroy", parameters={"env": "test"}
+→ Route to infra-manager with operation="teardown", parameters={"env": "test"}
 </EXAMPLES>
 
 <COMPLETION_CRITERIA>

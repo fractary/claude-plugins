@@ -68,7 +68,7 @@ After generating code, you should:
 - Validate: `/fractary-faber-cloud:validate`
 - Test: `/fractary-faber-cloud:test`
 - Preview: `/fractary-faber-cloud:deploy-plan`
-- Deploy: `/fractary-faber-cloud:deploy-execute --env test`
+- Deploy: `/fractary-faber-cloud:deploy-apply --env test`
 
 ## Invocation
 

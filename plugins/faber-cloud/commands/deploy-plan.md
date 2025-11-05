@@ -90,7 +90,7 @@ Run deploy-plan:
 ## Next Steps
 
 After reviewing plan:
-- Deploy if acceptable: `/fractary-faber-cloud:deploy-execute --env test`
+- Deploy if acceptable: `/fractary-faber-cloud:deploy-apply --env test`
 - Modify code if needed: `/fractary-faber-cloud:engineer`
 - Re-test if concerned: `/fractary-faber-cloud:test`
 
@@ -103,7 +103,7 @@ After reviewing plan:
 /fractary-faber-cloud:test
 /fractary-faber-cloud:deploy-plan --env prod
 # Review output carefully
-/fractary-faber-cloud:deploy-execute --env prod
+/fractary-faber-cloud:deploy-apply --env prod
 ```
 
 ## Invocation

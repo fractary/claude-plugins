@@ -148,7 +148,7 @@ Some issues can be automatically fixed:
 
 **After deployment failure:**
 ```
-/fractary-faber-cloud:deploy-execute --env test
+/fractary-faber-cloud:deploy-apply --env test
 # Error: AccessDenied for CreateFunction
 
 /fractary-faber-cloud:debug "AccessDenied for CreateFunction"
@@ -175,7 +175,7 @@ Run debug:
 
 After debugging:
 - Apply suggested fixes
-- Retry operation: `/fractary-faber-cloud:deploy-execute --env test`
+- Retry operation: `/fractary-faber-cloud:deploy-apply --env test`
 - If still failing: Review AWS console
 - Document issue for team
 

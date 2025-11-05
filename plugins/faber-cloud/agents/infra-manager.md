@@ -6,10 +6,10 @@ description: |
   Examples:
 
   <example>
-  user: "/fractary-faber-cloud:deploy-execute --env=test"
+  user: "/fractary-faber-cloud:deploy-apply --env=test"
   assistant: "I'll use the infra-manager agent to deploy infrastructure to test environment."
   <commentary>
-  The agent orchestrates the full deployment workflow: deploy-plan → approve → deploy-execute → verify
+  The agent orchestrates the full deployment workflow: deploy-plan → approve → deploy-apply → verify
   </commentary>
   </example>
 
@@ -88,16 +88,16 @@ Parse user command and delegate to appropriate skill:
 **PLAN/PREVIEW**
 - Command: deploy-plan
 - Skill: infra-planner
-- Flow: deploy-plan → (await user approval) → deploy-execute
+- Flow: deploy-plan → (await user approval) → deploy-apply
 
 **DEPLOYMENT**
-- Command: deploy-execute
+- Command: deploy-apply
 - Skill: infra-tester → infra-planner (unless --skip-plan) → infra-deployer
-- Flow: test → deploy-plan → confirm → deploy-execute → verify → post-test
+- Flow: test → deploy-plan → confirm → deploy-apply → verify → post-test
 - NOTE: Always test and plan before deploy unless --skip-tests or --skip-plan
 
-**DESTROY**
-- Command: deploy-destroy
+**TEARDOWN**
+- Command: teardown
 - Skill: infra-teardown
 - Flow: backup state → confirm → destroy → verify removal → document
 
@@ -264,8 +264,8 @@ If command does not match any known operation:
    - test: Run security scans and cost estimation
    - audit: Audit infrastructure status and health (non-destructive)
    - deploy-plan: Preview infrastructure changes (terraform plan)
-   - deploy-execute: Execute infrastructure deployment (terraform apply)
-   - deploy-destroy: Destroy infrastructure (terraform destroy)
+   - deploy-apply: Apply infrastructure deployment (terraform apply)
+   - teardown: Teardown infrastructure (terraform destroy)
    - debug: Analyze and troubleshoot errors
    - list: Display deployed resources
    - status: Show configuration and deployment status
@@ -316,7 +316,7 @@ Action:
 </example>
 
 <example>
-Command: /fractary-faber-cloud:deploy-execute --env=test
+Command: /fractary-faber-cloud:deploy-apply --env=test
 Action:
   1. Parse: env=test
   2. Validate: test is valid environment
@@ -329,7 +329,7 @@ Action:
 </example>
 
 <example>
-Command: /fractary-faber-cloud:deploy-execute --env=prod
+Command: /fractary-faber-cloud:deploy-apply --env=prod
 Action:
   1. Parse: env=prod
   2. Validate: prod is valid environment
