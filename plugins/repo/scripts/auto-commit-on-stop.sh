@@ -80,21 +80,21 @@ generate_commit_message() {
     local stats=$(git diff --cached --numstat)
     local name_status=$(git diff --cached --name-status)
 
-    # Count changes by type
-    local added=$(echo "$name_status" | grep "^A" | wc -l | tr -d ' ')
-    local modified=$(echo "$name_status" | grep "^M" | wc -l | tr -d ' ')
-    local deleted=$(echo "$name_status" | grep "^D" | wc -l | tr -d ' ')
-    local renamed=$(echo "$name_status" | grep "^R" | wc -l | tr -d ' ')
+    # Count changes by type (with defensive fallback)
+    local added=$(($(echo "$name_status" | grep "^A" | wc -l | tr -d ' ') + 0))
+    local modified=$(($(echo "$name_status" | grep "^M" | wc -l | tr -d ' ') + 0))
+    local deleted=$(($(echo "$name_status" | grep "^D" | wc -l | tr -d ' ') + 0))
+    local renamed=$(($(echo "$name_status" | grep "^R" | wc -l | tr -d ' ') + 0))
 
     # Get file extensions and paths
     local files=$(git diff --cached --name-only)
-    local file_count=$(echo "$files" | wc -l | tr -d ' ')
+    local file_count=$(($(echo "$files" | wc -l | tr -d ' ') + 0))
 
-    # Analyze file types
-    local has_docs=$(echo "$files" | grep -iE "\.(md|rst|txt|adoc)$" | wc -l | tr -d ' ')
-    local has_scripts=$(echo "$files" | grep -E "\.(sh|bash|zsh|fish)$" | wc -l | tr -d ' ')
-    local has_config=$(echo "$files" | grep -E "\.(toml|yaml|yml|json|ini|conf)$" | wc -l | tr -d ' ')
-    local has_source=$(echo "$files" | grep -E "\.(js|ts|py|rb|go|rs|java|c|cpp|h|hpp)$" | wc -l | tr -d ' ')
+    # Analyze file types (with defensive fallback)
+    local has_docs=$(($(echo "$files" | grep -iE "\.(md|rst|txt|adoc)$" | wc -l | tr -d ' ') + 0))
+    local has_scripts=$(($(echo "$files" | grep -E "\.(sh|bash|zsh|fish)$" | wc -l | tr -d ' ') + 0))
+    local has_config=$(($(echo "$files" | grep -E "\.(toml|yaml|yml|json|ini|conf)$" | wc -l | tr -d ' ') + 0))
+    local has_source=$(($(echo "$files" | grep -E "\.(js|ts|py|rb|go|rs|java|c|cpp|h|hpp)$" | wc -l | tr -d ' ') + 0))
 
     # Determine commit type and generate summary
     local commit_type="chore"

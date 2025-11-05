@@ -546,10 +546,10 @@ setup_permissions() {
     # Write to settings file
     mv "$temp_file" "$SETTINGS_FILE"
 
-    # Count changes
-    local allow_count=$(echo "$all_allow" | grep -v '^$' | wc -l)
-    local require_count=$(echo "$all_require" | grep -v '^$' | wc -l)
-    local deny_count=$(echo "$all_deny" | grep -v '^$' | wc -l)
+    # Count changes (consistent with other scripts)
+    local allow_count=$(echo "$all_allow" | grep -v '^$' | wc -l | tr -d ' ')
+    local require_count=$(echo "$all_require" | grep -v '^$' | wc -l | tr -d ' ')
+    local deny_count=$(echo "$all_deny" | grep -v '^$' | wc -l | tr -d ' ')
 
     echo ""
     echo -e "${GREEN}✅ Updated settings${NC}"
