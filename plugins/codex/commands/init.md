@@ -261,14 +261,31 @@ After successful initialization, guide the user:
    - Show key configuration values
 
 2. **How to customize**:
-   - Explain what can be configured
-   - Point to configuration schema
-   - Reference example configs
+   - **Global config**: `~/.config/fractary/codex/config.json`
+     - `default_sync_patterns`: Glob patterns to include (e.g., "docs/**", "CLAUDE.md")
+     - `default_exclude_patterns`: Glob patterns to exclude (e.g., "**/.git/**", "**/node_modules/**")
+     - `handlers.sync.options.github.deletion_threshold`: Safety limits
+     - `handlers.sync.options.github.parallel_repos`: Concurrent sync count
+
+   - **Project config**: `.fractary/plugins/codex/config/codex.json`
+     - `sync_patterns`: Project-specific overrides for patterns to include
+     - `exclude_patterns`: Project-specific overrides for patterns to exclude
+     - `sync_direction`: "to-codex" | "from-codex" | "bidirectional"
+
+   - **Frontmatter (per-file control)**: Add to markdown/YAML files
+     ```yaml
+     ---
+     codex_sync_include: ["pattern1", "pattern2"]
+     codex_sync_exclude: ["pattern1", "pattern2"]
+     ---
+     ```
+
+   - **Configuration schema**: See `.claude-plugin/config.schema.json` for all options
 
 3. **Next steps**:
-   - How to run first sync
-   - How to test with dry-run
-   - Where to find more documentation
+   - Test with dry-run: `/fractary-codex:sync-project --dry-run`
+   - Run first sync: `/fractary-codex:sync-project`
+   - See full docs: `plugins/codex/README.md`
 
 Keep guidance concise but complete.
 </DOCUMENTATION>
