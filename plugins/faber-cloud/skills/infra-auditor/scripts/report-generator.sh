@@ -9,6 +9,70 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLOUD_COMMON_DIR="${SCRIPT_DIR}/../../cloud-common/scripts"
 source "${CLOUD_COMMON_DIR}/config-loader.sh"
 
+# Check required dependencies
+# Usage: check_dependencies
+check_dependencies() {
+    local missing_deps=()
+
+    # Check for jq (JSON processor)
+    if ! command -v jq &>/dev/null; then
+        missing_deps+=("jq")
+    fi
+
+    # Check for bc (calculator for cost analysis)
+    if ! command -v bc &>/dev/null; then
+        missing_deps+=("bc")
+    fi
+
+    # Check for aws CLI
+    if ! command -v aws &>/dev/null; then
+        missing_deps+=("aws")
+    fi
+
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        log_error "Missing required dependencies: ${missing_deps[*]}"
+        log_info "Please install missing dependencies:"
+        for dep in "${missing_deps[@]}"; do
+            case "$dep" in
+                jq)
+                    log_info "  - jq: brew install jq (macOS) or apt-get install jq (Ubuntu)"
+                    ;;
+                bc)
+                    log_info "  - bc: brew install bc (macOS) or apt-get install bc (Ubuntu)"
+                    ;;
+                aws)
+                    log_info "  - aws: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+                    ;;
+            esac
+        done
+        return 1
+    fi
+
+    return 0
+}
+
+# Validate AWS credentials
+# Usage: validate_aws_credentials
+validate_aws_credentials() {
+    if [[ -z "${AWS_PROFILE:-}" ]]; then
+        log_error "AWS_PROFILE not set. Cannot proceed without AWS credentials."
+        log_info "Ensure configuration is loaded and AWS profile is configured."
+        return 1
+    fi
+
+    # Test AWS credentials by making a simple API call
+    if ! aws sts get-caller-identity --profile "$AWS_PROFILE" &>/dev/null; then
+        log_error "AWS credentials are invalid or not configured for profile: ${AWS_PROFILE}"
+        log_info "Please configure AWS credentials:"
+        log_info "  1. Run: aws configure --profile ${AWS_PROFILE}"
+        log_info "  2. Or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables"
+        log_info "  3. Or configure ~/.aws/credentials file"
+        return 1
+    fi
+
+    return 0
+}
+
 # Report configuration
 export AUDIT_BASE_DIR=""
 export AUDIT_ENV_DIR=""
@@ -102,18 +166,15 @@ add_check_result() {
     shift 2
     local details="$@"
 
-    # Create temporary check object
-    local check_json=$(cat <<CHECKEOF
-{
-  "name": "${check_name}",
-  "status": "${status}",
-  "details": "${details}"
-}
-CHECKEOF
-)
-
-    # Add to checks array
-    jq ".checks += [${check_json}]" "$AUDIT_REPORT_JSON" > "${AUDIT_REPORT_JSON}.tmp"
+    # Use jq with --arg to safely handle special characters and prevent JSON injection
+    jq --arg name "$check_name" \
+       --arg status "$status" \
+       --arg details "$details" \
+       '.checks += [{
+           "name": $name,
+           "status": $status,
+           "details": $details
+       }]' "$AUDIT_REPORT_JSON" > "${AUDIT_REPORT_JSON}.tmp"
     mv "${AUDIT_REPORT_JSON}.tmp" "$AUDIT_REPORT_JSON"
 
     # Update summary counts
@@ -137,7 +198,16 @@ add_metric() {
     local key="$1"
     local value="$2"
 
-    jq ".metrics.${key} = \"${value}\"" "$AUDIT_REPORT_JSON" > "${AUDIT_REPORT_JSON}.tmp"
+    # Validate key contains only alphanumeric characters and underscores
+    if [[ ! "$key" =~ ^[a-zA-Z0-9_]+$ ]]; then
+        log_error "Invalid metric key: ${key}. Must contain only alphanumeric characters and underscores."
+        return 1
+    fi
+
+    # Use jq with --arg to safely handle special characters
+    jq --arg key "$key" \
+       --arg value "$value" \
+       '.metrics[$key] = $value' "$AUDIT_REPORT_JSON" > "${AUDIT_REPORT_JSON}.tmp"
     mv "${AUDIT_REPORT_JSON}.tmp" "$AUDIT_REPORT_JSON"
 }
 
@@ -147,15 +217,13 @@ add_recommendation() {
     local priority="$1"  # critical, important, optimization
     local recommendation="$2"
 
-    local rec_json=$(cat <<RECEOF
-{
-  "priority": "${priority}",
-  "recommendation": "${recommendation}"
-}
-RECEOF
-)
-
-    jq ".recommendations += [${rec_json}]" "$AUDIT_REPORT_JSON" > "${AUDIT_REPORT_JSON}.tmp"
+    # Use jq with --arg to safely handle special characters and prevent JSON injection
+    jq --arg priority "$priority" \
+       --arg recommendation "$recommendation" \
+       '.recommendations += [{
+           "priority": $priority,
+           "recommendation": $recommendation
+       }]' "$AUDIT_REPORT_JSON" > "${AUDIT_REPORT_JSON}.tmp"
     mv "${AUDIT_REPORT_JSON}.tmp" "$AUDIT_REPORT_JSON"
 }
 

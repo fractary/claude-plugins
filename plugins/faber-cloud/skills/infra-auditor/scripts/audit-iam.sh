@@ -8,6 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/report-generator.sh"
 
+# Check dependencies before proceeding
+if ! check_dependencies; then
+    exit 1
+fi
+
 # Parse arguments
 ENVIRONMENT=""
 
@@ -40,6 +45,12 @@ init_audit_report "$ENVIRONMENT" "iam-health"
 generate_report_header "iam-health" "$ENVIRONMENT"
 init_json_report "iam-health" "$ENVIRONMENT"
 
+# Validate AWS credentials
+if ! validate_aws_credentials; then
+    log_error "Cannot proceed without valid AWS credentials"
+    exit 1
+fi
+
 log_info "Starting IAM health audit for ${ENVIRONMENT}"
 
 # Check 1: Verify deploy user exists
@@ -67,7 +78,8 @@ else
     CURRENT_DATE=$(date +%s)
     OLD_KEYS=0
 
-    echo "$ACCESS_KEYS" | jq -c '.AccessKeyMetadata[]' | while read -r key; do
+    # Use process substitution to avoid subshell variable scope issues
+    while read -r key; do
         KEY_ID=$(echo "$key" | jq -r '.AccessKeyId')
         CREATE_DATE=$(echo "$key" | jq -r '.CreateDate')
         CREATE_TIMESTAMP=$(date -d "$CREATE_DATE" +%s 2>/dev/null || echo "0")
@@ -76,7 +88,7 @@ else
         if [[ $AGE_DAYS -gt 90 ]]; then
             OLD_KEYS=$((OLD_KEYS + 1))
         fi
-    done
+    done < <(echo "$ACCESS_KEYS" | jq -c '.AccessKeyMetadata[]')
 
     if [[ $OLD_KEYS -gt 0 ]]; then
         add_check_result "Access Key Age" "warn" "${OLD_KEYS} access keys are older than 90 days"

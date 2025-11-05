@@ -8,6 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/report-generator.sh"
 
+# Check dependencies before proceeding
+if ! check_dependencies; then
+    exit 1
+fi
+
 # Parse arguments
 ENVIRONMENT=""
 
@@ -39,6 +44,12 @@ fi
 init_audit_report "$ENVIRONMENT" "cost"
 generate_report_header "cost" "$ENVIRONMENT"
 init_json_report "cost" "$ENVIRONMENT"
+
+# Validate AWS credentials
+if ! validate_aws_credentials; then
+    log_error "Cannot proceed without valid AWS credentials"
+    exit 1
+fi
 
 log_info "Starting cost analysis audit for ${ENVIRONMENT}"
 

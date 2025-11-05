@@ -8,6 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/report-generator.sh"
 
+# Check dependencies before proceeding
+if ! check_dependencies; then
+    exit 1
+fi
+
 # Parse arguments
 ENVIRONMENT=""
 
@@ -40,6 +45,12 @@ init_audit_report "$ENVIRONMENT" "security"
 generate_report_header "security" "$ENVIRONMENT"
 init_json_report "security" "$ENVIRONMENT"
 
+# Validate AWS credentials
+if ! validate_aws_credentials; then
+    log_error "Cannot proceed without valid AWS credentials"
+    exit 1
+fi
+
 log_info "Starting security posture audit for ${ENVIRONMENT}"
 
 # Check 1: Open security groups
@@ -52,7 +63,8 @@ OPEN_SSH=0
 OPEN_RDP=0
 OPEN_ALL=0
 
-echo "$SECURITY_GROUPS" | jq -c '.SecurityGroups[]' | while read -r sg; do
+# Use process substitution to avoid subshell variable scope issues
+while read -r sg; do
     SG_ID=$(echo "$sg" | jq -r '.GroupId')
     SG_NAME=$(echo "$sg" | jq -r '.GroupName')
 
@@ -80,7 +92,7 @@ echo "$SECURITY_GROUPS" | jq -c '.SecurityGroups[]' | while read -r sg; do
             log_warning "  All ports open to internet in ${SG_NAME} (${SG_ID})"
         fi
     fi
-done
+done < <(echo "$SECURITY_GROUPS" | jq -c '.SecurityGroups[]')
 
 if [[ $OPEN_SSH -gt 0 || $OPEN_RDP -gt 0 || $OPEN_ALL -gt 0 ]]; then
     add_check_result "Security Group Rules" "fail" "Open to internet: ${OPEN_SSH} SSH, ${OPEN_RDP} RDP, ${OPEN_ALL} all ports"
@@ -218,7 +230,8 @@ EC2_INSTANCES=$(aws ec2 describe-instances \
     --filters "Name=instance-state-name,Values=running" \
     --profile "$AWS_PROFILE" 2>/dev/null || echo '{"Reservations":[]}')
 
-echo "$EC2_INSTANCES" | jq -c '.Reservations[].Instances[]' | while read -r instance; do
+# Use process substitution to avoid subshell variable scope issues
+while read -r instance; do
     TAGS=$(echo "$instance" | jq -r '.Tags[]? | .Key')
 
     for required_tag in "${REQUIRED_TAGS[@]}"; do
@@ -227,7 +240,7 @@ echo "$EC2_INSTANCES" | jq -c '.Reservations[].Instances[]' | while read -r inst
             break
         fi
     done
-done
+done < <(echo "$EC2_INSTANCES" | jq -c '.Reservations[].Instances[]')
 
 if [[ $UNTAGGED_RESOURCES -gt 0 ]]; then
     add_check_result "Resource Tagging" "warn" "${UNTAGGED_RESOURCES} resources missing required tags"
