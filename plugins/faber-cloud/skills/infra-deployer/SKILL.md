@@ -65,28 +65,34 @@ AWS Profile: {profile}
 **EXECUTE STEPS:**
 
 1. Load configuration for environment
-2. Run environment safety validation (validate-plan.sh)
-3. Validate AWS profile separation
-4. Authenticate with AWS (via handler-hosting-aws)
-5. **Execute pre-deploy hooks:**
+2. Run enhanced environment validation:
+   ```bash
+   bash plugins/faber-cloud/skills/infra-deployer/scripts/enhanced-validate-environment.sh {terraform_dir} {environment} {plan_file}
+   ```
+   - If validation fails (exit code 1): STOP deployment, show errors
+   - If validation passes (exit code 0): Continue to step 3
+3. Run legacy validation (validate-plan.sh) for profile/backend checks
+4. Validate AWS profile separation
+5. Authenticate with AWS (via handler-hosting-aws)
+6. **Execute pre-deploy hooks:**
    ```bash
    bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh pre-deploy {environment} {terraform_dir}
    ```
    - If hooks fail (exit code 1): STOP deployment, show error
-   - If hooks pass (exit code 0): Continue to step 6
-6. Execute Terraform apply (via handler-iac-terraform)
-7. If permission error: Present error delegation options
-8. **Execute post-deploy hooks:**
+   - If hooks pass (exit code 0): Continue to step 7
+7. Execute Terraform apply (via handler-iac-terraform)
+8. If permission error: Present error delegation options
+9. **Execute post-deploy hooks:**
    ```bash
    bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh post-deploy {environment} {terraform_dir}
    ```
    - If hooks fail: WARN user, deployment already complete but post-deploy actions failed
-   - If hooks pass: Continue to step 9
-9. Verify deployed resources (via handler-hosting-aws)
-10. Update resource registry
-11. Generate DEPLOYED.md documentation
-12. Update deployment history
-13. Report deployment results
+   - If hooks pass: Continue to step 10
+10. Verify deployed resources (via handler-hosting-aws)
+11. Update resource registry
+12. Generate DEPLOYED.md documentation
+13. Update deployment history
+14. Report deployment results
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
@@ -132,19 +138,30 @@ Return deployment results:
 <SAFETY_VALIDATION>
 Before deployment (step 2):
 
-1. Run validate-plan.sh script:
-   - Validates ENV matches Terraform workspace
+1. Run enhanced environment validation:
+   ```bash
+   bash plugins/faber-cloud/skills/infra-deployer/scripts/enhanced-validate-environment.sh {terraform_dir} {environment} {plan_file}
+   ```
+
+   This validates:
+   - ENV matches tfvars file name (e.g., test.tfvars → test environment)
+   - ENV matches Terraform workspace
+   - ENV matches resources in state file
+   - Resource naming patterns include correct environment
+   - Production-specific safety checks (destructive changes, high change count)
+
+2. Run legacy validate-plan.sh script:
    - Validates AWS profile correct
    - Validates backend configuration
    - Checks for hardcoded environment values
 
-2. If validation fails:
+3. If validation fails:
    - STOP immediately
    - Show validation errors
    - Do NOT proceed with deployment
    - Wait for user to fix issues
 
-3. If validation passes:
+4. If validation passes:
    - Continue to terraform init (step 3)
 </SAFETY_VALIDATION>
 
