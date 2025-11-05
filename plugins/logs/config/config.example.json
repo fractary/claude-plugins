@@ -5,7 +5,13 @@
     "cloud_archive_path": "archive/logs/{year}/{month}/{issue_number}",
     "archive_index_file": ".archive-index.json",
     "provider": "s3",
-    "bucket": "fractary-logs"
+    "bucket": "fractary-logs",
+    "limits": {
+      "max_session_size_mb": 50,
+      "max_log_size_mb": 100,
+      "warn_session_size_mb": 10,
+      "total_storage_warn_gb": 1
+    }
   },
   "retention": {
     "strategy": "hybrid",
@@ -38,6 +44,7 @@
     "include_timestamps": true,
     "redact_sensitive": true,
     "auto_name_by_issue": true,
+    "model_name": "claude-sonnet-4-5-20250929",
     "redaction_patterns": {
       "api_keys": true,
       "jwt_tokens": true,
