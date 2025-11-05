@@ -1,290 +1,372 @@
 ---
 name: file-manager
-description: File storage operations across R2, S3, local filesystem, etc.
+description: Routes file storage operations to appropriate handler skills based on configuration
 ---
 
-# File Manager Skill
+<CONTEXT>
+You are the file-manager skill, responsible for routing file operations to appropriate storage handler skills based on configuration. You are the bridge between the file-manager agent and handler-specific skills.
 
-Provides file storage operations for FABER workflows. This skill is platform-agnostic and supports multiple storage backends through adapters.
+Your responsibilities:
+- Load and validate file plugin configuration
+- Determine which handler to use (local, r2, s3, gcs, gdrive)
+- Expand environment variables in credentials
+- Prepare handler-specific parameters
+- Invoke the appropriate handler skill
+- Return structured results
+</CONTEXT>
 
-## Purpose
+<CRITICAL_RULES>
+1. NEVER implement storage operations directly
+2. ALWAYS delegate to handler skills
+3. ALWAYS validate configuration before routing
+4. NEVER expose credentials in outputs or logs
+5. ALWAYS expand environment variables before passing to handlers
+6. NEVER bypass handler skills
+7. ALWAYS validate paths for safety (no path traversal)
+8. ALWAYS source common functions for shared utilities
+</CRITICAL_RULES>
 
-Handle all interactions with file storage systems:
-- Upload files to storage
-- Download files from storage
-- Delete files from storage
-- List files in storage
-- Get public URLs for files
+<INPUTS>
+You receive operation requests from the file-manager agent:
 
-## Configuration
-
-Reads `project.file_system` from configuration to determine which adapter to use:
-
-```toml
-[project]
-file_system = "r2"  # r2 | s3 | local
+```json
+{
+  "operation": "upload|download|delete|list|get-url|read",
+  "handler": "local|r2|s3|gcs|gdrive",
+  "parameters": {
+    "local_path": "...",
+    "remote_path": "...",
+    "public": false,
+    "max_results": 100,
+    "max_bytes": 10485760,
+    "expires_in": 3600
+  },
+  "config": {
+    "active_handler": "local",
+    "handlers": {...},
+    "global_settings": {...}
+  }
+}
 ```
+</INPUTS>
 
-## Operations
+<WORKFLOW>
+See workflow/route-operation.md for detailed routing logic.
 
-### Upload File
+## High-Level Flow
 
-Upload a file to storage.
+1. **Load Configuration**
+   - Source common functions library
+   - Load configuration from project or global location
+   - Use provided config or load from filesystem
+   - Default to local handler if no config found
 
+2. **Validate Request**
+   - Validate operation is supported
+   - Validate required parameters present
+   - Validate paths for safety (no path traversal)
+   - Validate handler exists and is configured
+
+3. **Prepare Handler Parameters**
+   - Extract handler-specific configuration
+   - Expand environment variables (${VAR_NAME})
+   - Prepare all parameters needed by handler
+   - Include global settings (retry, timeout)
+
+4. **Invoke Handler Skill**
+   - Determine handler skill name (handler-storage-{provider})
+   - Invoke skill using Skill tool
+   - Pass operation + config + parameters
+   - Handler executes scripts and returns results
+
+5. **Return Results**
+   - Receive structured results from handler
+   - Add metadata (handler used, timestamp)
+   - Return to agent
+
+</WORKFLOW>
+
+<HANDLERS>
+This skill routes to handler-storage-* skills:
+- **handler-storage-local**: Local filesystem operations
+- **handler-storage-r2**: Cloudflare R2 operations
+- **handler-storage-s3**: AWS S3 operations
+- **handler-storage-gcs**: Google Cloud Storage operations
+- **handler-storage-gdrive**: Google Drive operations
+
+Each handler implements 6 operations: upload, download, delete, list, get-url, read
+
+**Handler Invocation Pattern**:
+```
+Use the handler-storage-{provider} skill to perform {operation}:
+{
+  "operation": "upload",
+  "config": {extracted handler config},
+  "parameters": {operation parameters}
+}
+```
+</HANDLERS>
+
+<CONFIGURATION_LOADING>
+Configuration is loaded in this priority order:
+
+1. **Provided Config**: Use config from request if present
+2. **Project Config**: `.fractary/plugins/file/config.json`
+3. **Global Config**: `~/.config/fractary/file/config.json`
+4. **Default Config**: Local handler with `./storage` base path
+
+**Loading Process**:
 ```bash
-./scripts/<adapter>/upload.sh <local_path> <remote_path> [public]
+# Source common functions
+source "$(dirname "$0")/../common/functions.sh"
+
+# Get active handler
+ACTIVE_HANDLER=$(get_active_handler "$CONFIG_FILE")
+
+# Load handler config
+HANDLER_CONFIG=$(load_handler_config "$CONFIG_FILE" "$ACTIVE_HANDLER")
+
+# Load global settings
+GLOBAL_SETTINGS=$(load_global_settings "$CONFIG_FILE")
 ```
 
-**Parameters:**
-- `local_path`: Local file path
-- `remote_path`: Remote storage path
-- `public` (optional): Make file publicly accessible (true/false, default: false)
-
-**Returns:** Remote path or URL
-
-**Example:**
+**Environment Variable Expansion**:
 ```bash
-url=$(./scripts/r2/upload.sh ./spec.md faber/specs/abc12345-spec.md true)
+# Expand ${VAR_NAME} in configuration values
+ACCESS_KEY=$(expand_env_vars "$(echo "$HANDLER_CONFIG" | jq -r '.access_key_id')")
+SECRET_KEY=$(expand_env_vars "$(echo "$HANDLER_CONFIG" | jq -r '.secret_access_key')")
+```
+</CONFIGURATION_LOADING>
+
+<HANDLER_PARAMETER_PREPARATION>
+Each handler requires specific parameters. Prepare based on handler type:
+
+## Local Handler Parameters
+```json
+{
+  "base_path": "./storage",
+  "local_path": "source.txt",
+  "remote_path": "dest.txt",
+  "create_directories": true
+}
 ```
 
-### Download File
+## R2 Handler Parameters
+```json
+{
+  "account_id": "expanded-account-id",
+  "bucket_name": "my-bucket",
+  "access_key_id": "expanded-access-key",
+  "secret_access_key": "expanded-secret",
+  "local_path": "source.txt",
+  "remote_path": "dest.txt",
+  "public": false,
+  "public_url": "https://pub-xxxxx.r2.dev"
+}
+```
 
-Download a file from storage.
+## S3 Handler Parameters
+```json
+{
+  "region": "us-east-1",
+  "bucket_name": "my-bucket",
+  "access_key_id": "expanded-access-key",
+  "secret_access_key": "expanded-secret",
+  "endpoint": null,
+  "local_path": "source.txt",
+  "remote_path": "dest.txt",
+  "public": false
+}
+```
 
+## GCS Handler Parameters
+```json
+{
+  "project_id": "my-project",
+  "bucket_name": "my-bucket",
+  "service_account_key": "expanded-key-path",
+  "region": "us-central1",
+  "local_path": "source.txt",
+  "remote_path": "dest.txt",
+  "public": false
+}
+```
+
+## Google Drive Handler Parameters
+```json
+{
+  "client_id": "expanded-client-id",
+  "client_secret": "expanded-secret",
+  "folder_id": "root",
+  "local_path": "source.txt",
+  "remote_path": "dest.txt"
+}
+```
+</HANDLER_PARAMETER_PREPARATION>
+
+<VALIDATION>
+Before routing to handler, validate:
+
+## Path Validation
 ```bash
-./scripts/<adapter>/download.sh <remote_path> <local_path>
+# Use common function to validate paths
+validate_path "$REMOTE_PATH"
+if [[ $? -ne 0 ]]; then
+    return_result false "Invalid path: contains path traversal"
+    exit 1
+fi
 ```
 
-**Parameters:**
-- `remote_path`: Remote storage path
-- `local_path`: Local destination path
-
-**Returns:** Success/failure indicator
-
-**Example:**
+## Configuration Validation
 ```bash
-./scripts/r2/download.sh faber/specs/abc12345-spec.md ./downloaded-spec.md
+# Check handler exists
+if [[ -z "$HANDLER_CONFIG" ]] || [[ "$HANDLER_CONFIG" == "{}" ]]; then
+    return_result false "Handler not configured: $ACTIVE_HANDLER"
+    exit 3
+fi
+
+# Check required fields (handler-specific)
+case "$ACTIVE_HANDLER" in
+    r2)
+        REQUIRED_FIELDS=("account_id" "bucket_name" "access_key_id" "secret_access_key")
+        ;;
+    s3)
+        REQUIRED_FIELDS=("region" "bucket_name")
+        ;;
+    # ... etc
+esac
+
+# Validate each required field exists
+for field in "${REQUIRED_FIELDS[@]}"; do
+    value=$(echo "$HANDLER_CONFIG" | jq -r ".$field // empty")
+    if [[ -z "$value" ]]; then
+        return_result false "Missing required field: $field for handler $ACTIVE_HANDLER"
+        exit 3
+    fi
+done
 ```
 
-### Delete File
-
-Delete a file from storage.
-
+## Operation Validation
 ```bash
-./scripts/<adapter>/delete.sh <remote_path>
+# Validate operation is supported
+VALID_OPERATIONS=("upload" "download" "delete" "list" "get-url" "read")
+if [[ ! " ${VALID_OPERATIONS[@]} " =~ " ${OPERATION} " ]]; then
+    return_result false "Invalid operation: $OPERATION"
+    exit 2
+fi
+
+# Validate operation-specific parameters
+case "$OPERATION" in
+    upload)
+        [[ -z "$LOCAL_PATH" ]] && return_result false "Missing local_path" && exit 2
+        [[ -z "$REMOTE_PATH" ]] && return_result false "Missing remote_path" && exit 2
+        [[ ! -f "$LOCAL_PATH" ]] && return_result false "File not found: $LOCAL_PATH" && exit 10
+        ;;
+    download)
+        [[ -z "$REMOTE_PATH" ]] && return_result false "Missing remote_path" && exit 2
+        [[ -z "$LOCAL_PATH" ]] && return_result false "Missing local_path" && exit 2
+        ;;
+    delete)
+        [[ -z "$REMOTE_PATH" ]] && return_result false "Missing remote_path" && exit 2
+        ;;
+    list)
+        # Optional parameters, set defaults
+        MAX_RESULTS="${MAX_RESULTS:-100}"
+        ;;
+    get-url)
+        [[ -z "$REMOTE_PATH" ]] && return_result false "Missing remote_path" && exit 2
+        EXPIRES_IN="${EXPIRES_IN:-3600}"
+        ;;
+    read)
+        [[ -z "$REMOTE_PATH" ]] && return_result false "Missing remote_path" && exit 2
+        MAX_BYTES="${MAX_BYTES:-10485760}"
+        ;;
+esac
+```
+</VALIDATION>
+
+<COMPLETION_CRITERIA>
+- Configuration loaded and validated
+- Handler determined and validated
+- Parameters prepared with env vars expanded
+- Handler skill invoked successfully
+- Results received from handler
+- Structured response returned to agent
+</COMPLETION_CRITERIA>
+
+<OUTPUTS>
+Return structured JSON results:
+
+**Success**:
+```json
+{
+  "success": true,
+  "operation": "upload",
+  "handler": "r2",
+  "result": {
+    "url": "https://...",
+    "size_bytes": 1024,
+    "checksum": "sha256:...",
+    "local_path": "..."
+  }
+}
 ```
 
-**Parameters:**
-- `remote_path`: Remote storage path to delete
-
-**Returns:** Success/failure indicator
-
-**Example:**
-```bash
-./scripts/r2/delete.sh faber/specs/abc12345-spec.md
+**Error**:
+```json
+{
+  "success": false,
+  "operation": "upload",
+  "handler": "r2",
+  "error": "File not found: /path/to/file",
+  "error_code": "FILE_NOT_FOUND"
+}
 ```
+</OUTPUTS>
 
-### List Files
+<ERROR_HANDLING>
+Handle errors at routing level:
 
-List files in storage with optional prefix filter.
+**Configuration Errors** (Exit 3):
+- Configuration not found → Use defaults, warn user
+- Handler not configured → Return error with setup instructions
+- Invalid configuration → Return validation error
+- Missing required fields → Return field list
 
-```bash
-./scripts/<adapter>/list.sh [prefix] [max_results]
-```
+**Validation Errors** (Exit 2):
+- Invalid operation → Return list of valid operations
+- Missing parameters → Return required parameters
+- Path traversal attempt → Reject, log security event
 
-**Parameters:**
-- `prefix` (optional): Path prefix to filter by
-- `max_results` (optional): Maximum number of results (default: 100)
+**Handler Errors** (Exit 1):
+- Handler invocation failed → Return handler error details
+- Handler not found → Return available handlers
+- Script execution failed → Forward handler error
 
-**Returns:** JSON array of file information
+**File Errors** (Exit 10):
+- Local file not found (upload) → Return file path
+- Remote file not found → Forward from handler
 
-**Example:**
-```bash
-files=$(./scripts/r2/list.sh faber/specs/ 50)
-```
+**Network Errors** (Exit 12):
+- Retry logic in handlers (3 attempts with exponential backoff)
+- Forward network errors from handlers
 
-### Get URL
+**Authentication Errors** (Exit 11):
+- Invalid credentials → Return credential check instructions
+- Permission denied → Return required permissions
+- Forward auth errors from handlers
+</ERROR_HANDLING>
 
-Get a public or signed URL for a file.
+<DEPENDENCIES>
+- **Common functions**: `../common/functions.sh`
+- **Handler skills**: `handler-storage-{local,r2,s3,gcs,gdrive}`
+- **System tools**: bash, jq, envsubst
+- **Configuration**: `.fractary/plugins/file/config.json`
+</DEPENDENCIES>
 
-```bash
-./scripts/<adapter>/get-url.sh <remote_path> [expires_in]
-```
-
-**Parameters:**
-- `remote_path`: Remote storage path
-- `expires_in` (optional): URL expiration time in seconds (default: 3600)
-
-**Returns:** URL string
-
-**Example:**
-```bash
-url=$(./scripts/r2/get-url.sh faber/specs/abc12345-spec.md 7200)
-```
-
-## Adapters
-
-### Cloudflare R2 Adapter
-
-Located in: `scripts/r2/`
-
-Uses AWS CLI (`aws`) with R2-compatible endpoints.
-
-**Requirements:**
-- `aws` CLI installed and configured
-- R2 credentials in environment or AWS config
-- Configured bucket in `.faber.config.toml`
-
-**See:** `docs/r2-api.md` for details
-
-### AWS S3 Adapter (Future)
-
-Located in: `scripts/s3/`
-
-Will use AWS CLI (`aws`) for S3 operations.
-
-**See:** `docs/s3-api.md` for future implementation
-
-### Local Filesystem Adapter (Future)
-
-Located in: `scripts/local/`
-
-Will use standard filesystem operations.
-
-## Error Handling
-
-All scripts follow these conventions:
-- Exit code 0: Success
-- Exit code 1: General error
-- Exit code 2: Invalid arguments
-- Exit code 3: Configuration error
-- Exit code 10: File not found
-- Exit code 11: Authentication error
-- Exit code 12: Network error
-- Exit code 13: Permission denied
-
-Error messages are written to stderr, results to stdout.
-
-## Usage in Agents
-
-Agents should invoke this skill for file storage operations:
-
-```bash
-# From file-manager agent
-SCRIPT_DIR="$(dirname "$0")/../skills/file-manager/scripts"
-
-# Determine adapter from config
-ADAPTER=$(get_file_system_from_config)  # Returns: r2, s3, local
-
-# Upload file
-url=$("$SCRIPT_DIR/$ADAPTER/upload.sh" "./spec.md" "faber/specs/abc12345.md" true)
-
-# Download file
-"$SCRIPT_DIR/$ADAPTER/download.sh" "faber/specs/abc12345.md" "./local-spec.md"
-
-# Get URL
-url=$("$SCRIPT_DIR/$ADAPTER/get-url.sh" "faber/specs/abc12345.md" 3600)
-```
-
-## Dependencies
-
-### All Adapters
-- `bash` (4.0+)
-- `jq` (for JSON parsing)
-
-### R2 Adapter
-- `aws` CLI (configured for R2)
-- R2 credentials (access key, secret key, account ID)
-
-### S3 Adapter (Future)
-- `aws` CLI
-- AWS credentials
-
-### Local Adapter (Future)
-- Standard filesystem access
-
-## Script Locations
-
-```
-skills/file-manager/
-├── SKILL.md (this file)
-├── scripts/
-│   ├── r2/
-│   │   ├── upload.sh
-│   │   ├── download.sh
-│   │   ├── delete.sh
-│   │   ├── list.sh
-│   │   └── get-url.sh
-│   ├── s3/
-│   │   └── (future)
-│   └── local/
-│       └── (future)
-└── docs/
-    ├── r2-api.md
-    └── s3-api.md
-```
-
-## File Path Conventions
-
-Storage paths follow these conventions:
-
-- **Specifications**: `faber/specs/{work_id}-{type}.md`
-- **Artifacts**: `faber/artifacts/{work_id}/{filename}`
-- **Logs**: `faber/logs/{work_id}/{stage}-{timestamp}.log`
-- **Backups**: `faber/backups/{date}/{work_id}.tar.gz`
-
-Example:
-```
-faber/
-├── specs/
-│   ├── abc12345-spec.md
-│   └── def67890-spec.md
-├── artifacts/
-│   ├── abc12345/
-│   │   ├── build.log
-│   │   └── test-results.json
-│   └── def67890/
-│       └── coverage.html
-└── logs/
-    ├── abc12345/
-    │   ├── frame-2025-01-22.log
-    │   └── build-2025-01-22.log
-    └── def67890/
-        └── evaluate-2025-01-22.log
-```
-
-## Testing
-
-Test scripts independently:
-
-```bash
-# Test R2 adapter
-export AWS_ACCESS_KEY_ID="..."
-export AWS_SECRET_ACCESS_KEY="..."
-export R2_ACCOUNT_ID="..."
-
-# Upload test file
-echo "test" > test.txt
-./scripts/r2/upload.sh test.txt faber/test/test.txt true
-
-# List files
-./scripts/r2/list.sh faber/test/
-
-# Get URL
-./scripts/r2/get-url.sh faber/test/test.txt
-
-# Download
-./scripts/r2/download.sh faber/test/test.txt downloaded.txt
-
-# Delete
-./scripts/r2/delete.sh faber/test/test.txt
-```
-
-## Notes
-
-- Scripts are stateless where possible
-- All JSON output is minified (single line) for easy parsing
-- Public files are accessible without authentication
-- Signed URLs expire after specified time
-- File paths are case-sensitive
-- Storage paths should use forward slashes
+<DOCUMENTATION>
+See workflow/route-operation.md for detailed routing logic
+See workflow/validate-config.md for configuration validation
+See docs/handler-development.md for creating new handlers
+See docs/operations.md for operation specifications
+</DOCUMENTATION>
