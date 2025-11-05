@@ -18,6 +18,9 @@ Validates frontmatter in plugin command files (`plugins/*/commands/*.md`) to cat
 - `name` field doesn't follow `plugin-name:command-name` pattern
 - Missing recommended `description` field
 
+**Excluded from checks:**
+- Files in `.archive` directories are automatically skipped
+
 ### Options
 
 - `--verbose` - Show detailed output including files that pass

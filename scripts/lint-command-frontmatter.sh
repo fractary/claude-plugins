@@ -276,10 +276,10 @@ validate_file() {
 
 # Find and validate all command files
 if [ -d "$search_path" ]; then
-    # Search for command files in the given path
+    # Search for command files in the given path (excluding .archive directories)
     while IFS= read -r -d '' file; do
         validate_file "$file"
-    done < <(find "$search_path" -type f -path "*/commands/*.md" -print0 2>/dev/null | sort -z)
+    done < <(find "$search_path" -path "*/.archive" -prune -o -type f -path "*/commands/*.md" -print0 2>/dev/null | sort -z)
 else
     # Single file
     if [ -f "$search_path" ]; then

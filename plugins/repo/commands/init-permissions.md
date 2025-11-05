@@ -1,4 +1,5 @@
 ---
+name: fractary-repo:init-permissions
 description: Configure Claude Code permissions for repo plugin operations
 ---
 
