@@ -44,11 +44,13 @@ Use TodoWrite to track deployment progress:
 5. ⏳ Validate Terraform configuration
 6. ⏳ Generate deployment plan
 7. ⏳ Review plan for safety
-8. ⏳ Execute deployment (terraform apply)
-9. ⏳ Verify resources created
-10. ⏳ Run post-deployment tests
-11. ⏳ Generate documentation
-12. ⏳ Update deployment history
+8. ⏳ **Execute pre-deploy hooks**
+9. ⏳ Execute deployment (terraform apply)
+10. ⏳ **Execute post-deploy hooks**
+11. ⏳ Verify resources created
+12. ⏳ Run post-deployment tests
+13. ⏳ Generate documentation
+14. ⏳ Update deployment history
 
 Mark each step in_progress → completed as you go.
 
@@ -66,13 +68,25 @@ AWS Profile: {profile}
 2. Run environment safety validation (validate-plan.sh)
 3. Validate AWS profile separation
 4. Authenticate with AWS (via handler-hosting-aws)
-5. Execute Terraform apply (via handler-iac-terraform)
-6. If permission error: Present error delegation options
-7. Verify deployed resources (via handler-hosting-aws)
-8. Update resource registry
-9. Generate DEPLOYED.md documentation
-10. Update deployment history
-11. Report deployment results
+5. **Execute pre-deploy hooks:**
+   ```bash
+   bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh pre-deploy {environment} {terraform_dir}
+   ```
+   - If hooks fail (exit code 1): STOP deployment, show error
+   - If hooks pass (exit code 0): Continue to step 6
+6. Execute Terraform apply (via handler-iac-terraform)
+7. If permission error: Present error delegation options
+8. **Execute post-deploy hooks:**
+   ```bash
+   bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh post-deploy {environment} {terraform_dir}
+   ```
+   - If hooks fail: WARN user, deployment already complete but post-deploy actions failed
+   - If hooks pass: Continue to step 9
+9. Verify deployed resources (via handler-hosting-aws)
+10. Update resource registry
+11. Generate DEPLOYED.md documentation
+12. Update deployment history
+13. Report deployment results
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
