@@ -5,7 +5,7 @@
 # Part of fractary-repo plugin - provides fast status access without git queries
 # Falls back to live git query if cache is stale or missing
 
-set -e
+set -euo pipefail
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"

@@ -3,7 +3,7 @@
 # Test script to verify code review fixes
 # Tests all three fixes from PR #17 code review
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'

@@ -3,7 +3,7 @@
 # Test script to verify git lock conflict fixes
 # This script simulates concurrent operations to ensure no lock conflicts occur
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'

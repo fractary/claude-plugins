@@ -3,7 +3,7 @@
 # Test script to verify latest code review fixes
 # Tests the grep-based counting and temp file cleanup
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'

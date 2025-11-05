@@ -5,7 +5,7 @@
 # Part of fractary-repo plugin - reduces concurrent git operations
 # Safe to run concurrently (uses flock for serialization)
 
-set -e
+set -euo pipefail
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
@@ -90,11 +90,11 @@ GIT_STATUS_OUTPUT=$(git status --porcelain 2>/dev/null)
 if [ -z "$GIT_STATUS_OUTPUT" ]; then
     UNCOMMITTED_CHANGES=0
 else
-    UNCOMMITTED_CHANGES=$(printf '%s\n' "$GIT_STATUS_OUTPUT" | wc -l | tr -d ' ')
+    UNCOMMITTED_CHANGES=$(printf '%s\n' "$GIT_STATUS_OUTPUT" | wc -l)
 fi
 
 # Count untracked files
-UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+UNTRACKED_FILES=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l)
 
 # Initialize ahead/behind counts
 COMMITS_AHEAD=0
@@ -119,7 +119,7 @@ if echo "$GIT_STATUS_OUTPUT" | grep -q "^UU\|^AA\|^DD"; then
 fi
 
 # Count stashes
-STASH_COUNT=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
+STASH_COUNT=$(git stash list 2>/dev/null | wc -l)
 
 # Determine if working tree is clean
 CLEAN=false
