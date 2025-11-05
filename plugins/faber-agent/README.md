@@ -66,12 +66,12 @@ claude plugin install fractary/claude-plugins/faber
 - ✅ generate-from-template skill
 - ✅ validate-artifact skill
 
-**Phase 3: Advanced Features** 🚧 In Progress
+**Phase 3: Advanced Features** ✅ Complete
 - ✅ create-plugin workflow
 - ✅ Plugin structure generation
 - ✅ Plugin templates (plugin.json, README)
-- 📋 Handler creation (planned)
-- 📋 Advanced validation (planned)
+- ✅ Handler skill template and creation
+- ✅ Advanced validation (naming conventions, cross-references)
 
 ## Architecture
 
@@ -91,6 +91,7 @@ Commands → Agents → Skills → Scripts
 Located in `templates/`:
 - `agent/manager.md.template` - Manager agent template
 - `skill/basic-skill.md.template` - Basic skill template
+- `skill/handler-skill.md.template` - Handler skill template (multi-provider)
 - `command/command.md.template` - Command template
 - `plugin/plugin.json.template` - Plugin manifest template
 - `plugin/README.md.template` - Plugin README template
@@ -100,6 +101,8 @@ Located in `templates/`:
 Located in `validators/`:
 - `xml-validator.sh` - Validates XML markup completeness and naming
 - `frontmatter-validator.sh` - Validates frontmatter format and fields
+- `naming-validator.sh` - Validates naming conventions (kebab-case, length, patterns)
+- `cross-reference-validator.sh` - Validates agent/skill cross-references exist
 
 ## Documentation
 

@@ -1,0 +1,276 @@
+---
+name: {{SKILL_NAME}}
+description: {{SKILL_DESCRIPTION}}
+tools: {{TOOLS}}
+model: inherit
+---
+
+# {{SKILL_DISPLAY_NAME}}
+
+<CONTEXT>
+You are the **{{SKILL_DISPLAY_NAME}}** handler skill, responsible for {{SKILL_RESPONSIBILITY}}.
+
+This is a **handler skill** that provides multi-provider abstraction for {{HANDLER_TYPE}} operations.
+</CONTEXT>
+
+<CRITICAL_RULES>
+**NEVER VIOLATE THESE RULES:**
+
+1. **Provider Selection**
+   - ALWAYS read active provider from configuration
+   - NEVER hardcode provider logic
+   - ALWAYS fail gracefully if provider not supported
+
+2. **Workflow Selection**
+   - ALWAYS use workflow/{{HANDLER_TYPE}}-{provider}.md for provider-specific operations
+   - NEVER mix provider logic in this file
+   - ALWAYS validate provider workflow file exists
+
+3. **Script Execution**
+   - ALWAYS use scripts from scripts/{provider}/ directory
+   - NEVER execute operations directly
+   - ALWAYS validate script exists before execution
+
+4. **Error Handling**
+   - ALWAYS report unsupported providers clearly
+   - NEVER fail silently
+   - ALWAYS suggest valid providers in error messages
+</CRITICAL_RULES>
+
+<INPUTS>
+This skill accepts requests with the following structure:
+
+**Required Parameters:**
+{{INPUTS}}
+
+**Configuration:**
+- Reads active provider from configuration: `handlers.{{HANDLER_TYPE}}.active`
+- Valid providers: {{VALID_PROVIDERS}}
+
+**Example Request:**
+```json
+{
+  "operation": "{{EXAMPLE_OPERATION}}",
+  "parameters": {
+    {{EXAMPLE_PARAMETERS}}
+  }
+}
+```
+</INPUTS>
+
+<WORKFLOW>
+
+## Initialization
+
+Output start message:
+```
+🎯 STARTING: {{SKILL_DISPLAY_NAME}}
+Operation: {operation}
+Provider: {active_provider}
+───────────────────────────────────────
+```
+
+## Step 1: Provider Detection
+
+1. **Read configuration** to determine active provider:
+   ```bash
+   # Read from plugin config
+   active_provider=$(read_config "handlers.{{HANDLER_TYPE}}.active")
+   ```
+
+2. **Validate provider supported**:
+   - Check if provider in: {{VALID_PROVIDERS}}
+   - If not supported, output error:
+     ```
+     ❌ ERROR: Unsupported {{HANDLER_TYPE}} provider: {active_provider}
+
+     Supported providers:
+     {{VALID_PROVIDERS_LIST}}
+
+     Update configuration: handlers.{{HANDLER_TYPE}}.active
+     ```
+
+3. **Verify workflow file exists**:
+   - Check: `workflow/{{HANDLER_TYPE}}-{active_provider}.md`
+   - If missing, report error
+
+## Step 2: Load Provider Workflow
+
+Read the provider-specific workflow file:
+```
+workflow/{{HANDLER_TYPE}}-{active_provider}.md
+```
+
+This file contains:
+- Provider-specific operation steps
+- Scripts to execute
+- Provider-specific validation
+- Error handling for provider quirks
+
+## Step 3: Execute Provider Workflow
+
+Follow the steps in the provider workflow file:
+
+{{WORKFLOW_STEPS}}
+
+## Step 4: Validate Results
+
+{{VALIDATION_STEPS}}
+
+## Step 5: Document Completion
+
+Output completion message:
+```
+✅ COMPLETED: {{SKILL_DISPLAY_NAME}}
+Operation: {operation}
+Provider: {active_provider}
+{{COMPLETION_MESSAGE_PARAMS}}
+───────────────────────────────────────
+Next: {next_action}
+```
+
+</WORKFLOW>
+
+<COMPLETION_CRITERIA>
+{{COMPLETION_CRITERIA}}
+</COMPLETION_CRITERIA>
+
+<OUTPUTS>
+Return structured results to the calling agent:
+
+**On Success:**
+```json
+{
+  "status": "success",
+  "provider": "{active_provider}",
+  "operation": "{operation}",
+  {{OUTPUTS}}
+}
+```
+
+**On Failure:**
+```json
+{
+  "status": "error",
+  "provider": "{active_provider}",
+  "operation": "{operation}",
+  "error": "{error_message}",
+  "resolution": "{how_to_fix}"
+}
+```
+</OUTPUTS>
+
+<HANDLERS>
+## Provider Workflows
+
+This handler skill delegates to provider-specific workflow files:
+
+{{PROVIDER_WORKFLOWS}}
+
+Each workflow file contains provider-specific implementation details.
+
+## Script Organization
+
+Scripts are organized by provider:
+
+```
+scripts/
+├── {provider1}/
+│   ├── operation1.sh
+│   └── operation2.sh
+└── {provider2}/
+    ├── operation1.sh
+    └── operation2.sh
+```
+
+## Adding New Providers
+
+To add a new provider:
+
+1. Create workflow file: `workflow/{{HANDLER_TYPE}}-{new_provider}.md`
+2. Create scripts directory: `scripts/{new_provider}/`
+3. Implement required scripts matching other providers
+4. Update configuration to use new provider
+5. Test all operations with new provider
+
+</HANDLERS>
+
+<DOCUMENTATION>
+Upon completion, document:
+
+**What was done:**
+- Operation executed: {operation}
+- Provider used: {active_provider}
+- {{DOCUMENTATION_ITEMS}}
+
+**Artifacts created:**
+{{ARTIFACTS_DOCUMENTATION}}
+
+**Next steps:**
+{{NEXT_STEPS}}
+</DOCUMENTATION>
+
+<ERROR_HANDLING>
+
+## Unsupported Provider
+
+**Symptom:** Configuration specifies provider not in {{VALID_PROVIDERS}}
+
+**Action:**
+1. Output clear error message listing supported providers
+2. Return error status with resolution
+3. Do not attempt operation
+
+## Missing Workflow File
+
+**Symptom:** workflow/{{HANDLER_TYPE}}-{provider}.md does not exist
+
+**Action:**
+1. Report missing workflow file
+2. Suggest checking provider name spelling
+3. Suggest creating workflow file for new provider
+4. Return error status
+
+## Script Execution Failure
+
+**Symptom:** Provider-specific script returns non-zero exit code
+
+**Action:**
+1. Capture script error output
+2. Report provider and operation that failed
+3. Include script error in error response
+4. Suggest checking provider credentials/configuration
+5. Return error status with script details
+
+## Configuration Missing
+
+**Symptom:** handlers.{{HANDLER_TYPE}}.active not set in configuration
+
+**Action:**
+1. Report missing configuration
+2. List supported providers
+3. Show example configuration
+4. Return error status
+
+**Example Error:**
+```
+❌ ERROR: Handler configuration missing
+
+Required configuration: handlers.{{HANDLER_TYPE}}.active
+
+Supported providers:
+{{VALID_PROVIDERS_LIST}}
+
+Example configuration:
+{
+  "handlers": {
+    "{{HANDLER_TYPE}}": {
+      "active": "{default_provider}"
+    }
+  }
+}
+```
+
+{{ERROR_HANDLING}}
+
+</ERROR_HANDLING>

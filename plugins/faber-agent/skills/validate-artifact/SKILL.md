@@ -136,20 +136,89 @@ The frontmatter validator checks:
 - YAML syntax valid
 - Description within limits
 
-## Step 4: Aggregate Results
+## Step 4: Run Naming Convention Validator
+
+Execute naming validator to check naming standards:
+```bash
+# Extract artifact name from path
+ARTIFACT_NAME=$(basename "$ARTIFACT_PATH" .md)
+
+# For commands, extract from frontmatter
+if [ "$ARTIFACT_TYPE" = "command" ]; then
+    ARTIFACT_NAME=$(grep -Po "^name:\s*\K.*" "$ARTIFACT_PATH" | head -1)
+fi
+
+"$VALIDATOR_DIR/naming-validator.sh" "$ARTIFACT_NAME" "$ARTIFACT_TYPE"
+NAMING_EXIT_CODE=$?
+
+if [ $NAMING_EXIT_CODE -eq 0 ]; then
+    echo "✅ Naming convention validation passed"
+    NAMING_STATUS="passed"
+elif [ $NAMING_EXIT_CODE -eq 1 ]; then
+    echo "❌ Naming convention validation failed"
+    NAMING_STATUS="failed"
+    NAMING_ERRORS=$(cat /tmp/naming-errors.txt 2>/dev/null || echo "See validator output above")
+else
+    echo "⚠️ Naming convention validation completed with warnings"
+    NAMING_STATUS="passed_with_warnings"
+fi
+```
+
+The naming validator checks:
+- Artifact follows naming conventions (kebab-case, length, patterns)
+- Commands follow plugin:command format
+- Plugins have fractary- prefix
+- No consecutive hyphens or invalid characters
+
+## Step 5: Run Cross-Reference Validator (Agents & Skills only)
+
+For agents and skills, validate cross-references:
+```bash
+if [ "$ARTIFACT_TYPE" = "agent" ] || [ "$ARTIFACT_TYPE" = "skill" ]; then
+    "$VALIDATOR_DIR/cross-reference-validator.sh" "$ARTIFACT_PATH" "$ARTIFACT_TYPE"
+    CROSSREF_EXIT_CODE=$?
+
+    if [ $CROSSREF_EXIT_CODE -eq 0 ]; then
+        echo "✅ Cross-reference validation passed"
+        CROSSREF_STATUS="passed"
+    elif [ $CROSSREF_EXIT_CODE -eq 1 ]; then
+        echo "⚠️ Cross-reference validation found missing references"
+        CROSSREF_STATUS="passed_with_warnings"
+        # Missing refs are warnings, not blockers (they may not be created yet)
+    else
+        echo "⚠️ Cross-reference validation completed with warnings"
+        CROSSREF_STATUS="passed_with_warnings"
+    fi
+else
+    # Commands don't have cross-references to validate
+    CROSSREF_STATUS="skipped"
+fi
+```
+
+The cross-reference validator checks:
+- Agent references (@agent-plugin:name) exist
+- Skill references (@skill-plugin:name) exist
+- Reference format is correct
+
+## Step 6: Aggregate Results
 
 Determine overall validation status:
 ```bash
 OVERALL_STATUS="passed"
 
-if [ "$XML_STATUS" = "failed" ] || [ "$FRONTMATTER_STATUS" = "failed" ]; then
+# Check for failures
+if [ "$XML_STATUS" = "failed" ] || [ "$FRONTMATTER_STATUS" = "failed" ] || [ "$NAMING_STATUS" = "failed" ]; then
     OVERALL_STATUS="failed"
-elif [ "$XML_STATUS" = "passed_with_warnings" ] || [ "$FRONTMATTER_STATUS" = "passed_with_warnings" ]; then
+# Check for warnings
+elif [ "$XML_STATUS" = "passed_with_warnings" ] || \
+     [ "$FRONTMATTER_STATUS" = "passed_with_warnings" ] || \
+     [ "$NAMING_STATUS" = "passed_with_warnings" ] || \
+     [ "$CROSSREF_STATUS" = "passed_with_warnings" ]; then
     OVERALL_STATUS="passed_with_warnings"
 fi
 ```
 
-## Step 5: Report Results
+## Step 7: Report Results
 
 Output detailed validation report.
 
@@ -159,6 +228,8 @@ Output detailed validation report.
 Status: All validation checks passed
   ✅ XML markup valid
   ✅ Frontmatter valid
+  ✅ Naming conventions valid
+  ✅ Cross-references valid (or skipped)
   ✅ Standards compliance verified
 ───────────────────────────────────────
 Next: Save and document the artifact
@@ -169,7 +240,9 @@ Next: Save and document the artifact
 ⚠️ COMPLETED: Validate Artifact
 Status: Passed with warnings
   ✅ XML markup valid
-  ⚠️ Frontmatter has warnings
+  ✅ Frontmatter valid
+  ⚠️ Naming conventions have warnings
+  ⚠️ Cross-references have warnings (missing references found)
 ───────────────────────────────────────
 Next: Review warnings, then proceed
 ```
@@ -184,6 +257,9 @@ XML Markup:
 
 Frontmatter:
 {frontmatter_errors}
+
+Naming Conventions:
+{naming_errors}
 
 Resolution:
 1. Review errors above
@@ -200,11 +276,15 @@ This skill is complete and successful when ALL verified:
 ✅ **1. All Validators Executed**
 - XML markup validator ran
 - Frontmatter validator ran
+- Naming convention validator ran
+- Cross-reference validator ran (for agents/skills) or skipped (for commands)
 - All applicable validators invoked
 
 ✅ **2. Validation Results Clear**
 - XML status determined (passed/failed/warnings)
 - Frontmatter status determined (passed/failed/warnings)
+- Naming status determined (passed/failed/warnings)
+- Cross-reference status determined (passed/warnings/skipped)
 - Overall status computed
 
 ✅ **3. Pass or Acceptable Warnings**
@@ -217,12 +297,14 @@ This skill is complete and successful when ALL verified:
 **FAILURE CONDITIONS - Stop and report if:**
 ❌ XML markup validation failed (exit code 1)
 ❌ Frontmatter validation failed (exit code 1)
+❌ Naming convention validation failed (exit code 1)
 ❌ Artifact file not found
 ❌ Validators cannot execute
 
 **PARTIAL COMPLETION - Not acceptable:**
 ⚠️ Validators ran but artifact has errors → Report failure, do not proceed
 ⚠️ Validators have warnings → Report warnings, may proceed
+⚠️ Missing cross-references → Report as warnings, may proceed (refs may not exist yet)
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
@@ -236,6 +318,8 @@ After successful completion, return:
   "validation": {
     "xml_markup": "passed|passed_with_warnings|failed",
     "frontmatter": "passed|passed_with_warnings|failed",
+    "naming": "passed|passed_with_warnings|failed",
+    "cross_references": "passed|passed_with_warnings|skipped",
     "overall": "passed|passed_with_warnings"
   },
   "errors": [],
@@ -253,8 +337,10 @@ On validation failure:
   "artifact_path": "{artifact_path}",
   "artifact_type": "{artifact_type}",
   "validation": {
-    "xml_markup": "failed",
+    "xml_markup": "passed",
     "frontmatter": "passed",
+    "naming": "failed",
+    "cross_references": "passed_with_warnings",
     "overall": "failed"
   },
   "errors": [
@@ -386,10 +472,14 @@ Artifact meets minimum standards.
 **Invokes:**
 - validators/xml-validator.sh (XML markup validation)
 - validators/frontmatter-validator.sh (frontmatter validation)
+- validators/naming-validator.sh (naming convention validation)
+- validators/cross-reference-validator.sh (cross-reference validation)
 
 **Validators:**
 - `validators/xml-validator.sh` - Checks XML sections and structure
 - `validators/frontmatter-validator.sh` - Checks YAML frontmatter
+- `validators/naming-validator.sh` - Checks naming conventions (kebab-case, length, patterns)
+- `validators/cross-reference-validator.sh` - Checks agent/skill references exist
 
 ## Best Practices
 
