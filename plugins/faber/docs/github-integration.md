@@ -891,7 +891,7 @@ See [Claude Code Pricing](https://claude.com/pricing).
 
 ## Additional Resources
 
-- **FABER Architecture**: `docs/specs/fractary-faber-architecture.md`
+- **FABER Architecture**: `docs/specs/SPEC-0002-faber-architecture.md`
 - **Configuration Reference**: `plugins/faber/config/faber.example.toml`
 - **Command Reference**: `plugins/faber/commands/`
 - **Agent Documentation**: `plugins/faber/agents/`

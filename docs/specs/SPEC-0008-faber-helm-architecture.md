@@ -967,8 +967,8 @@ Forge makes → FABER moves → Caster ships → Codex remembers → Helm guards
 
 ### Next Steps
 
-1. **Read:** `helm-system-specification.md` for detailed Helm design
-2. **Read:** `faber-cloud-helm-migration.md` for implementation roadmap
+1. **Read:** `SPEC-0007-helm-system-specification.md` for detailed Helm design
+2. **Read:** `SPEC-0010-faber-cloud-helm-migration.md` for implementation roadmap
 3. **Implement:** Phase 1 (Command Reorganization)
 4. **Implement:** Phase 2 (Extract helm-cloud)
 5. **Implement:** Phase 3 (Central Helm orchestrator)

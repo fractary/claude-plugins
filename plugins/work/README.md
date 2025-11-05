@@ -504,5 +504,5 @@ Follow **Fractary Plugin Standards** when contributing:
 ## Support
 
 - **Issues**: https://github.com/fractary/claude-plugins/issues
-- **Documentation**: `docs/specs/fractary-work-plugin-specification.md`
+- **Documentation**: `docs/specs/SPEC-0003-work-plugin-specification.md`
 - **Standards**: `docs/standards/FRACTARY-PLUGIN-STANDARDS.md`

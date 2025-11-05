@@ -511,8 +511,8 @@ Each issue file contains:
 ## See Also
 
 - [helm-cloud Plugin](../helm-cloud/README.md) - Infrastructure monitoring
-- [Phase 3 Implementation Summary](../../PHASE-3-IMPLEMENTATION-SUMMARY.md)
-- [FABER Architecture](../../docs/specs/fractary-faber-architecture.md)
+- [SPEC-0010 Implementation Phase 3](../../docs/specs/implementation/SPEC-0010-implementation-phase3.md)
+- [FABER Architecture](../../docs/specs/SPEC-0002-faber-architecture.md)
 
 ---
 
