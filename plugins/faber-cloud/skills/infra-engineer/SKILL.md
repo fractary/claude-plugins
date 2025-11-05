@@ -124,19 +124,33 @@ Resolution: {how to fix}
 <COMPLETION_CRITERIA>
 This skill is complete and successful when ALL verified:
 
-✅ **1. Code Generation**
-- All resources from design implemented
+✅ **1. Input Parsing**
+- Instructions parsed successfully
+- Source type determined
+- File paths validated and sanitized
+- No path traversal attempts
+
+✅ **2. Context Loading**
+- Source document loaded (if file-based)
+- File is not empty
+- Requirements extracted
+- Configuration loaded
+- Additional context preserved
+
+✅ **3. Code Generation**
+- All resources from requirements implemented
 - Variable definitions created
 - Outputs defined for important attributes
-- Provider configuration included if needed
+- Provider configuration included
+- Additional context merged with base requirements
 
-✅ **2. Code Quality**
+✅ **4. Code Quality**
 - Valid HCL syntax
-- Terraform fmt applied
-- Terraform validate passes
+- Terraform fmt applied (ALWAYS)
+- Terraform validate passes (ALWAYS)
 - Best practices followed
 
-✅ **3. File Organization**
+✅ **5. File Organization**
 - main.tf: Resource definitions
 - variables.tf: Variable declarations
 - outputs.tf: Output definitions
@@ -145,13 +159,67 @@ This skill is complete and successful when ALL verified:
 ---
 
 **FAILURE CONDITIONS - Stop and report if:**
-❌ Design document not found (action: return error with correct path)
-❌ Invalid Terraform syntax generated (action: fix and regenerate)
-❌ Terraform directory not accessible (action: check permissions)
+
+❌ **Input Parsing Failures:**
+- Path traversal attempt detected (security)
+- Malicious file path provided
+- Multiple ambiguous file matches
+- Cannot determine source type
+
+❌ **Context Loading Failures:**
+- Source file not found
+- Source file is empty
+- Source file contains invalid/corrupt content
+- Configuration file is corrupt
+- Cannot extract requirements
+
+❌ **Code Generation Failures:**
+- Invalid Terraform syntax generated
+- Terraform directory not accessible
+- Cannot write files (permissions)
+
+❌ **Validation Failures:**
+- Terraform fmt fails
+- Terraform validate fails
+- Critical security issues detected
 
 **PARTIAL COMPLETION - Not acceptable:**
-⚠️ Code generated but not validated → Validate before returning
-⚠️ Files created but not formatted → Run terraform fmt before returning
+⚠️ Code generated but not validated → Validate before returning (MANDATORY)
+⚠️ Files created but not formatted → Run terraform fmt before returning (MANDATORY)
+⚠️ Security issues found but ignored → Must address or fail
+⚠️ Empty files created → Must contain valid content
+
+## Error Handling Details
+
+### Path Security Errors
+**Error:** `"Path outside allowed directory"`
+**Action:** Reject immediately, log security event, return error
+**User Action:** Use valid path within allowed directories
+
+### File Not Found
+**Error:** `"Design file not found: /path/to/file.md"`
+**Action:** Return error with correct path format
+**User Action:** Check filename spelling and location
+
+### Empty File
+**Error:** `"Source file is empty: /path/to/file.md"`
+**Action:** Return error, suggest checking file content
+**User Action:** Ensure file has content
+
+### Invalid Content
+**Error:** `"Cannot extract requirements from source"`
+**Action:** Return error with file details
+**User Action:** Check file format and content validity
+
+### Multiple Files Match
+**Error:** `"Multiple files match pattern: file1.md, file2.md"`
+**Action:** Return error listing matches
+**User Action:** Specify exact filename or path
+
+### Validation Failure
+**Error:** `"Terraform validation failed: [specific error]"`
+**Action:** Show exact terraform error, return failure
+**User Action:** Review error, fix requirements, retry
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>

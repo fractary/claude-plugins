@@ -242,9 +242,10 @@ This workflow respects FABER configuration:
 build = "cloud"  # Selects this workflow
 
 [build]
-auto_validate = true  # Always true for cloud
 commit_on_success = true  # Commit after generation
 ```
+
+**Note:** Validation is always performed for cloud infrastructure - there is no config option to disable it. This ensures all generated Terraform code is validated before committing.
 
 ## Error Handling
 

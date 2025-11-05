@@ -2,6 +2,8 @@
 
 This workflow step loads the relevant context based on the parsed input source.
 
+**IMPORTANT:** This step uses the `load-context.sh` script for deterministic context loading operations, keeping them outside LLM context to reduce token usage.
+
 ## Input
 
 - Parsed source result (from parse-input step)
@@ -9,7 +11,25 @@ This workflow step loads the relevant context based on the parsed input source.
 
 ## Process
 
-### 1. Load Source Document
+### 1. Invoke Load Context Script
+
+Execute the load-context.sh script with parse results:
+
+```bash
+# Pass parse result JSON to load-context script
+CONTEXT_RESULT=$(./scripts/load-context.sh "$PARSE_RESULT")
+
+if [ $? -ne 0 ]; then
+    echo "❌ Context loading failed"
+    exit 1
+fi
+
+echo "✅ Context loaded successfully"
+```
+
+The script handles file loading, validation, and requirement extraction.
+
+### 2. Load Source Document (Script Handles This)
 
 **For design_file:**
 ```bash
@@ -145,6 +165,64 @@ else
 fi
 ```
 
+## Handling Mixed Context and Additional Instructions
+
+When the input includes **mixed context** (e.g., `"Implement api-backend.md and add CloudWatch alarms"`), the system handles it as follows:
+
+### 1. Primary Source (File Content)
+The main design or spec file provides the **base requirements**:
+- Resource specifications from the document
+- Architecture from the design
+- Security requirements from the spec
+
+### 2. Additional Context (Merged Instructions)
+The `additional_context` field contains extra instructions extracted after the filename:
+- These are **additive modifications** to the base requirements
+- They refine, extend, or constrain the base design
+- They do NOT replace the base requirements
+
+### 3. Merging Strategy
+
+**Example Input:** `"Implement api-backend.md and add CloudWatch alarms"`
+
+**Processing:**
+1. **Load base requirements** from `api-backend.md`:
+   ```
+   - API Gateway REST API
+   - Lambda functions for endpoints
+   - DynamoDB table
+   ```
+
+2. **Parse additional context:** `"and add CloudWatch alarms"`
+
+3. **Merge requirements** (LLM handles merging):
+   ```
+   - API Gateway REST API
+   - Lambda functions for endpoints
+   - DynamoDB table
+   - CloudWatch alarms for Lambda functions  ← Added
+   - CloudWatch alarms for API Gateway  ← Added
+   ```
+
+4. **Generate Terraform** with merged requirements
+
+### Retry Context Handling
+
+**Example Input:** `".faber/specs/123-add-api.md - Fix issues: Lambda needs s3:PutObject permission"`
+
+This is a **special case** of mixed context used during FABER retry loops:
+
+1. **Primary source:** `.faber/specs/123-add-api.md` (original spec)
+2. **Additional context:** `"Fix issues: Lambda needs s3:PutObject permission"` (from debugger)
+
+**Processing:**
+1. Load original spec requirements
+2. **Focus on the fix** mentioned in additional context
+3. Update existing Terraform code (mode=update)
+4. Apply the specific fix while preserving other resources
+
+The `additional_context` acts as a **constraint filter** - it tells the engineer to focus on specific aspects mentioned rather than regenerating everything.
+
 ## Output
 
 Return loaded context:
@@ -153,6 +231,7 @@ Return loaded context:
   "source_type": "design_file|faber_spec|direct_instructions",
   "source_path": "/path/to/source.md",
   "mode": "create|update",
+  "source_content": "full file content",
   "requirements": {
     "resources": ["s3_bucket", "lambda_function", "iam_role"],
     "relationships": ["lambda_to_s3_permissions"],
@@ -164,9 +243,11 @@ Return loaded context:
     "subsystem": "core",
     "aws_region": "us-east-1"
   },
-  "additional_instructions": "any extra context from mixed input"
+  "additional_context": "and add CloudWatch alarms"
 }
 ```
+
+**Note:** When `additional_context` is present, the LLM-based Terraform generation step merges it with base requirements intelligently.
 
 ## Success Criteria
 
@@ -175,3 +256,4 @@ Return loaded context:
 ✅ Configuration loaded
 ✅ Infrastructure needs identified
 ✅ Mode determined (create vs update)
+✅ Additional context preserved for merging

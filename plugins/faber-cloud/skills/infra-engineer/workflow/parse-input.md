@@ -2,87 +2,123 @@
 
 This workflow step parses the free-text instructions to determine the input source and extract relevant context.
 
+**IMPORTANT:** This step uses the `parse-input.sh` script for deterministic parsing operations, keeping them outside LLM context to reduce token usage.
+
 ## Input
 
 - Free-text instructions (may be empty, file reference, or direct instructions)
 
 ## Process
 
-### 1. Analyze Input Text
+### 1. Invoke Parse Script
 
-Check the instructions for patterns:
+Execute the parse-input.sh script with the instructions:
 
-**Pattern 1: File path with .md extension**
+```bash
+# Invoke deterministic parsing script
+PARSE_RESULT=$(./scripts/parse-input.sh "$INSTRUCTIONS")
+
+if [ $? -ne 0 ]; then
+    echo "❌ Input parsing failed"
+    exit 1
+fi
+
+echo "✅ Input parsed successfully"
+```
+
+The script handles all pattern matching and validation.
+
+## Pattern Matching Priority
+
+The `parse-input.sh` script uses the following **priority order** to resolve ambiguous inputs:
+
+### Priority 1: FABER Spec Paths (Most Specific)
+```
+".faber/specs/123-add-feature.md"
+"Implement .faber/specs/123-api.md"
+```
+→ Highest priority because most specific
+
+### Priority 2: Design Directory Paths
+```
+".fractary/plugins/faber-cloud/designs/api-backend.md"
+"Use .fractary/plugins/faber-cloud/designs/uploads.md"
+```
+→ Second priority for explicit design paths
+
+### Priority 3: Standalone .md Files
 ```
 "user-uploads.md"
-".fractary/plugins/faber-cloud/designs/api-backend.md"
-".faber/specs/123-add-feature.md"
+"api-backend.md"
 ```
-→ Extract file path, determine if design or spec
+→ Treated as design files (prepend design directory)
 
-**Pattern 2: Natural language with file reference**
+### Priority 4: Natural Language with Keywords
 ```
-"Implement design from user-uploads.md"
-"Use the design in api-backend.md"
-"Implement infrastructure for .faber/specs/123-add-api.md"
+"Implement design from api-backend.md"
+"Use design in user-uploads.md"
+"Fix design from api-backend.md"  ← This now has clear resolution
 ```
-→ Extract file path from text
+→ Extract filename using keywords: from, in, using, implement, design
 
-**Pattern 3: Direct instructions**
+### Priority 5: Direct Instructions (No File Reference)
 ```
 "Fix IAM permissions - Lambda needs s3:PutObject"
 "Add CloudWatch alarms for all Lambda functions"
 ```
-→ No file reference, treat as direct implementation guidance
+→ No .md file found, treat as instructions
 
-**Pattern 4: Empty/No input**
+### Priority 6: Empty Input
 ```
 ""
 null
 ```
 → Find latest design document
 
-### 2. Determine Source Type
+### Ambiguity Resolution Example
 
-Based on analysis:
+**Input:** `"Fix design from api-backend.md"`
 
-- **design_file**: References `.fractary/plugins/faber-cloud/designs/` or standalone .md file
-- **faber_spec**: References `.faber/specs/` directory
-- **direct_instructions**: No file reference found
-- **latest_design**: No input provided
+**Parsing Steps:**
+1. Check Pattern 1 (FABER spec): ❌ No `.faber/specs/` found
+2. Check Pattern 2 (Design path): ❌ No full design path found
+3. Check Pattern 3 (Standalone .md): ✅ Found `api-backend.md`
+4. **Result:** `design_file` with path `.fractary/plugins/faber-cloud/designs/api-backend.md`
+5. **Additional context:** `"Fix"` is preserved as additional context
 
-### 3. Resolve File Paths
+**Input:** `"Implement infrastructure for .faber/specs/123-add-api.md and add CloudWatch alarms"`
 
-**For design files:**
-- If relative (just filename): Prepend `.fractary/plugins/faber-cloud/designs/`
-- If absolute: Use as-is
-- Verify file exists
+**Parsing Steps:**
+1. Check Pattern 1 (FABER spec): ✅ Found `.faber/specs/123-add-api.md`
+2. **Result:** `faber_spec` with full path
+3. **Additional context:** `"and add CloudWatch alarms"` extracted
 
-**For FABER specs:**
-- Must include `.faber/specs/` in path
-- Verify file exists
+## Security: Path Sanitization
 
-**For latest design:**
+The script includes path validation to prevent directory traversal attacks:
+
 ```bash
-# Find most recently modified design
-DESIGN_DIR=".fractary/plugins/faber-cloud/designs"
-LATEST_DESIGN=$(ls -t "$DESIGN_DIR"/*.md 2>/dev/null | head -1)
-
-if [ -z "$LATEST_DESIGN" ]; then
-    echo "❌ No design documents found in $DESIGN_DIR"
-    exit 1
-fi
+# Example: "../../../etc/passwd" would be rejected
+# Only paths within allowed directories are accepted:
+# - .fractary/plugins/faber-cloud/designs/
+# - .faber/specs/
 ```
+
+**Security checks performed:**
+- Resolve paths using `realpath -m` (no symlink following)
+- Verify resolved path starts with allowed base directory
+- Reject paths outside allowed directories
+- Return error for invalid or malicious paths
 
 ## Output
 
-Return parsed result:
+The script returns JSON:
 ```json
 {
   "source_type": "design_file|faber_spec|direct_instructions|latest_design",
-  "file_path": "/path/to/file.md",
-  "instructions": "original or extracted instructions",
-  "additional_context": "any extra instructions from mixed input"
+  "file_path": "/absolute/path/to/file.md",
+  "instructions": "original instructions text",
+  "additional_context": "extra instructions extracted from mixed input"
 }
 ```
 
