@@ -69,20 +69,48 @@ When capturing a session:
 ## Archive Logs
 
 When archiving logs (lifecycle-based or time-based):
-1. Determine archive trigger:
+
+1. **Determine archive trigger**:
    - Lifecycle: Issue closed, PR merged, manual trigger
    - Time-based: Logs older than retention period (30 days default)
-2. Invoke log-archiver skill with:
+
+2. **Invoke log-archiver skill** with:
    - issue_number: Issue to archive (or "cleanup" for time-based)
    - trigger: "issue_closed" | "pr_merged" | "manual" | "age_threshold"
-3. log-archiver handles:
-   - Collecting all logs for issue
-   - Compressing large logs (> 1MB)
-   - Uploading to cloud via fractary-file
-   - Updating archive index
-   - Commenting on GitHub issue
-   - Removing from local storage
-4. Return archive summary
+
+3. **Log-archiver skill prepares files**:
+   - Collects all logs for issue
+   - Compresses large logs (> 1MB)
+   - Generates upload metadata (paths, checksums)
+   - **Returns list of files ready for upload**
+
+4. **Upload files to cloud** (agent responsibility):
+   For each file from log-archiver:
+   - Use @agent-fractary-file:file-manager to upload:
+     ```json
+     {
+       "operation": "upload",
+       "parameters": {
+         "local_path": "/logs/sessions/session-123-2025-01-15.md.gz",
+         "remote_path": "archive/logs/2025/01/123/session-123-2025-01-15.md.gz",
+         "public": false
+       }
+     }
+     ```
+   - Receive cloud URL from file-manager
+   - Add URL to file metadata
+   - If any upload fails: STOP, keep local files, report error
+
+5. **Update archive index**:
+   - Invoke log-archiver skill (or script) to update index
+   - Pass complete metadata including cloud URLs
+
+6. **Finalize archive**:
+   - Comment on GitHub issue with archive links
+   - Remove local log files
+   - Git commit index update
+
+7. **Return archive summary**
 
 ## Search Logs
 
@@ -152,10 +180,50 @@ When reading specific logs:
 <INTEGRATION>
 
 ## fractary-file Integration
-All cloud storage operations go through fractary-file:
-- Upload logs: Use file-manager agent with upload operation
-- Read archived logs: Use file-manager agent with read operation
-- Delete from cloud: Use file-manager agent with delete operation
+
+All cloud storage operations use the fractary-file plugin via agent-to-agent invocation:
+
+**Upload logs to cloud**:
+```
+Use the @agent-fractary-file:file-manager agent to upload with the following request:
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "<path-to-log-file>",
+    "remote_path": "archive/logs/{year}/{month}/{issue}/{filename}",
+    "public": false
+  }
+}
+```
+
+**Read archived logs from cloud**:
+```
+Use the @agent-fractary-file:file-manager agent to read with the following request:
+{
+  "operation": "read",
+  "parameters": {
+    "remote_path": "<cloud-path-from-index>",
+    "max_bytes": 10485760
+  }
+}
+```
+
+**Delete from cloud** (if needed):
+```
+Use the @agent-fractary-file:file-manager agent to delete with the following request:
+{
+  "operation": "delete",
+  "parameters": {
+    "remote_path": "<cloud-path>"
+  }
+}
+```
+
+The file-manager agent handles:
+- Routing to appropriate storage provider (R2, S3, GCS, etc.)
+- Credential management
+- Error handling and retries
+- Returning cloud URLs and metadata
 
 ## fractary-work Integration
 GitHub issue interactions:

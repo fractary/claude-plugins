@@ -59,24 +59,68 @@ For each log file:
 
 Result: Array of files ready for upload (mix of .gz and originals)
 
-## 4. Upload to Cloud Storage
+## 4. Prepare Files for Cloud Upload
 
-For each log file:
+For each log file, prepare metadata for upload:
+
 1. Generate cloud path:
    ```
    archive/logs/{year}/{month}/{issue}/filename.ext
    ```
-2. Execute `scripts/upload-to-cloud.sh <issue> <file>`
-   - Uses fractary-file agent to upload
-   - Returns cloud URL
-3. Calculate checksum (SHA-256)
-4. Record metadata:
+2. Calculate checksum (SHA-256):
+   ```bash
+   sha256sum "$LOG_FILE" | cut -d' ' -f1
+   ```
+3. Prepare upload metadata:
    ```json
    {
-     "type": "session|build|deployment|debug",
+     "local_path": "/logs/sessions/session-123-2025-01-15.md.gz",
+     "remote_path": "archive/logs/2025/01/123/session-123-2025-01-15.md.gz",
+     "type": "session",
+     "filename": "session-123-2025-01-15.md",
+     "size_bytes": 45600,
+     "compressed": true,
+     "checksum": "sha256:abc123...",
+     "created": "2025-01-15T09:00:00Z"
+   }
+   ```
+
+**Return to agent**: Array of files with upload metadata
+
+## 5. Agent Uploads to Cloud (via file-manager)
+
+**IMPORTANT**: This step is performed by the log-manager AGENT, not the skill.
+
+The log-archiver skill returns control to the log-manager agent with the list of files to upload.
+
+The log-manager agent then:
+
+1. For each file in the upload list:
+   - Invoke @agent-fractary-file:file-manager with upload operation:
+     ```json
+     {
+       "operation": "upload",
+       "parameters": {
+         "local_path": "/logs/sessions/session-123-2025-01-15.md.gz",
+         "remote_path": "archive/logs/2025/01/123/session-123-2025-01-15.md.gz",
+         "public": false
+       }
+     }
+     ```
+   - Wait for upload completion
+   - Receive cloud URL from response
+   - Add cloud URL to metadata
+
+2. Verify all uploads succeeded
+
+3. Build complete archive metadata with URLs:
+   ```json
+   {
+     "type": "session",
      "filename": "session-123-2025-01-15.md",
      "local_path": "/logs/sessions/session-123-2025-01-15.md",
-     "cloud_url": "s3://bucket/archive/logs/2025/01/123/...",
+     "cloud_url": "r2://fractary-logs/archive/logs/2025/01/123/...",
+     "public_url": "https://storage.example.com/...",
      "size_bytes": 45600,
      "compressed": true,
      "checksum": "sha256:abc123...",
@@ -91,7 +135,11 @@ If upload fails for any file:
 - Return error to user
 - Keep already-uploaded files (no rollback)
 
-## 5. Update Archive Index
+## 6. Update Archive Index
+
+**Performed by log-manager agent** after successful uploads.
+
+The agent invokes the log-archiver skill again (or uses a script) to update the index:
 
 Execute `scripts/update-index.sh <issue> <metadata_json>`
 
@@ -116,7 +164,7 @@ Adds entry to `/logs/.archive-index.json`:
 Sort archives by issue_number (descending).
 Update last_updated timestamp.
 
-## 6. Comment on GitHub Issue
+## 7. Comment on GitHub Issue
 
 If gh CLI available and configured:
 
@@ -147,7 +195,7 @@ Post comment:
 gh issue comment $ISSUE_NUMBER --body "$COMMENT"
 ```
 
-## 7. Clean Local Storage
+## 8. Clean Local Storage
 
 Execute `scripts/cleanup-local.sh <issue_number>`
 
@@ -162,7 +210,7 @@ For each archived log:
 
 Keep the archive index file locally!
 
-## 8. Git Commit
+## 9. Git Commit
 
 Commit the updated index:
 ```bash
@@ -177,7 +225,7 @@ Archive reason: $TRIGGER
 Issue: #$ISSUE_NUMBER"
 ```
 
-## 9. Return Summary
+## 10. Return Summary
 
 Output:
 ```

@@ -1,5 +1,11 @@
 #!/bin/bash
+# ⚠️  DEPRECATED: This script is for local testing only
 # Upload log file to cloud storage via fractary-file
+#
+# PRODUCTION USE: The log-manager agent should invoke the file-manager agent directly.
+# See: plugins/logs/agents/log-manager.md - Archive Logs section
+# See: plugins/logs/skills/log-archiver/workflow/archive-issue-logs.md - Section 5
+#
 set -euo pipefail
 
 ISSUE_NUMBER="${1:?Issue number required}"

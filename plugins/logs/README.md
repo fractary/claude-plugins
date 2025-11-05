@@ -235,10 +235,29 @@ cp plugins/logs/config/config.example.json .fractary/plugins/logs/config.json
 
 ### fractary-file
 
-Required dependency for cloud storage:
-- Upload logs to cloud
-- Read archived logs
-- Supports S3, R2, local storage
+**Required dependency** for cloud storage operations.
+
+The logs plugin integrates via **agent-to-agent invocation**:
+- log-manager agent invokes file-manager agent from fractary-file
+- file-manager handles all cloud operations (upload, read, delete)
+- Supports multiple providers: R2, S3, GCS, Google Drive, Local
+
+**Setup**:
+1. Initialize fractary-file: `/fractary-file:init`
+2. Configure storage provider (R2, S3, etc.)
+3. Test connection: `/fractary-file:test-connection`
+
+**How it works**:
+- When archiving logs, log-manager prepares metadata
+- log-manager invokes file-manager to upload each file
+- file-manager returns cloud URLs
+- log-manager updates archive index with URLs
+- Archived logs remain searchable via index
+
+**Without fractary-file**:
+- Archival operations will fail
+- Use local-only mode (no cloud archival)
+- Set `retention.strategy` to `"local"` in config
 
 ### fractary-work
 
