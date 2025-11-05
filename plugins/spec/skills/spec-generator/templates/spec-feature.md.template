@@ -1,0 +1,137 @@
+---
+spec_id: spec-{{issue_number}}-{{slug}}
+issue_number: {{issue_number}}
+issue_url: {{issue_url}}
+title: {{title}}
+type: feature
+status: draft
+created: {{date}}
+author: {{author}}
+validated: false
+---
+
+# Feature Specification: {{title}}
+
+**Issue**: [#{{issue_number}}]({{issue_url}})
+**Type**: Feature
+**Status**: Draft
+**Created**: {{date}}
+
+## Summary
+
+{{summary}}
+
+## User Stories
+
+{{#user_stories}}
+### {{title}}
+**As a** {{role}}
+**I want** {{want}}
+**So that** {{benefit}}
+
+**Acceptance Criteria**:
+{{#criteria}}
+- [ ] {{.}}
+{{/criteria}}
+{{/user_stories}}
+
+## Functional Requirements
+
+{{#functional_requirements}}
+- **FR{{id}}**: {{description}}
+{{/functional_requirements}}
+
+## Non-Functional Requirements
+
+{{#non_functional_requirements}}
+- **NFR{{id}}**: {{description}} ({{type}})
+{{/non_functional_requirements}}
+
+## Technical Design
+
+### Architecture Changes
+{{architecture_changes}}
+
+### Data Model
+{{data_model}}
+
+### API Design
+{{#api_endpoints}}
+- `{{method}} {{path}}`: {{description}}
+{{/api_endpoints}}
+
+### UI/UX Changes
+{{ui_changes}}
+
+## Implementation Plan
+
+{{#phases}}
+### Phase {{number}}: {{name}}
+{{description}}
+
+**Tasks**:
+{{#tasks}}
+- [ ] {{.}}
+{{/tasks}}
+{{/phases}}
+
+## Files to Create/Modify
+
+### New Files
+{{#new_files}}
+- `{{path}}`: {{description}}
+{{/new_files}}
+
+### Modified Files
+{{#modified_files}}
+- `{{path}}`: {{description}}
+{{/modified_files}}
+
+## Testing Strategy
+
+### Unit Tests
+{{unit_tests}}
+
+### Integration Tests
+{{integration_tests}}
+
+### E2E Tests
+{{e2e_tests}}
+
+### Performance Tests
+{{performance_tests}}
+
+## Dependencies
+
+{{#dependencies}}
+- {{.}}
+{{/dependencies}}
+
+## Risks and Mitigations
+
+{{#risks}}
+- **Risk**: {{risk}}
+  - **Likelihood**: {{likelihood}}
+  - **Impact**: {{impact}}
+  - **Mitigation**: {{mitigation}}
+{{/risks}}
+
+## Documentation Updates
+
+{{#docs_to_update}}
+- `{{path}}`: {{changes}}
+{{/docs_to_update}}
+
+## Rollout Plan
+
+{{rollout_plan}}
+
+## Success Metrics
+
+{{#metrics}}
+- {{metric}}: {{target}}
+{{/metrics}}
+
+## Implementation Notes
+
+{{notes}}

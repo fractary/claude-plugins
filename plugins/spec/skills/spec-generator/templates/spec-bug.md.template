@@ -1,0 +1,149 @@
+---
+spec_id: spec-{{issue_number}}-{{slug}}
+issue_number: {{issue_number}}
+issue_url: {{issue_url}}
+title: {{title}}
+type: bug
+status: draft
+created: {{date}}
+author: {{author}}
+validated: false
+severity: {{severity}}
+---
+
+# Bug Fix Specification: {{title}}
+
+**Issue**: [#{{issue_number}}]({{issue_url}})
+**Type**: Bug Fix
+**Severity**: {{severity}}
+**Status**: Draft
+**Created**: {{date}}
+
+## Summary
+
+{{summary}}
+
+## Bug Description
+
+### Observed Behavior
+{{observed_behavior}}
+
+### Expected Behavior
+{{expected_behavior}}
+
+### Impact
+- **Severity**: {{severity}}
+- **Affected Users**: {{affected_users}}
+- **Affected Features**: {{affected_features}}
+
+## Reproduction Steps
+
+{{#reproduction_steps}}
+{{step_number}}. {{description}}
+{{/reproduction_steps}}
+
+**Frequency**: {{frequency}}
+**Environment**: {{environment}}
+
+## Root Cause Analysis
+
+### Investigation Findings
+{{investigation}}
+
+### Root Cause
+{{root_cause}}
+
+### Why It Wasn't Caught Earlier
+{{why_not_caught}}
+
+## Technical Analysis
+
+### Affected Components
+{{#affected_components}}
+- `{{component}}`: {{impact}}
+{{/affected_components}}
+
+### Stack Trace
+```
+{{stack_trace}}
+```
+
+### Related Code
+{{#code_locations}}
+- `{{file}}:{{line}}`: {{description}}
+{{/code_locations}}
+
+## Proposed Fix
+
+### Solution Approach
+{{solution_approach}}
+
+### Code Changes Required
+{{#code_changes}}
+- `{{file}}`: {{changes}}
+{{/code_changes}}
+
+### Why This Fix Works
+{{why_fix_works}}
+
+### Alternative Solutions Considered
+{{#alternatives}}
+- **{{approach}}**: {{reason_not_chosen}}
+{{/alternatives}}
+
+## Files to Modify
+
+{{#files}}
+- `{{path}}`: {{changes}}
+{{/files}}
+
+## Testing Strategy
+
+### Regression Tests
+{{regression_tests}}
+
+### New Test Cases
+{{#new_tests}}
+- {{test_name}}: {{description}}
+{{/new_tests}}
+
+### Manual Testing Checklist
+{{#manual_tests}}
+- [ ] {{.}}
+{{/manual_tests}}
+
+## Risk Assessment
+
+### Risks of Fix
+{{#fix_risks}}
+- **{{risk}}**: {{mitigation}}
+{{/fix_risks}}
+
+### Risks of Not Fixing
+{{risks_if_not_fixed}}
+
+## Dependencies
+
+{{#dependencies}}
+- {{.}}
+{{/dependencies}}
+
+## Acceptance Criteria
+
+{{#acceptance_criteria}}
+- [ ] {{.}}
+{{/acceptance_criteria}}
+
+## Prevention Measures
+
+### How to Prevent Similar Bugs
+{{#prevention}}
+- {{.}}
+{{/prevention}}
+
+### Process Improvements
+{{process_improvements}}
+
+## Implementation Notes
+
+{{notes}}

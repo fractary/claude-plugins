@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "storage": {
+    "local_path": "/specs",
+    "cloud_archive_path": "archive/specs/{year}/{issue_number}.md",
+    "archive_index_file": ".archive-index.json"
+  },
+  "naming": {
+    "pattern": "spec-{issue_number}-{slug}.md",
+    "multi_spec_pattern": "spec-{issue_number}-phase{phase}-{slug}.md"
+  },
+  "archive": {
+    "strategy": "lifecycle",
+    "auto_archive_on": {
+      "issue_close": true,
+      "pr_merge": true,
+      "faber_release": true
+    },
+    "pre_archive": {
+      "check_docs_updated": "warn",
+      "prompt_user": true,
+      "require_validation": false
+    },
+    "post_archive": {
+      "update_archive_index": true,
+      "comment_on_issue": true,
+      "comment_on_pr": true,
+      "remove_from_local": true
+    }
+  },
+  "integration": {
+    "work_plugin": "fractary-work",
+    "file_plugin": "fractary-file",
+    "link_to_issue": true,
+    "update_issue_on_create": true,
+    "update_issue_on_archive": true
+  },
+  "templates": {
+    "default": "spec-basic",
+    "custom_template_dir": null
+  }
+}

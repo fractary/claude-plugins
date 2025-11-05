@@ -1,0 +1,70 @@
+---
+spec_id: spec-{{issue_number}}-{{slug}}
+issue_number: {{issue_number}}
+issue_url: {{issue_url}}
+title: {{title}}
+type: {{work_type}}
+status: draft
+created: {{date}}
+author: {{author}}
+validated: false
+---
+
+# Specification: {{title}}
+
+**Issue**: [#{{issue_number}}]({{issue_url}})
+**Type**: {{work_type}}
+**Status**: Draft
+**Created**: {{date}}
+
+## Summary
+
+{{summary}}
+
+## Requirements
+
+### Functional Requirements
+{{#functional_requirements}}
+- {{.}}
+{{/functional_requirements}}
+
+### Non-Functional Requirements
+{{#non_functional_requirements}}
+- {{.}}
+{{/non_functional_requirements}}
+
+## Technical Approach
+
+{{technical_approach}}
+
+## Files to Modify
+
+{{#files}}
+- `{{path}}`: {{description}}
+{{/files}}
+
+## Acceptance Criteria
+
+{{#acceptance_criteria}}
+- [ ] {{.}}
+{{/acceptance_criteria}}
+
+## Testing Strategy
+
+{{testing_strategy}}
+
+## Dependencies
+
+{{#dependencies}}
+- {{.}}
+{{/dependencies}}
+
+## Risks
+
+{{#risks}}
+- **{{risk}}**: {{mitigation}}
+{{/risks}}
+
+## Implementation Notes
+
+{{notes}}

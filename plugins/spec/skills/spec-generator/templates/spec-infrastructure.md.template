@@ -1,0 +1,186 @@
+---
+spec_id: spec-{{issue_number}}-{{slug}}
+issue_number: {{issue_number}}
+issue_url: {{issue_url}}
+title: {{title}}
+type: infrastructure
+status: draft
+created: {{date}}
+author: {{author}}
+validated: false
+---
+
+# Infrastructure Specification: {{title}}
+
+**Issue**: [#{{issue_number}}]({{issue_url}})
+**Type**: Infrastructure
+**Status**: Draft
+**Created**: {{date}}
+
+## Summary
+
+{{summary}}
+
+## Objectives
+
+{{#objectives}}
+- {{.}}
+{{/objectives}}
+
+## Current State
+
+{{current_state}}
+
+## Target State
+
+{{target_state}}
+
+## Architecture
+
+### Components
+{{#components}}
+- **{{name}}**: {{description}}
+  - Type: {{type}}
+  - Purpose: {{purpose}}
+{{/components}}
+
+### Network Topology
+{{network_topology}}
+
+### Data Flow
+{{data_flow}}
+
+## Resources Required
+
+### Compute
+{{#compute_resources}}
+- {{name}}: {{specification}}
+{{/compute_resources}}
+
+### Storage
+{{#storage_resources}}
+- {{name}}: {{specification}}
+{{/storage_resources}}
+
+### Network
+{{#network_resources}}
+- {{name}}: {{specification}}
+{{/network_resources}}
+
+### Third-Party Services
+{{#third_party_services}}
+- {{name}}: {{purpose}}
+{{/third_party_services}}
+
+## Configuration
+
+### Environment Variables
+{{#env_vars}}
+- `{{name}}`: {{description}}
+{{/env_vars}}
+
+### Secrets Management
+{{secrets_management}}
+
+### Configuration Files
+{{#config_files}}
+- `{{path}}`: {{description}}
+{{/config_files}}
+
+## Deployment Strategy
+
+### Infrastructure as Code
+{{iac_approach}}
+
+### Deployment Steps
+{{#deployment_steps}}
+{{step_number}}. {{description}}
+{{/deployment_steps}}
+
+### Rollback Plan
+{{rollback_plan}}
+
+## Monitoring and Observability
+
+### Metrics
+{{#metrics}}
+- {{name}}: {{description}}
+{{/metrics}}
+
+### Logs
+{{#log_sources}}
+- {{source}}: {{format}}
+{{/log_sources}}
+
+### Alerts
+{{#alerts}}
+- **{{name}}**: {{condition}} → {{action}}
+{{/alerts}}
+
+### Dashboards
+{{#dashboards}}
+- {{name}}: {{url}}
+{{/dashboards}}
+
+## Security Considerations
+
+### Authentication/Authorization
+{{auth}}
+
+### Network Security
+{{network_security}}
+
+### Data Encryption
+{{encryption}}
+
+### Compliance
+{{compliance}}
+
+## Cost Estimation
+
+{{#cost_breakdown}}
+- {{resource}}: {{estimated_cost}}/month
+{{/cost_breakdown}}
+
+**Total Estimated**: {{total_estimated_cost}}/month
+
+## Dependencies
+
+{{#dependencies}}
+- {{.}}
+{{/dependencies}}
+
+## Risks and Mitigations
+
+{{#risks}}
+- **Risk**: {{risk}}
+  - **Impact**: {{impact}}
+  - **Mitigation**: {{mitigation}}
+{{/risks}}
+
+## Testing Strategy
+
+### Infrastructure Tests
+{{infrastructure_tests}}
+
+### Integration Tests
+{{integration_tests}}
+
+### Disaster Recovery Tests
+{{dr_tests}}
+
+## Documentation Requirements
+
+{{#docs_required}}
+- {{type}}: {{description}}
+{{/docs_required}}
+
+## Acceptance Criteria
+
+{{#acceptance_criteria}}
+- [ ] {{.}}
+{{/acceptance_criteria}}
+
+## Implementation Notes
+
+{{notes}}
