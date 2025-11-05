@@ -1,13 +1,15 @@
 ---
 name: fractary-faber-cloud:manage
 description: Unified infrastructure lifecycle management - routes operations to infra-manager agent
-argument-hint: <operation> [options]
+argument-hint: <operation> [--env <environment>] [--complete]
 tags: [faber-cloud, infrastructure, deployment, management]
 examples:
   - trigger: "/fractary-faber-cloud:manage deploy-apply --env test"
     action: "Deploy infrastructure to test environment"
   - trigger: "/fractary-faber-cloud:manage design \"Add monitoring\""
     action: "Design infrastructure from requirements"
+  - trigger: "/fractary-faber-cloud:manage debug --complete"
+    action: "Analyze and fix deployment errors with complete resolution"
 ---
 
 # fractary-faber-cloud:manage
@@ -49,11 +51,11 @@ Unified command for managing complete infrastructure lifecycle through the infra
 | `validate` | Validate configuration files | `manage validate` |
 | `test` | Run security and cost tests | `manage test` |
 | `deploy-plan` | Preview deployment changes | `manage deploy-plan` |
-| `deploy-apply --env=<env>` | Execute infrastructure deployment | `manage deploy-apply --env test` |
+| `deploy-apply --env <env>` | Execute infrastructure deployment | `manage deploy-apply --env test` |
 | `status [--env <env>]` | Check deployment status | `manage status` |
 | `resources [--env <env>]` | Show deployed resources | `manage resources --env test` |
 | `debug [--complete]` | Analyze and fix deployment errors | `manage debug --complete` |
-| `teardown --env=<env>` | Destroy infrastructure | `manage teardown --env test` |
+| `teardown --env <env>` | Destroy infrastructure | `manage teardown --env test` |
 
 ## Examples
 
