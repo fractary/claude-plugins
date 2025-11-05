@@ -1523,8 +1523,8 @@ Test scenarios:
 ### F. References
 
 **Related Documents:**
-- [FABER Architecture Specification](./fractary-faber-architecture.md)
-- [Work Plugin Specification](./fractary-work-plugin-specification.md)
+- [FABER Architecture Specification](./SPEC-0002-faber-architecture.md)
+- [Work Plugin Specification](./SPEC-0003-work-plugin-specification.md)
 - [Fractary Plugin Standards](../standards/FRACTARY-PLUGIN-STANDARDS.md)
 
 **External Resources:**

@@ -197,4 +197,4 @@ Claude
 ## See Also
 
 - [FRACTARY-PLUGIN-STANDARDS.md](FRACTARY-PLUGIN-STANDARDS.md) - Full plugin standards
-- [fractary-faber-architecture.md](../specs/fractary-faber-architecture.md) - Architecture overview
+- [SPEC-0002-faber-architecture.md](../specs/SPEC-0002-faber-architecture.md) - Architecture overview

@@ -553,7 +553,7 @@ Next steps (choose one):
 4. Phase 7: Cleanup and documentation (4-5h)
 
 Please read:
-- docs/specs/fractary-work-plugin-specification.md (full spec)
+- docs/specs/SPEC-0003-work-plugin-specification.md (full spec)
 - docs/specs/work-plugin-v2-next-steps.md (this file)
 
 Then implement [PHASE NUMBER] following the specification.
@@ -621,10 +621,10 @@ Focus on plugins/faber/ workflow managers.
 
 ## Contact / References
 
-**Specification:** `docs/specs/fractary-work-plugin-specification.md`
+**Specification:** `docs/specs/SPEC-0003-work-plugin-specification.md`
 **Plugin Standards:** `docs/standards/FRACTARY-PLUGIN-STANDARDS.md`
 **Repo Plugin (Reference):** `plugins/repo/` (similar architecture)
-**FABER Specs:** `docs/specs/fractary-faber-architecture.md`
+**FABER Specs:** `docs/specs/SPEC-0002-faber-architecture.md`
 
 **Commit:** 519f7c0 - feat: Implement work plugin v2.0 MVP with focused skills architecture
 **Date:** 2025-10-29
