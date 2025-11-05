@@ -5,7 +5,7 @@ examples:
   - /fractary-faber-cloud:design "S3 bucket for user uploads"
   - /fractary-faber-cloud:design "VPC with public and private subnets"
   - /fractary-faber-cloud:design "Lambda function with API Gateway"
-argument-hint: "<description>"
+argument-hint: '"<description>"'
 ---
 
 # Design Command

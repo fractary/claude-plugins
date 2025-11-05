@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-review
 description: Review a pull request (approve, request changes, or comment)
-argument-hint: <pr_number> <action> [--comment <text>]
+argument-hint: '<pr_number> <action> [--comment "<text>"]'
 ---
 
 <CONTEXT>

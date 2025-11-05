@@ -1,7 +1,7 @@
 ---
 name: fractary-faber-article:content-research
 description: Research topic and create detailed outline with sources (research → outline)
-argument-hint: <topic> [--depth basic|moderate|deep]
+argument-hint: '"<topic>" [--depth basic|moderate|deep]'
 ---
 
 Invoke the content-manager agent to execute research and outline creation workflow (research → outline).

@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-create
 description: Create a new pull request
-argument-hint: <title> [--body <text>] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft]
+argument-hint: '"<title>" [--body "<text>"] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft]'
 ---
 
 <CONTEXT>

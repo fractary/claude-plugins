@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-comment
 description: Add a comment to a pull request
-argument-hint: <pr_number> <comment>
+argument-hint: '<pr_number> "<comment>"'
 ---
 
 <CONTEXT>
