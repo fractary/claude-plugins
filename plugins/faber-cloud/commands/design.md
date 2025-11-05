@@ -1,5 +1,5 @@
 ---
-name: /fractary-faber-cloud:design
+name: fractary-faber-cloud:design
 description: Design cloud infrastructure from requirements
 examples:
   - /fractary-faber-cloud:design "S3 bucket for user uploads"

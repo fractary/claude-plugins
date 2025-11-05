@@ -1,5 +1,5 @@
 ---
-name: /fractary-faber-cloud:test
+name: fractary-faber-cloud:test
 description: Run security scans and cost estimates on infrastructure
 examples:
   - /fractary-faber-cloud:test --env test
@@ -97,13 +97,8 @@ Run security scans, cost estimates, and compliance checks on infrastructure.
 ## Next Steps
 
 After tests pass:
-<<<<<<< HEAD
-- Preview changes: `/fractary-faber-cloud:deploy-plan --env=test`
-- Deploy: `/fractary-faber-cloud:deploy --env=test`
-=======
 - Preview changes: `/fractary-faber-cloud:preview --env test`
 - Deploy: `/fractary-faber-cloud:deploy --env test`
->>>>>>> origin/main
 
 If tests fail:
 - Review findings

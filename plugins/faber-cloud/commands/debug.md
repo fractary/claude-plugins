@@ -1,5 +1,5 @@
 ---
-name: /fractary-faber-cloud:debug
+name: fractary-faber-cloud:debug
 description: Debug deployment errors and permission issues
 examples:
   - /fractary-faber-cloud:debug --error="AccessDenied"
