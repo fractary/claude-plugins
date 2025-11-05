@@ -12,10 +12,18 @@ Validates frontmatter in plugin command files (`plugins/*/commands/*.md`) to cat
 - Missing frontmatter structure (must start with `---`)
 - Missing required `name` field
 - Leading slashes in `name` field (e.g., `/fractary-faber:run` → should be `fractary-faber:run`)
+  - **Auto-fixable with `--fix` flag**
 
 **Warnings (recommended to fix):**
 - `name` field doesn't follow `plugin-name:command-name` pattern
 - Missing recommended `description` field
+
+### Options
+
+- `--verbose` - Show detailed output including files that pass
+- `--quiet` - Only show summary, no file-by-file output
+- `--fix` - Automatically fix issues where possible (leading slashes)
+- `--help` - Show usage information and examples
 
 ### Usage
 
@@ -28,12 +36,38 @@ Validates frontmatter in plugin command files (`plugins/*/commands/*.md`) to cat
 
 # Check a single file
 ./scripts/lint-command-frontmatter.sh plugins/faber-cloud/commands/init.md
+
+# Verbose output (show files that pass)
+./scripts/lint-command-frontmatter.sh --verbose plugins/
+
+# Quiet mode (summary only)
+./scripts/lint-command-frontmatter.sh --quiet plugins/
+
+# Auto-fix issues (leading slashes)
+./scripts/lint-command-frontmatter.sh --fix plugins/
+
+# Show help
+./scripts/lint-command-frontmatter.sh --help
 ```
 
 ### Exit Codes
 
 - `0`: All checks passed
 - `1`: Found one or more errors
+
+### Multi-line YAML Support
+
+The linter properly handles multi-line YAML values:
+
+```yaml
+---
+name: plugin:command
+description: >
+  This is a long description
+  that spans multiple lines
+  and will be properly parsed
+---
+```
 
 ### Example Output
 
@@ -109,10 +143,36 @@ description: Initialize faber-cloud plugin configuration
 To modify the linter:
 
 1. Edit `scripts/lint-command-frontmatter.sh`
-2. Test your changes on a sample file: `./scripts/lint-command-frontmatter.sh plugins/faber-cloud/commands/init.md`
-3. Run on all files: `./scripts/lint-command-frontmatter.sh plugins/`
+2. Run the test suite: `./tests/test-lint-frontmatter.sh`
+3. Test on a sample file: `./scripts/lint-command-frontmatter.sh plugins/faber-cloud/commands/init.md`
+4. Run on all files: `./scripts/lint-command-frontmatter.sh plugins/`
+
+### Test Suite
+
+The linter includes a comprehensive test suite in `tests/test-lint-frontmatter.sh`:
+
+```bash
+# Run all tests
+./tests/test-lint-frontmatter.sh
+```
+
+**Test fixtures:**
+- `tests/fixtures/valid/commands/` - Valid command files that should pass
+- `tests/fixtures/invalid/commands/` - Invalid command files that should fail
+
+**What the tests cover:**
+- Valid files with simple frontmatter
+- Valid files with multi-line descriptions
+- Invalid files with leading slashes
+- Invalid files with missing name field
+- Invalid files with no frontmatter
+- Invalid files with incorrect name patterns
+- Error message validation
+- Fix functionality
+
+Add new test fixtures when adding new validation rules.
 
 ### See Also
 
-- [Plugin Development Standards](../docs/standards/FRACTARY-PLUGIN-STANDARDS.md)
+- [Plugin Development Standards](../docs/standards/FRACTARY-PLUGIN-STANDARDS.md) - Full documentation on frontmatter patterns
 - [Commit b7f661e](https://github.com/fractary/claude-plugins/commit/b7f661e) - Fix that removed leading slashes

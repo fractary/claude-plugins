@@ -1,0 +1,76 @@
+name: Lint Command Frontmatter
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/**/commands/*.md'
+      - 'scripts/lint-command-frontmatter.sh'
+      - '.github/workflows/lint-frontmatter.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugins/**/commands/*.md'
+      - 'scripts/lint-command-frontmatter.sh'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write  # For adding comments on PRs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run frontmatter linter
+        id: lint
+        run: |
+          chmod +x scripts/lint-command-frontmatter.sh
+          ./scripts/lint-command-frontmatter.sh plugins/ 2>&1 | tee lint-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: lint-output.txt
+
+      - name: Comment on PR (if errors found)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('lint-output.txt', 'utf8');
+
+            const body = `## ❌ Frontmatter Lint Failed
+
+            The command frontmatter linter found issues in your changes:
+
+            \`\`\`
+            ${output}
+            \`\`\`
+
+            ### How to fix
+
+            You can automatically fix some issues by running:
+            \`\`\`bash
+            ./scripts/lint-command-frontmatter.sh --fix plugins/
+            \`\`\`
+
+            See \`scripts/README.md\` for more information about the linter.
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if errors found
+        if: steps.lint.outputs.exit_code != '0'
+        run: exit 1
