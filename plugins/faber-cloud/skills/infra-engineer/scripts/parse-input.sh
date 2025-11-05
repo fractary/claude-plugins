@@ -8,11 +8,25 @@ set -euo pipefail
 
 INSTRUCTIONS="${1:-}"
 
+# Input validation: max length to prevent abuse
+MAX_INPUT_LENGTH=10000
+if [ ${#INSTRUCTIONS} -gt $MAX_INPUT_LENGTH ]; then
+    jq -n --arg error "Input too long (max $MAX_INPUT_LENGTH characters)" '{error: $error}' >&2
+    exit 1
+fi
+
 # Allowed directories for security
 DESIGN_DIR=".fractary/plugins/faber-cloud/designs"
 SPEC_DIR=".faber/specs"
 
+# Check if realpath is available (required for security)
+if ! command -v realpath &> /dev/null; then
+    jq -n --arg error "realpath command not found - required for path validation" '{error: $error}' >&2
+    exit 1
+fi
+
 # Security: Sanitize and validate file path
+# Shared function to eliminate DRY violation
 sanitize_path() {
     local input_path="$1"
     local allowed_base="$2"
@@ -22,7 +36,7 @@ sanitize_path() {
     resolved=$(realpath -m "$input_path" 2>/dev/null || echo "")
 
     if [ -z "$resolved" ]; then
-        echo "ERROR: Invalid path: $input_path" >&2
+        jq -n --arg error "Invalid path: $input_path" '{error: $error}' >&2
         return 1
     fi
 
@@ -31,19 +45,57 @@ sanitize_path() {
     abs_base=$(realpath -m "$allowed_base" 2>/dev/null || echo "")
 
     if [ -z "$abs_base" ]; then
-        echo "ERROR: Invalid base directory: $allowed_base" >&2
+        jq -n --arg error "Invalid base directory: $allowed_base" '{error: $error}' >&2
         return 1
     fi
 
     # Check if resolved path is within allowed directory
     if [[ "$resolved" != "$abs_base"* ]]; then
-        echo "ERROR: Path outside allowed directory: $input_path" >&2
-        echo "ERROR: Resolved to: $resolved" >&2
-        echo "ERROR: Allowed base: $abs_base" >&2
+        jq -n \
+            --arg error "Path outside allowed directory" \
+            --arg input_path "$input_path" \
+            --arg resolved "$resolved" \
+            --arg allowed_base "$abs_base" \
+            '{error: $error, input_path: $input_path, resolved: $resolved, allowed_base: $allowed_base}' >&2
         return 1
     fi
 
     echo "$resolved"
+}
+
+# Shared path resolution function (reduces DRY violation)
+resolve_and_validate_file() {
+    local extracted_file="$1"
+    local file_type="$2"  # "design" or "spec"
+    local allowed_dir="$3"
+
+    if [ -z "$extracted_file" ]; then
+        jq -n --arg error "Could not extract $file_type file path" '{error: $error}' >&2
+        return 1
+    fi
+
+    local processed_file="$extracted_file"
+
+    # If relative filename (not starting with / or ./), prepend directory
+    # Fixed: Changed .* to ./* to properly check for relative paths starting with ./
+    if [[ "$processed_file" != /* ]] && [[ "$processed_file" != ./* ]]; then
+        processed_file="$allowed_dir/$processed_file"
+    fi
+
+    # Validate path is within allowed directory
+    local validated_path
+    if ! validated_path=$(sanitize_path "$processed_file" "$allowed_dir"); then
+        jq -n --arg error "Invalid or unsafe $file_type path: $extracted_file" '{error: $error}' >&2
+        return 1
+    fi
+
+    # Check file exists
+    if [ ! -f "$validated_path" ]; then
+        jq -n --arg error "$file_type file not found: $validated_path" '{error: $error}' >&2
+        return 1
+    fi
+
+    echo "$validated_path"
 }
 
 # Extract filename from natural language
@@ -147,11 +199,13 @@ main() {
                 mkdir -p "$DESIGN_DIR" 2>/dev/null || true
             fi
 
+            # Fixed: Use find instead of ls for reliable sorting
             local latest
-            latest=$(ls -t "$DESIGN_DIR"/*.md 2>/dev/null | head -1 || echo "")
+            latest=$(find "$DESIGN_DIR" -maxdepth 1 -name "*.md" -type f -printf '%T@ %p\n' 2>/dev/null | \
+                sort -rn | head -1 | cut -d' ' -f2- || echo "")
 
             if [ -z "$latest" ]; then
-                echo "{\"error\": \"No design documents found in $DESIGN_DIR\"}" >&2
+                jq -n --arg error "No design documents found in $DESIGN_DIR" '{error: $error}' >&2
                 exit 1
             fi
 
@@ -159,21 +213,8 @@ main() {
             ;;
 
         faber_spec)
-            # Resolve and validate FABER spec path
-            if [ -z "$extracted_file" ]; then
-                echo "{\"error\": \"Could not extract spec file path\"}" >&2
-                exit 1
-            fi
-
-            # Validate path is within .faber/specs/
-            if ! file_path=$(sanitize_path "$extracted_file" "$SPEC_DIR"); then
-                echo "{\"error\": \"Invalid or unsafe spec path: $extracted_file\"}" >&2
-                exit 1
-            fi
-
-            # Check file exists
-            if [ ! -f "$file_path" ]; then
-                echo "{\"error\": \"Spec file not found: $file_path\"}" >&2
+            # Use shared function to resolve and validate
+            if ! file_path=$(resolve_and_validate_file "$extracted_file" "spec" "$SPEC_DIR"); then
                 exit 1
             fi
 
@@ -184,26 +225,8 @@ main() {
             ;;
 
         design_file)
-            # Resolve design file path
-            if [ -z "$extracted_file" ]; then
-                echo "{\"error\": \"Could not extract design file path\"}" >&2
-                exit 1
-            fi
-
-            # If relative filename, prepend design directory
-            if [[ "$extracted_file" != /* ]] && [[ "$extracted_file" != .* ]]; then
-                extracted_file="$DESIGN_DIR/$extracted_file"
-            fi
-
-            # Validate path is within designs directory
-            if ! file_path=$(sanitize_path "$extracted_file" "$DESIGN_DIR"); then
-                echo "{\"error\": \"Invalid or unsafe design path: $extracted_file\"}" >&2
-                exit 1
-            fi
-
-            # Check file exists
-            if [ ! -f "$file_path" ]; then
-                echo "{\"error\": \"Design file not found: $file_path\"}" >&2
+            # Use shared function to resolve and validate
+            if ! file_path=$(resolve_and_validate_file "$extracted_file" "design" "$DESIGN_DIR"); then
                 exit 1
             fi
 
@@ -219,12 +242,12 @@ main() {
             ;;
 
         *)
-            echo "{\"error\": \"Unknown source type: $source_type\"}" >&2
+            jq -n --arg error "Unknown source type: $source_type" '{error: $error}' >&2
             exit 1
             ;;
     esac
 
-    # Output JSON result
+    # Output JSON result using jq for consistency and safety
     jq -n \
         --arg source_type "$source_type" \
         --arg file_path "$file_path" \

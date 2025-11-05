@@ -82,6 +82,8 @@ load_source_content() {
 
 # Extract infrastructure requirements from source
 # This is a simple version - in practice, would be more sophisticated
+# SECURITY NOTE: source_content is passed via jq --arg which is safe.
+# DO NOT use this variable in eval or direct bash substitution as it could be dangerous.
 extract_requirements() {
     local content="$1"
     local source_type="$2"
@@ -89,28 +91,37 @@ extract_requirements() {
     # Initialize requirements array
     local resources='[]'
 
-    # Basic keyword detection (simplified - real implementation would be more robust)
-    if echo "$content" | grep -qi 's3\|bucket'; then
+    # Improved keyword detection with word boundaries to prevent false matches
+    # Using grep -E for extended regex with \b word boundaries
+
+    # S3/Bucket (word boundaries prevent matches in "has3" or "bucketlist")
+    if echo "$content" | grep -qiE '\b(s3|bucket)\b'; then
         resources=$(echo "$resources" | jq '. += ["s3_bucket"]')
     fi
 
-    if echo "$content" | grep -qi 'lambda\|function'; then
+    # Lambda/Function (prevents matching "dysfunction" or "malfunction")
+    if echo "$content" | grep -qiE '\b(lambda|aws\s+function)\b'; then
         resources=$(echo "$resources" | jq '. += ["lambda_function", "iam_role"]')
     fi
 
-    if echo "$content" | grep -qi 'dynamodb\|table\|database'; then
+    # DynamoDB/Table/Database (word boundaries)
+    if echo "$content" | grep -qiE '\b(dynamodb|dynamo\s+db)\b'; then
         resources=$(echo "$resources" | jq '. += ["dynamodb_table"]')
     fi
 
-    if echo "$content" | grep -qi 'api gateway\|api\|endpoint'; then
+    # API Gateway (more specific patterns)
+    if echo "$content" | grep -qiE '\b(api\s+gateway|apigateway|rest\s+api|http\s+api)\b'; then
         resources=$(echo "$resources" | jq '. += ["api_gateway"]')
     fi
 
-    if echo "$content" | grep -qi 'cloudfront\|cdn'; then
+    # CloudFront/CDN (word boundaries)
+    if echo "$content" | grep -qiE '\b(cloudfront|cloud\s+front|cdn)\b'; then
         resources=$(echo "$resources" | jq '. += ["cloudfront_distribution"]')
     fi
 
-    if echo "$content" | grep -qi 'iam\|permission\|policy\|role'; then
+    # IAM (prevents matching "email", "iam" in "diamond", etc.)
+    # Look for specific IAM-related terms
+    if echo "$content" | grep -qiE '\b(iam\s+(role|policy|user|group)|permissions?|access\s+control)\b'; then
         resources=$(echo "$resources" | jq '. += ["iam_role", "iam_policy"]')
     fi
 

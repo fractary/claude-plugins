@@ -11,13 +11,13 @@ CONFIG_FILE=".fractary/plugins/faber-cloud/config/devops.json"
 
 # Check Terraform directory exists
 if [ ! -d "$TF_DIR" ]; then
-    echo "{\"error\": \"Terraform directory not found: $TF_DIR\"}" >&2
+    jq -n --arg error "Terraform directory not found: $TF_DIR" '{error: $error}' >&2
     exit 1
 fi
 
 # Check main.tf exists
 if [ ! -f "$TF_DIR/main.tf" ]; then
-    echo "{\"error\": \"main.tf not found in $TF_DIR\"}" >&2
+    jq -n --arg error "main.tf not found in $TF_DIR" '{error: $error}' >&2
     exit 1
 fi
 
@@ -77,6 +77,7 @@ echo "🔍 Validating Terraform configuration..." >&2
 VALIDATE_OUTPUT=$(terraform validate -json 2>&1 || echo '{"valid":false}')
 
 VALIDATE_VALID=$(echo "$VALIDATE_OUTPUT" | jq -r '.valid')
+VALIDATE_ERRORS=""
 
 if [ "$VALIDATE_VALID" = "true" ]; then
     VALIDATE_STATUS="passed"
@@ -84,28 +85,32 @@ if [ "$VALIDATE_VALID" = "true" ]; then
 else
     VALIDATE_STATUS="failed"
     VALIDATE_MESSAGE="Terraform validation failed"
+    # Extract errors for user visibility
     VALIDATE_ERRORS=$(echo "$VALIDATE_OUTPUT" | jq -r '.diagnostics[]?.summary' 2>/dev/null | paste -sd '; ' - || echo "Unknown validation errors")
 fi
 
-# Step 4: Check for common issues
+# Step 4: Check for common issues (Performance: cache .tf file content)
 WARNINGS=()
 
-# Check for hardcoded values
-if grep -rq "us-east-1" *.tf 2>/dev/null | grep -vq "variable\|default"; then
+# Cache all .tf file content for multiple checks
+TF_CONTENT=$(cat *.tf 2>/dev/null)
+
+# Check for hardcoded values (Fixed: removed -q to allow pipe to work)
+if echo "$TF_CONTENT" | grep "us-east-1" | grep -vq "variable\|default"; then
     WARNINGS+=("Found potentially hardcoded AWS region")
 fi
 
 # Check for missing tags (simplified check)
-RESOURCE_COUNT=$(grep -c '^resource "aws_' main.tf 2>/dev/null || echo "0")
-TAGGED_COUNT=$(grep -c 'tags.*=' main.tf 2>/dev/null || echo "0")
+RESOURCE_COUNT=$(echo "$TF_CONTENT" | grep -c '^resource "aws_' || echo "0")
+TAGGED_COUNT=$(echo "$TF_CONTENT" | grep -c 'tags.*=' || echo "0")
 
 if [ "$RESOURCE_COUNT" -gt 0 ] && [ "$TAGGED_COUNT" -lt "$RESOURCE_COUNT" ]; then
     WARNINGS+=("Some resources may be missing tags")
 fi
 
 # Check S3 buckets have encryption
-if grep -q 'resource "aws_s3_bucket"' main.tf 2>/dev/null; then
-    if ! grep -q 'aws_s3_bucket_server_side_encryption_configuration' main.tf 2>/dev/null; then
+if echo "$TF_CONTENT" | grep -q 'resource "aws_s3_bucket"'; then
+    if ! echo "$TF_CONTENT" | grep -q 'aws_s3_bucket_server_side_encryption_configuration'; then
         WARNINGS+=("S3 buckets may be missing encryption configuration")
     fi
 fi
@@ -131,8 +136,14 @@ $(find . -name "*.tf" -type f | sed 's|^./||')
 
 Resource Count: $RESOURCE_COUNT
 
+$(if [ -n "$VALIDATE_ERRORS" ]; then
+    echo "Validation Errors:"
+    echo "$VALIDATE_ERRORS"
+    echo ""
+fi)
+
 Warnings:
-$(printf '%s\n' "${WARNINGS[@]}" || echo "None")
+$(printf '%s\n' "${WARNINGS[@]}" 2>/dev/null || echo "None")
 
 Next Steps:
 - Review generated code
@@ -142,24 +153,46 @@ EOF
 
 echo "📄 Validation report saved to: $TF_DIR/$REPORT_FILE" >&2
 
-# Output JSON result
-jq -n \
-    --arg status "$VALIDATE_STATUS" \
-    --arg format_status "$FORMAT_STATUS" \
-    --arg format_message "$FORMAT_MESSAGE" \
-    --arg validate_status "$VALIDATE_STATUS" \
-    --arg validate_message "$VALIDATE_MESSAGE" \
-    --argjson warnings "$WARNINGS_JSON" \
-    --arg report_file "$REPORT_FILE" \
-    '{
-        validation_status: $status,
-        terraform_fmt: $format_status,
-        terraform_validate: $validate_status,
-        issues_found: [],
-        warnings: $warnings,
-        report_file: $report_file,
-        message: $validate_message
-    }'
+# Output JSON result (Fixed: include VALIDATE_ERRORS in output)
+if [ "$VALIDATE_STATUS" = "failed" ] && [ -n "$VALIDATE_ERRORS" ]; then
+    jq -n \
+        --arg status "$VALIDATE_STATUS" \
+        --arg format_status "$FORMAT_STATUS" \
+        --arg format_message "$FORMAT_MESSAGE" \
+        --arg validate_status "$VALIDATE_STATUS" \
+        --arg validate_message "$VALIDATE_MESSAGE" \
+        --arg validate_errors "$VALIDATE_ERRORS" \
+        --argjson warnings "$WARNINGS_JSON" \
+        --arg report_file "$REPORT_FILE" \
+        '{
+            validation_status: $status,
+            terraform_fmt: $format_status,
+            terraform_validate: $validate_status,
+            validation_errors: $validate_errors,
+            issues_found: [],
+            warnings: $warnings,
+            report_file: $report_file,
+            message: $validate_message
+        }'
+else
+    jq -n \
+        --arg status "$VALIDATE_STATUS" \
+        --arg format_status "$FORMAT_STATUS" \
+        --arg format_message "$FORMAT_MESSAGE" \
+        --arg validate_status "$VALIDATE_STATUS" \
+        --arg validate_message "$VALIDATE_MESSAGE" \
+        --argjson warnings "$WARNINGS_JSON" \
+        --arg report_file "$REPORT_FILE" \
+        '{
+            validation_status: $status,
+            terraform_fmt: $format_status,
+            terraform_validate: $validate_status,
+            issues_found: [],
+            warnings: $warnings,
+            report_file: $report_file,
+            message: $validate_message
+        }'
+fi
 
 # Exit with appropriate code
 if [ "$VALIDATE_STATUS" = "passed" ]; then
