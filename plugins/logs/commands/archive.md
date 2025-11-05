@@ -1,7 +1,7 @@
 ---
 name: fractary-logs:archive
 description: Archive all logs for a completed issue to cloud storage
-argument-hint: <issue_number> [--force]
+argument-hint: <issue_number> [--force] [--retry]
 ---
 
 # Archive Logs
@@ -21,15 +21,23 @@ Archive all logs for a completed issue to cloud storage.
 ## Options
 
 - `--force`: Skip checks and force re-archive
+- `--retry`: Retry failed uploads from a partial archive
 
 ## What It Does
 
 1. Collects all logs for issue (sessions, builds, deployments, debug)
 2. Compresses large logs (> 1MB)
 3. Uploads to cloud storage via fractary-file
-4. Updates archive index
-5. Comments on GitHub issue
-6. Removes local copies
+4. Tracks upload status per file (pending/uploaded/failed)
+5. Updates archive index with partial/complete status
+6. Comments on GitHub issue
+7. Removes local copies
+
+**With --retry flag**:
+- Identifies files with failed/pending uploads from previous attempt
+- Re-attempts uploads for failed files only
+- Updates archive status to complete when all uploads succeed
+- Preserves already-uploaded files (no re-upload)
 
 ## Prompt
 
@@ -43,7 +51,8 @@ Use the @agent-fractary-logs:log-manager agent to archive logs with the followin
     "trigger": "manual"
   },
   "options": {
-    "force": false
+    "force": false,
+    "retry": false
   }
 }
 ```

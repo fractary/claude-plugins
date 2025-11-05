@@ -242,24 +242,87 @@ Archive complete!
 
 ## Error Recovery
 
-### Partial Upload
+### Partial Upload Tracking
+
+Each file in the archive index tracks its upload status:
+- `upload_status`: "pending" | "uploaded" | "failed"
+- `upload_timestamp`: When status was last updated
+- `cloud_url`: Set when upload succeeds
+
+The archive entry has flags:
+- `partial_archive`: true if any file is failed/pending
+- `upload_complete`: true if all files are uploaded
+
+### Partial Upload Workflow
+
 If some files uploaded, others failed:
-1. Record successful uploads in index
-2. Mark as "partial_archive"
-3. Return list of failed files
-4. User can retry failed files
+
+1. **Track each file status**:
+   ```bash
+   scripts/update-file-status.sh <issue> <filepath> "uploaded" "<cloud_url>"
+   scripts/update-file-status.sh <issue> <filepath> "failed"
+   ```
+
+2. **Index automatically marked as partial**:
+   - `partial_archive: true`
+   - `upload_complete: false`
+
+3. **Return partial archive info to user**:
+   ```
+   ⚠️  Partial archive completed for issue #123
+     Uploaded: 2 of 3 files
+     Failed: 1 file
+
+   Failed files:
+     - /logs/builds/123-build.log.gz
+
+   Retry with: /fractary-logs:archive 123 --retry
+   ```
+
+4. **Local files preserved** until all uploads succeed
+
+### Retry Failed Uploads
+
+Execute `scripts/retry-failed-uploads.sh <issue>`
+
+1. Query index for files with status "failed" or "pending"
+2. Check if local files still exist
+3. Return list of files to retry
+4. Agent re-invokes file-manager for each file
+5. Update status as uploads succeed/fail
+6. When all succeed: `partial_archive` → false, `upload_complete` → true
+
+Example:
+```bash
+# Check for failed uploads
+./scripts/retry-failed-uploads.sh 123
+# Returns JSON with files to retry
+
+# Agent uploads each file and updates status
+./scripts/update-file-status.sh 123 "/logs/builds/123-build.log.gz" "uploaded" "r2://..."
+
+# Archive now complete
+```
 
 ### Index Update Failed
+
 If uploads succeeded but index update failed:
-1. Write metadata to recovery file: `/tmp/archive-recovery-{issue}.json`
-2. Alert user to manual index rebuild
-3. Do not delete local files
+
+1. Files are in cloud (durable)
+2. Local files remain (can rebuild index)
+3. Alert user to manual recovery
+4. User can re-run archive with --force to rebuild index
+
+Do NOT write to /tmp - index is the source of truth.
 
 ### Cleanup Failed
-If cannot delete local files:
-1. Archive succeeded, logs in cloud
-2. Log which files couldn't be deleted
-3. User can manually clean later
-4. Mark as successful (cloud is source of truth)
+
+If cannot delete local files after successful upload:
+
+1. Archive succeeded (cloud is source of truth)
+2. `upload_complete: true` in index
+3. Log which files couldn't be deleted
+4. Files can be manually cleaned later
+5. Mark archival as successful
 
 </WORKFLOW>
