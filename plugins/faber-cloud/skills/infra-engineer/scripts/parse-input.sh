@@ -95,9 +95,10 @@ resolve_and_validate_file() {
 
     local processed_file="$extracted_file"
 
-    # If relative filename (not starting with / or ./), prepend directory
-    # Fixed: Changed .* to ./* to properly check for relative paths starting with ./
-    if [[ "$processed_file" != /* ]] && [[ "$processed_file" != ./* ]]; then
+    # If simple filename (no directory separators), prepend allowed directory
+    # Paths like ".faber/specs/file.md" or "./designs/file.md" are complete paths
+    # Only prepend directory for simple filenames like "user-uploads.md"
+    if [[ "$processed_file" != /* ]] && [[ "$processed_file" != ./* ]] && [[ "$processed_file" != */* ]]; then
         processed_file="$allowed_dir/$processed_file"
     fi
 
@@ -140,17 +141,21 @@ extract_filename() {
         return 0
     fi
 
-    # Pattern 3: Standalone .md files (no path separators)
-    if echo "$text" | grep -qE '[a-zA-Z0-9_-]+\.md'; then
-        # Extract first .md filename that doesn't have path separators before it
-        echo "$text" | grep -oE '[^/[:space:]]+\.md' | head -1
+    # Pattern 3: Standalone .md files without spaces (no path separators)
+    # Matches simple filenames: "user-uploads.md", "api-backend.md"
+    # Does NOT match filenames with spaces to avoid false positives
+    if echo "$text" | grep -qE '\b[a-zA-Z0-9_-]+\.md\b'; then
+        echo "$text" | grep -oE '\b[a-zA-Z0-9_-]+\.md\b' | head -1
         return 0
     fi
 
-    # Pattern 4: Natural language with keywords
-    if echo "$text" | grep -qiE '(from|in|using|implement|design)[[:space:]]+[^[:space:]]+\.md'; then
-        echo "$text" | grep -oiE '(from|in|using|implement|design)[[:space:]]+[^[:space:]]+\.md' | \
-            sed -E 's/(from|in|using|implement|design)[[:space:]]+//i' | head -1
+    # Pattern 4: Natural language with keywords (allows spaces in filenames)
+    # Matches: "Use design from api-backend.md", "Implement my-design (v2).md"
+    if echo "$text" | grep -qiE '(from|in|using|implement)[[:space:]]+[a-zA-Z0-9_-]'; then
+        # Extract filename after keyword, allowing spaces and special characters
+        # Note: Removed "design" from extraction pattern to avoid matching "design from file.md"
+        echo "$text" | grep -oiE '(from|in|using|implement)[[:space:]]+[a-zA-Z0-9_-][a-zA-Z0-9_ ().-]*\.md' | \
+            sed -E 's/^(from|in|using|implement)[[:space:]]+//i' | head -1
         return 0
     fi
 

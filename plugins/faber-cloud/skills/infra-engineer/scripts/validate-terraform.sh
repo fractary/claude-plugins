@@ -105,8 +105,8 @@ WARNINGS=()
 # Cache all .tf file content for multiple checks
 TF_CONTENT=$(cat *.tf 2>/dev/null)
 
-# Check for hardcoded values (Fixed: correct grep order - exclude variable/default lines first)
-if echo "$TF_CONTENT" | grep -v "variable\|default" | grep -q "us-east-1"; then
+# Check for hardcoded values (Fixed: correct grep order and use extended regex)
+if echo "$TF_CONTENT" | grep -Ev "(variable|default)" | grep -q "us-east-1"; then
     WARNINGS+=("Found potentially hardcoded AWS region")
 fi
 
