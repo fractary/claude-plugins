@@ -25,7 +25,7 @@ This command follows the standard space-separated syntax:
 /fractary-faber-cloud:test --env test
 
 # Incorrect ❌
-/fractary-faber-cloud:test --env test
+/fractary-faber-cloud:test --env=test
 ```
 </ARGUMENT_SYNTAX>
 
