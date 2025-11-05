@@ -3,8 +3,8 @@ name: fractary-faber-cloud:test
 description: Run security scans and cost estimates on infrastructure
 examples:
   - /fractary-faber-cloud:test --env test
-  - /fractary-faber-cloud:test --env prod --phase=pre-deployment
-argument-hint: "[--env <environment>] [--phase=<pre-deployment|post-deployment>]"
+  - /fractary-faber-cloud:test --env prod --phase pre-deployment
+argument-hint: "[--env <environment>] [--phase <pre-deployment|post-deployment>]"
 ---
 
 # Test Command
@@ -34,7 +34,7 @@ Run security scans, cost estimates, and compliance checks on infrastructure.
 ## Usage
 
 ```bash
-/fractary-faber-cloud:test [--env <environment>] [--phase=<phase>]
+/fractary-faber-cloud:test [--env <environment>] [--phase <phase>]
 ```
 
 ## Parameters
@@ -62,12 +62,12 @@ Run security scans, cost estimates, and compliance checks on infrastructure.
 
 **Test before deployment:**
 ```
-/fractary-faber-cloud:test --env test --phase=pre-deployment
+/fractary-faber-cloud:test --env test --phase pre-deployment
 ```
 
 **Test after deployment:**
 ```
-/fractary-faber-cloud:test --env prod --phase=post-deployment
+/fractary-faber-cloud:test --env prod --phase post-deployment
 ```
 
 **Test with defaults:**

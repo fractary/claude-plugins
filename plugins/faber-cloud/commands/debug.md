@@ -2,10 +2,10 @@
 name: fractary-faber-cloud:debug
 description: Debug deployment errors and permission issues
 examples:
-  - /fractary-faber-cloud:debug --error="AccessDenied"
-  - /fractary-faber-cloud:debug --operation=deploy
+  - /fractary-faber-cloud:debug "AccessDenied error during deployment"
+  - /fractary-faber-cloud:debug "terraform apply failed"
   - /fractary-faber-cloud:debug
-argument-hint: "[--error=<error-message>] [--operation=<operation>]"
+argument-hint: '"<description of issue to debug>"'
 ---
 
 # Debug Command
@@ -23,10 +23,11 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:debug --env test
+/fractary-faber-cloud:debug "AccessDenied error"
+/fractary-faber-cloud:debug "deployment failed with state lock error"
 
-# Incorrect ❌
-/fractary-faber-cloud:debug --env=test
+# No arguments for interactive mode ✅
+/fractary-faber-cloud:debug
 ```
 </ARGUMENT_SYNTAX>
 
@@ -35,13 +36,12 @@ Debug deployment errors and permission issues.
 ## Usage
 
 ```bash
-/fractary-faber-cloud:debug [--error=<error-message>] [--operation=<operation>]
+/fractary-faber-cloud:debug ["<description of issue>"]
 ```
 
 ## Parameters
 
-- `--error`: Error message or code to debug (optional)
-- `--operation`: Operation that failed (deploy, validate, etc.) (optional)
+- `description`: Natural language description of the issue (optional - if omitted, enters interactive mode)
 
 ## What This Does
 
@@ -55,12 +55,12 @@ Debug deployment errors and permission issues.
 
 **Debug permission error:**
 ```
-/fractary-faber-cloud:debug --error="AccessDenied: User is not authorized"
+/fractary-faber-cloud:debug "AccessDenied: User is not authorized"
 ```
 
 **Debug deployment failure:**
 ```
-/fractary-faber-cloud:debug --operation=deploy
+/fractary-faber-cloud:debug "terraform apply failed during deployment"
 ```
 
 **Interactive debugging:**
@@ -148,16 +148,16 @@ Some issues can be automatically fixed:
 
 **After deployment failure:**
 ```
-/fractary-faber-cloud:deploy --env test
+/fractary-faber-cloud:deploy-execute --env test
 # Error: AccessDenied for CreateFunction
 
-/fractary-faber-cloud:debug --error="AccessDenied for CreateFunction"
+/fractary-faber-cloud:debug "AccessDenied for CreateFunction"
 # Analyzes and suggests adding lambda:CreateFunction permission
 ```
 
 **Permission issues:**
 ```
-/fractary-faber-cloud:debug --error="User is not authorized to perform: s3:CreateBucket"
+/fractary-faber-cloud:debug "User is not authorized to perform: s3:CreateBucket"
 # Generates IAM policy with required permissions
 # Can create permission request
 ```
@@ -175,26 +175,12 @@ Run debug:
 
 After debugging:
 - Apply suggested fixes
-- Retry operation: `/fractary-faber-cloud:deploy --env test`
+- Retry operation: `/fractary-faber-cloud:deploy-execute --env test`
 - If still failing: Review AWS console
 - Document issue for team
-
-## Advanced
-
-**Debug with logs:**
-```
-/fractary-faber-cloud:debug --error="deployment failed" --logs=cloudwatch
-# Queries CloudWatch Logs for additional context
-```
-
-**Debug with state analysis:**
-```
-/fractary-faber-cloud:debug --operation=apply --analyze-state
-# Compares desired vs actual state
-```
 
 ## Invocation
 
 This command invokes the `infra-manager` agent with the `debug` operation.
 
-USE AGENT: infra-manager with operation=debug, error message from --error parameter (optional), and operation from --operation parameter (optional)
+USE AGENT: infra-manager with operation=debug and description from user input (optional)

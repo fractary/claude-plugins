@@ -2,15 +2,9 @@
 name: fractary-faber-cloud:deploy-destroy
 description: Destroy deployed infrastructure (terraform destroy)
 examples:
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-destroy.md
-  - /fractary-faber-cloud:deploy-destroy --env=test
-  - /fractary-faber-cloud:deploy-destroy --env=staging
-argument-hint: "--env=<environment> [--confirm]"
-=======
-  - /fractary-faber-cloud:teardown --env test
-  - /fractary-faber-cloud:teardown --env staging
-argument-hint: "--env <environment> [--confirm]"
->>>>>>> origin/main:plugins/faber-cloud/commands/teardown.md
+  - /fractary-faber-cloud:deploy-destroy --env test
+  - /fractary-faber-cloud:deploy-destroy --env staging
+argument-hint: "--env <environment> [--auto-approve]"
 ---
 
 # Deploy-Destroy Command
@@ -28,10 +22,10 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:teardown --env test
+/fractary-faber-cloud:deploy-destroy --env test
 
 # Incorrect ❌
-/fractary-faber-cloud:teardown --env=test
+/fractary-faber-cloud:deploy-destroy --env=test
 ```
 </ARGUMENT_SYNTAX>
 
@@ -40,38 +34,27 @@ Destroy deployed infrastructure in the specified environment.
 ## Usage
 
 ```bash
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-destroy.md
-/fractary-faber-cloud:deploy-destroy --env=<environment> [options]
-=======
-/fractary-faber-cloud:teardown --env <environment> [options]
->>>>>>> origin/main:plugins/faber-cloud/commands/teardown.md
+/fractary-faber-cloud:deploy-destroy --env <environment> [options]
 ```
 
 ## Arguments
 
 - `--env <environment>` (required): Environment to destroy (test, staging, prod)
-- `--confirm` (optional): Skip confirmation prompts (dangerous! Not allowed for production)
+- `--auto-approve` (optional): Skip confirmation prompts (dangerous! Not allowed for production)
 
 ## Examples
 
 ```bash
 # Destroy test environment (with confirmation)
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-destroy.md
-/fractary-faber-cloud:deploy-destroy --env=test
+/fractary-faber-cloud:deploy-destroy --env test
 
 # Destroy with auto-confirmation (be careful!)
-/fractary-faber-cloud:deploy-destroy --env=test --confirm
-=======
-/fractary-faber-cloud:teardown --env test
-
-# Destroy with auto-confirmation (be careful!)
-/fractary-faber-cloud:teardown --env test --confirm
->>>>>>> origin/main:plugins/faber-cloud/commands/teardown.md
+/fractary-faber-cloud:deploy-destroy --env test --auto-approve
 ```
 
 ## Safety
 
-**Production Safety**: Destroying production infrastructure requires multiple confirmations and cannot use `--confirm` flag.
+**Production Safety**: Destroying production infrastructure requires multiple confirmations and cannot use `--auto-approve` flag.
 
 **State Backup**: Terraform state is automatically backed up before destruction.
 
@@ -91,16 +74,16 @@ Destroy deployed infrastructure in the specified environment.
 For production environments:
 - ⚠️ Requires 3 separate confirmations
 - ⚠️ User must type environment name to confirm
-- ⚠️ `--confirm` flag is rejected
+- ⚠️ `--auto-approve` flag is rejected
 - ⚠️ Extended timeout (30 minutes)
 - ⚠️ Additional approval checkpoint after plan review
 
 ## Non-Production Teardown
 
 For test/staging environments:
-- 1 confirmation required (unless `--confirm` flag used)
+- 1 confirmation required (unless `--auto-approve` flag used)
 - Standard timeout (10 minutes)
-- Automatic if `--confirm` flag present
+- Automatic if `--auto-approve` flag present
 
 ## After Teardown
 

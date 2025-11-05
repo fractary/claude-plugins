@@ -2,15 +2,9 @@
 name: fractary-faber-cloud:deploy-execute
 description: Execute infrastructure deployment (terraform apply)
 examples:
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-  - /fractary-faber-cloud:deploy-execute --env=test
-  - /fractary-faber-cloud:deploy-execute --env=prod
-argument-hint: "--env=<environment> [--auto-approve]"
-=======
-  - /fractary-faber-cloud:deploy-apply --env test
-  - /fractary-faber-cloud:deploy-apply --env prod
+  - /fractary-faber-cloud:deploy-execute --env test
+  - /fractary-faber-cloud:deploy-execute --env prod
 argument-hint: "--env <environment> [--auto-approve]"
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
 ---
 
 # Deploy-Execute Command
@@ -29,23 +23,19 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:deploy-apply --env test
-/fractary-faber-cloud:deploy-apply --env prod --auto-approve
+/fractary-faber-cloud:deploy-execute --env test
+/fractary-faber-cloud:deploy-execute --env prod --auto-approve
 
 # Incorrect ❌
-/fractary-faber-cloud:deploy-apply --env=test
-/fractary-faber-cloud:deploy-apply --env=prod --auto-approve=true
+/fractary-faber-cloud:deploy-execute --env=test
+/fractary-faber-cloud:deploy-execute --env=prod --auto-approve=true
 ```
 </ARGUMENT_SYNTAX>
 
 ## Usage
 
 ```bash
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-/fractary-faber-cloud:deploy-execute --env=<environment> [--auto-approve]
-=======
-/fractary-faber-cloud:deploy-apply --env <environment> [--auto-approve]
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
+/fractary-faber-cloud:deploy-execute --env <environment> [--auto-approve]
 ```
 
 ## Parameters
@@ -68,20 +58,12 @@ This command follows the standard space-separated syntax:
 
 **Deploy to test:**
 ```
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-/fractary-faber-cloud:deploy-execute --env=test
-=======
-/fractary-faber-cloud:deploy-apply --env test
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
+/fractary-faber-cloud:deploy-execute --env test
 ```
 
 **Deploy to production:**
 ```
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-/fractary-faber-cloud:deploy-execute --env=prod
-=======
-/fractary-faber-cloud:deploy-apply --env prod
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
+/fractary-faber-cloud:deploy-execute --env prod
 ```
 
 ## Complete Workflow
@@ -125,11 +107,7 @@ If deployment encounters errors, you'll be offered 3 options:
 
 **Standard test deployment:**
 ```
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-/fractary-faber-cloud:deploy-execute --env=test
-=======
-/fractary-faber-cloud:deploy-apply --env test
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
+/fractary-faber-cloud:deploy-execute --env test
 ```
 
 **Production deployment (safe):**
@@ -145,11 +123,7 @@ If deployment encounters errors, you'll be offered 3 options:
 # Review output carefully!
 
 # 4. Deploy with confirmation
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-/fractary-faber-cloud:deploy-execute --env=prod
-=======
-/fractary-faber-cloud:deploy-apply --env prod
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
+/fractary-faber-cloud:deploy-execute --env prod
 # Will prompt for confirmation at each step
 ```
 
@@ -165,13 +139,8 @@ Deployment automatically:
 
 Check deployment status:
 ```
-<<<<<<< HEAD:plugins/faber-cloud/commands/deploy-execute.md
-/fractary-faber-cloud:status --env=test
-/fractary-faber-cloud:list --env=test
-=======
 /fractary-faber-cloud:status --env test
-/fractary-faber-cloud:resources --env test
->>>>>>> origin/main:plugins/faber-cloud/commands/deploy-apply.md
+/fractary-faber-cloud:list --env test
 ```
 
 ## Rollback

@@ -49,11 +49,11 @@ Unified command for managing complete infrastructure lifecycle through the infra
 | `validate` | Validate configuration files | `manage validate` |
 | `test` | Run security and cost tests | `manage test` |
 | `deploy-plan` | Preview deployment changes | `manage deploy-plan` |
-| `deploy-apply --env=<env>` | Execute infrastructure deployment | `manage deploy-apply --env test` |
+| `deploy-apply --env <env>` | Execute infrastructure deployment | `manage deploy-apply --env test` |
 | `status [--env <env>]` | Check deployment status | `manage status` |
 | `resources [--env <env>]` | Show deployed resources | `manage resources --env test` |
 | `debug [--complete]` | Analyze and fix deployment errors | `manage debug --complete` |
-| `teardown --env=<env>` | Destroy infrastructure | `manage teardown --env test` |
+| `teardown --env <env>` | Destroy infrastructure | `manage teardown --env test` |
 
 ## Examples
 

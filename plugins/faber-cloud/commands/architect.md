@@ -5,7 +5,7 @@ examples:
   - /fractary-faber-cloud:architect "S3 bucket for user uploads"
   - /fractary-faber-cloud:architect "VPC with public and private subnets"
   - /fractary-faber-cloud:architect "Lambda function with API Gateway"
-argument-hint: '"<description>"'
+argument-hint: '"<description of infrastructure to build>"'
 ---
 
 # Architect Command
@@ -52,7 +52,7 @@ Design cloud infrastructure architecture from natural language requirements.
 After designing, you can:
 - Generate code: `/fractary-faber-cloud:engineer`
 - Validate: `/fractary-faber-cloud:validate`
-- Deploy: `/fractary-faber-cloud:deploy-execute --env=test`
+- Deploy: `/fractary-faber-cloud:deploy-execute --env test`
 
 ## Invocation
 

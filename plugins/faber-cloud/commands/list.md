@@ -2,22 +2,13 @@
 name: fractary-faber-cloud:list
 description: List deployed infrastructure resources
 examples:
-<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
-  - /fractary-faber-cloud:list --env=test
-  - /fractary-faber-cloud:list --env=prod
-argument-hint: "--env=<environment>"
-=======
-  - /fractary-faber-cloud:resources --env test
-  - /fractary-faber-cloud:resources --env prod
+  - /fractary-faber-cloud:list --env test
+  - /fractary-faber-cloud:list --env prod
 argument-hint: "--env <environment>"
->>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
 ---
 
 # List Command
 
-<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
-List detailed information about deployed infrastructure resources.
-=======
 
 <ARGUMENT_SYNTAX>
 ## Command Argument Syntax
@@ -31,24 +22,19 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:resources --env test
+/fractary-faber-cloud:list --env test
 
 # Incorrect ❌
-/fractary-faber-cloud:resources --env=test
+/fractary-faber-cloud:list --env=test
 ```
 </ARGUMENT_SYNTAX>
 
-Show detailed information about deployed infrastructure resources.
->>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
+List detailed information about deployed infrastructure resources.
 
 ## Usage
 
 ```bash
-<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
-/fractary-faber-cloud:list --env=<environment>
-=======
-/fractary-faber-cloud:resources --env <environment>
->>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
+/fractary-faber-cloud:list --env <environment>
 ```
 
 ## Parameters
@@ -67,20 +53,12 @@ Show detailed information about deployed infrastructure resources.
 
 **List test resources:**
 ```
-<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
-/fractary-faber-cloud:list --env=test
-=======
-/fractary-faber-cloud:resources --env test
->>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
+/fractary-faber-cloud:list --env test
 ```
 
 **List production resources:**
 ```
-<<<<<<< HEAD:plugins/faber-cloud/commands/list.md
-/fractary-faber-cloud:list --env=prod
-=======
-/fractary-faber-cloud:resources --env prod
->>>>>>> origin/main:plugins/faber-cloud/commands/resources.md
+/fractary-faber-cloud:list --env prod
 ```
 
 ## Output Includes
