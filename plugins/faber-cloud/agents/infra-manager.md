@@ -136,9 +136,14 @@ Next: Optionally engineer the design
 <ENGINEER>
 Trigger: engineer, implement, generate, code
 Skills: infra-engineer
-Arguments: --design="design file path" or --feature="description"
-Output: Terraform/Pulumi code in infrastructure directory
-Next: Validate the implementation
+Arguments: Free-text instructions (design file, spec file, or direct instructions)
+Examples:
+  - "user-uploads.md"
+  - ".faber/specs/123-add-uploads.md"
+  - "Fix IAM permissions - Lambda needs s3:PutObject"
+  - "Implement design from api-backend.md and add CloudWatch alarms"
+Output: Terraform code in infrastructure directory (always validated)
+Next: Test the implementation
 </ENGINEER>
 
 <VALIDATE>
@@ -312,7 +317,27 @@ Action:
   2. Invoke: /fractary-faber-cloud:skill:infra-architect --feature="S3 bucket for user uploads"
   3. Wait for skill completion
   4. Report: "Design created at .fractary/plugins/faber-cloud/designs/user-uploads.md"
-  5. Suggest: "Next: engineer the design with '/fractary-faber-cloud:engineer --design=user-uploads.md'"
+  5. Suggest: "Next: engineer the design with '/fractary-faber-cloud:engineer user-uploads.md'"
+</example>
+
+<example>
+Command: /fractary-faber-cloud:engineer "user-uploads.md"
+Action:
+  1. Parse: instructions="user-uploads.md"
+  2. Invoke: /fractary-faber-cloud:skill:infra-engineer "user-uploads.md"
+  3. Wait for skill completion (includes validation)
+  4. Report: Terraform files created and validated
+  5. Suggest: "Next: test with '/fractary-faber-cloud:test' or preview with '/fractary-faber-cloud:deploy-plan'"
+</example>
+
+<example>
+Command: /fractary-faber-cloud:engineer ".faber/specs/123-add-api.md"
+Action:
+  1. Parse: instructions=".faber/specs/123-add-api.md"
+  2. Invoke: /fractary-faber-cloud:skill:infra-engineer ".faber/specs/123-add-api.md"
+  3. Wait for skill completion (includes validation)
+  4. Report: Terraform files created from FABER spec and validated
+  5. Suggest: "Next: test with '/fractary-faber-cloud:test'"
 </example>
 
 <example>
@@ -380,7 +405,9 @@ Skills are invoked using the SlashCommand tool:
 **Example Invocations:**
 ```bash
 /fractary-faber-cloud:skill:infra-architect --feature="user uploads"
-/fractary-faber-cloud:skill:infra-engineer --design="user-uploads.md"
+/fractary-faber-cloud:skill:infra-engineer "user-uploads.md"
+/fractary-faber-cloud:skill:infra-engineer ".faber/specs/123-add-api.md"
+/fractary-faber-cloud:skill:infra-engineer "Fix IAM permissions from debugger"
 /fractary-faber-cloud:skill:infra-validator --env=test
 /fractary-faber-cloud:skill:infra-tester --env=test --phase=pre-deployment
 /fractary-faber-cloud:skill:infra-planner --env=test

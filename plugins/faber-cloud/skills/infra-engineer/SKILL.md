@@ -32,63 +32,105 @@ Terraform configurations.
 </CRITICAL_RULES>
 
 <INPUTS>
-This skill receives:
+This skill receives free-text instructions that can include:
 
-- **design**: Path to design document (e.g., "user-uploads.md")
-- **feature**: Optional feature description if no design document
+- **Design file reference**: "user-uploads.md" or ".fractary/plugins/faber-cloud/designs/api-backend.md"
+- **FABER spec reference**: ".faber/specs/123-add-uploads.md"
+- **Direct instructions**: "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+- **Mixed context**: "Implement design from api-backend.md and add CloudWatch alarms"
+- **No arguments**: Will look for the most recent design document
+
+The skill intelligently parses the input to determine:
+1. If a file is referenced, read and use it as the source
+2. If direct instructions are provided, use them as implementation guidance
+3. If no input is provided, find and use the latest design document
+
+Additionally receives:
 - **config**: Configuration from config-loader.sh
+- **retry_context**: If this is a retry from evaluate phase
 </INPUTS>
 
 <WORKFLOW>
 **OUTPUT START MESSAGE:**
 ```
 🔧 STARTING: Infrastructure Engineer
-Design: {design document or feature}
+Instructions: {instructions or file reference}
 Output: {terraform directory}
 ───────────────────────────────────────
 ```
 
 **EXECUTE STEPS:**
 
-1. **Read: workflow/read-design.md**
-   - Load design document or parse feature description
-   - Extract resource specifications
-   - Identify dependencies
-   - Output: "✓ Step 1 complete: Design loaded"
+This workflow uses the 3-layer architecture with deterministic operations in shell scripts.
 
-2. **Read: workflow/generate-code.md**
-   - Generate Terraform resource blocks
+**Workflow documentation files** (in `workflow/` directory) provide detailed implementation guidance:
+- `workflow/parse-input.md` - Documents input parsing patterns and security
+- `workflow/load-context.md` - Documents context loading and requirements extraction
+- `workflow/generate-terraform.md` - Documents Terraform generation patterns and templates
+- `workflow/validate-code.md` - Documents validation procedures
+
+**Actual execution** uses shell scripts via Bash tool:
+
+1. **Parse Input (via parse-input.sh script)**
+   - Invoke: `./scripts/parse-input.sh "$INSTRUCTIONS"`
+   - Script handles:
+     * Pattern matching with priority order
+     * File path extraction and sanitization
+     * Security validation (path traversal prevention)
+     * Additional context extraction
+   - Output: JSON with source_type, file_path, additional_context
+   - Display: "✓ Source determined: {source_type}"
+
+2. **Load Context (via load-context.sh script)**
+   - Invoke: `./scripts/load-context.sh "$PARSE_RESULT"`
+   - Script handles:
+     * File loading and validation
+     * Empty file detection
+     * Basic requirement extraction (with documented limitations)
+     * Configuration loading
+     * Mode determination (create vs update)
+   - Output: JSON with source_content, requirements, config
+   - Display: "✓ Context loaded from {source}"
+
+3. **Generate Terraform Code (LLM-based - stays in context)**
+   - Read `workflow/generate-terraform.md` for detailed patterns
+   - Generate Terraform resource blocks based on requirements
+   - Merge additional_context with base requirements
    - Create variable definitions
    - Define outputs
-   - Add provider configuration if needed
-   - Output: "✓ Step 2 complete: Terraform code generated"
-
-3. **Read: workflow/apply-patterns.md**
+   - Add provider configuration
    - Apply naming patterns from config
    - Add standard tags
    - Implement security best practices
-   - Add lifecycle policies
-   - Output: "✓ Step 3 complete: Patterns applied"
+   - Write files to infrastructure/terraform/
+   - Output: "✓ Terraform code generated"
 
-4. **Read: workflow/validate-implementation.md**
-   - Run terraform fmt
-   - Run terraform validate (via handler)
-   - Check for common issues
-   - Output: "✓ Step 4 complete: Code validated"
+4. **Validate Implementation (via validate-terraform.sh script - ALWAYS)**
+   - Invoke: `./scripts/validate-terraform.sh "./infrastructure/terraform"`
+   - Script handles:
+     * terraform fmt (fix formatting)
+     * terraform init (with backend fallback logging)
+     * terraform validate (syntax/config)
+     * Common issue checks
+     * Timestamped report generation
+   - Output: JSON with validation results
+   - Display: "✓ Code validated successfully"
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
 ✅ COMPLETED: Infrastructure Engineer
+Source: {source description}
 Terraform Files Created:
 - {terraform_directory}/main.tf
 - {terraform_directory}/variables.tf
 - {terraform_directory}/outputs.tf
-- {terraform_directory}/{environment}.tfvars (if needed)
 
 Resources Implemented: {count}
+Validation: ✅ Passed
+
 Next Steps:
-- Review Terraform code
-- Run: /fractary-faber-cloud:infra-manage validate --env test
+- Test: /fractary-faber-cloud:test
+- Preview: /fractary-faber-cloud:deploy-plan
 ───────────────────────────────────────
 ```
 
@@ -100,24 +142,47 @@ Error: {error message}
 Resolution: {how to fix}
 ───────────────────────────────────────
 ```
+
+**ARCHITECTURE NOTE:**
+This workflow follows the 3-layer architecture:
+- **Scripts** (Layer 4): Deterministic operations (parse, validate) - executed outside LLM context
+- **LLM** (Layer 2): Complex generation requiring AI (Terraform code generation with requirement merging)
+- **Workflows** (Layer 2): Orchestration and coordination
+- **Workflow files**: Documentation and implementation guidance (not executed directly)
+
+This reduces context usage by ~55-60% by keeping deterministic operations in scripts.
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 This skill is complete and successful when ALL verified:
 
-✅ **1. Code Generation**
-- All resources from design implemented
+✅ **1. Input Parsing**
+- Instructions parsed successfully
+- Source type determined
+- File paths validated and sanitized
+- No path traversal attempts
+
+✅ **2. Context Loading**
+- Source document loaded (if file-based)
+- File is not empty
+- Requirements extracted
+- Configuration loaded
+- Additional context preserved
+
+✅ **3. Code Generation**
+- All resources from requirements implemented
 - Variable definitions created
 - Outputs defined for important attributes
-- Provider configuration included if needed
+- Provider configuration included
+- Additional context merged with base requirements
 
-✅ **2. Code Quality**
+✅ **4. Code Quality**
 - Valid HCL syntax
-- Terraform fmt applied
-- Terraform validate passes
+- Terraform fmt applied (ALWAYS)
+- Terraform validate passes (ALWAYS)
 - Best practices followed
 
-✅ **3. File Organization**
+✅ **5. File Organization**
 - main.tf: Resource definitions
 - variables.tf: Variable declarations
 - outputs.tf: Output definitions
@@ -126,13 +191,67 @@ This skill is complete and successful when ALL verified:
 ---
 
 **FAILURE CONDITIONS - Stop and report if:**
-❌ Design document not found (action: return error with correct path)
-❌ Invalid Terraform syntax generated (action: fix and regenerate)
-❌ Terraform directory not accessible (action: check permissions)
+
+❌ **Input Parsing Failures:**
+- Path traversal attempt detected (security)
+- Malicious file path provided
+- Multiple ambiguous file matches
+- Cannot determine source type
+
+❌ **Context Loading Failures:**
+- Source file not found
+- Source file is empty
+- Source file contains invalid/corrupt content
+- Configuration file is corrupt
+- Cannot extract requirements
+
+❌ **Code Generation Failures:**
+- Invalid Terraform syntax generated
+- Terraform directory not accessible
+- Cannot write files (permissions)
+
+❌ **Validation Failures:**
+- Terraform fmt fails
+- Terraform validate fails
+- Critical security issues detected
 
 **PARTIAL COMPLETION - Not acceptable:**
-⚠️ Code generated but not validated → Validate before returning
-⚠️ Files created but not formatted → Run terraform fmt before returning
+⚠️ Code generated but not validated → Validate before returning (MANDATORY)
+⚠️ Files created but not formatted → Run terraform fmt before returning (MANDATORY)
+⚠️ Security issues found but ignored → Must address or fail
+⚠️ Empty files created → Must contain valid content
+
+## Error Handling Details
+
+### Path Security Errors
+**Error:** `"Path outside allowed directory"`
+**Action:** Reject immediately, log security event, return error
+**User Action:** Use valid path within allowed directories
+
+### File Not Found
+**Error:** `"Design file not found: /path/to/file.md"`
+**Action:** Return error with correct path format
+**User Action:** Check filename spelling and location
+
+### Empty File
+**Error:** `"Source file is empty: /path/to/file.md"`
+**Action:** Return error, suggest checking file content
+**User Action:** Ensure file has content
+
+### Invalid Content
+**Error:** `"Cannot extract requirements from source"`
+**Action:** Return error with file details
+**User Action:** Check file format and content validity
+
+### Multiple Files Match
+**Error:** `"Multiple files match pattern: file1.md, file2.md"`
+**Action:** Return error listing matches
+**User Action:** Specify exact filename or path
+
+### Validation Failure
+**Error:** `"Terraform validation failed: [specific error]"`
+**Action:** Show exact terraform error, return failure
+**User Action:** Review error, fix requirements, retry
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
@@ -459,22 +578,112 @@ aws_region   = "us-east-1"
 
 </FILE_STRUCTURE>
 
+<INPUT_PARSING_LOGIC>
+
+**Determining Input Type:**
+
+1. **Check for file paths** - Contains `.md` extension or starts with path separators:
+   ```
+   "user-uploads.md" → design file
+   ".fractary/plugins/faber-cloud/designs/api-backend.md" → design file
+   ".faber/specs/123-add-feature.md" → FABER spec
+   ```
+
+2. **Check for design directory reference** - Mentions design directory:
+   ```
+   "Implement design from user-uploads.md" → extract: user-uploads.md
+   "Use the design in api-backend.md" → extract: api-backend.md
+   ```
+
+3. **Check for spec directory reference** - Mentions .faber/specs:
+   ```
+   "Implement infrastructure for .faber/specs/123-add-api.md" → extract spec path
+   ```
+
+4. **Direct instructions** - Doesn't match above patterns:
+   ```
+   "Fix IAM permissions - Lambda needs s3:PutObject"
+   "Add CloudWatch alarms for all Lambda functions"
+   ```
+
+5. **No input** - Empty or null:
+   ```
+   "" → Find latest design in .fractary/plugins/faber-cloud/designs/
+   ```
+
+**File Path Resolution:**
+
+- Relative design files: Resolve to `.fractary/plugins/faber-cloud/designs/{filename}`
+- Absolute paths: Use as-is
+- FABER specs: Must be absolute or start with `.faber/`
+
+</INPUT_PARSING_LOGIC>
+
 <EXAMPLES>
 <example>
-Input: Design for "User Uploads" with S3 bucket and Lambda processor
+Input: "user-uploads.md"
+Parse Result:
+  - Type: design_file
+  - Path: .fractary/plugins/faber-cloud/designs/user-uploads.md
 Process:
   1. Read design document
-  2. Generate main.tf with:
-     - S3 bucket resource
-     - S3 bucket versioning
-     - S3 encryption configuration
+  2. Extract S3 bucket and Lambda processor requirements
+  3. Generate main.tf with:
+     - S3 bucket resource with versioning and encryption
      - Lambda function
      - IAM role for Lambda
      - S3 event notification to trigger Lambda
-  3. Generate variables.tf with standard variables
-  4. Generate outputs.tf with bucket name, ARN, Lambda ARN
-  5. Run terraform fmt
-  6. Validate syntax
-Output: Complete Terraform configuration in ./infrastructure/terraform/
+  4. Generate variables.tf with standard variables
+  5. Generate outputs.tf with bucket name, ARN, Lambda ARN
+  6. Run terraform fmt
+  7. Run terraform validate
+Output: Complete validated Terraform configuration in ./infrastructure/terraform/
+</example>
+
+<example>
+Input: ".faber/specs/123-add-api-backend.md"
+Parse Result:
+  - Type: faber_spec
+  - Path: .faber/specs/123-add-api-backend.md
+Process:
+  1. Read FABER spec
+  2. Extract infrastructure requirements from software spec
+  3. Determine needed AWS resources (API Gateway, Lambda, DynamoDB)
+  4. Generate main.tf with:
+     - API Gateway REST API
+     - Lambda functions for endpoints
+     - DynamoDB table for data storage
+     - IAM roles and policies
+  5. Generate variables.tf and outputs.tf
+  6. Run terraform fmt and validate
+Output: Complete validated Terraform configuration
+</example>
+
+<example>
+Input: "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+Parse Result:
+  - Type: direct_instructions
+  - Instructions: "Fix IAM permissions - Lambda needs s3:PutObject on uploads bucket"
+Process:
+  1. Read existing Terraform code
+  2. Locate Lambda IAM role
+  3. Add s3:PutObject permission for uploads bucket
+  4. Update IAM policy document
+  5. Run terraform fmt and validate
+Output: Updated Terraform with corrected IAM permissions
+</example>
+
+<example>
+Input: "" (no input)
+Parse Result:
+  - Type: latest_design
+  - Path: (auto-detected from designs directory)
+Process:
+  1. List files in .fractary/plugins/faber-cloud/designs/
+  2. Find most recently modified .md file
+  3. Read and implement that design
+  4. Generate Terraform code
+  5. Validate
+Output: Complete validated Terraform configuration
 </example>
 </EXAMPLES>
