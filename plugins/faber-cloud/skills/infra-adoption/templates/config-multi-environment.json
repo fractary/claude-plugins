@@ -1,0 +1,104 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber-cloud/schemas/faber-cloud-config.schema.json",
+  "version": "1.0",
+  "project": {
+    "name": "",
+    "description": "Multi-environment infrastructure managed by faber-cloud",
+    "repository": ""
+  },
+  "environments": [],
+  "terraform": {
+    "version": "1.0",
+    "default_directory": "./terraform",
+    "environments_directory": "./terraform/environments",
+    "modules_directory": "./terraform/modules",
+    "backend_type": "local",
+    "var_file_pattern": "terraform.tfvars",
+    "plan_file": "tfplan",
+    "state_file": "terraform.tfstate",
+    "environment_path_pattern": "{environments_directory}/{environment}",
+    "module_sources": {
+      "local": true,
+      "registry": false
+    }
+  },
+  "aws": {
+    "default_region": "us-east-1",
+    "profile_pattern": "{project}-{environment}",
+    "assume_role": false
+  },
+  "handlers": {
+    "iac": {
+      "active": "terraform",
+      "terraform": {
+        "auto_init": true,
+        "lock_timeout": "10m",
+        "parallelism": 10,
+        "upgrade_modules": false
+      }
+    },
+    "hosting": {
+      "active": "aws",
+      "aws": {
+        "retry_attempts": 3,
+        "retry_delay": 5
+      }
+    }
+  },
+  "hooks": {
+    "pre_plan": [],
+    "post_plan": [],
+    "pre_deploy": [],
+    "post_deploy": [],
+    "pre_destroy": [],
+    "post_destroy": []
+  },
+  "deployment": {
+    "approval": {
+      "required": true,
+      "environments": ["staging", "prod"]
+    },
+    "validation": {
+      "enhanced_environment_detection": true,
+      "require_environment_match": true,
+      "check_state_file": true,
+      "check_workspace": false,
+      "check_tfvars": true,
+      "check_directory_path": true,
+      "validate_modules": true
+    },
+    "rollback": {
+      "enabled": true,
+      "automatic": false,
+      "keep_failed_plans": true
+    },
+    "promotion": {
+      "enabled": true,
+      "path": ["dev", "staging", "prod"],
+      "require_previous_success": true
+    }
+  },
+  "modules": {
+    "validate_before_apply": true,
+    "cache_registry_modules": true,
+    "shared_modules": true,
+    "allowed_sources": [
+      "local",
+      "terraform-aws-modules"
+    ]
+  },
+  "monitoring": {
+    "enabled": false,
+    "cloudwatch": {
+      "enabled": false,
+      "log_group": "/aws/faber-cloud/{environment}"
+    }
+  },
+  "notifications": {
+    "enabled": false,
+    "slack": {
+      "webhook_url": "",
+      "channel": "#infrastructure"
+    }
+  }
+}
