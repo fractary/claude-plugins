@@ -1,0 +1,29 @@
+{
+  "name": "fractary-faber-agent",
+  "version": "0.1.0",
+  "description": "Meta-plugin for creating Claude Code agents, skills, commands, and plugins with automated standards compliance",
+  "author": "Fractary",
+  "license": "MIT",
+  "requires": [
+    "fractary-faber"
+  ],
+  "commands": [
+    "./commands/create-agent.md",
+    "./commands/create-skill.md",
+    "./commands/create-command.md",
+    "./commands/create-plugin.md"
+  ],
+  "agents": [
+    "./agents/agent-creator.md",
+    "./agents/skill-creator.md",
+    "./agents/command-creator.md",
+    "./agents/plugin-creator.md"
+  ],
+  "skills": [
+    "./skills/gather-requirements",
+    "./skills/generate-from-template",
+    "./skills/validate-artifact",
+    "./skills/document-artifact",
+    "./skills/test-artifact"
+  ]
+}
