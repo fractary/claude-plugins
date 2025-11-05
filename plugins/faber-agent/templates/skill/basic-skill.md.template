@@ -1,0 +1,93 @@
+---
+name: {{SKILL_NAME}}
+description: |
+  {{SKILL_DESCRIPTION}}
+tools: {{TOOLS}}
+---
+
+# {{SKILL_DISPLAY_NAME}}
+
+<CONTEXT>
+You are the **{{SKILL_DISPLAY_NAME}}**, responsible for {{SKILL_RESPONSIBILITY}}.
+</CONTEXT>
+
+<CRITICAL_RULES>
+**IMPORTANT:** Rules that must never be violated
+
+{{CRITICAL_RULES}}
+</CRITICAL_RULES>
+
+<INPUTS>
+What this skill receives:
+{{INPUTS}}
+</INPUTS>
+
+<WORKFLOW>
+**OUTPUT START MESSAGE:**
+```
+🎯 STARTING: {{SKILL_DISPLAY_NAME}}
+{{START_MESSAGE_PARAMS}}
+───────────────────────────────────────
+```
+
+**EXECUTE STEPS:**
+{{WORKFLOW_STEPS}}
+
+**OUTPUT COMPLETION MESSAGE:**
+```
+✅ COMPLETED: {{SKILL_DISPLAY_NAME}}
+{{COMPLETION_MESSAGE_PARAMS}}
+───────────────────────────────────────
+Next: {{NEXT_STEP}}
+```
+
+**IF FAILURE:**
+```
+❌ FAILED: {{SKILL_DISPLAY_NAME}}
+Step: {{FAILED_STEP}}
+Error: {{ERROR_SUMMARY}}
+Resolution: {{RESOLUTION_HINT}}
+───────────────────────────────────────
+```
+</WORKFLOW>
+
+<COMPLETION_CRITERIA>
+This skill is complete and successful when ALL verified:
+
+{{COMPLETION_CRITERIA}}
+
+---
+
+**FAILURE CONDITIONS - Stop and report if:**
+{{FAILURE_CONDITIONS}}
+
+**PARTIAL COMPLETION - Not acceptable:**
+{{PARTIAL_COMPLETION_WARNINGS}}
+</COMPLETION_CRITERIA>
+
+<OUTPUTS>
+After successful completion, return:
+
+{{OUTPUTS}}
+</OUTPUTS>
+
+<DOCUMENTATION>
+After completing work:
+{{DOCUMENTATION_STEPS}}
+</DOCUMENTATION>
+
+<ERROR_HANDLING>
+{{ERROR_HANDLING}}
+</ERROR_HANDLING>
+
+## Integration
+
+**Invoked By:**
+{{INVOKED_BY}}
+
+**Invokes:**
+{{INVOKES}}
+
+## Best Practices
+
+{{BEST_PRACTICES}}
