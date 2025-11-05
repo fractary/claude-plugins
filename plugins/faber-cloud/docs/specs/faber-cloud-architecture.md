@@ -613,14 +613,15 @@ plugins/fractary-faber-cloud/
 │
 ├── commands/
 │   ├── init.md                   # Initialize config
-│   ├── design.md                 # Design infrastructure
-│   ├── configure.md              # Generate IaC code
+│   ├── architect.md              # Design infrastructure architecture
+│   ├── engineer.md               # Generate IaC code
 │   ├── validate.md               # Validate configuration
 │   ├── test.md                   # Security and cost tests
+│   ├── audit.md                  # Audit infrastructure health
 │   ├── deploy-plan.md            # Preview deployment
-│   ├── deploy-apply.md           # Execute deployment
-│   ├── teardown.md               # Destroy infrastructure
-│   ├── resources.md              # List resources
+│   ├── deploy-execute.md         # Execute deployment
+│   ├── deploy-destroy.md         # Destroy infrastructure
+│   ├── list.md                   # List resources
 │   ├── status.md                 # Check status
 │   ├── debug.md                  # Debug issues
 │   ├── manage.md                 # Unified management
