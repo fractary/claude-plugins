@@ -9,9 +9,6 @@ argument-hint: "[--validate]"
 
 # Engineer Command
 
-<<<<<<< HEAD:plugins/faber-cloud/commands/engineer.md
-Generate Infrastructure as Code (Terraform) from an architecture design document.
-=======
 
 <ARGUMENT_SYNTAX>
 ## Command Argument Syntax
@@ -25,15 +22,14 @@ This command follows the standard space-separated syntax:
 
 ```bash
 # Correct ✅
-/fractary-faber-cloud:configure --env test
+/fractary-faber-cloud:engineer --validate
 
 # Incorrect ❌
-/fractary-faber-cloud:configure --env=test
+# (No flag with = syntax for this command)
 ```
 </ARGUMENT_SYNTAX>
 
-Generate Infrastructure as Code (Terraform) from a design document.
->>>>>>> origin/main:plugins/faber-cloud/commands/configure.md
+Generate Infrastructure as Code (Terraform) from an architecture design document.
 
 ## Usage
 
@@ -72,11 +68,7 @@ After generating code, you should:
 - Validate: `/fractary-faber-cloud:validate`
 - Test: `/fractary-faber-cloud:test`
 - Preview: `/fractary-faber-cloud:deploy-plan`
-<<<<<<< HEAD:plugins/faber-cloud/commands/engineer.md
-- Deploy: `/fractary-faber-cloud:deploy-execute --env=test`
-=======
-- Deploy: `/fractary-faber-cloud:deploy-apply --env test`
->>>>>>> origin/main:plugins/faber-cloud/commands/configure.md
+- Deploy: `/fractary-faber-cloud:deploy-execute --env test`
 
 ## Invocation
 

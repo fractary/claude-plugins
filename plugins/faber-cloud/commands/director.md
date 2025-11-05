@@ -69,21 +69,9 @@ Invoke cloud-director agent with user's full natural language request
 
 <EXAMPLES>
 <example>
-<<<<<<< HEAD
 User: /fractary-faber-cloud:director "deploy infrastructure to test"
 Action: Invoke cloud-director agent with request
-Director will route to: /fractary-faber-cloud:deploy-execute --env=test
-=======
-User: /fractary-faber-cloud:director "check health of production services"
-Action: Invoke devops-director agent with request
-Director will route to: /fractary-faber-cloud:ops-manage check-health --env prod
-</example>
-
-<example>
-User: /fractary-faber-cloud:director "deploy infrastructure to test"
-Action: Invoke devops-director agent with request
-Director will route to: /fractary-faber-cloud:infra-manage deploy --env test
->>>>>>> origin/main
+Director will route to: /fractary-faber-cloud:deploy-execute --env test
 </example>
 
 <example>
@@ -101,7 +89,7 @@ Director will route to: /fractary-faber-cloud:validate
 <example>
 User: /fractary-faber-cloud:director "show me deployed resources in production"
 Action: Invoke cloud-director agent with request
-Director will route to: /fractary-faber-cloud:list --env=prod
+Director will route to: /fractary-faber-cloud:list --env prod
 </example>
 </EXAMPLES>
 
@@ -114,15 +102,15 @@ Alternative: Users can also invoke commands directly if they prefer:
 - /fractary-faber-cloud:architect [description]
 - /fractary-faber-cloud:engineer
 - /fractary-faber-cloud:validate
-- /fractary-faber-cloud:deploy-plan --env=<env>
-- /fractary-faber-cloud:deploy-execute --env=<env>
-- /fractary-faber-cloud:deploy-destroy --env=<env>
-- /fractary-faber-cloud:list --env=<env>
-- /fractary-faber-cloud:status --env=<env>
+- /fractary-faber-cloud:deploy-plan --env <env>
+- /fractary-faber-cloud:deploy-execute --env <env>
+- /fractary-faber-cloud:deploy-destroy --env <env>
+- /fractary-faber-cloud:list --env <env>
+- /fractary-faber-cloud:status --env <env>
 - /fractary-faber-cloud:debug
 
 Note: For runtime operations monitoring, use fractary-helm-cloud plugin:
-- /fractary-helm-cloud:health --env=<env>
+- /fractary-helm-cloud:health --env <env>
 - /fractary-helm-cloud:investigate
 - /fractary-helm-cloud:remediate
 - /fractary-helm-cloud:audit

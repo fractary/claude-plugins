@@ -90,13 +90,8 @@ Run deploy-plan:
 ## Next Steps
 
 After reviewing plan:
-<<<<<<< HEAD
-- Deploy if acceptable: `/fractary-faber-cloud:deploy-execute --env=test`
+- Deploy if acceptable: `/fractary-faber-cloud:deploy-execute --env test`
 - Modify code if needed: `/fractary-faber-cloud:engineer`
-=======
-- Deploy if acceptable: `/fractary-faber-cloud:deploy-apply --env test`
-- Modify code if needed: `/fractary-faber-cloud:configure`
->>>>>>> origin/main
 - Re-test if concerned: `/fractary-faber-cloud:test`
 
 ## Production Safety
@@ -108,11 +103,7 @@ After reviewing plan:
 /fractary-faber-cloud:test
 /fractary-faber-cloud:deploy-plan --env prod
 # Review output carefully
-<<<<<<< HEAD
-/fractary-faber-cloud:deploy-execute --env=prod
-=======
-/fractary-faber-cloud:deploy-apply --env prod
->>>>>>> origin/main
+/fractary-faber-cloud:deploy-execute --env prod
 ```
 
 ## Invocation
