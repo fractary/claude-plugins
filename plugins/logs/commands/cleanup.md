@@ -1,3 +1,9 @@
+---
+name: fractary-logs:cleanup
+description: Archive and clean up old logs based on age threshold
+argument-hint: "[--older-than <days>] [--dry-run]"
+---
+
 # Cleanup Old Logs
 
 Archive and clean up old logs (time-based safety net).

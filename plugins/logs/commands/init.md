@@ -1,3 +1,9 @@
+---
+name: fractary-logs:init
+description: Initialize fractary-logs plugin configuration and storage directories
+argument-hint: "[--force]"
+---
+
 # Initialize fractary-logs Configuration
 
 Initialize the fractary-logs plugin configuration.

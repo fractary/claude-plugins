@@ -1,3 +1,9 @@
+---
+name: fractary-logs:read
+description: Read specific log file (local or archived)
+argument-hint: <issue_number> [--type <type>]
+---
+
 # Read Logs
 
 Read specific log file (local or archived).

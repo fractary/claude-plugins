@@ -1,3 +1,9 @@
+---
+name: fractary-logs:stop
+description: Stop active session capture and finalize the log
+argument-hint: ""
+---
+
 # Stop Session Capture
 
 Stop the active session capture and finalize the log.

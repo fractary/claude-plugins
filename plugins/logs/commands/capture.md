@@ -1,3 +1,9 @@
+---
+name: fractary-logs:capture
+description: Start capturing Claude Code conversation session for an issue
+argument-hint: <issue_number>
+---
+
 # Start Session Capture
 
 Start capturing Claude Code conversation session for an issue.

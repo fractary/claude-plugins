@@ -1,3 +1,9 @@
+---
+name: fractary-logs:log
+description: Log a specific message or decision to an issue's log
+argument-hint: <issue_number> "<message>"
+---
+
 # Log Message
 
 Log a specific message or decision to an issue's log.

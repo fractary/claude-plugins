@@ -1,3 +1,9 @@
+---
+name: fractary-logs:search
+description: Search across local and archived logs with filters
+argument-hint: '"<query>" [--issue <number>] [--type <type>] [--since <date>] [--until <date>] [--regex] [--local-only] [--cloud-only] [--max-results <n>] [--context <n>]'
+---
+
 # Search Logs
 
 Search across local and archived logs.

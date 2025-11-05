@@ -1,3 +1,9 @@
+---
+name: fractary-logs:analyze
+description: Analyze logs for patterns, errors, summaries, or time analysis
+argument-hint: <type> [--issue <number>] [--since <date>] [--until <date>] [--verbose]
+---
+
 # Analyze Logs
 
 Analyze logs for patterns, errors, summaries, or time analysis.

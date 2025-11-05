@@ -1,3 +1,9 @@
+---
+name: fractary-logs:archive
+description: Archive all logs for a completed issue to cloud storage
+argument-hint: <issue_number> [--force]
+---
+
 # Archive Logs
 
 Archive all logs for a completed issue to cloud storage.
