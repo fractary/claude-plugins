@@ -34,6 +34,12 @@ The `fractary-docs` plugin provides comprehensive documentation management for p
 
 ## Quick Start
 
+**New to fractary-docs?** Start with:
+1. 📘 [Quick Start Guide](./docs/quick-start.md) - Get up and running in 5 minutes
+2. 📂 [Sample Documentation](./samples/) - Real-world examples
+3. 🧪 [Integration Testing](./docs/integration-testing.md) - Test the plugin
+4. 🔧 [Troubleshooting Guide](./docs/troubleshooting.md) - Common issues and solutions
+
 ### 1. Initialize Plugin
 
 ```bash
@@ -412,6 +418,66 @@ chmod -R u+w docs/
 ### Template not found
 
 Verify doc_type is correct and templates exist in `skills/doc-generator/templates/` or your custom template directory.
+
+## Examples
+
+The `samples/` directory contains a complete documentation set demonstrating all plugin features:
+
+### Sample Documentation Set
+
+```
+samples/
+├── adrs/
+│   └── ADR-001-postgresql.md          # Architecture decision record
+├── designs/
+│   └── database-architecture.md        # System design document
+└── runbooks/
+    ├── database-failover.md            # Emergency procedures
+    └── database-maintenance.md         # Regular maintenance
+```
+
+**Features demonstrated**:
+- ✅ Proper front matter with all required fields
+- ✅ Document relationships using `related[]` arrays
+- ✅ Complete sections per document type
+- ✅ Valid markdown and internal links
+- ✅ Tags for categorization
+- ✅ Real-world content and structure
+
+### Try the Samples
+
+```bash
+# Validate samples
+/fractary-docs:validate samples/
+
+# Generate index
+/fractary-docs:create-index samples/ --output samples/INDEX.md
+
+# Check links
+/fractary-docs:link-check samples/
+
+# Generate relationship graph
+/fractary-docs:generate-graph samples/ --output samples/GRAPH.md
+```
+
+### Example Workflows
+
+See the [Integration Testing Guide](./docs/integration-testing.md) for complete workflows including:
+- Creating documentation sets (ADR → Design → Runbook)
+- Updating existing documents
+- Validation and link checking
+- Index and graph generation
+- Error handling and recovery
+
+## Documentation
+
+- **[Quick Start Guide](./docs/quick-start.md)** - Get started in 5 minutes
+- **[Integration Testing](./docs/integration-testing.md)** - Complete test suite and workflows
+- **[Troubleshooting Guide](./docs/troubleshooting.md)** - Common issues and solutions
+- **[Template Guide](./skills/doc-generator/docs/template-guide.md)** - Template reference
+- **[Validation Rules](./skills/doc-validator/docs/validation-rules.md)** - Validation details
+- **[Linking Conventions](./skills/doc-linker/docs/linking-conventions.md)** - Best practices for linking
+- **[Front Matter Schema](./skills/doc-generator/docs/frontmatter-schema.md)** - Metadata reference
 
 ## Contributing
 
