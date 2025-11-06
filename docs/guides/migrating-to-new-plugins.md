@@ -38,9 +38,24 @@ my-project/
 - ✓ Consistent documentation across projects
 - ✓ Multi-provider storage (switch between S3, R2, GCS, etc.)
 
+## Migration Time Estimate
+
+- **Quick Start (minimal migration)**: 5-10 minutes
+- **Full migration with existing content**: 30-45 minutes
+- **Large projects (100+ docs/specs)**: 1-2 hours
+
+**Factors affecting time**:
+- Number of existing docs/specs to migrate
+- Cloud storage setup complexity
+- Testing thoroughness
+
 ## Quick Start (5 minutes)
 
+⏱️ **Estimated time**: 5-10 minutes
+
 ### 1. Initialize New Plugins
+
+⏱️ **Time**: 2-3 minutes
 
 ```bash
 # Initialize file plugin (choose your storage provider)
@@ -60,6 +75,8 @@ This creates:
 - `/docs`, `/specs`, `/logs` directories
 
 ### 2. Update FABER Config
+
+⏱️ **Time**: 1-2 minutes
 
 Edit `.faber.config.toml`:
 
@@ -85,6 +102,8 @@ archive_logs = true
 
 ### 3. Test with New Workflow
 
+⏱️ **Time**: 2-5 minutes (per test issue)
+
 ```bash
 # Run FABER with a new or test issue
 /faber:run <issue> --autonomy guarded
@@ -100,9 +119,13 @@ That's it! New issues will automatically use the new plugins.
 
 ## Migrating Existing Content (Optional)
 
+⏱️ **Estimated time**: 15-30 minutes (depends on content volume)
+
 If you have existing docs, specs, or logs, migrate them:
 
 ### Migrate Documentation
+
+⏱️ **Time**: 5-10 minutes
 
 Add codex-compatible front matter to existing docs:
 
@@ -141,6 +164,8 @@ Our database uses PostgreSQL...
 
 ### Migrate Specifications
 
+⏱️ **Time**: 5-10 minutes
+
 Move old specs to /specs with proper front matter:
 
 ```bash
@@ -160,6 +185,8 @@ Move old specs to /specs with proper front matter:
 
 ### Archive Old Specs
 
+⏱️ **Time**: 5-15 minutes (depends on number of specs)
+
 Once migrated, archive old specs to cloud:
 
 ```bash
@@ -175,6 +202,8 @@ done
 ```
 
 ### Validate Migration
+
+⏱️ **Time**: 1-2 minutes
 
 Check everything is set up correctly:
 
@@ -364,6 +393,224 @@ Control when specs are archived:
 # Search logs with filters
 /fractary-logs:search "error" --since 2024-01-01 --type deployment
 ```
+
+## Rollback Procedures
+
+⏱️ **Time to rollback**: 5-10 minutes
+
+If you need to rollback the migration, follow these procedures:
+
+### Scenario 1: Rollback Before Any Work Completed
+
+**Situation**: Just initialized plugins, no work done yet.
+
+⏱️ **Time**: 2-3 minutes
+
+**Steps**:
+1. **Remove FABER config changes**:
+   ```bash
+   # Edit .faber.config.toml and remove:
+   # [plugins] section with file/docs/spec/logs
+   # [workflow.architect] generate_spec
+   # [workflow.release] archive settings
+   ```
+
+2. **Remove plugin configurations** (optional):
+   ```bash
+   rm -rf .fractary/plugins/{file,docs,spec,logs}
+   ```
+
+3. **Remove directories** (optional, if empty):
+   ```bash
+   # Only if no content
+   rmdir /docs /specs /logs 2>/dev/null
+   ```
+
+**Result**: System back to pre-migration state.
+
+---
+
+### Scenario 2: Rollback After Content Migration
+
+**Situation**: Migrated docs/specs, want to undo.
+
+⏱️ **Time**: 5-10 minutes
+
+**Steps**:
+1. **Restore original docs** (if backed up):
+   ```bash
+   # If you made backups before migration
+   cp -r docs.backup/* docs/
+   ```
+
+2. **Remove front matter from docs**:
+   ```bash
+   # Remove YAML front matter (---...--- blocks) from docs
+   for file in docs/**/*.md; do
+     sed -i '/^---$/,/^---$/d' "$file"
+   done
+   ```
+
+3. **Move specs back** (if you moved them):
+   ```bash
+   # If specs were in root, move back
+   mv /specs/SPEC-*.md .
+   rmdir /specs
+   ```
+
+4. **Remove FABER config changes** (from Scenario 1)
+
+**Result**: Docs and specs back to original state.
+
+---
+
+### Scenario 3: Rollback After Cloud Archival
+
+**Situation**: Content archived to cloud, want to restore locally.
+
+⏱️ **Time**: 10-15 minutes
+
+**Steps**:
+1. **Download archived content**:
+   ```bash
+   # For each archived spec
+   /fractary-spec:read 123 > SPEC-123.md
+
+   # For archived logs
+   /fractary-logs:read 123 > logs-123.md
+   ```
+
+2. **Alternative: Download from cloud directly**:
+   ```bash
+   # If using fractary-file directly
+   Use @agent-fractary-file:file-manager to download:
+   {
+     "operation": "download",
+     "parameters": {
+       "remote_path": "archive/specs/2025/123.md",
+       "local_path": "./SPEC-123.md"
+     }
+   }
+   ```
+
+3. **Remove plugin config** (as in Scenario 1)
+
+**Result**: Archived content restored locally.
+
+---
+
+### Scenario 4: Partial Rollback (Keep Some Plugins)
+
+**Situation**: Want to keep some plugins but not others.
+
+⏱️ **Time**: 5-10 minutes
+
+**Example: Keep docs/file, remove spec/logs**:
+
+1. **Update FABER config**:
+   ```toml
+   [plugins]
+   file = "fractary-file"     # Keep
+   docs = "fractary-docs"     # Keep
+   # spec = "fractary-spec"   # Remove
+   # logs = "fractary-logs"   # Remove
+
+   [workflow.architect]
+   # generate_spec = true     # Remove
+
+   [workflow.release]
+   # archive_specs = true     # Remove
+   # archive_logs = true      # Remove
+   ```
+
+2. **Restore affected content** (specs/logs as needed)
+
+3. **Test**:
+   ```bash
+   /faber:run <test-issue> --autonomy guarded
+   ```
+
+**Result**: Selective plugin usage.
+
+---
+
+### Prevention: Create Backup Before Migration
+
+**Recommended**: Before migrating, create backup:
+
+```bash
+# Backup entire project
+tar czf project-backup-$(date +%Y%m%d).tar.gz \
+  docs/ \
+  SPEC-*.md \
+  .faber.config.toml \
+  .fractary/
+
+# Or use git
+git add -A
+git commit -m "Pre-migration backup"
+git tag pre-migration-backup
+```
+
+**Restore from backup**:
+```bash
+# From tar
+tar xzf project-backup-YYYYMMDD.tar.gz
+
+# From git
+git reset --hard pre-migration-backup
+```
+
+---
+
+### Rollback Checklist
+
+- [ ] Backup created before migration
+- [ ] Know which scenario applies
+- [ ] Have access to cloud storage (if needed)
+- [ ] FABER config backed up
+- [ ] Tested rollback in dev environment first
+- [ ] Team notified (if shared project)
+- [ ] Documented reason for rollback
+
+---
+
+### After Rollback
+
+1. **Document issues encountered**:
+   - What went wrong?
+   - What would help next time?
+
+2. **Consider partial migration**:
+   - Start with just one plugin
+   - Gradual adoption
+   - Test thoroughly at each step
+
+3. **Get help if needed**:
+   - Review troubleshooting guide
+   - Check GitHub issues
+   - Ask for support
+
+---
+
+### Rollback FAQ
+
+**Q: Can I rollback after archiving content?**
+A: Yes, use `/fractary-spec:read` and `/fractary-logs:read` to retrieve from cloud.
+
+**Q: Will I lose archived content if I rollback?**
+A: No, content remains in cloud storage. Only local config changes revert.
+
+**Q: Can I rollback just one plugin?**
+A: Yes, see Scenario 4 for partial rollback.
+
+**Q: How long does rollback take?**
+A: 5-15 minutes depending on scenario and content volume.
+
+**Q: Will rollback affect other team members?**
+A: Not if you haven't pushed changes. If pushed, coordinate with team.
+
+---
 
 ## Troubleshooting
 

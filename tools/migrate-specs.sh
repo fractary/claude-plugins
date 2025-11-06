@@ -2,20 +2,47 @@
 # migrate-specs.sh
 #
 # Migrate existing specs to fractary-spec format with proper front matter
-# Usage: ./tools/migrate-specs.sh [source_dir]
+# Usage: ./tools/migrate-specs.sh [source_dir] [--dry-run]
 
 set -euo pipefail
 
 SPEC_DIR="${1:-.}"
 TARGET_DIR="/specs"
+DRY_RUN=false
+
+# Parse arguments
+for arg in "$@"; do
+    if [[ "$arg" == "--dry-run" ]]; then
+        DRY_RUN=true
+    elif [[ -d "$arg" ]]; then
+        SPEC_DIR="$arg"
+    fi
+done
+
+# Cross-platform stat function for getting file modification date
+get_file_date() {
+    local file="$1"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS
+        stat -f %Sm -t "%Y-%m-%d" "$file" 2>/dev/null || date +%Y-%m-%d
+    else
+        # Linux
+        stat -c %y "$file" 2>/dev/null | cut -d' ' -f1 || date +%Y-%m-%d
+    fi
+}
 
 echo "=== Spec Migration Tool ==="
 echo "Source: $SPEC_DIR"
 echo "Target: $TARGET_DIR"
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Mode: DRY RUN (no changes will be made)"
+fi
 echo
 
-# Create target directory
-mkdir -p "$TARGET_DIR"
+# Create target directory (not in dry-run)
+if [[ "$DRY_RUN" == "false" ]]; then
+    mkdir -p "$TARGET_DIR"
+fi
 
 # Find spec files
 SPECS=$(find "$SPEC_DIR" -type f \( -name "SPEC-*.md" -o -name "spec-*.md" \) 2>/dev/null || true)
@@ -43,9 +70,12 @@ for SPEC in $SPECS; do
 
     # Add fractary-spec front matter
     if ! grep -q "^---$" "$SPEC"; then
-        CREATED_DATE=$(stat -c %y "$SPEC" 2>/dev/null | cut -d' ' -f1 || date +%Y-%m-%d)
+        CREATED_DATE=$(get_file_date "$SPEC")
 
-        cat > "${TARGET_DIR}/${BASENAME}.new" <<EOF
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "✓ Would migrate $BASENAME (issue #${ISSUE})"
+        else
+            cat > "${TARGET_DIR}/${BASENAME}.new" <<EOF
 ---
 spec_id: $(basename "$BASENAME" .md)
 issue_number: ${ISSUE}
@@ -56,20 +86,33 @@ migration_date: $(date +%Y-%m-%d)
 ---
 
 EOF
-        cat "$SPEC" >> "${TARGET_DIR}/${BASENAME}.new"
-        mv "${TARGET_DIR}/${BASENAME}.new" "${TARGET_DIR}/${BASENAME}"
+            cat "$SPEC" >> "${TARGET_DIR}/${BASENAME}.new"
+            mv "${TARGET_DIR}/${BASENAME}.new" "${TARGET_DIR}/${BASENAME}"
 
-        echo "✓ Migrated $BASENAME (issue #${ISSUE})"
+            echo "✓ Migrated $BASENAME (issue #${ISSUE})"
+        fi
         ((MIGRATED++))
     else
-        cp "$SPEC" "$TARGET_DIR/"
-        echo "✓ Copied $BASENAME (already has front matter)"
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "✓ Would copy $BASENAME (already has front matter)"
+        else
+            cp "$SPEC" "$TARGET_DIR/"
+            echo "✓ Copied $BASENAME (already has front matter)"
+        fi
         ((MIGRATED++))
     fi
 done
 
 echo
 echo "=== Migration Summary ==="
-echo "Migrated: $MIGRATED"
-echo "Skipped: $SKIPPED"
-echo "Target: $TARGET_DIR"
+if [[ "$DRY_RUN" == "true" ]]; then
+    echo "Would migrate: $MIGRATED specs"
+    echo "Would skip: $SKIPPED specs"
+    echo "Target: $TARGET_DIR"
+    echo
+    echo "Run without --dry-run to apply changes"
+else
+    echo "Migrated: $MIGRATED specs"
+    echo "Skipped: $SKIPPED specs"
+    echo "Target: $TARGET_DIR"
+fi
