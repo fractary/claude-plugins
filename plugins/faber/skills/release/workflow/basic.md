@@ -19,11 +19,15 @@ Creating pull request and preparing for release..." '[]'
 Create comprehensive PR description with workflow context:
 
 ```bash
-PR_TITLE="$WORK_TYPE: $WORK_ITEM_TITLE"
+# Sanitize user-controlled inputs for PR title and body (prevent injection)
+SAFE_TITLE=$(echo "$WORK_ITEM_TITLE" | tr -d '\n\r' | cut -c1-100 | sed 's/[`$"\\]/\\&/g')
+SAFE_DESCRIPTION=$(echo "$WORK_ITEM_DESCRIPTION" | sed 's/[`$"\\]/\\&/g')
+
+PR_TITLE="${WORK_TYPE}: ${SAFE_TITLE}"
 
 PR_BODY=$(cat <<EOF
 ## Summary
-$WORK_ITEM_DESCRIPTION
+${SAFE_DESCRIPTION}
 
 ## Specification
 See [specification]($SPEC_URL) for detailed technical design.
@@ -49,6 +53,8 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )
 ```
+
+**Security Note**: User-controlled inputs (work item titles, descriptions) are sanitized before use in PR titles/bodies to prevent injection attacks.
 
 ### 3. Create Pull Request
 

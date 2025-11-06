@@ -117,12 +117,20 @@ This saves debug output to `/logs/debug/{issue}-debug.log`.
 
 Use repo-manager to commit implementation:
 
+```bash
+# Sanitize work item title for commit message (prevent injection)
+SAFE_TITLE=$(echo "$WORK_ITEM_TITLE" | tr -d '\n\r' | cut -c1-100 | sed 's/[`$"\\]/\\&/g')
+COMMIT_MESSAGE="${WORK_TYPE}: ${SAFE_TITLE}"
+```
+
+**Security Note**: Sanitize user inputs before using in commit messages to prevent injection attacks.
+
 ```markdown
 Use the @agent-fractary-repo:repo-manager agent with the following request:
 {
   "operation": "create-commit",
   "parameters": {
-    "message": "{work_type}: {work_item_title}",
+    "message": "{COMMIT_MESSAGE}",
     "type": "{work_type_prefix}",
     "work_id": "{work_id}",
     "files": ["{changed_files}"]

@@ -108,11 +108,13 @@ else:
 
 Look for recent documentation updates:
 ```bash
-# Check when docs were last updated
-DOCS_MODIFIED=$(git log -1 --format="%cd" --date=short -- docs/)
-SPEC_CREATED=$(git log -1 --format="%cd" --date=short -- specs/)
+# Check when docs were last updated (get timestamps for proper comparison)
+DOCS_MODIFIED_TS=$(git log -1 --format="%ct" -- docs/ 2>/dev/null || echo "0")
+SPEC_CREATED_TS=$(git log -1 --format="%ct" -- specs/ 2>/dev/null || echo "0")
 
-if [ "$DOCS_MODIFIED" < "$SPEC_CREATED" ]; then
+if [ "$DOCS_MODIFIED_TS" -lt "$SPEC_CREATED_TS" ]; then
+    DOCS_MODIFIED=$(date -d "@$DOCS_MODIFIED_TS" +"%Y-%m-%d" 2>/dev/null || echo "never")
+    SPEC_CREATED=$(date -d "@$SPEC_CREATED_TS" +"%Y-%m-%d" 2>/dev/null || echo "unknown")
     echo "⚠ Documentation not updated since spec creation"
     echo "   Docs last updated: $DOCS_MODIFIED"
     echo "   Spec created: $SPEC_CREATED"
@@ -356,16 +358,29 @@ if github_comment_fails:
 Clean up local files and commit index changes:
 
 ```bash
-# Commit archive index updates
+# Commit archive index updates (must succeed before considering cleanup complete)
 git add specs/.archive-index.json logs/.archive-index.json
-git commit -m "Archive artifacts for issue #{{issue_number}}"
+
+if ! git commit -m "Archive artifacts for issue #{{issue_number}}"; then
+    echo "❌ Failed to commit archive index updates"
+    echo ""
+    echo "Archives uploaded successfully, but local cleanup incomplete."
+    echo "Manual cleanup required:"
+    echo "  git add specs/.archive-index.json logs/.archive-index.json"
+    echo "  git commit -m 'Archive cleanup for issue #{{issue_number}}'"
+    exit 1
+fi
+
+echo "✅ Archive indexes committed"
 ```
+
+**Note**: Archived files are removed by fractary-spec and fractary-logs agents during their archive operations (Steps 3 and 4), not in this cleanup step. This step only commits the index updates.
 
 **On success:**
 ```
 ✓ Local cleanup
-  - Removed archived files
-  - Committed index updates
+  - Archived files removed (by spec/log managers)
+  - Archive indexes committed
 ```
 
 ## Step 7: Return Summary
@@ -408,26 +423,39 @@ Return structured result to workflow-manager:
 
 <ERROR_HANDLING>
 
+## Exit Code Standards
+
+To maintain consistency with the archive command, use these exit codes:
+
+- **Exit 0**: Success or user cancellation
+- **Exit 1**: Archive operation failures (spec/log upload, GitHub operations)
+- **Exit 2**: Invalid parameters (should not occur in skill, handled by command)
+- **Exit 3**: Configuration errors (missing .faber.config.toml)
+- **Exit 4**: Pre-check failures (issue not closed, validation failures)
+
 ## Pre-Check Failures
-- **Issue not found**: Exit with clear message, suggest verifying issue number
-- **User cancels**: Exit gracefully with code 0
-- **Configuration missing**: Exit with message to run /faber:init
+- **Issue not found** (exit 4): Exit with clear message, suggest verifying issue number
+- **User cancels** (exit 0): Exit gracefully
+- **Pre-checks fail** (exit 4): If not forced, exit when warnings are not accepted
+- **Configuration missing** (exit 3): Exit with message to run /faber:init
 
 ## Archive Failures
-- **Spec archive fails**: STOP immediately, don't proceed to logs
-- **Log archive fails**: Warn but continue (specs already safe)
-- **Network errors**: Retry up to 3 times with exponential backoff
-- **Partial success**: Clearly show what succeeded/failed
+- **Spec archive fails** (exit 1): STOP immediately, don't proceed to logs
+- **Log archive fails** (exit 1): Warn about partial failure, specs already safe
+- **Network errors** (exit 1): Retry up to 3 times with exponential backoff before failing
+- **Cleanup fails** (exit 1): Archives succeeded but local cleanup incomplete
+- **Partial success**: Clearly show what succeeded/failed with appropriate exit code
 
 ## GitHub Failures
-- **Comment fails**: Warn but continue (archive still succeeded)
-- **Authentication fails**: Show auth instructions
+- **Comment fails**: Warn but continue (archive still succeeded, don't exit)
+- **Authentication fails** (exit 1): Show auth instructions and fail
 
 ## Recovery Guidance
 Always provide clear next steps:
 - What to retry
 - What succeeded (don't need to redo)
 - Manual commands if needed
+- Appropriate exit code for each failure scenario
 
 </ERROR_HANDLING>
 

@@ -258,13 +258,19 @@ if [ -n "$ADR_FILE" ]; then
 fi
 FILES_TO_COMMIT="${FILES_TO_COMMIT}]"
 
+# Sanitize work item title for commit message (prevent injection)
+# Remove newlines, limit length, escape special characters
+SAFE_TITLE=$(echo "$WORK_ITEM_TITLE" | tr -d '\n\r' | cut -c1-100 | sed 's/[`$"\\]/\\&/g')
+
 # Determine commit message
 if [ -n "$ADR_FILE" ]; then
-    COMMIT_MSG="docs(spec): Add specification and ADR for {work_item_title}"
+    COMMIT_MSG="docs(spec): Add specification and ADR for ${SAFE_TITLE}"
 else
-    COMMIT_MSG="docs(spec): Add specification for {work_item_title}"
+    COMMIT_MSG="docs(spec): Add specification for ${SAFE_TITLE}"
 fi
 ```
+
+**Security Note**: Always sanitize user-controlled inputs (work item titles, descriptions) before using in commit messages or shell commands to prevent injection attacks.
 
 ```markdown
 Use the @agent-fractary-repo:repo-manager agent with the following request:
