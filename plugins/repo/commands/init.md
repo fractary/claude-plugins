@@ -10,7 +10,9 @@ argument-hint: [--platform <name>] [--global|--project] [--token <value>] [--yes
 
 ## Description
 
-The `/repo:init` command provides an interactive setup wizard that guides you through configuring the Fractary Repo Plugin for your project. It detects your environment, validates credentials, and creates the appropriate configuration file.
+The `/repo:init` command provides an interactive setup wizard that guides you through configuring the Fractary Repo Plugin for your project. It detects your environment, validates credentials, and creates the appropriate configuration file (`.fractary/plugins/repo/config.json`).
+
+**Important**: This command ONLY creates the plugin configuration file. It does NOT set up permissions. After running this command, you'll be prompted to optionally run `/repo:init-permissions` to configure Claude Code permissions for seamless repo operations.
 
 ## Usage
 
@@ -58,14 +60,20 @@ The `/repo:init` command provides an interactive setup wizard that guides you th
 ### 3. **Configuration Creation**
 - Prompts for config scope (project vs global)
 - Creates config directory structure
-- Writes configuration file
-- Sets appropriate permissions
+- Writes configuration file (`.fractary/plugins/repo/config.json` or `~/.fractary/repo/config.json`)
+- Sets appropriate file permissions (chmod 600 for security)
 
 ### 4. **Validation**
 - Tests API authentication
 - Verifies git remote access
 - Confirms gh/glab CLI availability
 - Provides setup summary
+
+### 5. **Optional Permission Setup Prompt**
+- Prompts if you want to configure Claude Code permissions
+- If yes, runs `/repo:init-permissions` command
+- If no, shows how to run it manually later
+- **Does NOT automatically configure without your consent**
 
 ## Interactive Flow
 
@@ -185,6 +193,33 @@ Setup complete! Try these commands:
   /repo:pr create "feat: New feature"
 
 Documentation: plugins/repo/docs/setup/github-setup.md
+```
+
+### Step 8: Permissions Setup (Optional but Recommended)
+
+After configuration is complete, prompt the user:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Optional: Configure Permissions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The repo plugin needs permission to run git and gh commands.
+Without this, you'll see permission prompts for every operation.
+
+Would you like to configure permissions now? (y/n):
+```
+
+**If user responds 'y'**:
+- Run `/repo:init-permissions` command
+- Show the permission setup output
+
+**If user responds 'n'**:
+```
+You can set up permissions later by running:
+  /repo:init-permissions
+
+Note: You'll see permission prompts until you run this command.
 ```
 
 ## Examples
@@ -408,6 +443,10 @@ You detect platform, authentication, and create appropriate configuration files.
 3. **NEVER log or display tokens** in plain text (mask with ***)
 4. **ALWAYS test connectivity** before confirming success
 5. **NEVER assume platform** if detection is ambiguous - always prompt
+6. **NEVER automatically configure permissions** - This command ONLY creates config.json
+   - ALWAYS prompt user before running /repo:init-permissions
+   - ONLY run init-permissions if user explicitly confirms (responds 'y')
+   - NEVER modify .claude/settings.json from this command
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -477,6 +516,13 @@ You detect platform, authentication, and create appropriate configuration files.
     - Show configuration location
     - Show detected settings
     - Provide next steps
+
+11. **Prompt for permission setup (OPTIONAL)**
+    - Explain that permissions eliminate prompts
+    - Ask if user wants to configure now: "Would you like to configure permissions now? (y/n)"
+    - If 'y': Run `/repo:init-permissions` command
+    - If 'n': Show how to run it later
+    - NEVER run automatically without user confirmation
 </WORKFLOW>
 
 <OUTPUTS>
@@ -500,28 +546,44 @@ You detect platform, authentication, and create appropriate configuration files.
 - 12: Network/connectivity error
 </OUTPUTS>
 
-<AGENT_INVOCATION>
-Invoke the `repo-manager` agent with operation `initialize-configuration`:
+<IMPLEMENTATION>
+This command performs configuration setup DIRECTLY without delegating to agents:
 
-```json
-{
-  "operation": "initialize-configuration",
-  "parameters": {
-    "platform": "github|gitlab|bitbucket",
-    "scope": "project|global",
-    "token": "masked-token-value",
-    "interactive": true|false,
-    "force": true|false,
-    "options": {
-      "default_branch": "main",
-      "protected_branches": ["main", "master"],
-      "merge_strategy": "no-ff",
-      "push_sync_strategy": "auto-merge"
-    }
-  }
-}
-```
-</AGENT_INVOCATION>
+1. **Interactive wizard mode** (default):
+   - Prompt user for platform, scope, token, and options
+   - Validate inputs as you go
+   - Create the config file with user's choices
+
+2. **Non-interactive mode** (with flags):
+   - Use provided flags for all settings
+   - Create config file immediately
+   - Skip prompts when --yes flag is used
+
+3. **IMPORTANT**: This command ONLY creates the config.json file
+   - Does NOT set up permissions (use /repo:init-permissions for that)
+   - Does NOT modify .claude/settings.json
+   - Does NOT invoke any agents (simple file creation only)
+
+**File to create**: `.fractary/plugins/repo/config.json` (project) or `~/.fractary/repo/config.json` (global)
+
+**Steps**:
+1. Parse command-line arguments
+2. Detect git environment (remote URL, platform)
+3. Prompt for or use provided configuration values
+4. Validate token if provided
+5. Create directory structure
+6. Write config.json file
+7. Display summary and next steps
+
+**Exit codes**:
+- 0: Success
+- 1: General error
+- 2: Invalid arguments
+- 3: Not in git repository
+- 10: Configuration already exists (without --force)
+- 11: Token validation failed
+- 12: Network/connectivity error
+</IMPLEMENTATION>
 
 <ERROR_HANDLING>
 - **Not in git repo**: Exit with clear error and instructions
