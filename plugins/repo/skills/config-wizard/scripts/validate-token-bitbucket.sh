@@ -34,23 +34,27 @@ if [ -n "${BITBUCKET_USERNAME:-}" ] && [ -n "${BITBUCKET_TOKEN:-}" ]; then
     fi
 fi
 
-# Output JSON
+# Output JSON using jq --arg for safety
 if [ "$VALID" = true ]; then
-    cat <<EOF | jq '.'
-{
-  "valid": true,
-  "user": "$USER",
-  "cli_available": false
-}
-EOF
+    jq -n \
+        --argjson valid true \
+        --arg user "$USER" \
+        --argjson cli_available false \
+        '{
+            valid: $valid,
+            user: $user,
+            cli_available: $cli_available
+        }'
     exit 0
 else
-    cat <<EOF | jq '.'
-{
-  "valid": false,
-  "error": "Bitbucket authentication failed. Requires BITBUCKET_USERNAME and BITBUCKET_TOKEN.",
-  "cli_available": false
-}
-EOF
+    jq -n \
+        --argjson valid false \
+        --arg error "Bitbucket authentication failed. Requires BITBUCKET_USERNAME and BITBUCKET_TOKEN." \
+        --argjson cli_available false \
+        '{
+            valid: $valid,
+            error: $error,
+            cli_available: $cli_available
+        }'
     exit 11
 fi

@@ -24,6 +24,9 @@ set -euo pipefail
 PLATFORM=""
 AUTH_METHOD=""
 
+# SSH connection timeout (seconds)
+SSH_TIMEOUT=10
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -36,7 +39,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            echo "{\"error\": \"Unknown argument: $1\"}" | jq '.'
+            jq -n --arg err "Unknown argument: $1" '{error: $err}'
             exit 2
             ;;
     esac
@@ -44,7 +47,7 @@ done
 
 # Validate platform
 if [ -z "$PLATFORM" ]; then
-    echo "{\"error\": \"Missing required argument: --platform\"}" | jq '.'
+    jq -n '{error: "Missing required argument: --platform"}'
     exit 2
 fi
 
@@ -52,21 +55,22 @@ SSH_CONNECTED=false
 API_CONNECTED=false
 CLI_AVAILABLE=false
 
-# Test SSH connectivity (if SSH method)
+# Test SSH connectivity (if SSH method) with timeout
 if [ "$AUTH_METHOD" = "SSH" ]; then
     case "$PLATFORM" in
         github)
-            if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+            # Use timeout and ConnectTimeout for SSH test
+            if timeout "${SSH_TIMEOUT}s" ssh -T -o ConnectTimeout=5 -o StrictHostKeyChecking=no git@github.com 2>&1 | grep -q "successfully authenticated"; then
                 SSH_CONNECTED=true
             fi
             ;;
         gitlab)
-            if ssh -T git@gitlab.com 2>&1 | grep -q "Welcome to GitLab"; then
+            if timeout "${SSH_TIMEOUT}s" ssh -T -o ConnectTimeout=5 -o StrictHostKeyChecking=no git@gitlab.com 2>&1 | grep -q "Welcome to GitLab"; then
                 SSH_CONNECTED=true
             fi
             ;;
         bitbucket)
-            if ssh -T git@bitbucket.org 2>&1 | grep -q "authenticated"; then
+            if timeout "${SSH_TIMEOUT}s" ssh -T -o ConnectTimeout=5 -o StrictHostKeyChecking=no git@bitbucket.org 2>&1 | grep -q "authenticated"; then
                 SSH_CONNECTED=true
             fi
             ;;
@@ -103,11 +107,13 @@ case "$PLATFORM" in
         ;;
 esac
 
-# Output JSON
-cat <<EOF | jq '.'
-{
-  "ssh_connected": $SSH_CONNECTED,
-  "api_connected": $API_CONNECTED,
-  "cli_available": $CLI_AVAILABLE
-}
-EOF
+# Output JSON using jq --arg for safety
+jq -n \
+    --argjson ssh_connected "$SSH_CONNECTED" \
+    --argjson api_connected "$API_CONNECTED" \
+    --argjson cli_available "$CLI_AVAILABLE" \
+    '{
+        ssh_connected: $ssh_connected,
+        api_connected: $api_connected,
+        cli_available: $cli_available
+    }'

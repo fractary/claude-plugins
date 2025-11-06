@@ -41,7 +41,7 @@ PUSH_SYNC_STRATEGY="auto-merge"
 FORCE=false
 
 # Parse arguments
-while [[ $# -gt 0 ]]; then
+while [[ $# -gt 0 ]]; do
     case $1 in
         --platform)
             PLATFORM="$2"
@@ -72,7 +72,7 @@ while [[ $# -gt 0 ]]; then
             shift
             ;;
         *)
-            echo "{\"status\": \"failure\", \"error\": \"Unknown argument: $1\"}" | jq '.'
+            jq -n --arg err "Unknown argument: $1" '{status: "failure", error: $err}'
             exit 2
             ;;
     esac
@@ -80,19 +80,19 @@ done
 
 # Validate required arguments
 if [ -z "$PLATFORM" ] || [ -z "$SCOPE" ]; then
-    echo "{\"status\": \"failure\", \"error\": \"Missing required arguments: --platform and --scope\"}" | jq '.'
+    jq -n '{status: "failure", error: "Missing required arguments: --platform and --scope"}'
     exit 2
 fi
 
 # Validate platform
 if [[ ! "$PLATFORM" =~ ^(github|gitlab|bitbucket)$ ]]; then
-    echo "{\"status\": \"failure\", \"error\": \"Invalid platform: $PLATFORM\"}" | jq '.'
+    jq -n --arg p "$PLATFORM" '{status: "failure", error: ("Invalid platform: " + $p)}'
     exit 2
 fi
 
 # Validate scope
 if [[ ! "$SCOPE" =~ ^(project|global)$ ]]; then
-    echo "{\"status\": \"failure\", \"error\": \"Invalid scope: $SCOPE\"}" | jq '.'
+    jq -n --arg s "$SCOPE" '{status: "failure", error: ("Invalid scope: " + $s)}'
     exit 2
 fi
 
@@ -125,39 +125,48 @@ case "$PLATFORM" in
         ;;
 esac
 
-# Convert protected branches to JSON array
+# Convert protected branches to JSON array using jq
 PROTECTED_BRANCHES_JSON=$(echo "$PROTECTED_BRANCHES" | jq -R 'split(",")')
 
-# Create configuration file
-cat > "$CONFIG_PATH" <<EOF
-{
-  "handlers": {
-    "source_control": {
-      "active": "$PLATFORM",
-      "$PLATFORM": {
-        "token": "$TOKEN_VAR"
-      }
-    }
-  },
-  "defaults": {
-    "default_branch": "$DEFAULT_BRANCH",
-    "protected_branches": $PROTECTED_BRANCHES_JSON,
-    "merge_strategy": "$MERGE_STRATEGY",
-    "push_sync_strategy": "$PUSH_SYNC_STRATEGY"
-  }
-}
-EOF
+# Create configuration file using jq for safe JSON generation
+jq -n \
+    --arg platform "$PLATFORM" \
+    --arg token_var "$TOKEN_VAR" \
+    --arg default_branch "$DEFAULT_BRANCH" \
+    --argjson protected_branches "$PROTECTED_BRANCHES_JSON" \
+    --arg merge_strategy "$MERGE_STRATEGY" \
+    --arg push_sync "$PUSH_SYNC_STRATEGY" \
+    '{
+        handlers: {
+            source_control: {
+                active: $platform,
+                ($platform): {
+                    token: $token_var
+                }
+            }
+        },
+        defaults: {
+            default_branch: $default_branch,
+            protected_branches: $protected_branches,
+            merge_strategy: $merge_strategy,
+            push_sync_strategy: $push_sync
+        }
+    }' > "$CONFIG_PATH"
 
 # Set appropriate permissions (owner read/write only)
 chmod 600 "$CONFIG_PATH"
 
-# Output success JSON
-cat <<EOF | jq '.'
-{
-  "status": "success",
-  "config_path": "$CONFIG_PATH",
-  "backup_created": $BACKUP_CREATED,
-  "platform": "$PLATFORM",
-  "scope": "$SCOPE"
-}
-EOF
+# Output success JSON using jq --arg for safety
+jq -n \
+    --arg status "success" \
+    --arg config_path "$CONFIG_PATH" \
+    --argjson backup_created "$BACKUP_CREATED" \
+    --arg platform "$PLATFORM" \
+    --arg scope "$SCOPE" \
+    '{
+        status: $status,
+        config_path: $config_path,
+        backup_created: $backup_created,
+        platform: $platform,
+        scope: $scope
+    }'

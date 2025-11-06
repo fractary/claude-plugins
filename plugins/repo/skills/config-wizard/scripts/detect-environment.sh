@@ -20,7 +20,9 @@ set -euo pipefail
 
 # Check if in git repository
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
-    echo '{"in_git_repo": false, "error": "Not in a git repository"}' | jq '.'
+    jq -n \
+        --arg error "Not in a git repository" \
+        '{in_git_repo: false, error: $error}'
     exit 3
 fi
 
@@ -45,12 +47,15 @@ elif echo "$REMOTE_URL" | grep -q "^https://"; then
     AUTH_METHOD="HTTPS"
 fi
 
-# Output JSON
-cat <<EOF | jq '.'
-{
-  "in_git_repo": true,
-  "remote_url": "$REMOTE_URL",
-  "platform": "$PLATFORM",
-  "auth_method": "$AUTH_METHOD"
-}
-EOF
+# Output JSON using jq --arg for safety
+jq -n \
+    --argjson in_git_repo true \
+    --arg remote_url "$REMOTE_URL" \
+    --arg platform "$PLATFORM" \
+    --arg auth_method "$AUTH_METHOD" \
+    '{
+        in_git_repo: $in_git_repo,
+        remote_url: $remote_url,
+        platform: $platform,
+        auth_method: $auth_method
+    }'

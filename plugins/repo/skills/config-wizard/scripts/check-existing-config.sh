@@ -31,12 +31,15 @@ if [ -f "$GLOBAL_CONFIG" ]; then
     GLOBAL_EXISTS=true
 fi
 
-# Output JSON
-cat <<EOF | jq '.'
-{
-  "project_config_exists": $PROJECT_EXISTS,
-  "project_config_path": "$PROJECT_CONFIG",
-  "global_config_exists": $GLOBAL_EXISTS,
-  "global_config_path": "$GLOBAL_CONFIG"
-}
-EOF
+# Output JSON using jq --arg for safety
+jq -n \
+    --argjson project_exists "$PROJECT_EXISTS" \
+    --arg project_path "$PROJECT_CONFIG" \
+    --argjson global_exists "$GLOBAL_EXISTS" \
+    --arg global_path "$GLOBAL_CONFIG" \
+    '{
+        project_config_exists: $project_exists,
+        project_config_path: $project_path,
+        global_config_exists: $global_exists,
+        global_config_path: $global_path
+    }'

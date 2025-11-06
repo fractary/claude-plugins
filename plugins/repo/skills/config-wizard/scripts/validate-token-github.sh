@@ -49,24 +49,29 @@ else
     fi
 fi
 
-# Output JSON
+# Output JSON using jq --arg for safety
 if [ "$VALID" = true ]; then
-    cat <<EOF | jq '.'
-{
-  "valid": true,
-  "user": "$USER",
-  "scopes": "$SCOPES",
-  "cli_available": $CLI_AVAILABLE
-}
-EOF
+    jq -n \
+        --argjson valid true \
+        --arg user "$USER" \
+        --arg scopes "$SCOPES" \
+        --argjson cli_available "$CLI_AVAILABLE" \
+        '{
+            valid: $valid,
+            user: $user,
+            scopes: $scopes,
+            cli_available: $cli_available
+        }'
     exit 0
 else
-    cat <<EOF | jq '.'
-{
-  "valid": false,
-  "error": "GitHub authentication failed",
-  "cli_available": $CLI_AVAILABLE
-}
-EOF
+    jq -n \
+        --argjson valid false \
+        --arg error "GitHub authentication failed" \
+        --argjson cli_available "$CLI_AVAILABLE" \
+        '{
+            valid: $valid,
+            error: $error,
+            cli_available: $cli_available
+        }'
     exit 11
 fi
