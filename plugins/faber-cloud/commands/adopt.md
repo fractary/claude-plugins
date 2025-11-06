@@ -39,6 +39,20 @@ This command follows the standard space-separated syntax:
 /fractary-faber-cloud:adopt [--project-root <path>] [--dry-run]
 ```
 
+## When to Use This Command
+
+**Use `/fractary-faber-cloud:adopt` if you have:**
+- ✅ Existing Terraform infrastructure to migrate
+- ✅ Custom deployment scripts to preserve
+- ✅ Complex multi-environment setup
+
+**Use `/fractary-faber-cloud:init` instead if you:**
+- ⚠️ Don't have existing infrastructure yet (greenfield project)
+- ⚠️ Want a simple, minimal configuration
+- ⚠️ Just need to get started quickly
+
+**IMPORTANT:** The adopt command does NOT require faber-cloud to be configured first. It will discover your infrastructure and create the configuration automatically.
+
 ## Parameters
 
 - `--project-root`: Root directory of the project to analyze. **Defaults to current directory.** The command recursively searches for infrastructure from this location, so you typically don't need to specify this - just cd to your project and run `/fractary-faber-cloud:adopt`.

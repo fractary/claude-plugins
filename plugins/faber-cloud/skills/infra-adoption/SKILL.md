@@ -61,6 +61,14 @@ Output: {output_dir}
 
 ## Step 1: Validate Project Structure
 
+**NOTE:** The adopt command discovers and analyzes existing infrastructure. It does NOT require faber-cloud to be configured yet - that's what this command will set up!
+
+**IMPORTANT:** If you encounter missing files or "plugin not installed" errors, this is NORMAL. The adopt workflow will:
+1. Discover your existing infrastructure (Terraform, AWS, etc.)
+2. Generate configuration automatically
+3. Create `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+4. You do NOT need to run `/fractary-faber-cloud:init` first
+
 Check project directory exists and is a valid project:
 - Has .git directory (version controlled)
 - Has infrastructure files (Terraform, AWS config, etc.)
