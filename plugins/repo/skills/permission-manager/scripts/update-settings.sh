@@ -413,9 +413,23 @@ merge_arrays_smart() {
             allow)
                 # We're adding to allow, but check if user has it in require or deny
                 if [[ -n "${require_map[$cmd]:-}" ]] || [[ -n "${deny_map[$cmd]:-}" ]]; then
-                    in_other_category=true
-                    # Special case: if user denied something we recommend allowing, respect their choice
-                    # Don't add it to allow
+                    # Check if this is an ESSENTIAL command (defined in validate_permissions)
+                    # Essential commands for GitHub operations: gh auth status, gh auth login, gh auth refresh
+                    case "$cmd" in
+                        "git status"|"git log"|"git diff"|"git commit"|"git push"|"git branch"|\
+                        "gh pr create"|"gh pr view"|"gh pr list"|\
+                        "gh issue create"|"gh issue view"|\
+                        "gh auth status"|"gh auth login"|"gh auth refresh")
+                            # ESSENTIAL COMMAND: Force to allow even if user denied it
+                            # This creates an intentional duplicate that deduplication will resolve
+                            # But we modify deduplication to preserve essential commands in allow
+                            in_other_category=false  # Force add to allow
+                            ;;
+                        *)
+                            # Non-essential: respect user override
+                            in_other_category=true
+                            ;;
+                    esac
                 fi
                 ;;
             requireApproval)
@@ -601,12 +615,21 @@ setup_permissions() {
     local all_deny=$(merge_arrays_smart "$temp_file" "deny" "${DENY_COMMANDS[@]}")
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # DEDUPLICATION: Remove conflicts with precedence (deny > requireApproval > allow)
+    # DEDUPLICATION: Remove conflicts with precedence
     # ═══════════════════════════════════════════════════════════════════════════
     # This is the SECOND PHASE of security enforcement (after merge_arrays_smart).
-    # Resolves intentional duplicates created by security overrides above.
-    # Ensures dangerous commands appear ONLY in deny, never in allow/requireApproval.
-    declare -A deny_set require_set
+    #
+    # PRECEDENCE RULES:
+    # 1. For DANGEROUS commands (rm -rf, git push --force, etc.):
+    #    deny > requireApproval > allow  (force to deny)
+    #
+    # 2. For ESSENTIAL commands (git status, gh auth, etc.):
+    #    allow > requireApproval > deny  (force to allow)
+    #
+    # 3. For other commands: deny > requireApproval > allow (default)
+
+    # Build sets for lookups
+    declare -A deny_set require_set allow_set essential_set
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
         deny_set["$cmd"]=1
@@ -617,26 +640,64 @@ setup_permissions() {
         require_set["$cmd"]=1
     done <<< "$all_require"
 
-    # Filter allow: remove anything in deny or require
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        allow_set["$cmd"]=1
+    done <<< "$all_allow"
+
+    # Define essential commands (must match list in validate_permissions)
+    for cmd in "git status" "git log" "git diff" "git commit" "git push" "git branch" \
+               "gh pr create" "gh pr view" "gh pr list" \
+               "gh issue create" "gh issue view" \
+               "gh auth status" "gh auth login" "gh auth refresh"; do
+        essential_set["$cmd"]=1
+    done
+
+    # Filter allow: keep essential commands, remove others that are in deny/require
     local cleaned_allow=()
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
-        if [[ -z "${deny_set[$cmd]:-}" ]] && [[ -z "${require_set[$cmd]:-}" ]]; then
+        # If essential: always keep in allow (remove from deny/require later)
+        if [[ -n "${essential_set[$cmd]:-}" ]]; then
+            cleaned_allow+=("$cmd")
+        # If not essential: only keep if NOT in deny or require
+        elif [[ -z "${deny_set[$cmd]:-}" ]] && [[ -z "${require_set[$cmd]:-}" ]]; then
             cleaned_allow+=("$cmd")
         fi
     done <<< "$all_allow"
-    # Handle empty array properly - check length before printf to avoid creating array with empty string
+    # Handle empty array properly
     if [ ${#cleaned_allow[@]} -gt 0 ]; then
         all_allow=$(printf "%s\n" "${cleaned_allow[@]}" | sort -u)
     else
-        all_allow=""  # Truly empty, not an array with empty string
+        all_allow=""  # Truly empty
     fi
 
-    # Filter require: remove anything in deny
+    # Filter deny: remove essential commands (they should be in allow)
+    local cleaned_deny=()
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        # If essential and in allow: remove from deny
+        if [[ -n "${essential_set[$cmd]:-}" ]] && [[ -n "${allow_set[$cmd]:-}" ]]; then
+            continue  # Skip - let it stay in allow
+        else
+            cleaned_deny+=("$cmd")
+        fi
+    done <<< "$all_deny"
+    if [ ${#cleaned_deny[@]} -gt 0 ]; then
+        all_deny=$(printf "%s\n" "${cleaned_deny[@]}" | sort -u)
+    else
+        all_deny=""
+    fi
+
+    # Filter require: remove anything in deny OR essential commands that are in allow
     local cleaned_require=()
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
-        if [[ -z "${deny_set[$cmd]:-}" ]]; then
+        # If essential and in allow: remove from require
+        if [[ -n "${essential_set[$cmd]:-}" ]] && [[ -n "${allow_set[$cmd]:-}" ]]; then
+            continue  # Skip - let it stay in allow
+        # If in deny: remove (deny takes precedence over require for non-essential)
+        elif [[ -z "${deny_set[$cmd]:-}" ]]; then
             cleaned_require+=("$cmd")
         fi
     done <<< "$all_require"
@@ -772,6 +833,8 @@ validate_permissions() {
         ["gh issue create"]=1
         ["gh issue view"]=1
         ["gh auth status"]=1
+        ["gh auth login"]=1
+        ["gh auth refresh"]=1
     )
 
     echo "Checking recommended ALLOW commands..."
