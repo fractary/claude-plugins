@@ -9,9 +9,11 @@ The `fractary-file` plugin provides a unified interface for file storage operati
 ### Key Features
 
 - **5 Storage Providers**: Local filesystem, Cloudflare R2, AWS S3, Google Cloud Storage, Google Drive
+- **Multiple Handlers Simultaneously**: Configure multiple storage providers and choose per-operation
 - **6 Core Operations**: Upload, download, delete, list, get-url, read
 - **Handler Pattern**: Easy to add new storage providers
 - **Configuration-Driven**: Switch providers via configuration without code changes
+- **Per-Operation Override**: Route specific files to specific storage locations
 - **Environment Variables**: Secure credential management
 - **Zero-Config Default**: Local handler works out of the box
 - **IAM Role Support**: S3 and GCS work without credentials
@@ -29,7 +31,7 @@ The `fractary-file` plugin provides a unified interface for file storage operati
 
 ## Quick Start
 
-### Default (Local Storage)
+### 1. Default (Local Storage) - Zero Configuration
 
 No configuration needed! Works immediately with local filesystem:
 
@@ -45,48 +47,130 @@ Use the @agent-fractary-file:file-manager agent to upload:
 }
 ```
 
-### Cloud Storage Setup
+**Perfect for**: Development, testing, temporary files
 
-1. Create configuration file:
+### 2. Single Cloud Storage Provider
+
+Configure one cloud provider as your default storage:
+
+1. **Run init wizard**:
 ```bash
-mkdir -p .fractary/plugins/file
-cp plugins/file/config/config.example.json .fractary/plugins/file/config.json
-chmod 0600 .fractary/plugins/file/config.json
+/fractary-file:init --handlers s3
 ```
 
-2. Edit configuration for your provider (see [Configuration](#configuration) below)
-
-3. Set environment variables for credentials:
+2. **Set environment variables**:
 ```bash
-# For R2
-export R2_ACCOUNT_ID="your-account-id"
-export R2_ACCESS_KEY_ID="your-access-key"
-export R2_SECRET_ACCESS_KEY="your-secret-key"
-
 # For S3 (or use IAM roles)
 export AWS_ACCESS_KEY_ID="your-access-key"
 export AWS_SECRET_ACCESS_KEY="your-secret-key"
-
-# For GCS (or use Application Default Credentials)
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
-
-# For Google Drive
-export GDRIVE_CLIENT_ID="your-client-id"
-export GDRIVE_CLIENT_SECRET="your-client-secret"
 ```
 
-4. Use the file-manager agent:
+3. **Use immediately**:
 ```bash
-Use the @agent-fractary-file:file-manager agent to upload:
+Use the @agent-fractary-file:file-manager agent:
 {
   "operation": "upload",
   "parameters": {
     "local_path": "./file.txt",
-    "remote_path": "folder/file.txt",
-    "public": false
+    "remote_path": "folder/file.txt"
+  }
+}
+# → Uploads to S3
+```
+
+**Perfect for**: Production deployments with single storage backend
+
+### 3. Multiple Storage Providers (Advanced)
+
+Configure multiple providers and route different files to different locations.
+
+**Use Cases**:
+- Local for working files, S3 for backups
+- R2 for public CDN content, S3 for archival
+- GCS for Google services integration, local for dev
+
+1. **Initialize with multiple handlers**:
+```bash
+# Interactive setup for multiple providers
+/fractary-file:init
+
+# Or specify handlers directly
+/fractary-file:init --handlers local,s3,r2
+```
+
+2. **Use default handler** (configured as `active_handler`):
+```bash
+Use the @agent-fractary-file:file-manager agent:
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "./document.pdf",
+    "remote_path": "docs/document.pdf"
+  }
+}
+# → Uses active_handler (e.g., local)
+```
+
+3. **Override to specific handler** for specific files:
+```bash
+# Store backups on S3
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "./backup.tar.gz",
+    "remote_path": "backups/2025-01-15.tar.gz"
+  },
+  "handler_override": "s3"
+}
+
+# Store specs on R2 for global CDN
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "./spec-123.md",
+    "remote_path": "specs/spec-123.md"
+  },
+  "handler_override": "r2"
+}
+```
+
+**Perfect for**: Complex workflows needing different storage for different file types
+
+## Migrating from Single to Multi-Handler
+
+Already have a config with one handler? You can add more without reconfiguring:
+
+**Option 1: Re-run Init with Multiple Handlers**
+```bash
+# This will prompt to overwrite existing config
+/fractary-file:init --handlers local,s3,r2
+```
+
+**Option 2: Manually Edit Config**
+```bash
+# Edit your existing config
+vim .fractary/plugins/file/config.json
+
+# Add new handlers to the "handlers" object:
+{
+  "active_handler": "s3",
+  "handlers": {
+    "s3": { /* your existing S3 config */ },
+    "r2": { /* add R2 config */ },
+    "local": { /* add local config */ }
   }
 }
 ```
+
+**Option 3: Keep Existing Config, Override When Needed**
+- Don't change config at all
+- Use `handler_override` in requests to route specific files elsewhere
+- Great for gradual migration or occasional use
+
+**Backwards Compatibility**:
+- Existing single-handler configs work unchanged
+- `--handler` flag still works (converted to `--handlers` internally)
+- No breaking changes
 
 ## Architecture
 
@@ -234,7 +318,9 @@ Stream file contents without downloading (NEW).
 
 ## Configuration
 
-Configuration is stored in `.fractary/plugins/file/config.json`:
+Configuration is stored in `.fractary/plugins/file/config.json`.
+
+**Multi-Handler Support**: You can configure multiple storage providers in a single configuration file. Set `active_handler` to your default, and override per-operation as needed.
 
 ### Configuration File Location (Priority Order)
 
@@ -263,6 +349,32 @@ Configuration is stored in `.fractary/plugins/file/config.json`:
   }
 }
 ```
+
+**Example: Multi-Handler Configuration**
+
+Configure local for working files and S3 for backups:
+
+```json
+{
+  "schema_version": "1.0",
+  "active_handler": "local",
+  "handlers": {
+    "local": {
+      "base_path": "./storage",
+      "create_directories": true,
+      "permissions": "0755"
+    },
+    "s3": {
+      "region": "us-east-1",
+      "bucket_name": "my-backups",
+      "access_key_id": "${AWS_ACCESS_KEY_ID}",
+      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}"
+    }
+  }
+}
+```
+
+Now you can use `local` by default, and override to `s3` for specific files.
 
 ### Handler Configurations
 

@@ -20,7 +20,9 @@ You are the config-wizard skill for the fractary-file plugin. You guide users th
 <INPUTS>
 Parameters:
 - `config_scope`: "project" or "global" - where to save configuration
-- `handler`: specific handler name or null (prompts user if null)
+- `handlers`: comma-separated list of handler names, or null (prompts user if null)
+  - Examples: "local", "local,s3", "r2,s3,gcs"
+  - Single handler for backwards compatibility: "s3" → ["s3"]
 - `interactive`: boolean - whether to prompt user or use defaults/env vars
 - `test_connection`: boolean - whether to test connection before saving
 
@@ -63,11 +65,22 @@ source plugins/file/skills/common/functions.sh
 
 ## Phase 2: Handler Selection
 
-If `handler` parameter is null and interactive mode:
+### 2.1 Parse Handlers Parameter
+
+If `handlers` parameter is provided:
+```bash
+# Convert comma-separated list to array
+IFS=',' read -ra HANDLER_LIST <<< "$HANDLERS"
+```
+
+If `handlers` parameter is null and interactive mode, prompt for selection:
+
+### 2.2 Interactive Handler Selection
 
 Display menu:
 ```
-Which storage provider would you like to use?
+Which storage provider(s) would you like to configure?
+(You can select multiple providers and choose a default later)
 
   1. Local Filesystem (default, no credentials needed)
   2. Cloudflare R2 (S3-compatible object storage)
@@ -75,16 +88,95 @@ Which storage provider would you like to use?
   4. Google Cloud Storage (GCS)
   5. Google Drive (via OAuth2)
 
-Enter selection [1-5] (default: 1): _____
+Enter selection(s) [1-5], comma-separated (default: 1): _____
+Examples:
+  - "1" → Local only
+  - "1,3" → Local and S3
+  - "2,3,4" → R2, S3, and GCS
 ```
 
-Parse selection and set handler variable.
+Parse selections and build handler array:
+```bash
+IFS=',' read -ra SELECTIONS <<< "$USER_INPUT"
+HANDLER_LIST=()
+for selection in "${SELECTIONS[@]}"; do
+    case "$selection" in
+        1) HANDLER_LIST+=("local") ;;
+        2) HANDLER_LIST+=("r2") ;;
+        3) HANDLER_LIST+=("s3") ;;
+        4) HANDLER_LIST+=("gcs") ;;
+        5) HANDLER_LIST+=("gdrive") ;;
+        *) echo "Invalid selection: $selection" ;;
+    esac
+done
+```
 
-If non-interactive mode and handler is null: default to "local"
+### 2.3 Non-Interactive Default
+
+If non-interactive mode and handlers is null: default to "local"
+
+### 2.4 Display Selected Handlers
+
+Show confirmation:
+```
+📋 Selected storage providers:
+───────────────────────────────────────
+  ${HANDLER_LIST[@]}
+───────────────────────────────────────
+```
 
 ## Phase 3: Collect Configuration
 
-Based on selected handler, collect configuration.
+**Loop through each handler** in `HANDLER_LIST` and collect configuration.
+
+### 3.0 Initialize Configuration Storage
+
+Initialize storage for all handler configs:
+```bash
+declare -A HANDLER_CONFIGS
+HANDLER_CONFIGS_JSON="{}"
+```
+
+### 3.0.1 Loop Structure
+
+For each handler in the handler list, collect configuration:
+```bash
+for HANDLER in "${HANDLER_LIST[@]}"; do
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configuring: $HANDLER"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Execute handler-specific configuration section (3.1-3.5 below)
+    case "$HANDLER" in
+        "local")
+            # Execute section 3.1
+            ;;
+        "r2")
+            # Execute section 3.2
+            ;;
+        "s3")
+            # Execute section 3.3
+            ;;
+        "gcs")
+            # Execute section 3.4
+            ;;
+        "gdrive")
+            # Execute section 3.5
+            ;;
+    esac
+
+    # Store handler config in JSON object
+    HANDLER_CONFIGS_JSON=$(echo "$HANDLER_CONFIGS_JSON" | jq \
+        --arg handler "$HANDLER" \
+        --argjson config "$HANDLER_CONFIG" \
+        '.[$handler] = $config')
+done
+```
+
+**Important**: Each handler configuration section (3.1-3.5) should set the `HANDLER_CONFIG` variable to a JSON object with that handler's configuration.
+
+For each handler in the list, execute the corresponding configuration section below:
 
 ### 3.1 Local Handler Configuration
 
@@ -116,6 +208,18 @@ Directory permissions (octal format):
   "create_directories": true,
   "permissions": "0755"
 }
+```
+
+**Set HANDLER_CONFIG variable:**
+```bash
+HANDLER_CONFIG=$(cat <<EOF
+{
+  "base_path": "$BASE_PATH",
+  "create_directories": $CREATE_DIRECTORIES,
+  "permissions": "$PERMISSIONS"
+}
+EOF
+)
 ```
 
 ### 3.2 R2 Handler Configuration
@@ -351,13 +455,58 @@ Client Secret (or ${VAR_NAME}):
 }
 ```
 
-## Phase 4: Configuration Validation
+## Phase 4: Select Default Handler
 
-Before saving, validate all fields:
+If multiple handlers were configured, select which one is the default (active_handler).
 
-### 4.1 Validate Required Fields
+### 4.1 Display Handler Selection Menu
 
-For each handler, check all required fields are present:
+If `HANDLER_LIST` has more than one handler:
+
+```
+🎯 Select Default Storage Provider
+───────────────────────────────────────
+Multiple storage providers were configured. Which should be the default?
+(You can override this for specific operations later)
+
+Configured providers:
+```
+
+Display numbered list of configured handlers:
+```bash
+for i in "${!HANDLER_LIST[@]}"; do
+    echo "  $((i+1)). ${HANDLER_LIST[$i]}"
+done
+```
+
+### 4.2 Prompt for Default Selection
+
+```
+Enter selection [1-${#HANDLER_LIST[@]}] (default: 1): _____
+```
+
+Parse selection and set `ACTIVE_HANDLER` variable.
+
+### 4.3 Non-Interactive Default
+
+If non-interactive or only one handler configured:
+```bash
+ACTIVE_HANDLER="${HANDLER_LIST[0]}"
+```
+
+### 4.4 Display Confirmation
+
+```
+✓ Default handler: ${ACTIVE_HANDLER}
+```
+
+## Phase 5: Configuration Validation
+
+Before saving, validate all fields for all configured handlers.
+
+### 5.1 Validate Required Fields
+
+For each handler in `HANDLER_CONFIGS`, check all required fields are present:
 ```bash
 # Example for R2
 if [ -z "$ACCOUNT_ID" ] || [ "$ACCOUNT_ID" = "null" ]; then
@@ -366,7 +515,7 @@ if [ -z "$ACCOUNT_ID" ] || [ "$ACCOUNT_ID" = "null" ]; then
 fi
 ```
 
-### 4.2 Validate Field Formats
+### 5.2 Validate Field Formats
 
 - **account_id**: alphanumeric
 - **bucket_name**: valid bucket name format (lowercase, no spaces)
@@ -374,7 +523,7 @@ fi
 - **paths**: no path traversal attempts
 - **permissions**: valid octal format (0###)
 
-### 4.3 Expand and Validate Environment Variables
+### 5.3 Expand and Validate Environment Variables
 
 For fields using ${VAR_NAME} syntax:
 ```bash
@@ -396,19 +545,48 @@ fi
 
 Show all warnings and ask for confirmation if any exist.
 
-## Phase 5: Connection Test
+## Phase 6: Connection Test
 
-If `test_connection` is true:
+If `test_connection` is true, test each configured handler.
 
-Display:
+### 6.0 Initialize Test Tracking
+
+Track test results for all handlers:
+```bash
+declare -A TEST_RESULTS
+TESTS_PASSED=0
+TESTS_FAILED=0
+FAILED_HANDLERS=()
 ```
-🔍 Testing connection to {handler}...
-───────────────────────────────────────
+
+### 6.0.1 Test Loop
+
+For each configured handler, execute connection test:
+```bash
+for HANDLER in "${HANDLER_LIST[@]}"; do
+    echo ""
+    echo "🔍 Testing connection to $HANDLER..."
+    echo "───────────────────────────────────────"
+
+    # Execute handler-specific test (6.1 or 6.2)
+    # Store result in TEST_RESULTS[$HANDLER]
+
+    if [ "$TEST_RESULT" = "success" ]; then
+        TEST_RESULTS[$HANDLER]="passed"
+        ((TESTS_PASSED++))
+        echo "✅ $HANDLER: Connection test passed"
+    else
+        TEST_RESULTS[$HANDLER]="failed"
+        ((TESTS_FAILED++))
+        FAILED_HANDLERS+=("$HANDLER")
+        echo "❌ $HANDLER: Connection test failed - $ERROR_MESSAGE"
+    fi
+done
 ```
 
 Execute test based on handler:
 
-### 5.1 Local Handler Test
+### 6.1 Local Handler Test
 ```bash
 # Test directory creation and write permissions
 TEST_DIR="${BASE_PATH}/test"
@@ -417,7 +595,7 @@ TEST_FILE="$TEST_DIR/.test_$(date +%s)"
 touch "$TEST_FILE" && rm "$TEST_FILE"
 ```
 
-### 5.2 Cloud Handler Tests (R2, S3, GCS, Google Drive)
+### 6.2 Cloud Handler Tests (R2, S3, GCS, Google Drive)
 ```bash
 # Attempt a list operation with limit 1
 # This validates:
@@ -443,7 +621,7 @@ else
 fi
 ```
 
-### 5.3 Handle Test Failures
+### 6.3 Handle Test Failures
 
 If test fails:
 ```
@@ -469,7 +647,7 @@ If user chooses option 1, return to Phase 3 (collect configuration).
 If user chooses option 2, proceed to save.
 If user chooses option 3 or non-interactive and test fails, exit with error.
 
-### 5.4 Test Success
+### 6.4 Test Success
 
 If test succeeds:
 ```
@@ -477,20 +655,110 @@ If test succeeds:
 ───────────────────────────────────────
 ```
 
-## Phase 6: Save Configuration
+### 6.5 Handle Partial Test Results (Multi-Handler)
 
-### 6.1 Build Configuration JSON
+After all tests complete, evaluate overall status:
 
-Construct complete configuration with handler settings and global settings:
+```bash
+TOTAL_HANDLERS=${#HANDLER_LIST[@]}
+
+if [ $TESTS_PASSED -eq $TOTAL_HANDLERS ]; then
+    # All tests passed
+    TEST_STATUS="passed"
+    echo ""
+    echo "✅ All connection tests passed! ($TESTS_PASSED/$TOTAL_HANDLERS)"
+
+elif [ $TESTS_FAILED -eq $TOTAL_HANDLERS ]; then
+    # All tests failed
+    TEST_STATUS="failed"
+    echo ""
+    echo "❌ All connection tests failed! ($TESTS_FAILED/$TOTAL_HANDLERS)"
+    echo ""
+    echo "Failed handlers: ${FAILED_HANDLERS[@]}"
+
+    # In interactive mode, ask user what to do
+    if [ "$INTERACTIVE" = "true" ]; then
+        echo ""
+        echo "Options:"
+        echo "  1. Review and fix configurations"
+        echo "  2. Save anyway (handlers can be tested later)"
+        echo "  3. Cancel setup"
+        read -p "Enter selection [1-3]: " CHOICE
+
+        case "$CHOICE" in
+            1) return_to_phase_3 ;;
+            2) proceed_to_save ;;
+            3) exit 0 ;;
+        esac
+    else
+        # Non-interactive: fail if all tests failed
+        exit 1
+    fi
+
+else
+    # Some passed, some failed (PARTIAL)
+    TEST_STATUS="partial"
+    echo ""
+    echo "⚠️  Partial success: $TESTS_PASSED/$TOTAL_HANDLERS handlers passed"
+    echo ""
+    echo "Passed: ${!TEST_RESULTS[@]}"
+    echo "Failed: ${FAILED_HANDLERS[@]}"
+    echo ""
+
+    # In interactive mode, ask user what to do
+    if [ "$INTERACTIVE" = "true" ]; then
+        echo "Options:"
+        echo "  1. Review and fix failed configurations"
+        echo "  2. Save all configurations (failed handlers can be fixed later)"
+        echo "  3. Save only working handlers (remove failed handlers)"
+        echo "  4. Cancel setup"
+        read -p "Enter selection [1-4]: " CHOICE
+
+        case "$CHOICE" in
+            1) return_to_phase_3_for_failed ;;
+            2) proceed_to_save_all ;;
+            3) remove_failed_and_save ;;
+            4) exit 0 ;;
+        esac
+    else
+        # Non-interactive: save all, user can test/fix later
+        echo "Non-interactive mode: Saving all configurations."
+        echo "Test failed handlers manually with /fractary-file:test-connection"
+    fi
+fi
+```
+
+**Test Status Values**:
+- `"passed"`: All handlers tested successfully
+- `"partial"`: Some handlers passed, some failed
+- `"failed"`: All handlers failed
+- `false`: Connection testing was disabled (`--no-test`)
+
+**Partial Status Behavior**:
+When `TEST_STATUS="partial"`:
+1. **Interactive mode**: User chooses to fix, save all, or save only working handlers
+2. **Non-interactive mode**: Saves all configurations with warning (user can test later)
+3. **Completion message**: Shows which handlers passed/failed
+4. **Return value**: Includes `tested: "partial"` and lists failed handlers
+
+## Phase 7: Save Configuration
+
+### 7.1 Build Configuration JSON
+
+Construct complete configuration with ALL handler settings and global settings:
 
 ```json
 {
   "schema_version": "1.0",
-  "active_handler": "{selected_handler}",
+  "active_handler": "{ACTIVE_HANDLER}",
   "handlers": {
-    "{selected_handler}": {
-      // handler-specific config
+    "{handler1}": {
+      // handler1-specific config
+    },
+    "{handler2}": {
+      // handler2-specific config (if configured)
     }
+    // ... all configured handlers
   },
   "global_settings": {
     "retry_attempts": 3,
@@ -502,26 +770,28 @@ Construct complete configuration with handler settings and global settings:
 }
 ```
 
-### 6.2 Create Directory Structure
+**Important**: Include ALL handlers from `HANDLER_CONFIGS` in the `handlers` object, not just the active one.
+
+### 7.2 Create Directory Structure
 
 ```bash
 CONFIG_DIR=$(dirname "$CONFIG_PATH")
 mkdir -p "$CONFIG_DIR"
 ```
 
-### 6.3 Write Configuration File
+### 7.3 Write Configuration File
 
 ```bash
 echo "$CONFIG_JSON" | jq '.' > "$CONFIG_PATH"
 ```
 
-### 6.4 Set Secure Permissions
+### 7.4 Set Secure Permissions
 
 ```bash
 chmod 0600 "$CONFIG_PATH"
 ```
 
-### 6.5 Verify Save
+### 7.5 Verify Save
 
 ```bash
 if [ ! -f "$CONFIG_PATH" ]; then
@@ -536,25 +806,26 @@ if ! jq '.' "$CONFIG_PATH" > /dev/null 2>&1; then
 fi
 ```
 
-## Phase 7: Completion Message
+## Phase 8: Completion Message
 
-Display success message:
+Display success message with information about all configured handlers:
 ```
 ✅ File plugin configured successfully!
 ───────────────────────────────────────
 
 Configuration details:
-  Active handler: {handler}
+  Configured handlers: {handler1, handler2, ...}
+  Default handler: {ACTIVE_HANDLER}
   Config location: {config_path}
   Config scope: {project|global}
-  Connection tested: {yes|no}
+  Connection tested: {yes|no|partial}
   File permissions: 0600 (secure)
 
 Next steps:
   1. Test the configuration:
      /fractary-file:test-connection
 
-  2. Upload a file:
+  2. Upload a file (uses default handler):
      Use @agent-fractary-file:file-manager to upload:
      {
        "operation": "upload",
@@ -564,8 +835,21 @@ Next steps:
        }
      }
 
-  3. View current configuration:
+  3. Upload to a specific handler (override default):
+     {
+       "operation": "upload",
+       "parameters": {
+         "local_path": "./myfile.txt",
+         "remote_path": "folder/myfile.txt"
+       },
+       "handler_override": "s3"
+     }
+
+  4. View current configuration:
      /fractary-file:show-config
+
+  5. Switch default handler:
+     /fractary-file:switch-handler
 
 Documentation:
   • Plugin README: plugins/file/README.md
@@ -597,9 +881,38 @@ Make sure these are set in your environment before using the plugin.
 {
   "success": true,
   "config_path": "/path/to/config.json",
+  "configured_handlers": ["handler1", "handler2", ...],
   "active_handler": "handler_name",
-  "tested": true|false,
+  "tested": true|false|"partial",
+  "test_results": {
+    "handler1": "passed",
+    "handler2": "failed"
+  },
+  "failed_handlers": ["handler2"],
   "env_vars_required": ["VAR1", "VAR2", ...]
+}
+```
+
+**Tested Field Values**:
+- `true`: All handlers passed connection tests
+- `false`: Connection testing was disabled (`--no-test`)
+- `"partial"`: Some handlers passed, some failed (see `test_results` and `failed_handlers`)
+
+**Partial Success Example**:
+```json
+{
+  "success": true,
+  "config_path": ".fractary/plugins/file/config.json",
+  "configured_handlers": ["local", "s3", "r2"],
+  "active_handler": "local",
+  "tested": "partial",
+  "test_results": {
+    "local": "passed",
+    "s3": "failed",
+    "r2": "passed"
+  },
+  "failed_handlers": ["s3"],
+  "env_vars_required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
 }
 ```
 
@@ -681,11 +994,17 @@ Provide specific troubleshooting based on error:
 
 After completing configuration, this skill outputs:
 1. ✅ Success banner with configuration details
-2. 📍 Configuration file location
-3. 🔐 Security status (file permissions)
-4. 📋 Required environment variables (if any)
-5. 📚 Next steps and documentation links
+2. 📋 List of all configured handlers
+3. 🎯 Default (active) handler
+4. 📍 Configuration file location
+5. 🔐 Security status (file permissions)
+6. 📋 Required environment variables (if any)
+7. 📚 Next steps including handler override examples
+8. 📖 Documentation links
 
-The output should provide everything the user needs to start using the plugin immediately.
+The output should provide everything the user needs to:
+- Use the default handler immediately
+- Override to use a different configured handler
+- Understand the multi-handler architecture
 
 </DOCUMENTATION>
