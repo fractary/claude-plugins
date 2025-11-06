@@ -348,7 +348,7 @@ show_differences() {
     fi
 }
 
-# Function to merge arrays (remove duplicates, handle conflicts)
+# Function to merge arrays (remove duplicates, handle conflicts, respect user overrides)
 merge_arrays_smart() {
     local settings_file="$1"
     local category="$2"  # allow, requireApproval, or deny
@@ -358,51 +358,85 @@ merge_arrays_smart() {
     # Get existing items from this category
     local existing=$(jq -r ".permissions.bash.$category[]?" "$settings_file" 2>/dev/null | sort -u)
 
-    # Get items from other categories to avoid conflicts
-    local other_categories=()
-    if [ "$category" != "allow" ]; then
-        mapfile -t other_categories < <(jq -r '.permissions.bash.allow[]?' "$settings_file" 2>/dev/null)
-    fi
-    if [ "$category" != "requireApproval" ]; then
-        mapfile -t -O "${#other_categories[@]}" other_categories < <(jq -r '.permissions.bash.requireApproval[]?' "$settings_file" 2>/dev/null)
-    fi
-    if [ "$category" != "deny" ]; then
-        mapfile -t -O "${#other_categories[@]}" other_categories < <(jq -r '.permissions.bash.deny[]?' "$settings_file" 2>/dev/null)
-    fi
+    # Get items from other categories to check for user overrides
+    local in_allow=()
+    local in_require=()
+    local in_deny=()
 
-    # Build associative array of other category items
-    declare -A other_map
-    for item in "${other_categories[@]}"; do
-        other_map["$item"]=1
-    done
+    mapfile -t in_allow < <(jq -r '.permissions.bash.allow[]?' "$settings_file" 2>/dev/null)
+    mapfile -t in_require < <(jq -r '.permissions.bash.requireApproval[]?' "$settings_file" 2>/dev/null)
+    mapfile -t in_deny < <(jq -r '.permissions.bash.deny[]?' "$settings_file" 2>/dev/null)
 
-    # Combine new items with existing (from this category only)
+    # Build associative arrays for O(1) lookups
+    declare -A allow_map require_map deny_map
+    for item in "${in_allow[@]}"; do allow_map["$item"]=1; done
+    for item in "${in_require[@]}"; do require_map["$item"]=1; done
+    for item in "${in_deny[@]}"; do deny_map["$item"]=1; done
+
+    # Combine items respecting user overrides
     local combined=()
 
-    # Add existing items that aren't in other categories
+    # Add existing items from this category (preserve existing)
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
-        if [[ -z "${other_map[$cmd]:-}" ]]; then
-            combined+=("$cmd")
-        fi
+        combined+=("$cmd")
     done <<< "$existing"
 
-    # Add new items that aren't already present and aren't in other categories
+    # Add new items with smart conflict resolution
     for cmd in "${new_items[@]}"; do
-        local already_present=false
+        local already_in_category=false
         for existing_cmd in "${combined[@]}"; do
             if [ "$cmd" = "$existing_cmd" ]; then
-                already_present=true
+                already_in_category=true
                 break
             fi
         done
 
-        if ! $already_present && [[ -z "${other_map[$cmd]:-}" ]]; then
+        # Skip if already in this category
+        if $already_in_category; then
+            continue
+        fi
+
+        # Check if command is in another category (user override)
+        local in_other_category=false
+        case "$category" in
+            allow)
+                # We're adding to allow, but check if user has it in require or deny
+                if [[ -n "${require_map[$cmd]:-}" ]] || [[ -n "${deny_map[$cmd]:-}" ]]; then
+                    in_other_category=true
+                    # Special case: if user denied something we recommend allowing, respect their choice
+                    # Don't add it to allow
+                fi
+                ;;
+            requireApproval)
+                # We're adding to requireApproval, check if user has it in allow or deny
+                if [[ -n "${allow_map[$cmd]:-}" ]] || [[ -n "${deny_map[$cmd]:-}" ]]; then
+                    in_other_category=true
+                    # Respect user's more restrictive choice (deny) or less restrictive (allow)
+                fi
+                ;;
+            deny)
+                # We're adding to deny (dangerous commands)
+                if [[ -n "${allow_map[$cmd]:-}" ]]; then
+                    # CRITICAL: User allowed something dangerous we recommend denying
+                    # We should still add it to deny and remove from allow
+                    # The duplicate will be resolved by the calling code
+                    in_other_category=false  # Force add to deny for safety
+                elif [[ -n "${require_map[$cmd]:-}" ]]; then
+                    # User requires approval for something we recommend denying
+                    # Less critical, but still add to deny
+                    in_other_category=false  # Force add to deny for safety
+                fi
+                ;;
+        esac
+
+        # Add if not in another category (respecting user overrides)
+        if ! $in_other_category; then
             combined+=("$cmd")
         fi
     done
 
-    # Sort and output
+    # Sort, deduplicate, and output
     printf "%s\n" "${combined[@]}" | sort -u
 }
 
@@ -516,9 +550,47 @@ setup_permissions() {
     mv "${temp_file}.tmp" "$temp_file"
 
     # Merge arrays with smart conflict resolution
+    # User Override Policy:
+    # - If user has denied something we recommend allowing: RESPECT their choice (don't add to allow)
+    # - If user has allowed something we recommend denying: OVERRIDE for safety (force to deny)
+    # - Missing commands: ADD to recommended categories
+    # - After merge: cleanup with precedence (deny > requireApproval > allow)
     local all_allow=$(merge_arrays_smart "$temp_file" "allow" "${ALLOW_COMMANDS[@]}")
     local all_require=$(merge_arrays_smart "$temp_file" "requireApproval" "${REQUIRE_APPROVAL_COMMANDS[@]}")
     local all_deny=$(merge_arrays_smart "$temp_file" "deny" "${DENY_COMMANDS[@]}")
+
+    # Cleanup: Remove duplicates across categories with precedence (deny > requireApproval > allow)
+    # This ensures dangerous commands end up only in deny, not also in allow
+    declare -A deny_set require_set
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        deny_set["$cmd"]=1
+    done <<< "$all_deny"
+
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        require_set["$cmd"]=1
+    done <<< "$all_require"
+
+    # Filter allow: remove anything in deny or require
+    local cleaned_allow=()
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        if [[ -z "${deny_set[$cmd]:-}" ]] && [[ -z "${require_set[$cmd]:-}" ]]; then
+            cleaned_allow+=("$cmd")
+        fi
+    done <<< "$all_allow"
+    all_allow=$(printf "%s\n" "${cleaned_allow[@]}" | sort -u)
+
+    # Filter require: remove anything in deny
+    local cleaned_require=()
+    while IFS= read -r cmd; do
+        [ -z "$cmd" ] && continue
+        if [[ -z "${deny_set[$cmd]:-}" ]]; then
+            cleaned_require+=("$cmd")
+        fi
+    done <<< "$all_require"
+    all_require=$(printf "%s\n" "${cleaned_require[@]}" | sort -u)
 
     # Build JSON arrays
     local allow_json=$(echo "$all_allow" | jq -R . | jq -s .)
@@ -565,7 +637,23 @@ setup_permissions() {
     echo -e "${YELLOW}Protected:${NC} Operations on main/master/production require approval."
 }
 
-# Function to validate permissions
+# Function to check where a command is currently located in settings
+find_command_location() {
+    local cmd="$1"
+    local settings_file="$2"
+
+    if jq -e ".permissions.bash.allow | index(\"$cmd\")" "$settings_file" >/dev/null 2>&1; then
+        echo "allow"
+    elif jq -e ".permissions.bash.requireApproval | index(\"$cmd\")" "$settings_file" >/dev/null 2>&1; then
+        echo "requireApproval"
+    elif jq -e ".permissions.bash.deny | index(\"$cmd\")" "$settings_file" >/dev/null 2>&1; then
+        echo "deny"
+    else
+        echo "missing"
+    fi
+}
+
+# Function to validate permissions (comprehensive check of ALL commands)
 validate_permissions() {
     if [ ! -f "$SETTINGS_FILE" ]; then
         echo -e "${RED}✗${NC} Settings file not found: $SETTINGS_FILE"
@@ -578,60 +666,190 @@ validate_permissions() {
         exit 1
     fi
 
-    echo -e "${BLUE}🔐 Validating Permissions${NC}"
+    echo -e "${BLUE}🔐 Comprehensive Permissions Validation${NC}"
     echo "───────────────────────────────────────"
+    echo ""
 
-    # Check for conflicts
+    # Check for conflicts (commands in multiple categories simultaneously)
+    local has_conflicts=false
     if detect_conflicts "$SETTINGS_FILE"; then
-        echo -e "${YELLOW}⚠️  Conflicts detected (commands in multiple categories)${NC}"
-        echo "Run: /repo:init-permissions --mode setup (to fix)"
+        echo -e "${RED}✗ CONFLICTS DETECTED:${NC} Some commands appear in multiple categories"
+        echo "  This should not happen and will be fixed by running setup."
+        echo ""
+        has_conflicts=true
+    fi
+
+    # Track all issues
+    local missing_from_allow=()
+    local missing_from_require=()
+    local missing_from_deny=()
+    local wrong_location_allow=()
+    local wrong_location_require=()
+    local wrong_location_deny=()
+    local user_overrides=()
+
+    echo "Checking recommended ALLOW commands..."
+    # Check all ALLOW_COMMANDS
+    for cmd in "${ALLOW_COMMANDS[@]}"; do
+        local location=$(find_command_location "$cmd" "$SETTINGS_FILE")
+        case "$location" in
+            allow)
+                # Correct location, no issue
+                ;;
+            requireApproval)
+                wrong_location_allow+=("$cmd (currently in requireApproval)")
+                ;;
+            deny)
+                # User explicitly denied something we recommend - respect this as override
+                user_overrides+=("$cmd (recommended: allow, user chose: deny)")
+                ;;
+            missing)
+                missing_from_allow+=("$cmd")
+                ;;
+        esac
+    done
+
+    echo "Checking recommended REQUIRE APPROVAL commands..."
+    # Check all REQUIRE_APPROVAL_COMMANDS
+    for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
+        local location=$(find_command_location "$cmd" "$SETTINGS_FILE")
+        case "$location" in
+            requireApproval)
+                # Correct location, no issue
+                ;;
+            allow)
+                wrong_location_require+=("$cmd (currently in allow)")
+                ;;
+            deny)
+                # User explicitly denied something we recommend requiring approval - respect this
+                user_overrides+=("$cmd (recommended: requireApproval, user chose: deny)")
+                ;;
+            missing)
+                missing_from_require+=("$cmd")
+                ;;
+        esac
+    done
+
+    echo "Checking recommended DENY commands..."
+    # Check all DENY_COMMANDS
+    for cmd in "${DENY_COMMANDS[@]}"; do
+        local location=$(find_command_location "$cmd" "$SETTINGS_FILE")
+        case "$location" in
+            deny)
+                # Correct location, no issue
+                ;;
+            allow)
+                # User allowed something dangerous we recommend denying - CRITICAL WARNING
+                wrong_location_deny+=("$cmd (currently in allow) ⚠️  DANGEROUS")
+                ;;
+            requireApproval)
+                # User requires approval for something we recommend denying - less critical but still note it
+                wrong_location_deny+=("$cmd (currently in requireApproval)")
+                ;;
+            missing)
+                missing_from_deny+=("$cmd")
+                ;;
+        esac
+    done
+
+    echo ""
+    echo "───────────────────────────────────────"
+    echo ""
+
+    # Report all findings
+    local has_issues=false
+
+    if [ ${#missing_from_allow[@]} -gt 0 ]; then
+        echo -e "${YELLOW}⚠ Missing from ALLOW list (${#missing_from_allow[@]} commands):${NC}"
+        for cmd in "${missing_from_allow[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#missing_from_require[@]} -gt 0 ]; then
+        echo -e "${YELLOW}⚠ Missing from REQUIRE APPROVAL list (${#missing_from_require[@]} commands):${NC}"
+        for cmd in "${missing_from_require[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#missing_from_deny[@]} -gt 0 ]; then
+        echo -e "${RED}⚠ Missing from DENY list (${#missing_from_deny[@]} commands):${NC}"
+        for cmd in "${missing_from_deny[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#wrong_location_allow[@]} -gt 0 ]; then
+        echo -e "${YELLOW}⚠ Commands in WRONG category (should be in ALLOW):${NC}"
+        for cmd in "${wrong_location_allow[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#wrong_location_require[@]} -gt 0 ]; then
+        echo -e "${YELLOW}⚠ Commands in WRONG category (should be in REQUIRE APPROVAL):${NC}"
+        for cmd in "${wrong_location_require[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#wrong_location_deny[@]} -gt 0 ]; then
+        echo -e "${RED}⚠ Commands in WRONG category (should be in DENY):${NC}"
+        for cmd in "${wrong_location_deny[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#user_overrides[@]} -gt 0 ]; then
+        echo -e "${MAGENTA}ℹ User Overrides Detected (will be preserved):${NC}"
+        for cmd in "${user_overrides[@]}"; do
+            echo "  • $cmd"
+        done
         echo ""
     fi
 
-    # Show differences
-    show_differences "$SETTINGS_FILE"
-
-    # Check if critical commands are present
-    local missing_safe=()
-    for cmd in "git status" "git log" "git commit" "git push" "gh auth status" "gh auth login" "gh auth refresh"; do
-        if ! jq -e ".permissions.bash.allow | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-            missing_safe+=("$cmd")
-        fi
-    done
-
-    local missing_protected=()
-    for cmd in "git push origin main" "git push origin master" "git push origin production"; do
-        if ! jq -e ".permissions.bash.requireApproval | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-            missing_protected+=("$cmd")
-        fi
-    done
-
-    local missing_denies=()
-    for cmd in "rm -rf /" "git push --force origin main" "gh repo delete"; do
-        if ! jq -e ".permissions.bash.deny | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-            missing_denies+=("$cmd")
-        fi
-    done
-
-    if [ ${#missing_safe[@]} -eq 0 ] && [ ${#missing_protected[@]} -eq 0 ] && [ ${#missing_denies[@]} -eq 0 ]; then
-        echo -e "${GREEN}✓${NC} All critical permissions configured correctly"
-        echo -e "${GREEN}✓${NC} General operations: allowed (fast workflow)"
-        echo -e "${YELLOW}✓${NC} Protected branch operations: require approval"
-        echo -e "${RED}✓${NC} Dangerous operations: denied"
+    # Final verdict
+    echo "───────────────────────────────────────"
+    if [ "$has_conflicts" = true ] || [ "$has_issues" = true ]; then
+        echo ""
+        echo -e "${RED}✗ Validation Failed${NC}"
+        echo ""
+        echo "Your settings differ from the recommended configuration."
+        echo ""
+        echo -e "${GREEN}To fix:${NC} /repo:init-permissions --mode setup"
+        echo ""
+        echo "Setup mode will:"
+        echo "  • Add all missing commands to correct categories"
+        echo "  • Move misplaced commands to correct categories"
+        echo "  • Preserve your custom user overrides (deny preferences)"
+        echo "  • Create backup before making changes"
+        exit 1
     else
-        echo -e "${YELLOW}⚠${NC} Some permissions missing:"
-        if [ ${#missing_safe[@]} -gt 0 ]; then
-            echo "  Missing allows: ${missing_safe[*]}"
-        fi
-        if [ ${#missing_protected[@]} -gt 0 ]; then
-            echo "  Missing protected (requireApproval): ${missing_protected[*]}"
-        fi
-        if [ ${#missing_denies[@]} -gt 0 ]; then
-            echo "  Missing denies: ${missing_denies[*]}"
+        echo ""
+        echo -e "${GREEN}✓ Validation Passed${NC}"
+        echo ""
+        echo "Your permissions match the recommended configuration:"
+        echo "  • ${#ALLOW_COMMANDS[@]} commands in ALLOW (auto-approved)"
+        echo "  • ${#REQUIRE_APPROVAL_COMMANDS[@]} commands in REQUIRE APPROVAL (protected branches)"
+        echo "  • ${#DENY_COMMANDS[@]} commands in DENY (dangerous operations)"
+        if [ ${#user_overrides[@]} -gt 0 ]; then
+            echo "  • ${#user_overrides[@]} user overrides (preserved)"
         fi
         echo ""
-        echo "Run: /repo:init-permissions --mode setup"
-        exit 1
+        echo -e "${GREEN}Your repo operations are properly configured!${NC}"
     fi
 }
 
