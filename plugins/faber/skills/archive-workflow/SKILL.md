@@ -66,6 +66,26 @@ You receive archive execution requests from workflow-manager:
 
 <WORKFLOW>
 
+## Step 0: Input Validation
+
+Validate inputs before starting:
+
+```bash
+# Validate issue number format (prevent injection)
+# Allow only alphanumeric, hyphens, and underscores (for Jira-style IDs like "PROJ-123")
+if ! echo "$ISSUE_NUMBER" | grep -qE '^[A-Za-z0-9_-]+$'; then
+    echo "❌ Error: Invalid issue number format: $ISSUE_NUMBER"
+    echo "Issue numbers must contain only letters, numbers, hyphens, and underscores"
+    exit 2
+fi
+
+# Validate issue number length (reasonable limit)
+if [ ${#ISSUE_NUMBER} -gt 50 ]; then
+    echo "❌ Error: Issue number too long (max 50 characters): $ISSUE_NUMBER"
+    exit 2
+fi
+```
+
 ## Step 1: Output Start Message
 
 ```
@@ -108,13 +128,32 @@ else:
 
 Look for recent documentation updates:
 ```bash
+# Cross-platform date formatting function
+format_timestamp() {
+    local ts="$1"
+    if [ "$ts" = "0" ]; then
+        echo "never"
+        return
+    fi
+    # Try GNU date first (Linux)
+    if date -d "@$ts" +"%Y-%m-%d" 2>/dev/null; then
+        return
+    fi
+    # Fall back to BSD date (macOS)
+    if date -r "$ts" +"%Y-%m-%d" 2>/dev/null; then
+        return
+    fi
+    # Last resort
+    echo "unknown"
+}
+
 # Check when docs were last updated (get timestamps for proper comparison)
 DOCS_MODIFIED_TS=$(git log -1 --format="%ct" -- docs/ 2>/dev/null || echo "0")
 SPEC_CREATED_TS=$(git log -1 --format="%ct" -- specs/ 2>/dev/null || echo "0")
 
 if [ "$DOCS_MODIFIED_TS" -lt "$SPEC_CREATED_TS" ]; then
-    DOCS_MODIFIED=$(date -d "@$DOCS_MODIFIED_TS" +"%Y-%m-%d" 2>/dev/null || echo "never")
-    SPEC_CREATED=$(date -d "@$SPEC_CREATED_TS" +"%Y-%m-%d" 2>/dev/null || echo "unknown")
+    DOCS_MODIFIED=$(format_timestamp "$DOCS_MODIFIED_TS")
+    SPEC_CREATED=$(format_timestamp "$SPEC_CREATED_TS")
     echo "⚠ Documentation not updated since spec creation"
     echo "   Docs last updated: $DOCS_MODIFIED"
     echo "   Spec created: $SPEC_CREATED"
@@ -358,20 +397,25 @@ if github_comment_fails:
 Clean up local files and commit index changes:
 
 ```bash
-# Commit archive index updates (must succeed before considering cleanup complete)
-git add specs/.archive-index.json logs/.archive-index.json
+# Stage archive index updates
+git add specs/.archive-index.json logs/.archive-index.json 2>/dev/null
 
-if ! git commit -m "Archive artifacts for issue #{{issue_number}}"; then
-    echo "❌ Failed to commit archive index updates"
-    echo ""
-    echo "Archives uploaded successfully, but local cleanup incomplete."
-    echo "Manual cleanup required:"
-    echo "  git add specs/.archive-index.json logs/.archive-index.json"
-    echo "  git commit -m 'Archive cleanup for issue #{{issue_number}}'"
-    exit 1
+# Check if there are actually changes to commit
+if git diff --cached --quiet; then
+    echo "✅ Archive indexes (no changes to commit)"
+else
+    # Commit archive index updates (must succeed before considering cleanup complete)
+    if ! git commit -m "Archive artifacts for issue #{{issue_number}}"; then
+        echo "❌ Failed to commit archive index updates"
+        echo ""
+        echo "Archives uploaded successfully, but local cleanup incomplete."
+        echo "Manual cleanup required:"
+        echo "  git add specs/.archive-index.json logs/.archive-index.json"
+        echo "  git commit -m 'Archive cleanup for issue #{{issue_number}}'"
+        exit 1
+    fi
+    echo "✅ Archive indexes committed"
 fi
-
-echo "✅ Archive indexes committed"
 ```
 
 **Note**: Archived files are removed by fractary-spec and fractary-logs agents during their archive operations (Steps 3 and 4), not in this cleanup step. This step only commits the index updates.

@@ -251,10 +251,21 @@ fi
 Use repo-manager to commit the specification (and ADR if generated):
 
 ```bash
+# Validate spec file was created
+if [ -z "$SPEC_FILE" ] || [ ! -f "$SPEC_FILE" ]; then
+    echo "❌ Error: Specification file not created"
+    exit 1
+fi
+
 # Build file list
 FILES_TO_COMMIT="[\"$SPEC_FILE\""
 if [ -n "$ADR_FILE" ]; then
-    FILES_TO_COMMIT="${FILES_TO_COMMIT}, \"$ADR_FILE\""
+    # Validate ADR file exists if specified
+    if [ ! -f "$ADR_FILE" ]; then
+        echo "⚠️  Warning: ADR file specified but not found: $ADR_FILE"
+    else
+        FILES_TO_COMMIT="${FILES_TO_COMMIT}, \"$ADR_FILE\""
+    fi
 fi
 FILES_TO_COMMIT="${FILES_TO_COMMIT}]"
 
@@ -263,7 +274,7 @@ FILES_TO_COMMIT="${FILES_TO_COMMIT}]"
 SAFE_TITLE=$(echo "$WORK_ITEM_TITLE" | tr -d '\n\r' | cut -c1-100 | sed 's/[`$"\\]/\\&/g')
 
 # Determine commit message
-if [ -n "$ADR_FILE" ]; then
+if [ -n "$ADR_FILE" ] && [ -f "$ADR_FILE" ]; then
     COMMIT_MSG="docs(spec): Add specification and ADR for ${SAFE_TITLE}"
 else
     COMMIT_MSG="docs(spec): Add specification for ${SAFE_TITLE}"
