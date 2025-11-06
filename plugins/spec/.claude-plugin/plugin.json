@@ -2,31 +2,7 @@
   "name": "fractary-spec",
   "version": "1.0.0",
   "description": "Manage ephemeral specifications tied to work items with lifecycle-based archival",
-  "author": "Fractary",
-  "provides": {
-    "agents": [
-      "spec-manager"
-    ],
-    "commands": [
-      "init",
-      "generate",
-      "validate",
-      "archive",
-      "read"
-    ],
-    "skills": [
-      "spec-generator",
-      "spec-validator",
-      "spec-archiver",
-      "spec-linker"
-    ]
-  },
-  "config_file": "config/config.json",
-  "integration": {
-    "faber": {
-      "architect_phase": "generate",
-      "evaluate_phase": "validate",
-      "release_phase": "archive"
-    }
-  }
+  "commands": "./commands/",
+  "agents": ["./agents/spec-manager.md"],
+  "skills": "./skills/"
 }
