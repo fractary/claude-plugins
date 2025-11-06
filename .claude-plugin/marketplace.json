@@ -140,6 +140,113 @@
         ]
       },
       {
+        "name": "fractary-logs",
+        "source": "./plugins/logs",
+        "description": "Operational log management with session capture, hybrid retention, archival, search, and analysis",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/logs",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/logs",
+        "license": "MIT",
+        "keywords": [
+          "logs",
+          "logging",
+          "monitoring",
+          "session-capture",
+          "archival",
+          "search",
+          "analysis",
+          "observability"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/init.md",
+          "./commands/capture.md",
+          "./commands/stop.md",
+          "./commands/log.md",
+          "./commands/archive.md",
+          "./commands/cleanup.md",
+          "./commands/search.md",
+          "./commands/analyze.md",
+          "./commands/read.md"
+        ],
+        "agents": [
+          "./agents/log-manager.md"
+        ]
+      },
+      {
+        "name": "fractary-spec",
+        "source": "./plugins/spec",
+        "description": "Manage ephemeral specifications tied to work items with lifecycle-based archival",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/spec",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/spec",
+        "license": "MIT",
+        "keywords": [
+          "specification",
+          "specs",
+          "architecture",
+          "design",
+          "documentation",
+          "work-items",
+          "lifecycle"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/init.md",
+          "./commands/generate.md",
+          "./commands/validate.md",
+          "./commands/archive.md",
+          "./commands/read.md"
+        ],
+        "agents": [
+          "./agents/spec-manager.md"
+        ]
+      },
+      {
+        "name": "fractary-docs",
+        "source": "./plugins/docs",
+        "description": "Living documentation management with template-based generation, updating, validation, and linking",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/docs",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/docs",
+        "license": "MIT",
+        "keywords": [
+          "documentation",
+          "docs",
+          "living-documentation",
+          "templates",
+          "validation",
+          "linking",
+          "knowledge-management"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/init.md",
+          "./commands/generate.md",
+          "./commands/update.md",
+          "./commands/validate.md",
+          "./commands/link.md"
+        ],
+        "agents": [
+          "./agents/docs-manager.md"
+        ]
+      },
+      {
         "name": "fractary-faber",
         "source": "./plugins/faber",
         "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
@@ -211,6 +318,149 @@
         "agents": [
           "./agents/cloud-director.md",
           "./agents/infra-manager.md"
+        ]
+      },
+      {
+        "name": "fractary-faber-article",
+        "source": "./plugins/faber-article",
+        "description": "Content creation lifecycle automation for blog articles - ideate, research, outline, draft, enhance, optimize SEO, generate hero images, and publish with AI assistance",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber-article",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber-article",
+        "license": "MIT",
+        "keywords": [
+          "content",
+          "articles",
+          "blog",
+          "writing",
+          "seo",
+          "publishing",
+          "content-creation",
+          "ai-writing"
+        ],
+        "category": "productivity",
+        "strict": true,
+        "commands": [
+          "./commands/content/new.md",
+          "./commands/content/ideate.md",
+          "./commands/content/research.md",
+          "./commands/content/draft.md",
+          "./commands/content/edit.md",
+          "./commands/content/seo.md",
+          "./commands/content/image.md",
+          "./commands/content/publish.md",
+          "./commands/content/status.md"
+        ],
+        "agents": [
+          "./agents/content-manager.md"
+        ]
+      },
+      {
+        "name": "fractary-faber-agent",
+        "source": "./plugins/faber-agent",
+        "description": "Meta-plugin for creating Claude Code agents, skills, commands, and plugins with automated standards compliance",
+        "version": "0.1.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber-agent",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/faber-agent",
+        "license": "MIT",
+        "keywords": [
+          "meta",
+          "tooling",
+          "plugin-creation",
+          "agent-creation",
+          "scaffolding",
+          "development-tools",
+          "standards-compliance"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/create-agent.md",
+          "./commands/create-skill.md",
+          "./commands/create-command.md",
+          "./commands/create-plugin.md"
+        ],
+        "agents": [
+          "./agents/agent-creator.md",
+          "./agents/skill-creator.md",
+          "./agents/command-creator.md",
+          "./agents/plugin-creator.md"
+        ]
+      },
+      {
+        "name": "fractary-helm",
+        "source": "./plugins/helm",
+        "description": "Central Helm orchestrator - unified monitoring, dashboard, and issue management across all domains",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/helm",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/helm",
+        "license": "MIT",
+        "keywords": [
+          "monitoring",
+          "observability",
+          "dashboard",
+          "issues",
+          "operations",
+          "helm",
+          "orchestration"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/dashboard.md",
+          "./commands/status.md",
+          "./commands/issues.md",
+          "./commands/escalate.md"
+        ],
+        "agents": [
+          "./agents/helm-director.md",
+          "./agents/helm-dashboard.md"
+        ]
+      },
+      {
+        "name": "fractary-helm-cloud",
+        "source": "./plugins/helm-cloud",
+        "description": "Runtime operations and monitoring for cloud infrastructure",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/helm-cloud",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/helm-cloud",
+        "license": "MIT",
+        "keywords": [
+          "cloud-monitoring",
+          "infrastructure-monitoring",
+          "operations",
+          "health-checks",
+          "remediation",
+          "audit",
+          "logs",
+          "metrics"
+        ],
+        "category": "development",
+        "strict": true,
+        "commands": [
+          "./commands/health.md",
+          "./commands/investigate.md",
+          "./commands/remediate.md",
+          "./commands/audit.md"
+        ],
+        "agents": [
+          "./agents/ops-manager.md"
         ]
       }
     ]
