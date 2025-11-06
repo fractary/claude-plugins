@@ -3,24 +3,45 @@ name: fractary-faber-cloud:adopt
 description: Adopt existing infrastructure into faber-cloud management
 examples:
   - /fractary-faber-cloud:adopt
-  - /fractary-faber-cloud:adopt --project-root=./my-project
+  - /fractary-faber-cloud:adopt --project-root ./services/api
   - /fractary-faber-cloud:adopt --dry-run
-argument-hint: "[--project-root=<path>] [--dry-run]"
+argument-hint: "[--project-root <path>] [--dry-run]"
 ---
 
 # Adopt Command
 
 Discover and adopt existing infrastructure into faber-cloud lifecycle management.
 
+<ARGUMENT_SYNTAX>
+## Command Argument Syntax
+
+This command follows the standard space-separated syntax:
+- **Format**: `--flag value` (NOT `--flag=value`)
+- **Multi-word values**: MUST be enclosed in double quotes
+
+### Examples
+
+```bash
+# Correct ✅
+/fractary-faber-cloud:adopt
+/fractary-faber-cloud:adopt --project-root ./my-project
+/fractary-faber-cloud:adopt --project-root ./services/api --dry-run
+
+# Incorrect ❌
+/fractary-faber-cloud:adopt --project-root=./my-project
+/fractary-faber-cloud:adopt --dry-run=true
+```
+</ARGUMENT_SYNTAX>
+
 ## Usage
 
 ```bash
-/fractary-faber-cloud:adopt [--project-root=<path>] [--dry-run]
+/fractary-faber-cloud:adopt [--project-root <path>] [--dry-run]
 ```
 
 ## Parameters
 
-- `--project-root`: Root directory of the project to analyze. Defaults to current directory.
+- `--project-root`: Root directory of the project to analyze. **Defaults to current directory.** The command recursively searches for infrastructure from this location, so you typically don't need to specify this - just cd to your project and run `/fractary-faber-cloud:adopt`.
 - `--dry-run`: Run discovery and generate reports without creating configuration. Defaults to false.
 
 ## What This Does
@@ -86,19 +107,28 @@ The adoption workflow produces:
 
 ## Examples
 
-**Adopt infrastructure in current directory:**
-```
+**Typical usage - adopt infrastructure in current directory:**
+```bash
+cd /path/to/my-project
 /fractary-faber-cloud:adopt
 ```
 
-**Adopt infrastructure in specific directory:**
-```
-/fractary-faber-cloud:adopt --project-root=/path/to/project
+**Monorepo - adopt infrastructure for a specific service:**
+```bash
+# You're at repo root, analyzing a specific service's infrastructure
+/fractary-faber-cloud:adopt --project-root ./services/api
 ```
 
-**Run discovery without generating configuration:**
-```
+**Preview adoption without making changes:**
+```bash
 /fractary-faber-cloud:adopt --dry-run
+```
+
+**Batch analysis - evaluate multiple projects:**
+```bash
+# Analyze several projects without cd'ing between them
+/fractary-faber-cloud:adopt --project-root ~/projects/app-a --dry-run
+/fractary-faber-cloud:adopt --project-root ~/projects/app-b --dry-run
 ```
 
 ## Adoption Scenarios
@@ -192,15 +222,16 @@ Step 5: User Review
 
 ## Use Cases
 
-### First-Time Adoption
+### First-Time Adoption (Most Common)
 
 Adopt existing manually-managed infrastructure:
 
 ```bash
-# Navigate to infrastructure project
-cd /path/to/infrastructure
+# Navigate to your project
+cd /path/to/my-project
 
-# Run adoption
+# Run adoption - it will automatically discover infrastructure
+# in common locations (./terraform, ./infrastructure, etc.)
 /fractary-faber-cloud:adopt
 
 # Review generated reports
@@ -208,11 +239,15 @@ cd /path/to/infrastructure
 # Follow MIGRATION.md checklist
 ```
 
+**Note:** The command searches recursively from your project root, so you don't need to point it to your terraform directory - just run it from your project root.
+
 ### Evaluate Before Adopting
 
 Generate reports without committing to adoption:
 
 ```bash
+cd /path/to/my-project
+
 # Run discovery only
 /fractary-faber-cloud:adopt --dry-run
 
@@ -223,11 +258,29 @@ cat .fractary/adoption/MIGRATION.md
 # Re-run without --dry-run to proceed
 ```
 
+### Monorepo - Multiple Services
+
+When working with a monorepo containing multiple services:
+
+```bash
+# You're at the monorepo root
+# Each service has its own infrastructure
+
+# Adopt infrastructure for each service
+/fractary-faber-cloud:adopt --project-root ./services/api
+/fractary-faber-cloud:adopt --project-root ./services/worker
+/fractary-faber-cloud:adopt --project-root ./services/frontend
+
+# Each gets its own faber-cloud configuration
+```
+
 ### Migrate from Custom Scripts
 
 Replace custom deployment scripts with faber-cloud:
 
 ```bash
+cd /path/to/my-project
+
 # Adopt infrastructure
 /fractary-faber-cloud:adopt
 
