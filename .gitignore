@@ -21,4 +21,6 @@ venv
 .venv
 node_modules
 .sass-cache
-.claude
+.claude/*
+!.claude/settings.json
+!.claude/README.md
