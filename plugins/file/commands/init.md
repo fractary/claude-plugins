@@ -75,16 +75,141 @@ Press Ctrl+C at any time to cancel.
 
 Extract from user input:
 - `handlers`: comma-separated list or null (prompts user)
-  - Accept both `--handlers` (new) and `--handler` (backwards compatibility)
-  - Convert single handler to list: "s3" → "s3"
 - `interactive`: true or false (default: true)
 - `test_connection`: true or false (default: true)
 
-Validation:
-- If `--handlers` or `--handler` specified, validate each handler is one of: local, r2, s3, gcs, gdrive
-- If invalid handler found, show error listing valid options and exit
-- If `--non-interactive` and no handlers specified, default to "local"
-- Remove duplicates from handler list if any
+### 2.1 Backwards Compatibility Handling
+
+Handle both `--handler` (deprecated) and `--handlers` (current):
+
+```bash
+HANDLERS=""
+
+# Check for both flags
+if [ -n "$FLAG_HANDLERS" ]; then
+    # New flag: --handlers local,s3,r2
+    HANDLERS="$FLAG_HANDLERS"
+elif [ -n "$FLAG_HANDLER" ]; then
+    # Old flag: --handler s3 (convert to new format)
+    HANDLERS="$FLAG_HANDLER"
+    echo "⚠️  Note: --handler is deprecated. Use --handlers instead."
+    echo "   Converted: --handler $FLAG_HANDLER → --handlers $HANDLERS"
+fi
+```
+
+**Conversion Examples**:
+- `--handler s3` → `--handlers s3` (single handler)
+- Old behavior preserved, new format used internally
+
+### 2.2 Handler List Validation
+
+Validate and normalize handler list:
+
+```bash
+# Remove duplicates and validate
+if [ -n "$HANDLERS" ]; then
+    # Convert comma-separated string to array
+    IFS=',' read -ra HANDLER_ARRAY <<< "$HANDLERS"
+
+    # Remove duplicates
+    UNIQUE_HANDLERS=($(echo "${HANDLER_ARRAY[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+    # Validate each handler
+    VALID_HANDLERS=("local" "r2" "s3" "gcs" "gdrive")
+    for handler in "${UNIQUE_HANDLERS[@]}"; do
+        if [[ ! " ${VALID_HANDLERS[@]} " =~ " ${handler} " ]]; then
+            echo "❌ Error: Invalid handler '$handler'"
+            echo ""
+            echo "Valid handlers: ${VALID_HANDLERS[@]}"
+            exit 1
+        fi
+    done
+
+    # Rebuild cleaned handlers list
+    HANDLERS=$(IFS=,; echo "${UNIQUE_HANDLERS[*]}")
+fi
+
+# Default handling
+if [ "$INTERACTIVE" = "false" ] && [ -z "$HANDLERS" ]; then
+    HANDLERS="local"
+    echo "ℹ️  Non-interactive mode with no handler specified, defaulting to 'local'"
+fi
+```
+
+**Edge Cases Handled**:
+1. **Duplicates**: `--handlers local,s3,local` → `local,s3`
+2. **Invalid handlers**: `--handlers s3,invalid` → Error with valid options
+3. **Empty input**:
+   - Interactive: Prompts user to select
+   - Non-interactive: Defaults to `local`
+4. **Whitespace**: Trimmed automatically
+5. **Case sensitivity**: Validated as-is (must be lowercase)
+
+### 2.3 Type Transformation Flow
+
+The handlers parameter goes through several transformations:
+
+```
+CLI Flag → String → Array → String → Array (in config-wizard)
+```
+
+**Detailed Flow**:
+
+1. **CLI Input** (User):
+   ```bash
+   /fractary-file:init --handlers local,s3,r2
+   ```
+
+2. **Parsed as String** (init command, Step 2.1):
+   ```bash
+   HANDLERS="local,s3,r2"
+   ```
+
+3. **Converted to Array for Validation** (init command, Step 2.2):
+   ```bash
+   IFS=',' read -ra HANDLER_ARRAY <<< "$HANDLERS"
+   # HANDLER_ARRAY=("local" "s3" "r2")
+   ```
+
+4. **Validated and De-duplicated** (init command, Step 2.2):
+   ```bash
+   UNIQUE_HANDLERS=($(echo "${HANDLER_ARRAY[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+   ```
+
+5. **Converted Back to String** (init command, Step 2.2):
+   ```bash
+   HANDLERS=$(IFS=,; echo "${UNIQUE_HANDLERS[*]}")
+   # HANDLERS="local,r2,s3" (sorted, de-duped)
+   ```
+
+6. **Passed to Skill as String** (init command, Step 3):
+   ```json
+   {
+     "skill": "config-wizard",
+     "parameters": {
+       "handlers": "local,r2,s3"
+     }
+   }
+   ```
+
+7. **Converted to Array in Skill** (config-wizard, Phase 2.1):
+   ```bash
+   IFS=',' read -ra HANDLER_LIST <<< "$HANDLERS"
+   # HANDLER_LIST=("local" "r2" "s3")
+   ```
+
+8. **Iterated Over** (config-wizard, Phase 3.0.1):
+   ```bash
+   for HANDLER in "${HANDLER_LIST[@]}"; do
+       # Configure each handler
+   done
+   ```
+
+**Why String → Array → String → Array?**
+- CLI flags are strings
+- Validation requires array operations (dedup, check membership)
+- Agent invocation uses JSON (strings)
+- Skill iteration requires array looping
 
 ## Step 3: Invoke Config Wizard Skill
 

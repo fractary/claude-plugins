@@ -129,10 +129,52 @@ Show confirmation:
 
 **Loop through each handler** in `HANDLER_LIST` and collect configuration.
 
+### 3.0 Initialize Configuration Storage
+
 Initialize storage for all handler configs:
 ```bash
 declare -A HANDLER_CONFIGS
+HANDLER_CONFIGS_JSON="{}"
 ```
+
+### 3.0.1 Loop Structure
+
+For each handler in the handler list, collect configuration:
+```bash
+for HANDLER in "${HANDLER_LIST[@]}"; do
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Configuring: $HANDLER"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Execute handler-specific configuration section (3.1-3.5 below)
+    case "$HANDLER" in
+        "local")
+            # Execute section 3.1
+            ;;
+        "r2")
+            # Execute section 3.2
+            ;;
+        "s3")
+            # Execute section 3.3
+            ;;
+        "gcs")
+            # Execute section 3.4
+            ;;
+        "gdrive")
+            # Execute section 3.5
+            ;;
+    esac
+
+    # Store handler config in JSON object
+    HANDLER_CONFIGS_JSON=$(echo "$HANDLER_CONFIGS_JSON" | jq \
+        --arg handler "$HANDLER" \
+        --argjson config "$HANDLER_CONFIG" \
+        '.[$handler] = $config')
+done
+```
+
+**Important**: Each handler configuration section (3.1-3.5) should set the `HANDLER_CONFIG` variable to a JSON object with that handler's configuration.
 
 For each handler in the list, execute the corresponding configuration section below:
 
@@ -166,6 +208,18 @@ Directory permissions (octal format):
   "create_directories": true,
   "permissions": "0755"
 }
+```
+
+**Set HANDLER_CONFIG variable:**
+```bash
+HANDLER_CONFIG=$(cat <<EOF
+{
+  "base_path": "$BASE_PATH",
+  "create_directories": $CREATE_DIRECTORIES,
+  "permissions": "$PERMISSIONS"
+}
+EOF
+)
 ```
 
 ### 3.2 R2 Handler Configuration
@@ -493,12 +547,41 @@ Show all warnings and ask for confirmation if any exist.
 
 ## Phase 6: Connection Test
 
-If `test_connection` is true, test each configured handler:
+If `test_connection` is true, test each configured handler.
 
-Display:
+### 6.0 Initialize Test Tracking
+
+Track test results for all handlers:
+```bash
+declare -A TEST_RESULTS
+TESTS_PASSED=0
+TESTS_FAILED=0
+FAILED_HANDLERS=()
 ```
-🔍 Testing connection to {handler}...
-───────────────────────────────────────
+
+### 6.0.1 Test Loop
+
+For each configured handler, execute connection test:
+```bash
+for HANDLER in "${HANDLER_LIST[@]}"; do
+    echo ""
+    echo "🔍 Testing connection to $HANDLER..."
+    echo "───────────────────────────────────────"
+
+    # Execute handler-specific test (6.1 or 6.2)
+    # Store result in TEST_RESULTS[$HANDLER]
+
+    if [ "$TEST_RESULT" = "success" ]; then
+        TEST_RESULTS[$HANDLER]="passed"
+        ((TESTS_PASSED++))
+        echo "✅ $HANDLER: Connection test passed"
+    else
+        TEST_RESULTS[$HANDLER]="failed"
+        ((TESTS_FAILED++))
+        FAILED_HANDLERS+=("$HANDLER")
+        echo "❌ $HANDLER: Connection test failed - $ERROR_MESSAGE"
+    fi
+done
 ```
 
 Execute test based on handler:
@@ -571,6 +654,92 @@ If test succeeds:
 ✅ Connection test passed!
 ───────────────────────────────────────
 ```
+
+### 6.5 Handle Partial Test Results (Multi-Handler)
+
+After all tests complete, evaluate overall status:
+
+```bash
+TOTAL_HANDLERS=${#HANDLER_LIST[@]}
+
+if [ $TESTS_PASSED -eq $TOTAL_HANDLERS ]; then
+    # All tests passed
+    TEST_STATUS="passed"
+    echo ""
+    echo "✅ All connection tests passed! ($TESTS_PASSED/$TOTAL_HANDLERS)"
+
+elif [ $TESTS_FAILED -eq $TOTAL_HANDLERS ]; then
+    # All tests failed
+    TEST_STATUS="failed"
+    echo ""
+    echo "❌ All connection tests failed! ($TESTS_FAILED/$TOTAL_HANDLERS)"
+    echo ""
+    echo "Failed handlers: ${FAILED_HANDLERS[@]}"
+
+    # In interactive mode, ask user what to do
+    if [ "$INTERACTIVE" = "true" ]; then
+        echo ""
+        echo "Options:"
+        echo "  1. Review and fix configurations"
+        echo "  2. Save anyway (handlers can be tested later)"
+        echo "  3. Cancel setup"
+        read -p "Enter selection [1-3]: " CHOICE
+
+        case "$CHOICE" in
+            1) return_to_phase_3 ;;
+            2) proceed_to_save ;;
+            3) exit 0 ;;
+        esac
+    else
+        # Non-interactive: fail if all tests failed
+        exit 1
+    fi
+
+else
+    # Some passed, some failed (PARTIAL)
+    TEST_STATUS="partial"
+    echo ""
+    echo "⚠️  Partial success: $TESTS_PASSED/$TOTAL_HANDLERS handlers passed"
+    echo ""
+    echo "Passed: ${!TEST_RESULTS[@]}"
+    echo "Failed: ${FAILED_HANDLERS[@]}"
+    echo ""
+
+    # In interactive mode, ask user what to do
+    if [ "$INTERACTIVE" = "true" ]; then
+        echo "Options:"
+        echo "  1. Review and fix failed configurations"
+        echo "  2. Save all configurations (failed handlers can be fixed later)"
+        echo "  3. Save only working handlers (remove failed handlers)"
+        echo "  4. Cancel setup"
+        read -p "Enter selection [1-4]: " CHOICE
+
+        case "$CHOICE" in
+            1) return_to_phase_3_for_failed ;;
+            2) proceed_to_save_all ;;
+            3) remove_failed_and_save ;;
+            4) exit 0 ;;
+        esac
+    else
+        # Non-interactive: save all, user can test/fix later
+        echo "Non-interactive mode: Saving all configurations."
+        echo "Test failed handlers manually with /fractary-file:test-connection"
+    fi
+fi
+```
+
+**Test Status Values**:
+- `"passed"`: All handlers tested successfully
+- `"partial"`: Some handlers passed, some failed
+- `"failed"`: All handlers failed
+- `false`: Connection testing was disabled (`--no-test`)
+
+**Partial Status Behavior**:
+When `TEST_STATUS="partial"`:
+1. **Interactive mode**: User chooses to fix, save all, or save only working handlers
+2. **Non-interactive mode**: Saves all configurations with warning (user can test later)
+3. **Completion message**: Shows which handlers passed/failed
+4. **Return value**: Includes `tested: "partial"` and lists failed handlers
 
 ## Phase 7: Save Configuration
 
@@ -715,7 +884,35 @@ Make sure these are set in your environment before using the plugin.
   "configured_handlers": ["handler1", "handler2", ...],
   "active_handler": "handler_name",
   "tested": true|false|"partial",
+  "test_results": {
+    "handler1": "passed",
+    "handler2": "failed"
+  },
+  "failed_handlers": ["handler2"],
   "env_vars_required": ["VAR1", "VAR2", ...]
+}
+```
+
+**Tested Field Values**:
+- `true`: All handlers passed connection tests
+- `false`: Connection testing was disabled (`--no-test`)
+- `"partial"`: Some handlers passed, some failed (see `test_results` and `failed_handlers`)
+
+**Partial Success Example**:
+```json
+{
+  "success": true,
+  "config_path": ".fractary/plugins/file/config.json",
+  "configured_handlers": ["local", "s3", "r2"],
+  "active_handler": "local",
+  "tested": "partial",
+  "test_results": {
+    "local": "passed",
+    "s3": "failed",
+    "r2": "passed"
+  },
+  "failed_handlers": ["s3"],
+  "env_vars_required": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
 }
 ```
 
