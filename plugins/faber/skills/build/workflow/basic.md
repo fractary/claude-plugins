@@ -45,16 +45,92 @@ Using Claude's capabilities, implement the solution according to the specificati
 - Include inline documentation
 - Ensure code is testable
 
-### 4. Commit Changes
+### 4. Capture Build Logs (Optional)
+
+**If configured**, capture build and compilation logs:
+
+```bash
+CAPTURE_BUILD_LOGS=$(echo "$CONFIG_JSON" | jq -r '.workflow.build.capture_build_logs // true')
+CAPTURE_TEST_LOGS=$(echo "$CONFIG_JSON" | jq -r '.workflow.build.capture_test_logs // true')
+LOG_LEVEL=$(echo "$CONFIG_JSON" | jq -r '.workflow.build.log_level // "info"')
+```
+
+#### Capture Build Output
+
+If build commands were run (e.g., `npm run build`, `cargo build`, `make`):
+
+```markdown
+Use the @agent-fractary-logs:log-manager agent with the following request:
+{
+  "operation": "capture-build",
+  "parameters": {
+    "issue_number": "{source_id}",
+    "log_content": "{build_output}",
+    "log_level": "{log_level}",
+    "build_type": "compilation"
+  }
+}
+```
+
+This saves build output to `/logs/builds/{issue}-build.log`.
+
+#### Capture Test Output
+
+If tests were run during build (e.g., unit tests):
+
+```markdown
+Use the @agent-fractary-logs:log-manager agent with the following request:
+{
+  "operation": "capture-build",
+  "parameters": {
+    "issue_number": "{source_id}",
+    "log_content": "{test_output}",
+    "log_level": "{log_level}",
+    "build_type": "test"
+  }
+}
+```
+
+This saves test output to `/logs/builds/{issue}-test.log`.
+
+#### Capture Debug Logs
+
+If debugging was needed:
+
+```markdown
+Use the @agent-fractary-logs:log-manager agent with the following request:
+{
+  "operation": "capture-debug",
+  "parameters": {
+    "issue_number": "{source_id}",
+    "log_content": "{debug_output}",
+    "context": "Build phase debugging"
+  }
+}
+```
+
+This saves debug output to `/logs/debug/{issue}-debug.log`.
+
+**Note**: Log capture is asynchronous and non-blocking. Build continues even if log capture fails.
+
+### 5. Commit Changes
 
 Use repo-manager to commit implementation:
+
+```bash
+# Sanitize work item title for commit message (prevent injection)
+SAFE_TITLE=$(echo "$WORK_ITEM_TITLE" | tr -d '\n\r' | cut -c1-100 | sed 's/[`$"\\]/\\&/g')
+COMMIT_MESSAGE="${WORK_TYPE}: ${SAFE_TITLE}"
+```
+
+**Security Note**: Sanitize user inputs before using in commit messages to prevent injection attacks.
 
 ```markdown
 Use the @agent-fractary-repo:repo-manager agent with the following request:
 {
   "operation": "create-commit",
   "parameters": {
-    "message": "{work_type}: {work_item_title}",
+    "message": "{COMMIT_MESSAGE}",
     "type": "{work_type_prefix}",
     "work_id": "{work_id}",
     "files": ["{changed_files}"]
@@ -64,7 +140,7 @@ Use the @agent-fractary-repo:repo-manager agent with the following request:
 
 Store commit information for session update.
 
-### 5. Update Session
+### 6. Update Session
 ```bash
 BUILD_DATA=$(cat <<EOF
 {
@@ -78,7 +154,7 @@ EOF
 "$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "completed" "$BUILD_DATA"
 ```
 
-### 6. Post Build Complete
+### 7. Post Build Complete
 ```bash
 "$CORE_SKILL/status-card-post.sh" "$WORK_ID" "$SOURCE_ID" "build" "✅ **Build Phase Complete**
 
@@ -88,7 +164,7 @@ EOF
 Implementation complete. Ready for evaluation..." '[]'
 ```
 
-### 7. Return Results
+### 8. Return Results
 ```bash
 cat <<EOF
 {

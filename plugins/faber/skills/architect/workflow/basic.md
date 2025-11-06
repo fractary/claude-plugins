@@ -27,7 +27,47 @@ Generating implementation specification from requirements..." '[]'
 
 ### Step 2: Generate Specification Document
 
-Create a detailed technical specification based on the work item and work type.
+**If configured**, use fractary-spec to generate the specification:
+
+```bash
+GENERATE_SPEC=$(echo "$CONFIG_JSON" | jq -r '.workflow.architect.generate_spec // true')
+SPEC_TEMPLATE=$(echo "$CONFIG_JSON" | jq -r '.workflow.architect.spec_template // "auto"')
+```
+
+#### Option A: Using fractary-spec (Recommended)
+
+If `generate_spec` is enabled, use the spec-manager agent:
+
+```markdown
+Use the @agent-fractary-spec:spec-manager agent with the following request:
+{
+  "operation": "generate",
+  "parameters": {
+    "issue_number": "{source_id}",
+    "template": "{spec_template}",
+    "link_to_issue": true,
+    "work_type": "{work_type}",
+    "work_domain": "{work_domain}"
+  }
+}
+```
+
+The spec-manager will:
+- Auto-detect template based on work type (if template = "auto")
+- Generate comprehensive specification
+- Save to configured location (e.g., `/specs/spec-{issue_number}-{slug}.md`)
+- Comment on issue with spec location
+- Return spec file path
+
+**Store Spec Path**:
+```bash
+SPEC_FILE=$(echo "$SPEC_RESULT" | jq -r '.spec_file')
+echo "✅ Specification generated: $SPEC_FILE"
+```
+
+#### Option B: Manual Specification (Fallback)
+
+If `generate_spec` is disabled, create a manual specification.
 
 **Specification Template**:
 
@@ -157,20 +197,102 @@ EOF
 echo "✅ Specification generated: $SPEC_FILE"
 ```
 
-### Step 3: Commit Specification
+### Step 3: Generate ADR (Optional)
 
-Use repo-manager to commit the specification:
+**If configured and work is architectural**, generate an Architecture Decision Record:
+
+```bash
+GENERATE_ADR=$(echo "$CONFIG_JSON" | jq -r '.workflow.architect.generate_adr // false')
+ADR_THRESHOLD=$(echo "$CONFIG_JSON" | jq -r '.workflow.architect.adr_threshold // "architectural"')
+```
+
+**Decision Logic**:
+```
+if GENERATE_ADR == true AND work_is_architectural:
+    Generate ADR
+```
+
+**What qualifies as "architectural"?**
+- Major technology changes (new framework, database, etc.)
+- Significant architecture changes (microservices, event-driven, etc.)
+- Security model changes
+- Infrastructure decisions
+- Integration patterns
+
+```markdown
+Use the @agent-fractary-docs:docs-manager agent with the following request:
+{
+  "operation": "generate-adr",
+  "parameters": {
+    "title": "{work_item_title}",
+    "context": "{work_context}",
+    "decision": "{architectural_decision}",
+    "consequences": "{expected_consequences}"
+  }
+}
+```
+
+The docs-manager will:
+- Generate ADR using template
+- Save to `/docs/architecture/adrs/`
+- Number ADR sequentially
+- Return ADR file path
+
+**Store ADR Path**:
+```bash
+if [ "$GENERATE_ADR" = "true" ]; then
+    ADR_FILE=$(echo "$ADR_RESULT" | jq -r '.adr_file')
+    echo "✅ ADR generated: $ADR_FILE"
+fi
+```
+
+### Step 4: Commit Specification and ADR
+
+Use repo-manager to commit the specification (and ADR if generated):
+
+```bash
+# Validate spec file was created
+if [ -z "$SPEC_FILE" ] || [ ! -f "$SPEC_FILE" ]; then
+    echo "❌ Error: Specification file not created"
+    exit 1
+fi
+
+# Build file list
+FILES_TO_COMMIT="[\"$SPEC_FILE\""
+if [ -n "$ADR_FILE" ]; then
+    # Validate ADR file exists if specified
+    if [ ! -f "$ADR_FILE" ]; then
+        echo "⚠️  Warning: ADR file specified but not found: $ADR_FILE"
+    else
+        FILES_TO_COMMIT="${FILES_TO_COMMIT}, \"$ADR_FILE\""
+    fi
+fi
+FILES_TO_COMMIT="${FILES_TO_COMMIT}]"
+
+# Sanitize work item title for commit message (prevent injection)
+# Remove newlines, limit length, escape special characters
+SAFE_TITLE=$(echo "$WORK_ITEM_TITLE" | tr -d '\n\r' | cut -c1-100 | sed 's/[`$"\\]/\\&/g')
+
+# Determine commit message
+if [ -n "$ADR_FILE" ] && [ -f "$ADR_FILE" ]; then
+    COMMIT_MSG="docs(spec): Add specification and ADR for ${SAFE_TITLE}"
+else
+    COMMIT_MSG="docs(spec): Add specification for ${SAFE_TITLE}"
+fi
+```
+
+**Security Note**: Always sanitize user-controlled inputs (work item titles, descriptions) before using in commit messages or shell commands to prevent injection attacks.
 
 ```markdown
 Use the @agent-fractary-repo:repo-manager agent with the following request:
 {
   "operation": "create-commit",
   "parameters": {
-    "message": "docs(spec): Add specification for {work_item_title}",
+    "message": "${COMMIT_MSG}",
     "type": "docs",
     "work_id": "{work_id}",
     "scope": "spec",
-    "files": ["{spec_file}"]
+    "files": ${FILES_TO_COMMIT}
   }
 }
 ```
@@ -178,10 +300,14 @@ Use the @agent-fractary-repo:repo-manager agent with the following request:
 **Store Commit Information**:
 ```bash
 COMMIT_SHA=$(echo "$COMMIT_RESULT" | jq -r '.commit_sha')
-echo "✅ Specification committed: $COMMIT_SHA"
+if [ -n "$ADR_FILE" ]; then
+    echo "✅ Specification and ADR committed: $COMMIT_SHA"
+else
+    echo "✅ Specification committed: $COMMIT_SHA"
+fi
 ```
 
-### Step 4: Push Specification (Optional)
+### Step 5: Push Specification (Optional)
 
 If configured, push the specification to remote:
 
@@ -201,7 +327,7 @@ else
 fi
 ```
 
-### Step 5: Extract Key Decisions
+### Step 6: Extract Key Decisions
 
 Parse the specification to extract key decisions for context:
 
@@ -213,7 +339,7 @@ echo "Key Decisions:"
 echo "$KEY_DECISIONS" | jq -r '.[]'
 ```
 
-### Step 6: Update Session State
+### Step 7: Update Session State
 
 Update the session with Architect results:
 
@@ -233,7 +359,7 @@ EOF
 "$CORE_SKILL/session-update.sh" "$WORK_ID" "architect" "completed" "$ARCHITECT_DATA"
 ```
 
-### Step 7: Post Architect Complete Notification
+### Step 8: Post Architect Complete Notification
 
 Post completion status to work tracking system:
 

@@ -74,9 +74,83 @@ if [ "$LINT_PASSED" = false ]; then
 fi
 ```
 
-### 4. Verify Specification Compliance
+### 4. Capture Test Logs (Optional)
 
-Check that implementation matches spec:
+**If configured**, capture test execution logs:
+
+```bash
+CAPTURE_TEST_LOGS=$(echo "$CONFIG_JSON" | jq -r '.workflow.evaluate.capture_test_logs // true')
+
+if [ "$CAPTURE_TEST_LOGS" = "true" ] && [ -n "$TEST_OUTPUT" ]; then
+    echo "📝 Capturing test logs..."
+
+    Use the @agent-fractary-logs:log-manager agent with the following request:
+    {
+      "operation": "capture-test",
+      "parameters": {
+        "issue_number": "{source_id}",
+        "log_content": "{test_output}",
+        "test_status": "$([ "$TESTS_PASSED" = true ] && echo "passed" || echo "failed")"
+      }
+    }
+
+    echo "✅ Test logs captured"
+fi
+```
+
+### 5. Verify Specification Compliance
+
+**If configured**, use fractary-spec to validate against specification:
+
+```bash
+VALIDATE_SPEC=$(echo "$CONFIG_JSON" | jq -r '.workflow.evaluate.validate_spec // true')
+```
+
+#### Option A: Using fractary-spec (Recommended)
+
+If `validate_spec` is enabled:
+
+```markdown
+Use the @agent-fractary-spec:spec-manager agent with the following request:
+{
+  "operation": "validate",
+  "parameters": {
+    "issue_number": "{source_id}"
+  }
+}
+```
+
+The spec-manager will:
+- Check if all acceptance criteria are met
+- Verify implementation matches specification
+- Return validation results
+
+**Process Validation Results**:
+```bash
+SPEC_VALIDATED=$(echo "$VALIDATION_RESULT" | jq -r '.validated')
+CRITERIA_MET=$(echo "$VALIDATION_RESULT" | jq -r '.criteria_met')
+CRITERIA_TOTAL=$(echo "$VALIDATION_RESULT" | jq -r '.criteria_total')
+GAPS=$(echo "$VALIDATION_RESULT" | jq -r '.gaps[]' 2>/dev/null || true)
+
+echo "📋 Spec Validation:"
+echo "  Criteria met: $CRITERIA_MET/$CRITERIA_TOTAL"
+
+if [ "$SPEC_VALIDATED" != "true" ]; then
+    echo "  ⚠️  Validation incomplete:"
+    echo "$GAPS"
+
+    REQUIRE_ALL=$(echo "$CONFIG_JSON" | jq -r '.workflow.evaluate.require_all_criteria_met // false')
+    if [ "$REQUIRE_ALL" = "true" ]; then
+        FAILURE_REASONS+=("Spec validation: Not all criteria met ($CRITERIA_MET/$CRITERIA_TOTAL)")
+    else
+        echo "  ⚠️  Warning only (require_all_criteria_met = false)"
+    fi
+fi
+```
+
+#### Option B: Manual Verification (Fallback)
+
+If `validate_spec` is disabled:
 
 ```bash
 # Load spec
@@ -92,7 +166,36 @@ echo ""
 echo "⚠️  Manual verification recommended for spec compliance"
 ```
 
-### 5. Make GO/NO-GO Decision
+### 6. Generate Test Report (Optional)
+
+**If configured**, generate test report:
+
+```bash
+GENERATE_TEST_REPORT=$(echo "$CONFIG_JSON" | jq -r '.workflow.evaluate.generate_test_report // true')
+
+if [ "$GENERATE_TEST_REPORT" = "true" ]; then
+    echo "📊 Generating test report..."
+
+    Use the @agent-fractary-docs:docs-manager agent with the following request:
+    {
+      "operation": "generate-test-report",
+      "parameters": {
+        "issue_number": "{source_id}",
+        "test_results": {
+          "passed": ${TEST_PASSED},
+          "failed": ${TEST_FAILED},
+          "status": "$([ "$TESTS_PASSED" = true ] && echo "passed" || echo "failed")"
+        },
+        "coverage": "{coverage_info}",
+        "performance": "{performance_metrics}"
+      }
+    }
+
+    echo "✅ Test report generated"
+fi
+```
+
+### 7. Make GO/NO-GO Decision
 
 ```bash
 DECISION="go"
@@ -113,7 +216,7 @@ if [ "$RETRY_COUNT" -ge 2 ] && [ "$DECISION" = "no-go" ]; then
 fi
 ```
 
-### 6. Update Session
+### 8. Update Session
 
 ```bash
 EVALUATE_DATA=$(cat <<EOF
@@ -139,7 +242,7 @@ else
 fi
 ```
 
-### 7. Post Evaluate Result
+### 9. Post Evaluate Result
 
 ```bash
 if [ "$DECISION" = "go" ]; then
@@ -160,7 +263,7 @@ Will retry Build phase to address issues." '[]'
 fi
 ```
 
-### 8. Return Results
+### 10. Return Results
 
 ```bash
 cat <<EOF

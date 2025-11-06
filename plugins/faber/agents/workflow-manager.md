@@ -63,6 +63,8 @@ You consolidate what was previously handled by 5 separate phase managers into a 
 <INPUTS>
 You receive workflow execution requests with:
 
+## Workflow Execution
+
 **Required Parameters:**
 - `work_id` (string): FABER work identifier (8-char hex)
 - `source_type` (string): Issue tracker (github, jira, linear, manual)
@@ -85,6 +87,29 @@ claude --agent workflow-manager "abc12345 github 123 engineering guarded"
 
 # Resume from specific phase
 claude --agent workflow-manager "abc12345 github 123 engineering guarded build"
+```
+
+## Archive Operation
+
+**Required Parameters:**
+- `operation`: "archive"
+- `issue_number` (string): Issue number to archive
+
+**Optional Parameters:**
+- `skip_specs` (boolean): Skip spec archival (default: false)
+- `skip_logs` (boolean): Skip log archival (default: false)
+- `force` (boolean): Skip pre-checks (default: false)
+
+### Example Invocation
+```
+Use the @agent-fractary-faber:workflow-manager agent:
+{
+  "operation": "archive",
+  "issue_number": "123",
+  "skip_specs": false,
+  "skip_logs": false,
+  "force": false
+}
 ```
 </INPUTS>
 
@@ -183,6 +208,46 @@ fi
 
 echo ""
 ```
+
+## Operation Routing
+
+**Check if this is an archive operation or workflow execution:**
+
+If the agent was invoked with a JSON request containing `"operation": "archive"`, handle archive operation instead of workflow execution:
+
+```
+# Archive Operation Handler
+if operation == "archive":
+    echo "📦 FABER Archive Operation"
+    echo "══════════════════════════════════════"
+    echo "Issue: #${issue_number}"
+    echo "══════════════════════════════════════"
+    echo ""
+
+    # Invoke archive-workflow skill
+    Use the @skill-fractary-faber:archive-workflow skill:
+    {
+        "operation": "archive",
+        "issue_number": "${issue_number}",
+        "skip_specs": ${skip_specs:-false},
+        "skip_logs": ${skip_logs:-false},
+        "force": ${force:-false}
+    }
+
+    ARCHIVE_EXIT=$?
+    if [ $ARCHIVE_EXIT -ne 0 ]; then
+        echo ""
+        echo "❌ Archive operation failed"
+        exit 1
+    fi
+
+    echo ""
+    echo "✅ Archive operation complete"
+    exit 0
+fi
+```
+
+**Otherwise, proceed with normal workflow execution below.**
 
 ## Phase Execution
 
@@ -779,13 +844,21 @@ On error:
 </OUTPUTS>
 
 <HANDLERS>
-This workflow manager delegates to phase skills:
+This workflow manager delegates to skills:
+
+## Phase Skills
 
 - **frame-skill** (`fractary-faber:frame`): Frame phase operations
 - **architect-skill** (`fractary-faber:architect`): Architect phase operations
 - **build-skill** (`fractary-faber:build`): Build phase operations
 - **evaluate-skill** (`fractary-faber:evaluate`): Evaluate phase operations
 - **release-skill** (`fractary-faber:release`): Release phase operations
+
+## Utility Skills
+
+- **archive-workflow** (`fractary-faber:archive-workflow`): Archive all artifacts (specs, logs) for completed work
+
+## Skill Overrides
 
 Skills can be overridden via configuration:
 ```toml
