@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:init
 description: Repository Plugin Setup Wizard
-argument-hint: [--platform <name>] [--global|--project] [--token <value>] [--yes] [--force]
+argument-hint: [--platform <name>] [--token <value>] [--yes] [--force]
 ---
 
 # /repo:init - Repository Plugin Setup Wizard
@@ -21,11 +21,8 @@ The `/repo:init` command provides an interactive setup wizard that guides you th
 # Setup with specific platform
 /repo:init --platform github
 
-# Setup with global scope (user-wide config)
-/repo:init --global
-
-# Setup with project scope (current project only)
-/repo:init --project
+# Setup with project scope (default)
+/repo:init
 
 # Non-interactive mode with defaults
 /repo:init --platform github --token $GITHUB_TOKEN --yes
@@ -34,8 +31,6 @@ The `/repo:init` command provides an interactive setup wizard that guides you th
 ## Options
 
 - `--platform <name>` - Specify platform: `github`, `gitlab`, or `bitbucket`
-- `--global` - Create user-global config at `~/.fractary/repo/config.json`
-- `--project` - Create project-specific config at `.fractary/plugins/repo/config.json`
 - `--token <value>` - Provide GitHub/GitLab/Bitbucket token directly
 - `--yes` or `-y` - Skip confirmations (use detected/provided values)
 - `--force` - Overwrite existing configuration
@@ -56,7 +51,7 @@ The `/repo:init` command provides an interactive setup wizard that guides you th
 - Tests git connectivity
 
 ### 3. **Configuration Creation**
-- Prompts for config scope (project vs global)
+- Creates project-specific config at `.fractary/plugins/repo/config.json`
 - Creates config directory structure
 - Writes configuration file
 - Sets appropriate permissions
@@ -123,25 +118,7 @@ Validating token...
 ✓ User: username
 ```
 
-### Step 5: Configuration Scope
-
-```
-Where should the configuration be stored?
-
-  1. Project-specific (.fractary/plugins/repo/config.json)
-     - Only for this repository
-     - Committed to version control (if desired)
-     - Overrides user-global config
-
-  2. User-global (~/.fractary/repo/config.json)
-     - Used for all repositories
-     - Not committed to version control
-     - Convenient for personal projects
-
-Choice [1-2]:
-```
-
-### Step 6: Configuration Options
+### Step 5: Configuration Options
 
 ```
 Additional configuration:
@@ -161,7 +138,7 @@ Use defaults? (y/n):
 - `manual`: Prompt for action when out of sync
 - `fail`: Abort push if out of sync
 
-### Step 7: Summary & Completion
+### Step 6: Summary & Completion
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -170,7 +147,7 @@ Use defaults? (y/n):
 
 Platform: GitHub
 Auth: SSH + Token
-Config: ~/.fractary/repo/config.json
+Config: .fractary/plugins/repo/config.json
 
 ✓ Configuration file created
 ✓ GitHub token validated
@@ -211,27 +188,7 @@ $ /repo:init --platform github --yes
 # Creates config automatically
 ```
 
-### Example 3: Project-Specific Configuration
-
-```bash
-$ /repo:init --project
-
-# Creates config in .fractary/plugins/repo/config.json
-# Specific to current project
-# Can be committed to repo
-```
-
-### Example 4: Global Configuration
-
-```bash
-$ /repo:init --global --platform github
-
-# Creates config in ~/.fractary/repo/config.json
-# Used for all projects
-# Not in version control
-```
-
-### Example 5: Force Reconfigure
+### Example 3: Force Reconfigure
 
 ```bash
 $ /repo:init --force
@@ -384,7 +341,7 @@ Or switch to HTTPS:
 
 ```
 ⚠ Configuration already exists at:
-  ~/.fractary/repo/config.json
+  .fractary/plugins/repo/config.json
 
 Options:
   1. Update existing config (merge changes)
@@ -408,13 +365,12 @@ You detect platform, authentication, and create appropriate configuration files.
 3. **NEVER log or display tokens** in plain text (mask with ***)
 4. **ALWAYS test connectivity** before confirming success
 5. **NEVER assume platform** if detection is ambiguous - always prompt
+6. **CONFIGURATION SCOPE**: Only create project-local config at `.fractary/plugins/repo/config.json` (no global scope)
 </CRITICAL_RULES>
 
 <INPUTS>
 **Arguments**:
 - `--platform <name>` - Platform override
-- `--global` - Create global config
-- `--project` - Create project config
 - `--token <value>` - Token value
 - `--yes` - Auto-confirm
 - `--force` - Overwrite existing
@@ -438,8 +394,7 @@ You detect platform, authentication, and create appropriate configuration files.
    - Detect auth method (SSH vs HTTPS)
 
 3. **Check existing configuration**
-   - Look for project-specific config
-   - Look for global config
+   - Look for project-specific config at `.fractary/plugins/repo/config.json`
    - If exists, prompt for action (unless --force)
 
 4. **Platform selection** (if not detected/specified)
@@ -452,31 +407,27 @@ You detect platform, authentication, and create appropriate configuration files.
    - Validate token with platform API
    - Test SSH if SSH method detected
 
-6. **Configuration scope**
-   - Prompt for project vs global (if not specified)
-   - Validate chosen directory
-
-7. **Additional options** (interactive mode)
+6. **Additional options** (interactive mode)
    - Default branch
    - Protected branches
    - Merge strategy (for PR merging)
    - Push sync strategy (for handling out-of-sync branches)
    - Or accept defaults
 
-8. **Create configuration**
-   - Create directory if needed
-   - Write config file
+7. **Create configuration**
+   - Create `.fractary/plugins/repo/` directory if needed
+   - Write config file to `.fractary/plugins/repo/config.json`
    - Set appropriate permissions
 
-9. **Validate setup**
+8. **Validate setup**
    - Test API authentication
    - Test git remote access
    - Check CLI availability
 
-10. **Display summary**
-    - Show configuration location
-    - Show detected settings
-    - Provide next steps
+9. **Display summary**
+   - Show configuration location (`.fractary/plugins/repo/config.json`)
+   - Show detected settings
+   - Provide next steps
 </WORKFLOW>
 
 <OUTPUTS>
@@ -508,7 +459,6 @@ Invoke the `repo-manager` agent with operation `initialize-configuration`:
   "operation": "initialize-configuration",
   "parameters": {
     "platform": "github|gitlab|bitbucket",
-    "scope": "project|global",
     "token": "masked-token-value",
     "interactive": true|false,
     "force": true|false,
@@ -566,13 +516,13 @@ If the wizard fails, try manual configuration:
 
 ```bash
 # Create config directory
-mkdir -p ~/.fractary/repo
+mkdir -p .fractary/plugins/repo
 
 # Copy example config
-cp plugins/repo/config/repo.example.json ~/.fractary/repo/config.json
+cp plugins/repo/config/repo.example.json .fractary/plugins/repo/config.json
 
 # Edit manually
-nano ~/.fractary/repo/config.json
+nano .fractary/plugins/repo/config.json
 ```
 
 Then set your token:
