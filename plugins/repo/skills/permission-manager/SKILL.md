@@ -153,6 +153,7 @@ ALLOW_COMMANDS = [
   "gh repo clone",
   "gh auth status",
   "gh auth login",
+  "gh auth refresh",
   "gh api",
 
   // Safe utility commands
@@ -473,8 +474,8 @@ Will deny: dangerous operations
 Continue? yes
 
 ✅ Created .claude/settings.json
-   35 commands allowed
-   22 commands denied
+   56 commands allowed
+   39 commands denied
 ```
 
 **Example 2: Update Existing Settings**

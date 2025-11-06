@@ -54,7 +54,7 @@ The following commands are explicitly allowed (no prompts):
 - `gh pr create`, `view`, `list`, `comment`, `review`, `merge`, `close`, `status`
 - `gh issue create`, `view`, `list`, `comment`, `close`
 - `gh repo view`, `clone`
-- `gh auth status`, `login`
+- `gh auth status`, `login`, `refresh`
 - `gh api` (safe API calls)
 
 ### Safe Utilities
@@ -117,7 +117,7 @@ These permissions will:
   ✓ Allow safe git and GitHub operations
 
 ✅ Created .claude/settings.json
-   50 commands allowed
+   56 commands allowed
    25 commands denied
 ```
 

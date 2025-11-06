@@ -53,7 +53,7 @@ SETTINGS_FILE="$PROJECT_PATH/.claude/settings.json"
 BACKUP_FILE="$PROJECT_PATH/.claude/settings.json.backup"
 
 # Commands to allow (safe operations, most write operations)
-# Total: 55 commands
+# Total: 56 commands
 ALLOW_COMMANDS=(
     # Git read operations (10 commands)
     "git status"
@@ -91,7 +91,7 @@ ALLOW_COMMANDS=(
     "gh repo view"
     "gh auth status"
 
-    # GitHub CLI write operations (10 commands)
+    # GitHub CLI write operations (11 commands)
     "gh pr create"
     "gh pr comment"
     "gh pr review"
@@ -101,6 +101,7 @@ ALLOW_COMMANDS=(
     "gh issue close"
     "gh repo clone"
     "gh auth login"
+    "gh auth refresh"
     "gh api"
 
     # Safe utility commands (15 commands)
