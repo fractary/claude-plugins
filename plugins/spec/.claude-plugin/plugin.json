@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Manage ephemeral specifications tied to work items with lifecycle-based archival",
   "author": "Fractary",
-  "requires": [
-    "fractary-work",
-    "fractary-file"
-  ],
   "provides": {
     "agents": [
       "spec-manager"

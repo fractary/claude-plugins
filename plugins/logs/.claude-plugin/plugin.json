@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Operational log management with session capture, hybrid retention, archival, search, and analysis",
   "author": "Fractary",
-  "requires": ["fractary-file"],
   "provides": {
     "agents": ["log-manager"],
     "commands": [
