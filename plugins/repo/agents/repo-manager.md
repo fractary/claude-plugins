@@ -81,7 +81,8 @@ You receive structured operation requests from:
 }
 ```
 
-**Supported Operations:** (14 total)
+**Supported Operations:** (15 total)
+- initialize-configuration
 - generate-branch-name
 - create-branch
 - delete-branch
@@ -129,6 +130,13 @@ if operation not in SUPPORTED_OPERATIONS:
 **3. VALIDATE PARAMETERS:**
 
 Check required parameters are present based on operation:
+
+**Special handling for initialize-configuration:**
+- This is an interactive wizard operation
+- No strict parameter validation needed upfront
+- The config-wizard skill will handle interactive prompts
+
+For other operations:
 - Each operation has specific required parameters
 - Validate types and formats
 - Check for missing or invalid values
@@ -157,6 +165,7 @@ Use routing table to determine which skill to invoke:
 
 | Operation | Skill |
 |-----------|-------|
+| initialize-configuration | fractary-repo:config-wizard |
 | generate-branch-name | fractary-repo:branch-namer |
 | create-branch | fractary-repo:branch-manager |
 | delete-branch | fractary-repo:cleanup-manager |
@@ -211,6 +220,9 @@ Return structured response to caller:
 
 <ROUTING_TABLE>
 
+**Configuration Operations:**
+- `initialize-configuration` → fractary-repo:config-wizard
+
 **Branch Operations:**
 - `generate-branch-name` → fractary-repo:branch-namer
 - `create-branch` → fractary-repo:branch-manager
@@ -238,14 +250,22 @@ Return structured response to caller:
 **Permission Operations:**
 - `configure-permissions` → fractary-repo:permission-manager
 
-**Total Skills**: 8 specialized skills
-**Total Operations**: 14 operations
+**Total Skills**: 9 specialized skills
+**Total Operations**: 15 operations
 
 </ROUTING_TABLE>
 
 <PARAMETER_VALIDATION>
 
 **Required Parameters by Operation:**
+
+**initialize-configuration:**
+- platform (string, optional): github|gitlab|bitbucket (will be auto-detected if not provided)
+- scope (string, optional): project|global (will prompt user if not provided)
+- token (string, optional): API token (will prompt user if not provided)
+- interactive (boolean, optional): true|false (default: true)
+- force (boolean, optional): true|false (default: false)
+- options (object, optional): Additional configuration options
 
 **generate-branch-name:**
 - work_id (string)
@@ -402,6 +422,7 @@ Return structured response to caller:
 - Other plugins needing repository operations
 
 **Calls:**
+- `fractary-repo:config-wizard` skill - Plugin configuration setup
 - `fractary-repo:branch-namer` skill - Branch name generation
 - `fractary-repo:branch-manager` skill - Branch creation
 - `fractary-repo:commit-creator` skill - Commit creation
