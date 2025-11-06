@@ -366,13 +366,14 @@ Tokens are stored in rclone configuration:
 ### Token Security
 
 **Best Practices**:
-- ✅ Use environment variables for client ID/secret
-- ✅ Add `.fractary/` to `.gitignore`
-- ✅ Set restrictive permissions (0600) on config files
+- ✅ Use environment variables for client ID/secret (never hardcode in config)
+- ✅ Set restrictive permissions (0600) on config files containing secrets
 - ✅ Use `drive.file` scope (minimal access)
 - ✅ Regularly review authorized apps in Google Account settings
-- ❌ Never commit OAuth credentials to version control
+- ✅ Commit `.fractary/` configs to version control (they should only reference env vars)
+- ❌ Never commit OAuth credentials directly in config files
 - ❌ Never share refresh tokens
+- ❌ Never add `.fractary/` to `.gitignore` (configs need to be shared with team)
 
 ## OAuth Scopes
 

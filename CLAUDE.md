@@ -94,10 +94,14 @@ docs/
 
 ### Configuration Files
 
-Plugin configurations are stored in project directories (not committed to git):
+Plugin configurations are stored in project directories and **SHOULD be committed to version control**:
 
 - **FABER**: `.faber.config.toml` in project root
-- **DevOps**: `.fractary/plugins/devops/config/devops.json`
+- **Plugins**: `.fractary/plugins/{plugin}/config.json`
+
+All configurations use environment variables for secrets (never hardcoded), making them safe to commit.
+
+**Important**: See [Version Control Guide](docs/VERSION-CONTROL-GUIDE.md) for best practices.
 
 Use presets as starting points:
 ```bash
