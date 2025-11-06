@@ -101,7 +101,9 @@ else
     fi
 
     # Check 4: Code blocks without language tag
-    if [[ "$line" == '```' ]]; then
+    # BUG FIX: Match code blocks that are ONLY ``` without language identifier
+    # Don't flag blocks like ```bash or ```python
+    if [[ "$line" =~ ^[[:space:]]*\`\`\`[[:space:]]*$ ]]; then
       ISSUES=$(echo "$ISSUES" | jq \
         --arg line "$LINE_NUM" \
         '. += [{"line": ($line|tonumber), "rule": "CODE_LANG", "severity": "info", "message": "Code block missing language identifier"}]')

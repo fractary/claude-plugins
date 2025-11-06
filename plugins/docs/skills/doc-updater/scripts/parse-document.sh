@@ -30,6 +30,17 @@ if [[ -z "$FILE_PATH" ]]; then
   exit 1
 fi
 
+# Security: Validate file path to prevent path traversal
+validate_path() {
+  local file_path=$1
+  if [[ "$file_path" =~ \.\./.*\.\. ]] || [[ "$file_path" =~ ^/(etc|sys|proc|dev|bin|sbin|usr/bin|usr/sbin) ]]; then
+    echo "Error: Invalid file path (security violation): $file_path" >&2
+    exit 1
+  fi
+}
+
+validate_path "$FILE_PATH"
+
 # Check if file exists
 if [[ ! -f "$FILE_PATH" ]]; then
   echo "Error: File not found: $FILE_PATH" >&2

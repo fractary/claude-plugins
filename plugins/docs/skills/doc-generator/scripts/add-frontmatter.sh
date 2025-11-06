@@ -36,6 +36,31 @@ if [[ -z "$FILE_PATH" ]] || [[ -z "$FRONTMATTER_JSON" ]]; then
   exit 1
 fi
 
+# Security: Validate file path to prevent path traversal
+validate_path() {
+  local file_path=$1
+
+  # Resolve to absolute path
+  local abs_path=$(realpath -m "$file_path" 2>/dev/null || echo "$file_path")
+
+  # Must not contain suspicious path traversal patterns
+  if [[ "$file_path" =~ \.\./.*\.\. ]]; then
+    echo "Error: Invalid file path (path traversal detected): $file_path" >&2
+    exit 1
+  fi
+
+  # If absolute path, verify it's not accessing system directories
+  if [[ "$file_path" =~ ^/ ]]; then
+    if [[ "$abs_path" =~ ^/(etc|sys|proc|dev|bin|sbin|usr/bin|usr/sbin) ]]; then
+      echo "Error: Access to system directories not allowed: $file_path" >&2
+      exit 1
+    fi
+  fi
+}
+
+# Security: Validate path
+validate_path "$FILE_PATH"
+
 # Check if file exists
 if [[ ! -f "$FILE_PATH" ]]; then
   echo "Error: File not found: $FILE_PATH" >&2
@@ -68,11 +93,15 @@ trap "rm -f $TEMP_FILE" EXIT
 if head -n 1 "$FILE_PATH" | grep -q "^---$"; then
   echo "Warning: File already has front matter, merging..." >&2
 
-  # Extract existing front matter (between first two --- markers)
-  EXISTING_FM=$(sed -n '/^---$/,/^---$/p' "$FILE_PATH" | sed '1d;$d')
+  # SECURITY FIX: Only match first two --- markers, not horizontal rules in content
+  # Find line number of second --- marker (end of front matter)
+  SECOND_DELIM_LINE=$(grep -n "^---$" "$FILE_PATH" | head -n 2 | tail -n 1 | cut -d: -f1)
 
-  # Get content after front matter
-  CONTENT=$(sed '1,/^---$/d; /^---$/,$!d; /^---$/d' "$FILE_PATH")
+  # Extract existing front matter (between line 2 and second delimiter, exclusive)
+  EXISTING_FM=$(sed -n "2,$(($SECOND_DELIM_LINE - 1))p" "$FILE_PATH")
+
+  # Get content after front matter (everything after second --- marker)
+  CONTENT=$(tail -n +$(($SECOND_DELIM_LINE + 1)) "$FILE_PATH")
 
   # Merge front matter (new values take precedence)
   if [[ "$HAS_YQ" == "true" ]]; then

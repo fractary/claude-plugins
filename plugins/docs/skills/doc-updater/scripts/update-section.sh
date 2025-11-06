@@ -49,6 +49,43 @@ if [[ -z "$FILE_PATH" ]] || [[ -z "$SECTION_HEADING" ]] || [[ -z "$NEW_CONTENT" 
   exit 1
 fi
 
+# Security: Validate file path to prevent path traversal
+validate_path() {
+  local file_path=$1
+
+  # Resolve to absolute path
+  local abs_path=$(realpath -m "$file_path" 2>/dev/null || echo "$file_path")
+
+  # Must not contain suspicious path traversal patterns
+  if [[ "$file_path" =~ \.\./.*\.\. ]]; then
+    cat <<EOF
+{
+  "success": false,
+  "error": "Invalid file path (path traversal detected): $file_path",
+  "error_code": "SECURITY_VIOLATION"
+}
+EOF
+    exit 1
+  fi
+
+  # If absolute path, verify it's not accessing system directories
+  if [[ "$file_path" =~ ^/ ]]; then
+    if [[ "$abs_path" =~ ^/(etc|sys|proc|dev|bin|sbin|usr/bin|usr/sbin) ]]; then
+      cat <<EOF
+{
+  "success": false,
+  "error": "Access to system directories not allowed: $file_path",
+  "error_code": "SECURITY_VIOLATION"
+}
+EOF
+      exit 1
+    fi
+  fi
+}
+
+# Security: Validate path
+validate_path "$FILE_PATH"
+
 # Check if file exists
 if [[ ! -f "$FILE_PATH" ]]; then
   cat <<EOF

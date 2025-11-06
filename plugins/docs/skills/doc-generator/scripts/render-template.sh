@@ -34,12 +34,45 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Security: Validate file paths to prevent path traversal
+validate_path() {
+  local file_path=$1
+  local context=$2
+
+  # Resolve to absolute path
+  local abs_path=$(realpath -m "$file_path" 2>/dev/null || echo "$file_path")
+
+  # Get script directory and allowed roots
+  local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local plugin_root="$(cd "$script_dir/../../.." && pwd)"
+
+  # For templates, must be within plugin directory
+  if [[ "$context" == "template" ]]; then
+    if [[ ! "$abs_path" =~ ^"$plugin_root" ]]; then
+      echo "Error: Template path outside plugin directory: $file_path" >&2
+      exit 1
+    fi
+  fi
+
+  # For output, must not contain path traversal sequences
+  if [[ "$context" == "output" ]]; then
+    if [[ "$file_path" =~ \.\./.*\.\. ]] || [[ "$file_path" =~ ^/ && ! "$abs_path" =~ ^"$plugin_root" ]]; then
+      echo "Error: Invalid output path (path traversal detected): $file_path" >&2
+      exit 1
+    fi
+  fi
+}
+
 # Validate required arguments
 if [[ -z "$TEMPLATE_PATH" ]] || [[ -z "$DATA_JSON" ]] || [[ -z "$OUTPUT_PATH" ]]; then
   echo "Error: Missing required arguments" >&2
   echo "Usage: render-template.sh --template <path> --data <json> --output <path>" >&2
   exit 1
 fi
+
+# Security: Validate paths
+validate_path "$TEMPLATE_PATH" "template"
+validate_path "$OUTPUT_PATH" "output"
 
 # Check if template file exists
 if [[ ! -f "$TEMPLATE_PATH" ]]; then
