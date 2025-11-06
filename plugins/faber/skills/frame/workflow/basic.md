@@ -92,7 +92,41 @@ Fetching work item details and setting up environment..." '[]'
 
 This notifies stakeholders that the workflow has begun.
 
-### Step 4: Setup Domain Environment
+### Step 4: Start Session Capture (Optional)
+
+**If configured**, start session capture to log all subsequent conversation:
+
+```markdown
+Use the @agent-fractary-logs:log-manager agent with the following request:
+{
+  "operation": "capture",
+  "parameters": {
+    "issue_number": "{source_id}",
+    "work_id": "{work_id}"
+  }
+}
+```
+
+This captures all LLM interactions for:
+- Future debugging
+- Process improvement
+- Compliance and audit
+- Knowledge extraction
+
+**Configuration Check**:
+```bash
+SESSION_CAPTURE=$(echo "$CONFIG_JSON" | jq -r '.logs.session_capture // "auto"')
+
+if [ "$SESSION_CAPTURE" = "auto" ] || [ "$SESSION_CAPTURE" = "manual" ]; then
+    echo "📝 Starting session capture..."
+    # Invoke log-manager agent as shown above
+    echo "✅ Session capture started"
+fi
+```
+
+**Skip if**: `logs.session_capture = "off"` in configuration.
+
+### Step 5: Setup Domain Environment
 
 Domain-specific environment preparation:
 
@@ -155,7 +189,7 @@ For data work:
 - Load data sources
 - Prepare analysis environment
 
-### Step 5: Update Session State
+### Step 6: Update Session State
 
 Update the session with Frame results:
 
@@ -180,7 +214,7 @@ EOF
 
 This stores all Frame results for use by subsequent phases.
 
-### Step 6: Post Frame Complete Notification
+### Step 7: Post Frame Complete Notification
 
 Post completion status to work tracking system:
 
@@ -196,7 +230,7 @@ Environment prepared and ready for Architect phase.
 **Next**: Generating implementation specification..." '[]'
 ```
 
-### Step 7: Return Results
+### Step 8: Return Results
 
 Return Frame results to workflow-manager:
 

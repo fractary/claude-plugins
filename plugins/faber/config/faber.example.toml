@@ -76,6 +76,59 @@ release = "basic"      # basic | app | cloud | custom
 # Skip phases (optional) - useful for testing or partial workflows
 # skip_phases = []  # e.g., ["architect"] to skip specification generation
 
+# Plugin dependencies
+[plugins]
+docs = "fractary-docs"
+spec = "fractary-spec"
+logs = "fractary-logs"
+file = "fractary-file"
+
+# Architect phase configuration
+[workflow.architect]
+generate_spec = true              # Use fractary-spec to generate specifications
+spec_template = "auto"             # auto | basic | infrastructure | api | feature
+generate_adr = false              # Generate Architecture Decision Records
+adr_threshold = "architectural"   # When to generate ADR: architectural | always | never
+
+# Build phase configuration
+[workflow.build]
+capture_build_logs = true         # Capture build/compilation logs
+capture_test_logs = true          # Capture test execution logs
+log_level = "info"                # Log level for captured logs
+
+# Evaluate phase configuration
+[workflow.evaluate]
+validate_spec = true              # Validate implementation against spec
+require_all_criteria_met = false  # Block if not all criteria met (false = warn only)
+generate_test_report = true       # Generate test reports via fractary-docs
+
+# Release phase configuration
+[workflow.release]
+update_documentation = "prompt"   # prompt | auto | skip - Update current state docs
+generate_deployment_doc = false   # Generate deployment documentation
+archive_specs = true              # Archive specifications to cloud
+archive_logs = true               # Archive logs to cloud
+check_docs_updated = "warn"       # warn | block | skip - Check if docs updated
+delete_branch = true              # Delete branch after merge
+
+# Documentation paths
+[documentation]
+output_paths = "/docs"
+adrs = "/docs/architecture/adrs"
+designs = "/docs/architecture/designs"
+
+# Spec storage
+[specs]
+local_path = "/specs"
+archive_on_release = true
+
+# Log storage
+[logs]
+local_path = "/logs"
+retention_days = 30
+archive_on_release = true
+session_capture = "auto"          # auto | manual | off
+
 [systems.work_config]
 # GitHub-specific configuration (when issue_system = "github")
 repo = "owner/repo"

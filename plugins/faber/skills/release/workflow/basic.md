@@ -95,7 +95,162 @@ else
 fi
 ```
 
-### 5. Close/Update Work Item
+### 5. Update Documentation (Optional)
+
+**If configured**, update current state documentation:
+
+```bash
+UPDATE_DOCUMENTATION=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.update_documentation // "prompt"')
+
+if [ "$UPDATE_DOCUMENTATION" = "prompt" ]; then
+    echo "📚 Documentation update recommended."
+    echo "Should documentation be updated now? (y/n/skip)"
+    # Prompt user for confirmation
+elif [ "$UPDATE_DOCUMENTATION" = "auto" ]; then
+    echo "📚 Updating documentation..."
+
+    Use the @agent-fractary-docs:docs-manager agent with the following request:
+    {
+      "operation": "update",
+      "parameters": {
+        "docs_type": "current_state",
+        "issue_number": "{source_id}",
+        "changes": "{summary_of_changes}"
+      }
+    }
+
+    echo "✅ Documentation updated"
+fi
+```
+
+**Note**: This updates current state docs (e.g., README, API docs), NOT specs.
+
+### 6. Generate Deployment Doc (Optional)
+
+**If configured**, generate deployment documentation:
+
+```bash
+GENERATE_DEPLOYMENT_DOC=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.generate_deployment_doc // false')
+
+if [ "$GENERATE_DEPLOYMENT_DOC" = "true" ]; then
+    echo "📦 Generating deployment documentation..."
+
+    Use the @agent-fractary-docs:docs-manager agent with the following request:
+    {
+      "operation": "generate-deployment",
+      "parameters": {
+        "issue_number": "{source_id}",
+        "pr_number": "{pr_number}",
+        "changes": "{deployment_changes}"
+      }
+    }
+
+    echo "✅ Deployment doc generated"
+fi
+```
+
+This is typically used for infrastructure changes.
+
+### 7. Archive Workflow Artifacts
+
+**If configured**, archive specs and logs:
+
+```bash
+ARCHIVE_SPECS=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.archive_specs // true')
+ARCHIVE_LOGS=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.archive_logs // true')
+CHECK_DOCS=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.check_docs_updated // "warn"')
+```
+
+#### Archive Specifications
+
+If `archive_specs` is enabled:
+
+```markdown
+Use the @agent-fractary-spec:spec-manager agent with the following request:
+{
+  "operation": "archive",
+  "parameters": {
+    "issue_number": "{source_id}",
+    "check_docs": {CHECK_DOCS}
+  }
+}
+```
+
+The spec-manager will:
+- Check if docs were updated (if check_docs != "skip")
+- Upload specs to cloud storage
+- Update archive index
+- Comment on issue/PR with spec URLs
+- Remove from local
+
+```bash
+echo "✅ Specifications archived"
+```
+
+#### Archive Logs
+
+If `archive_logs` is enabled:
+
+```markdown
+Use the @agent-fractary-logs:log-manager agent with the following request:
+{
+  "operation": "archive",
+  "parameters": {
+    "issue_number": "{source_id}"
+  }
+}
+```
+
+The log-manager will:
+- Collect all logs (session, build, test, debug)
+- Compress large logs
+- Upload to cloud storage
+- Update archive index
+- Comment on issue/PR with log URLs
+- Remove from local
+
+```bash
+echo "✅ Logs archived"
+```
+
+**Alternative: Unified Archive**
+
+Or use the unified archive-workflow skill:
+
+```markdown
+Use the @skill-fractary-faber:archive-workflow skill:
+{
+  "operation": "archive",
+  "issue_number": "{source_id}",
+  "skip_checks": true
+}
+```
+
+This handles both specs and logs in one operation.
+
+### 8. Delete Branch
+
+**If configured**, delete the feature branch:
+
+```bash
+DELETE_BRANCH=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.delete_branch // true')
+
+if [ "$DELETE_BRANCH" = "true" ] && [ "$MERGE_STATUS" = "merged" ]; then
+    echo "🗑️  Deleting feature branch..."
+
+    Use the @agent-fractary-repo:repo-manager agent with the following request:
+    {
+      "operation": "delete-branch",
+      "parameters": {
+        "branch": "{branch_name}"
+      }
+    }
+
+    echo "✅ Feature branch deleted"
+fi
+```
+
+### 9. Close/Update Work Item
 
 Use work-manager to close the work item:
 
@@ -115,7 +270,7 @@ CLOSED_WORK=true
 echo "✅ Work item closed: #$SOURCE_ID"
 ```
 
-### 6. Update Session
+### 10. Update Session
 
 ```bash
 RELEASE_DATA=$(cat <<EOF
@@ -131,7 +286,7 @@ EOF
 "$CORE_SKILL/session-update.sh" "$WORK_ID" "release" "completed" "$RELEASE_DATA"
 ```
 
-### 7. Post Release Complete
+### 11. Post Release Complete
 
 ```bash
 "$CORE_SKILL/status-card-post.sh" "$WORK_ID" "$SOURCE_ID" "release" "✅ **Release Phase Complete**
@@ -143,7 +298,7 @@ EOF
 🎉 FABER workflow completed successfully!" '["view-pr"]'
 ```
 
-### 8. Return Results
+### 12. Return Results
 
 ```bash
 cat <<EOF
