@@ -593,7 +593,7 @@ validate_permissions() {
 
     # Check if critical commands are present
     local missing_safe=()
-    for cmd in "git status" "git log" "git commit" "git push"; do
+    for cmd in "git status" "git log" "git commit" "git push" "gh auth status" "gh auth login" "gh auth refresh"; do
         if ! jq -e ".permissions.bash.allow | index(\"$cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
             missing_safe+=("$cmd")
         fi
