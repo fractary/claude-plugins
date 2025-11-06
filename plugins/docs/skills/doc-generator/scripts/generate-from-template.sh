@@ -111,7 +111,7 @@ fi
 mv "$TEMP_FILE" "$OUTPUT_PATH"
 
 # Get file info
-FILE_SIZE=$(stat -f%z "$OUTPUT_PATH" 2>/dev/null || stat -c%s "$OUTPUT_PATH" 2>/dev/null)
+FILE_SIZE=$(stat -c%s "$OUTPUT_PATH" 2>/dev/null || stat -f%z "$OUTPUT_PATH" 2>/dev/null)
 
 # Step 4: Validate if requested
 VALIDATION_RESULT='{"validation": "skipped"}'

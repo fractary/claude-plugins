@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Source security utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../common/security-utils.sh"
+
 # Default values
 FILE_PATH=""
 FRONTMATTER_JSON=""
@@ -23,7 +27,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      echo "Error: Unknown option: $1" >&2
+      echo "Error [$SCRIPT_NAME]: Unknown option: $1" >&2
       exit 1
       ;;
   esac
@@ -31,39 +35,29 @@ done
 
 # Validate required arguments
 if [[ -z "$FILE_PATH" ]] || [[ -z "$FRONTMATTER_JSON" ]]; then
-  echo "Error: Missing required arguments" >&2
+  echo "Error [$SCRIPT_NAME]: Missing required arguments" >&2
   echo "Usage: add-frontmatter.sh --file <path> --frontmatter <json>" >&2
   exit 1
 fi
 
-# Security: Validate file path to prevent path traversal
-validate_path() {
-  local file_path=$1
+# Security: Validate file path (write operation since we'll modify the file)
+if ! validate_file_path "$FILE_PATH" "write"; then
+  exit 1
+fi
 
-  # Resolve to absolute path
-  local abs_path=$(realpath -m "$file_path" 2>/dev/null || echo "$file_path")
+# Security: Validate JSON
+if ! validate_json "$FRONTMATTER_JSON"; then
+  exit 1
+fi
 
-  # Must not contain suspicious path traversal patterns
-  if [[ "$file_path" =~ \.\./.*\.\. ]]; then
-    echo "Error: Invalid file path (path traversal detected): $file_path" >&2
-    exit 1
-  fi
-
-  # If absolute path, verify it's not accessing system directories
-  if [[ "$file_path" =~ ^/ ]]; then
-    if [[ "$abs_path" =~ ^/(etc|sys|proc|dev|bin|sbin|usr/bin|usr/sbin) ]]; then
-      echo "Error: Access to system directories not allowed: $file_path" >&2
-      exit 1
-    fi
-  fi
-}
-
-# Security: Validate path
-validate_path "$FILE_PATH"
+# Check dependencies
+if ! check_dependencies jq; then
+  exit 1
+fi
 
 # Check if file exists
 if [[ ! -f "$FILE_PATH" ]]; then
-  echo "Error: File not found: $FILE_PATH" >&2
+  echo "Error [$SCRIPT_NAME]: File not found: $FILE_PATH" >&2
   exit 1
 fi
 
@@ -85,9 +79,9 @@ if ! echo "$FRONTMATTER_JSON" | jq empty 2>/dev/null; then
   exit 1
 fi
 
-# Create temp file
-TEMP_FILE=$(mktemp)
-trap "rm -f $TEMP_FILE" EXIT
+# Create secure temp file with proper cleanup
+TEMP_FILE=$(create_secure_temp)
+setup_trap_handler "$TEMP_FILE"
 
 # Check if file already has front matter
 if head -n 1 "$FILE_PATH" | grep -q "^---$"; then
@@ -185,6 +179,6 @@ cat <<EOF
   "success": true,
   "file": "$FILE_PATH",
   "frontmatter_added": true,
-  "size_bytes": $(stat -f%z "$FILE_PATH" 2>/dev/null || stat -c%s "$FILE_PATH" 2>/dev/null)
+  "size_bytes": $(get_file_size "$FILE_PATH")
 }
 EOF

@@ -239,7 +239,7 @@ esac
 # Check for common structural issues
 
 # 1. Check if document is too short (less than 100 characters)
-FILE_SIZE=$(stat -f%z "$FILE_PATH" 2>/dev/null || stat -c%s "$FILE_PATH" 2>/dev/null)
+FILE_SIZE=$(stat -c%s "$FILE_PATH" 2>/dev/null || stat -f%z "$FILE_PATH" 2>/dev/null)
 if [[ $FILE_SIZE -lt 100 ]]; then
   add_issue "warning" "Content" "Document appears too short (less than 100 bytes)"
 fi

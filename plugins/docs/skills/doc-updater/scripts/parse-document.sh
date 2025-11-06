@@ -207,7 +207,7 @@ for ((i=0; i<sections_count; i++)); do
 done
 
 # Get file size
-FILE_SIZE=$(stat -f%z "$FILE_PATH" 2>/dev/null || stat -c%s "$FILE_PATH" 2>/dev/null)
+FILE_SIZE=$(stat -c%s "$FILE_PATH" 2>/dev/null || stat -f%z "$FILE_PATH" 2>/dev/null)
 
 # Return parsed structure
 cat <<EOF

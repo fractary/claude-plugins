@@ -219,6 +219,6 @@ cat <<EOF
   "success": true,
   "template": "$TEMPLATE_PATH",
   "output": "$OUTPUT_PATH",
-  "size_bytes": $(stat -f%z "$OUTPUT_PATH" 2>/dev/null || stat -c%s "$OUTPUT_PATH" 2>/dev/null)
+  "size_bytes": $(stat -c%s "$OUTPUT_PATH" 2>/dev/null || stat -f%z "$OUTPUT_PATH" 2>/dev/null)
 }
 EOF
