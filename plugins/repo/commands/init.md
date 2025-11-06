@@ -10,7 +10,9 @@ argument-hint: [--platform <name>] [--token <value>] [--yes] [--force]
 
 ## Description
 
-The `/repo:init` command provides an interactive setup wizard that guides you through configuring the Fractary Repo Plugin for your project. It detects your environment, validates credentials, and creates the appropriate configuration file.
+The `/repo:init` command provides an interactive setup wizard that guides you through configuring the Fractary Repo Plugin for your project. It detects your environment, validates credentials, and creates the appropriate configuration file (`.fractary/plugins/repo/config.json`).
+
+**Important**: This command ONLY creates the plugin configuration file. It does NOT set up permissions. After running this command, you'll be prompted to optionally run `/repo:init-permissions` to configure Claude Code permissions for seamless repo operations.
 
 ## Usage
 
@@ -53,14 +55,20 @@ The `/repo:init` command provides an interactive setup wizard that guides you th
 ### 3. **Configuration Creation**
 - Creates project-specific config at `.fractary/plugins/repo/config.json`
 - Creates config directory structure
-- Writes configuration file
-- Sets appropriate permissions
+- Writes configuration file (`.fractary/plugins/repo/config.json` or `~/.fractary/repo/config.json`)
+- Sets appropriate file permissions (chmod 600 for security)
 
 ### 4. **Validation**
 - Tests API authentication
 - Verifies git remote access
 - Confirms gh/glab CLI availability
 - Provides setup summary
+
+### 5. **Optional Permission Setup Prompt**
+- Prompts if you want to configure Claude Code permissions
+- If yes, runs `/repo:init-permissions` command
+- If no, shows how to run it manually later
+- **Does NOT automatically configure without your consent**
 
 ## Interactive Flow
 
@@ -162,6 +170,33 @@ Setup complete! Try these commands:
   /repo:pr create "feat: New feature"
 
 Documentation: plugins/repo/docs/setup/github-setup.md
+```
+
+### Step 8: Permissions Setup (Optional but Recommended)
+
+After configuration is complete, prompt the user:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Optional: Configure Permissions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The repo plugin needs permission to run git and gh commands.
+Without this, you'll see permission prompts for every operation.
+
+Would you like to configure permissions now? (y/n):
+```
+
+**If user responds 'y'**:
+- Run `/repo:init-permissions` command
+- Show the permission setup output
+
+**If user responds 'n'**:
+```
+You can set up permissions later by running:
+  /repo:init-permissions
+
+Note: You'll see permission prompts until you run this command.
 ```
 
 ## Examples
@@ -366,6 +401,10 @@ You detect platform, authentication, and create appropriate configuration files.
 4. **ALWAYS test connectivity** before confirming success
 5. **NEVER assume platform** if detection is ambiguous - always prompt
 6. **CONFIGURATION SCOPE**: Only create project-local config at `.fractary/plugins/repo/config.json` (no global scope)
+7. **NEVER automatically configure permissions** - This command ONLY creates config.json
+   - ALWAYS prompt user before running /repo:init-permissions
+   - ONLY run init-permissions if user explicitly confirms (responds 'y')
+   - NEVER modify .claude/settings.json from this command
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -428,6 +467,13 @@ You detect platform, authentication, and create appropriate configuration files.
    - Show configuration location (`.fractary/plugins/repo/config.json`)
    - Show detected settings
    - Provide next steps
+
+10. **Prompt for permission setup (OPTIONAL)**
+    - Explain that permissions eliminate prompts
+    - Ask if user wants to configure now: "Would you like to configure permissions now? (y/n)"
+    - If 'y': Run `/repo:init-permissions` command
+    - If 'n': Show how to run it later
+    - NEVER run automatically without user confirmation
 </WORKFLOW>
 
 <OUTPUTS>
@@ -462,6 +508,7 @@ Invoke the `repo-manager` agent with operation `initialize-configuration`:
     "token": "masked-token-value",
     "interactive": true|false,
     "force": true|false,
+    "prompt_for_permissions": true,
     "options": {
       "default_branch": "main",
       "protected_branches": ["main", "master"],
@@ -471,6 +518,12 @@ Invoke the `repo-manager` agent with operation `initialize-configuration`:
   }
 }
 ```
+
+**IMPORTANT**: After the config-wizard skill completes:
+1. Always prompt user: "Would you like to configure permissions now? (y/n)"
+2. If user responds 'y': Invoke `/repo:init-permissions` command
+3. If user responds 'n': Show message about running it later
+4. NEVER automatically configure permissions without user confirmation
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

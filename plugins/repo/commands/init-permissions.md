@@ -352,7 +352,7 @@ The command invokes the `permission-manager` skill which:
 
 ## Related Commands
 
-- `/repo:init` - Initial repo plugin setup (includes optional permission setup)
+- `/repo:init` - Initial repo plugin setup (creates config.json only, prompts to run this command afterward)
 - `/repo:branch` - Create and manage branches (benefits from permissions)
 - `/repo:commit` - Create commits (benefits from permissions)
 - `/repo:pr` - Manage pull requests (benefits from permissions)
