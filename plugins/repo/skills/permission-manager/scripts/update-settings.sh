@@ -349,6 +349,16 @@ show_differences() {
 }
 
 # Function to merge arrays (remove duplicates, handle conflicts, respect user overrides)
+# ═══════════════════════════════════════════════════════════════════════════
+# INTELLIGENT MERGE STRATEGY:
+# ═══════════════════════════════════════════════════════════════════════════
+# - Preserves existing commands from the target category
+# - Adds new recommended commands to the target category
+# - RESPECTS user denials of safe commands (won't force to allow)
+# - OVERRIDES user allows of dangerous commands (forces to deny for safety)
+# - May create temporary duplicates (resolved by caller's deduplication)
+# - Performance: O(n) using associative arrays for lookups
+# ═══════════════════════════════════════════════════════════════════════════
 merge_arrays_smart() {
     local settings_file="$1"
     local category="$2"  # allow, requireApproval, or deny
@@ -416,17 +426,28 @@ merge_arrays_smart() {
                 fi
                 ;;
             deny)
-                # We're adding to deny (dangerous commands)
+                # ⚠️ SECURITY OVERRIDE POLICY FOR DANGEROUS COMMANDS ⚠️
+                # When merging deny recommendations (rm -rf, git push --force, etc.),
+                # we FORCE them into deny even if user has them elsewhere.
+                #
+                # This creates a temporary duplicate (command in both allow/require AND deny),
+                # which is intentional and will be resolved by the deduplication logic
+                # in setup_permissions() (lines 562-603) where precedence is:
+                #     deny > requireApproval > allow
+                #
+                # Result: Dangerous commands ALWAYS end up in deny, regardless of user choice.
+                # This is a SAFETY OVERRIDE to prevent catastrophic accidents.
+
                 if [[ -n "${allow_map[$cmd]:-}" ]]; then
-                    # CRITICAL: User allowed something dangerous we recommend denying
-                    # We should still add it to deny and remove from allow
-                    # The duplicate will be resolved by the calling code
-                    in_other_category=false  # Force add to deny for safety
+                    # CRITICAL CASE: User allowed something dangerous (e.g., rm -rf /)
+                    # Force to deny - this is a safety override, not respecting user choice
+                    in_other_category=false  # Force add to deny
                 elif [[ -n "${require_map[$cmd]:-}" ]]; then
-                    # User requires approval for something we recommend denying
-                    # Less critical, but still add to deny
-                    in_other_category=false  # Force add to deny for safety
+                    # MODERATE CASE: User requires approval for dangerous command
+                    # Still force to deny for maximum safety
+                    in_other_category=false  # Force add to deny
                 fi
+                # If already in deny or missing: add to deny normally
                 ;;
         esac
 
@@ -436,8 +457,12 @@ merge_arrays_smart() {
         fi
     done
 
-    # Sort, deduplicate, and output
-    printf "%s\n" "${combined[@]}" | sort -u
+    # Sort, deduplicate, and output (handle empty array case)
+    if [ ${#combined[@]} -gt 0 ]; then
+        printf "%s\n" "${combined[@]}" | sort -u
+    else
+        echo ""  # Return empty string for empty array
+    fi
 }
 
 # Function to show permission changes
@@ -549,18 +574,38 @@ setup_permissions() {
         .permissions.bash.deny //= []' "$temp_file" > "${temp_file}.tmp"
     mv "${temp_file}.tmp" "$temp_file"
 
-    # Merge arrays with smart conflict resolution
-    # User Override Policy:
-    # - If user has denied something we recommend allowing: RESPECT their choice (don't add to allow)
-    # - If user has allowed something we recommend denying: OVERRIDE for safety (force to deny)
-    # - Missing commands: ADD to recommended categories
-    # - After merge: cleanup with precedence (deny > requireApproval > allow)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MERGE ARRAYS WITH INTELLIGENT USER OVERRIDE HANDLING
+    # ═══════════════════════════════════════════════════════════════════════════
+    #
+    # User Override Policy (implemented in merge_arrays_smart, lines 351-457):
+    #
+    # 1. RESPECT user denials of safe commands:
+    #    - If user denied "git commit" → DON'T add to allow
+    #    - Tracked as user_override in validation
+    #
+    # 2. ⚠️ SECURITY OVERRIDE for dangerous commands (see lines 418-441):
+    #    - If user allowed "rm -rf /" → FORCE to deny regardless
+    #    - Creates intentional duplicate (both in allow AND deny)
+    #    - Deduplication below resolves this with precedence rules
+    #
+    # 3. ADD missing commands to recommended categories
+    #
+    # 4. DEDUPLICATION with precedence (lines 577-618 below):
+    #    - deny > requireApproval > allow
+    #    - Resolves conflicts from security overrides
+    #    - Result: Dangerous commands ONLY in deny
+    #
     local all_allow=$(merge_arrays_smart "$temp_file" "allow" "${ALLOW_COMMANDS[@]}")
     local all_require=$(merge_arrays_smart "$temp_file" "requireApproval" "${REQUIRE_APPROVAL_COMMANDS[@]}")
     local all_deny=$(merge_arrays_smart "$temp_file" "deny" "${DENY_COMMANDS[@]}")
 
-    # Cleanup: Remove duplicates across categories with precedence (deny > requireApproval > allow)
-    # This ensures dangerous commands end up only in deny, not also in allow
+    # ═══════════════════════════════════════════════════════════════════════════
+    # DEDUPLICATION: Remove conflicts with precedence (deny > requireApproval > allow)
+    # ═══════════════════════════════════════════════════════════════════════════
+    # This is the SECOND PHASE of security enforcement (after merge_arrays_smart).
+    # Resolves intentional duplicates created by security overrides above.
+    # Ensures dangerous commands appear ONLY in deny, never in allow/requireApproval.
     declare -A deny_set require_set
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
@@ -580,7 +625,12 @@ setup_permissions() {
             cleaned_allow+=("$cmd")
         fi
     done <<< "$all_allow"
-    all_allow=$(printf "%s\n" "${cleaned_allow[@]}" | sort -u)
+    # Handle empty array properly - check length before printf to avoid creating array with empty string
+    if [ ${#cleaned_allow[@]} -gt 0 ]; then
+        all_allow=$(printf "%s\n" "${cleaned_allow[@]}" | sort -u)
+    else
+        all_allow=""  # Truly empty, not an array with empty string
+    fi
 
     # Filter require: remove anything in deny
     local cleaned_require=()
@@ -590,7 +640,12 @@ setup_permissions() {
             cleaned_require+=("$cmd")
         fi
     done <<< "$all_require"
-    all_require=$(printf "%s\n" "${cleaned_require[@]}" | sort -u)
+    # Handle empty array properly
+    if [ ${#cleaned_require[@]} -gt 0 ]; then
+        all_require=$(printf "%s\n" "${cleaned_require[@]}" | sort -u)
+    else
+        all_require=""  # Truly empty
+    fi
 
     # Build JSON arrays
     local allow_json=$(echo "$all_allow" | jq -R . | jq -s .)
@@ -637,20 +692,31 @@ setup_permissions() {
     echo -e "${YELLOW}Protected:${NC} Operations on main/master/production require approval."
 }
 
-# Function to check where a command is currently located in settings
+# Function to build command location map (single jq call for performance)
+# Returns associative array mapping command -> location (allow/requireApproval/deny/missing)
+build_command_location_map() {
+    local settings_file="$1"
+    declare -gA COMMAND_LOCATION_MAP
+
+    # Single jq call to get all commands from all categories
+    # Format: category:command (one per line)
+    local mappings=$(jq -r '
+        (.permissions.bash.allow[]? | "allow:" + .) ,
+        (.permissions.bash.requireApproval[]? | "requireApproval:" + .) ,
+        (.permissions.bash.deny[]? | "deny:" + .)
+    ' "$settings_file" 2>/dev/null)
+
+    # Build associative array from mappings
+    while IFS=: read -r category command; do
+        [ -z "$command" ] && continue
+        COMMAND_LOCATION_MAP["$command"]="$category"
+    done <<< "$mappings"
+}
+
+# Function to check where a command is currently located (uses prebuilt map)
 find_command_location() {
     local cmd="$1"
-    local settings_file="$2"
-
-    if jq -e ".permissions.bash.allow | index(\"$cmd\")" "$settings_file" >/dev/null 2>&1; then
-        echo "allow"
-    elif jq -e ".permissions.bash.requireApproval | index(\"$cmd\")" "$settings_file" >/dev/null 2>&1; then
-        echo "requireApproval"
-    elif jq -e ".permissions.bash.deny | index(\"$cmd\")" "$settings_file" >/dev/null 2>&1; then
-        echo "deny"
-    else
-        echo "missing"
-    fi
+    echo "${COMMAND_LOCATION_MAP[$cmd]:-missing}"
 }
 
 # Function to validate permissions (comprehensive check of ALL commands)
@@ -670,6 +736,9 @@ validate_permissions() {
     echo "───────────────────────────────────────"
     echo ""
 
+    # Build command location map once (performance optimization - single jq call vs 104)
+    build_command_location_map "$SETTINGS_FILE"
+
     # Check for conflicts (commands in multiple categories simultaneously)
     local has_conflicts=false
     if detect_conflicts "$SETTINGS_FILE"; then
@@ -687,11 +756,28 @@ validate_permissions() {
     local wrong_location_require=()
     local wrong_location_deny=()
     local user_overrides=()
+    local unusual_denials=()  # Track when users deny safe/essential commands
+
+    # Define essential commands that if denied would break core workflow
+    local -A essential_commands=(
+        ["git status"]=1
+        ["git log"]=1
+        ["git diff"]=1
+        ["git commit"]=1
+        ["git push"]=1
+        ["git branch"]=1
+        ["gh pr create"]=1
+        ["gh pr view"]=1
+        ["gh pr list"]=1
+        ["gh issue create"]=1
+        ["gh issue view"]=1
+        ["gh auth status"]=1
+    )
 
     echo "Checking recommended ALLOW commands..."
     # Check all ALLOW_COMMANDS
     for cmd in "${ALLOW_COMMANDS[@]}"; do
-        local location=$(find_command_location "$cmd" "$SETTINGS_FILE")
+        local location=$(find_command_location "$cmd")
         case "$location" in
             allow)
                 # Correct location, no issue
@@ -700,8 +786,12 @@ validate_permissions() {
                 wrong_location_allow+=("$cmd (currently in requireApproval)")
                 ;;
             deny)
-                # User explicitly denied something we recommend - respect this as override
-                user_overrides+=("$cmd (recommended: allow, user chose: deny)")
+                # User explicitly denied something we recommend - check if it's essential
+                if [[ -n "${essential_commands[$cmd]:-}" ]]; then
+                    unusual_denials+=("$cmd (ESSENTIAL - will break workflow!)")
+                else
+                    user_overrides+=("$cmd (recommended: allow, user chose: deny)")
+                fi
                 ;;
             missing)
                 missing_from_allow+=("$cmd")
@@ -712,7 +802,7 @@ validate_permissions() {
     echo "Checking recommended REQUIRE APPROVAL commands..."
     # Check all REQUIRE_APPROVAL_COMMANDS
     for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
-        local location=$(find_command_location "$cmd" "$SETTINGS_FILE")
+        local location=$(find_command_location "$cmd")
         case "$location" in
             requireApproval)
                 # Correct location, no issue
@@ -733,7 +823,7 @@ validate_permissions() {
     echo "Checking recommended DENY commands..."
     # Check all DENY_COMMANDS
     for cmd in "${DENY_COMMANDS[@]}"; do
-        local location=$(find_command_location "$cmd" "$SETTINGS_FILE")
+        local location=$(find_command_location "$cmd")
         case "$location" in
             deny)
                 # Correct location, no issue
@@ -809,6 +899,21 @@ validate_permissions() {
         for cmd in "${wrong_location_deny[@]}"; do
             echo "  • $cmd"
         done
+        echo ""
+        has_issues=true
+    fi
+
+    if [ ${#unusual_denials[@]} -gt 0 ]; then
+        echo -e "${RED}🚨 UNUSUAL USER DENIALS - WORKFLOW BREAKING:${NC}"
+        echo "You have denied essential commands that are critical for the repo workflow."
+        echo "This will likely prevent the plugin from functioning correctly."
+        echo ""
+        for cmd in "${unusual_denials[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+        echo -e "${YELLOW}⚠️  WARNING:${NC} These denials will be preserved, but expect errors!"
+        echo "Consider removing these from deny list or moving to requireApproval instead."
         echo ""
         has_issues=true
     fi
