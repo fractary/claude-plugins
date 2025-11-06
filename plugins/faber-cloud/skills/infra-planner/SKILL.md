@@ -39,11 +39,23 @@ Environment: {environment}
 
 1. Load configuration for environment
 2. Change to Terraform directory
-3. Invoke handler-iac-terraform with operation="plan"
-4. Parse plan output
-5. Display summary: X to add, Y to change, Z to destroy
-6. Show detailed changes
-7. Save plan file
+3. **Execute pre-plan hooks:**
+   ```bash
+   bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh pre-plan {environment} {terraform_dir}
+   ```
+   - If hooks fail (exit code 1): STOP planning, show error
+   - If hooks pass (exit code 0): Continue to step 4
+4. Invoke handler-iac-terraform with operation="plan"
+5. Parse plan output
+6. Display summary: X to add, Y to change, Z to destroy
+7. Show detailed changes
+8. Save plan file
+9. **Execute post-plan hooks:**
+   ```bash
+   bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh post-plan {environment} {terraform_dir}
+   ```
+   - If hooks fail: WARN user, plan complete but post-plan actions failed
+   - If hooks pass: Continue to completion
 
 **OUTPUT COMPLETION MESSAGE:**
 ```

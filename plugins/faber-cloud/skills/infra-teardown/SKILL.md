@@ -81,7 +81,19 @@ Require 3 separate confirmations:
 
 Between confirmations, allow user to cancel at any point.
 
-## Step 5: Execute Destruction
+## Step 5: Execute Pre-Destroy Hooks
+
+Execute pre-destroy hooks:
+```bash
+bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh pre-destroy {environment} {terraform_dir}
+```
+
+**CRITICAL:**
+- If pre-destroy hooks fail (exit code 1): STOP teardown, show error
+- If pre-destroy hooks pass (exit code 0): Continue to Step 6
+- Pre-destroy hooks are essential for production safety (backups, notifications, etc.)
+
+## Step 6: Execute Destruction
 
 Execute destroy script:
 ```bash
@@ -94,7 +106,17 @@ This script:
 - Captures output
 - Returns exit code
 
-## Step 6: Verify Removal
+## Step 7: Execute Post-Destroy Hooks
+
+Execute post-destroy hooks:
+```bash
+bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh post-destroy {environment} {terraform_dir}
+```
+
+- If post-destroy hooks fail: WARN user, destruction complete but post-destroy actions failed
+- If post-destroy hooks pass: Continue to Step 8
+
+## Step 8: Verify Removal
 
 Execute verification script:
 ```bash
@@ -106,7 +128,7 @@ This script:
 - Queries AWS to verify resources removed
 - Returns list of any remaining resources (should be empty)
 
-## Step 7: Document Teardown
+## Step 9: Document Teardown
 
 Execute documentation script:
 ```bash
@@ -128,7 +150,7 @@ Appends to deployment history (`docs/infrastructure/deployments.md`):
 - ...
 ```
 
-## Step 8: Report Results
+## Step 10: Report Results
 
 Output summary:
 ```

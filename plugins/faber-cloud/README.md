@@ -1,11 +1,57 @@
 # Fractary faber-cloud Plugin
 
-**Version:** 2.2.0
+**Version:** 2.3.0
 
 Comprehensive cloud infrastructure lifecycle management plugin for Claude Code.
 
 Focus: Infrastructure architecture, engineering, deployment, and lifecycle management (FABER framework for cloud).
 
+
+---
+
+## What's New in v2.3.0 (SPEC-0030)
+
+**Infrastructure Adoption & Migration**: Comprehensive support for adopting existing infrastructure into faber-cloud
+
+- `adopt` - Discover and adopt existing infrastructure with automated analysis
+  - Discovers Terraform structure (flat, modular, multi-environment)
+  - Identifies AWS profiles and environments
+  - Catalogs custom scripts and agents
+  - Generates faber-cloud configuration automatically
+  - Assesses complexity and migration timeline
+  - Creates comprehensive migration reports
+
+**Enhanced Environment Validation** (SPEC-0030-02):
+- Multi-signal validation (AWS profile, state file, workspace, directory)
+- Prevents cross-environment deployments
+- Production safety through multiple validation layers
+- Configurable validation rules per template
+
+**Lifecycle Hook System** (SPEC-0030-01):
+- Pre/post hooks at 6 lifecycle points (plan, deploy, destroy)
+- Custom logic injection (build, validate, notify, backup)
+- Critical vs non-critical hooks with failure handling
+- Template variables for environment-aware scripts
+- 11+ real-world examples in documentation
+
+**Migration from Custom Agents**:
+- Capability mapping from custom scripts to faber-cloud features
+- Hook integration guide for preserving custom logic
+- Step-by-step migration checklist
+- Rollback procedures and risk assessment
+- Comprehensive troubleshooting guide
+
+**Configuration Templates**:
+- Flat: Simple single-directory structure
+- Modular: Shared modules for code reuse
+- Multi-Environment: Per-environment directories with promotion paths
+- Auto-selection based on discovered structure
+
+**Documentation Suite**:
+- [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) - Complete migration guide
+- [Hook System](docs/guides/HOOKS.md) - Lifecycle hooks with 11+ examples
+- [Configuration Templates](docs/guides/CONFIGURATION-TEMPLATES.md) - Template reference
+- [Troubleshooting](docs/guides/TROUBLESHOOTING.md) - Comprehensive issue resolution
 
 ---
 
@@ -113,7 +159,23 @@ The Fractary FABER Cloud plugin (v2.0.0) provides infrastructure lifecycle manag
 
 ## Quick Start
 
-### 1. Initialize Plugin
+### Option A: Adopt Existing Infrastructure (Recommended for existing projects)
+
+```bash
+# Discover and adopt existing Terraform infrastructure
+/fractary-faber-cloud:adopt
+
+# This will:
+# - Discover your Terraform structure
+# - Identify AWS profiles and environments
+# - Generate faber-cloud configuration automatically
+# - Create comprehensive migration report
+# - Install configuration (with your approval)
+```
+
+See [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) for complete adoption guide.
+
+### Option B: Initialize New Project
 
 ```bash
 # In your project directory
@@ -172,6 +234,11 @@ Route natural language requests to appropriate operations:
 **Direct Commands:**
 
 ```bash
+# Adopt existing infrastructure (NEW in v2.3.0)
+/fractary-faber-cloud:adopt
+/fractary-faber-cloud:adopt --project-root=./my-project
+/fractary-faber-cloud:adopt --dry-run
+
 # Design infrastructure architecture
 /fractary-faber-cloud:architect "API service with database"
 
@@ -593,7 +660,10 @@ Format: JSON with detailed findings, severity levels, recommendations
 
 - [Getting Started](docs/guides/getting-started.md)
 - [User Guide](docs/guides/user-guide.md)
-- [Troubleshooting](docs/guides/troubleshooting.md)
+- [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) *(NEW in v2.3.0)*
+- [Hook System](docs/guides/HOOKS.md) *(NEW in v2.3.0)*
+- [Configuration Templates](docs/guides/CONFIGURATION-TEMPLATES.md) *(NEW in v2.3.0)*
+- [Troubleshooting](docs/guides/TROUBLESHOOTING.md) *(Updated for v2.3.0)*
 
 ### Reference Documentation
 
@@ -655,6 +725,29 @@ git clone https://github.com/fractary/claude-plugins.git
 3. Restart Claude Code or reload plugins
 
 ## Version History
+
+**2.3.0 (SPEC-0030 Complete - Adoption & Migration):**
+- Infrastructure adoption and discovery (adopt command)
+- Enhanced environment validation (multi-signal validation)
+- Lifecycle hook system (6 hook types with 11+ examples)
+- Configuration templates (flat, modular, multi-environment)
+- Migration from custom agents (comprehensive guide)
+- Comprehensive documentation suite (4 new guides)
+- Complexity assessment and timeline estimation
+- Migration reporting with risk analysis
+- Configuration generation and validation
+
+**2.2.0 (SPEC-0013 Complete - Command Reorganization):**
+- Command renaming for FABER phase alignment
+- Audit command for infrastructure observability
+- Automated error fixing with --complete flag
+- IAM permission audit system
+- Environment safety validation
+
+**2.1.0 (Configuration Standardization):**
+- Configuration file renamed to faber-cloud.json
+- Enhanced AWS profile management
+- Improved production safety features
 
 **1.0.0 (Phase 4 Complete):**
 - Natural language interface (devops-director)

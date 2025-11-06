@@ -1,0 +1,205 @@
+{
+  "hooks": {
+    "pre-plan": [
+      {
+        "name": "validate-aws-credentials",
+        "command": "aws sts get-caller-identity > /dev/null",
+        "critical": true,
+        "timeout": 30,
+        "description": "Verify AWS credentials are valid before planning"
+      },
+      {
+        "name": "check-terraform-version",
+        "command": "terraform version | grep -q 'v1\\.[0-9]'",
+        "critical": false,
+        "timeout": 10,
+        "description": "Warn if Terraform version is unexpected"
+      }
+    ],
+
+    "post-plan": [
+      {
+        "name": "cost-estimation",
+        "command": "bash ./scripts/estimate-cost-from-plan.sh",
+        "critical": false,
+        "timeout": 60,
+        "description": "Estimate monthly cost of planned changes"
+      },
+      {
+        "name": "security-scan-plan",
+        "command": "checkov -f terraform-plan.json --compact --quiet || true",
+        "critical": false,
+        "timeout": 120,
+        "description": "Scan Terraform plan for security issues"
+      }
+    ],
+
+    "pre-deploy": [
+      {
+        "name": "build-lambda-functions",
+        "command": "bash ./scripts/build-lambda.sh",
+        "critical": true,
+        "timeout": 300,
+        "environments": ["test", "prod"],
+        "description": "Build Lambda function zip files before deployment"
+      },
+      {
+        "name": "compile-assets",
+        "command": "npm run build:assets",
+        "critical": true,
+        "timeout": 180,
+        "description": "Compile frontend assets for CDN"
+      },
+      {
+        "name": "notify-deployment-start",
+        "command": "curl -X POST $SLACK_WEBHOOK -d '{\"text\":\"🚀 Deployment starting: ${FABER_CLOUD_PROJECT} (${FABER_CLOUD_ENV})\"}'",
+        "critical": false,
+        "timeout": 10,
+        "environments": ["prod"],
+        "description": "Send Slack notification for production deployments"
+      }
+    ],
+
+    "post-deploy": [
+      {
+        "name": "smoke-test-api",
+        "command": "bash ./scripts/smoke-test.sh ${FABER_CLOUD_ENV}",
+        "critical": true,
+        "timeout": 120,
+        "description": "Run smoke tests to verify deployment"
+      },
+      {
+        "name": "health-check",
+        "command": "curl -f https://api.${FABER_CLOUD_ENV}.example.com/health",
+        "critical": true,
+        "timeout": 30,
+        "environments": ["test", "prod"],
+        "description": "Verify API health endpoint responds"
+      },
+      {
+        "name": "warm-up-lambdas",
+        "command": "bash ./scripts/warm-up-functions.sh ${FABER_CLOUD_ENV}",
+        "critical": false,
+        "timeout": 60,
+        "description": "Invoke Lambda functions to warm them up"
+      },
+      {
+        "name": "update-documentation",
+        "command": "bash ./scripts/generate-infrastructure-docs.sh",
+        "critical": false,
+        "timeout": 30,
+        "description": "Generate updated infrastructure documentation"
+      },
+      {
+        "name": "notify-deployment-complete",
+        "command": "curl -X POST $SLACK_WEBHOOK -d '{\"text\":\"✅ Deployment complete: ${FABER_CLOUD_PROJECT} (${FABER_CLOUD_ENV})\"}'",
+        "critical": false,
+        "timeout": 10,
+        "environments": ["prod"],
+        "description": "Send Slack notification for successful production deployment"
+      }
+    ],
+
+    "pre-destroy": [
+      {
+        "name": "backup-production-data",
+        "command": "bash ./scripts/backup-prod-data.sh",
+        "critical": true,
+        "timeout": 600,
+        "environments": ["prod"],
+        "description": "CRITICAL: Back up all production data before destroying resources"
+      },
+      {
+        "name": "confirm-destroy",
+        "command": "echo 'DANGER: About to destroy ${FABER_CLOUD_ENV} environment. Backups complete.' && read -p 'Type DESTROY to continue: ' confirm && [ \"$confirm\" = \"DESTROY\" ]",
+        "critical": true,
+        "timeout": 300,
+        "environments": ["prod"],
+        "description": "Require manual confirmation before destroying production"
+      },
+      {
+        "name": "notify-destroy-start",
+        "command": "curl -X POST $SLACK_WEBHOOK -d '{\"text\":\"⚠️ DESTROY starting: ${FABER_CLOUD_PROJECT} (${FABER_CLOUD_ENV})\"}'",
+        "critical": false,
+        "timeout": 10,
+        "environments": ["prod"],
+        "description": "Alert team that destruction is starting"
+      }
+    ],
+
+    "post-destroy": [
+      {
+        "name": "verify-cleanup",
+        "command": "bash ./scripts/verify-resources-deleted.sh ${FABER_CLOUD_ENV}",
+        "critical": false,
+        "timeout": 60,
+        "description": "Verify all resources were successfully destroyed"
+      },
+      {
+        "name": "clean-state-files",
+        "command": "bash ./scripts/archive-state-files.sh ${FABER_CLOUD_ENV}",
+        "critical": false,
+        "timeout": 30,
+        "description": "Archive Terraform state files for destroyed environment"
+      },
+      {
+        "name": "notify-destroy-complete",
+        "command": "curl -X POST $SLACK_WEBHOOK -d '{\"text\":\"🗑️ Destroy complete: ${FABER_CLOUD_PROJECT} (${FABER_CLOUD_ENV})\"}'",
+        "critical": false,
+        "timeout": 10,
+        "description": "Notify team that destruction is complete"
+      }
+    ]
+  },
+
+  "_hook_documentation": {
+    "description": "Hook system configuration for faber-cloud lifecycle events",
+    "hook_types": [
+      "pre-plan: Before terraform plan",
+      "post-plan: After terraform plan succeeds",
+      "pre-deploy: Before terraform apply",
+      "post-deploy: After terraform apply succeeds",
+      "pre-destroy: Before terraform destroy",
+      "post-destroy: After terraform destroy succeeds"
+    ],
+    "hook_properties": {
+      "name": "Human-readable hook name (required)",
+      "command": "Shell command to execute (required)",
+      "critical": "If true (default), failure blocks operation. If false, logs warning and continues.",
+      "timeout": "Max execution time in seconds (default: 300)",
+      "environments": "Array of environments where hook applies (optional, default: all environments)",
+      "description": "Optional description for documentation"
+    },
+    "environment_variables": {
+      "FABER_CLOUD_ENV": "Environment name (test, prod, etc.)",
+      "FABER_CLOUD_TERRAFORM_DIR": "Terraform working directory",
+      "FABER_CLOUD_PROJECT": "Project name",
+      "FABER_CLOUD_SUBSYSTEM": "Subsystem name",
+      "FABER_CLOUD_OPERATION": "Operation type (plan, deploy, destroy)",
+      "FABER_CLOUD_HOOK_TYPE": "Hook type (pre-plan, post-deploy, etc.)",
+      "AWS_PROFILE": "Active AWS profile for this environment"
+    },
+    "common_use_cases": [
+      "Build Lambda functions or compile assets before deployment",
+      "Run smoke tests or health checks after deployment",
+      "Send notifications to Slack/Teams/PagerDuty",
+      "Estimate costs from Terraform plan",
+      "Run security scans (Checkov, tfsec) on plans",
+      "Back up data before destroying resources",
+      "Warm up Lambda functions after deployment",
+      "Generate documentation after changes",
+      "Validate prerequisites before operations",
+      "Clean up or archive state files after destruction"
+    ],
+    "best_practices": [
+      "Use critical: true for hooks that must succeed (builds, backups, smoke tests)",
+      "Use critical: false for nice-to-have hooks (notifications, documentation, cost estimates)",
+      "Set appropriate timeouts (builds: 300s, API calls: 30s, backups: 600s)",
+      "Use environments array to run hooks only in specific environments",
+      "Keep hook commands simple - delegate complex logic to scripts",
+      "Include descriptive names and descriptions for maintainability",
+      "Test hooks in test environment before deploying to production",
+      "Use environment variables ($FABER_CLOUD_ENV, etc.) for dynamic behavior"
+    ]
+  }
+}

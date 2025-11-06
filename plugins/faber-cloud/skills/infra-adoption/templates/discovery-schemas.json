@@ -1,0 +1,302 @@
+{
+  "terraform_discovery": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Terraform Infrastructure Discovery Report",
+    "type": "object",
+    "required": ["discovered", "timestamp"],
+    "properties": {
+      "discovered": {
+        "type": "boolean",
+        "description": "Whether Terraform infrastructure was found"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp of discovery"
+      },
+      "terraform_directories": {
+        "type": "array",
+        "description": "List of discovered Terraform directories",
+        "items": {
+          "type": "object",
+          "properties": {
+            "directory": {
+              "type": "string",
+              "description": "Path to Terraform directory"
+            },
+            "structure": {
+              "type": "string",
+              "enum": ["flat", "modular", "multi-environment"],
+              "description": "Infrastructure structure type"
+            },
+            "terraform_version": {
+              "type": "string",
+              "description": "Required Terraform version"
+            },
+            "backend": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["local", "s3", "remote", "azurerm", "gcs"],
+                  "description": "Backend type"
+                },
+                "config": {
+                  "type": "object",
+                  "description": "Backend-specific configuration"
+                }
+              }
+            },
+            "var_files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Variable files found"
+            },
+            "modules": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Module names found"
+            },
+            "resource_count": {
+              "type": "integer",
+              "description": "Estimated number of resources"
+            },
+            "environment_strategy": {
+              "type": "string",
+              "enum": ["single-environment", "tfvars-files", "workspaces", "directories"],
+              "description": "How environments are separated"
+            }
+          }
+        }
+      },
+      "summary": {
+        "type": "object",
+        "properties": {
+          "total_directories": {
+            "type": "integer"
+          },
+          "primary_directory": {
+            "type": "string"
+          },
+          "primary_structure": {
+            "type": "string"
+          },
+          "total_resources": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+
+  "aws_profiles_discovery": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "AWS Profiles Discovery Report",
+    "type": "object",
+    "required": ["discovered", "timestamp", "project_name"],
+    "properties": {
+      "discovered": {
+        "type": "boolean",
+        "description": "Whether AWS profiles were found"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "project_name": {
+        "type": "string",
+        "description": "Project name used for filtering"
+      },
+      "profiles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Profile name"
+            },
+            "region": {
+              "type": "string",
+              "description": "Default AWS region"
+            },
+            "credential_source": {
+              "type": "string",
+              "enum": ["static", "sso", "assume-role", "credential-process"],
+              "description": "How credentials are sourced"
+            },
+            "sso_start_url": {
+              "type": "string",
+              "description": "SSO start URL if using SSO"
+            },
+            "environment": {
+              "type": "string",
+              "enum": ["test", "prod", "staging", "dev", "discover", "unknown"],
+              "description": "Detected environment"
+            },
+            "project_related": {
+              "type": "boolean",
+              "description": "Whether profile appears related to project"
+            }
+          }
+        }
+      },
+      "naming_pattern": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "enum": ["project-environment", "environment-project", "custom"],
+            "description": "Detected naming pattern"
+          },
+          "separator": {
+            "type": "string",
+            "description": "Separator character (- or _)"
+          }
+        }
+      },
+      "summary": {
+        "type": "object",
+        "properties": {
+          "total_profiles": {
+            "type": "integer"
+          },
+          "project_related_profiles": {
+            "type": "integer"
+          },
+          "environments_detected": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "most_common_region": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+
+  "custom_agents_discovery": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Custom Agents & Scripts Discovery Report",
+    "type": "object",
+    "required": ["discovered", "timestamp"],
+    "properties": {
+      "discovered": {
+        "type": "boolean",
+        "description": "Whether custom agents were found"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "agent_directories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Directories containing custom agents/scripts"
+      },
+      "files": {
+        "type": "array",
+        "description": "Discovered agent and script files",
+        "items": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Relative path to file"
+            },
+            "name": {
+              "type": "string",
+              "description": "File name"
+            },
+            "purposes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["infrastructure", "deploy", "audit", "validate", "debug", "teardown", "configure", "monitor", "unknown"]
+              },
+              "description": "Detected purposes"
+            },
+            "faber_cloud_mappings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "faber_cloud_feature": {
+                    "type": "string",
+                    "description": "Equivalent faber-cloud feature"
+                  },
+                  "hook_alternative": {
+                    "type": "string",
+                    "description": "Hook types where this could be integrated"
+                  }
+                }
+              },
+              "description": "Mapping to faber-cloud features"
+            },
+            "version_controlled": {
+              "type": "boolean",
+              "description": "Whether file is tracked in git"
+            },
+            "dependencies": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Detected dependencies"
+            },
+            "size_bytes": {
+              "type": "integer",
+              "description": "File size in bytes"
+            }
+          }
+        }
+      },
+      "summary": {
+        "type": "object",
+        "properties": {
+          "total_directories": {
+            "type": "integer"
+          },
+          "total_files": {
+            "type": "integer"
+          },
+          "version_controlled": {
+            "type": "integer"
+          },
+          "not_version_controlled": {
+            "type": "integer"
+          },
+          "purposes_detected": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "files_by_purpose": {
+            "type": "object",
+            "description": "Count of files for each purpose"
+          }
+        }
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Migration recommendations"
+      }
+    }
+  }
+}

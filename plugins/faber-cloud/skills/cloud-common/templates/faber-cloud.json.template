@@ -64,5 +64,15 @@
     "backend": "s3",
     "s3_bucket": "{{PROJECT_NAME}}-devops-logs",
     "local_cache_days": 7
+  },
+
+  "hooks": {
+    "_comment": "Configure lifecycle hooks here. See plugins/faber-cloud/templates/config/hooks-example.json for examples",
+    "pre-plan": [],
+    "post-plan": [],
+    "pre-deploy": [],
+    "post-deploy": [],
+    "pre-destroy": [],
+    "post-destroy": []
   }
 }
