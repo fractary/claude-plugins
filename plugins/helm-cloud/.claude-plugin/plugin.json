@@ -2,13 +2,6 @@
   "name": "fractary-helm-cloud",
   "version": "1.0.0",
   "description": "Runtime operations and monitoring for cloud infrastructure",
-  "dependencies": {
-    "fractary-faber-cloud": "^1.0.0"
-  },
-  "monitors": {
-    "domain": "infrastructure",
-    "capabilities": ["health", "logs", "metrics", "remediation", "audit"]
-  },
   "commands": "./commands/",
   "agents": [
     "./agents/ops-manager.md"
