@@ -114,8 +114,9 @@ fi
 # ============================================================================
 test_start "migrate-specs.sh migrates specs to /specs"
 
-# Create /specs directory
+# Create /specs directory and mark it as a test directory
 mkdir -p /specs
+touch /specs/.test-migration-marker-$$
 
 # Run without --dry-run
 ../tools/migrate-specs.sh . > /dev/null 2>&1
@@ -237,7 +238,13 @@ fi
 # ============================================================================
 cd ..
 rm -rf "$TEST_DIR"
-rm -rf /specs 2>/dev/null || true
+
+# Only remove /specs if it contains our test marker (safety guard)
+if [[ -f "/specs/.test-migration-marker-$$" ]]; then
+    rm -rf /specs
+elif [[ -d "/specs" ]]; then
+    echo "Warning: /specs exists but wasn't created by this test run - not removing"
+fi
 
 # ============================================================================
 # Summary

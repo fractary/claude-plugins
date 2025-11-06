@@ -49,12 +49,23 @@ while IFS= read -r DOC; do
             echo "✓ Would add codex_sync to $(basename "$DOC") (existing front matter)"
         else
             # Create temp file with codex_sync added
-            awk '
+            if ! awk '
                 BEGIN { added=0 }
                 /^---$/ && added==0 { print; print "codex_sync: true"; added=1; next }
                 { print }
-            ' "$DOC" > "${DOC}.tmp"
-            mv "${DOC}.tmp" "$DOC"
+            ' "$DOC" > "${DOC}.tmp"; then
+                echo "✗ Error: Failed to process $(basename "$DOC") with awk"
+                rm -f "${DOC}.tmp"
+                continue
+            fi
+
+            # Move temp file to original with error checking
+            if ! mv "${DOC}.tmp" "$DOC"; then
+                echo "✗ Error: Failed to update $(basename "$DOC")"
+                rm -f "${DOC}.tmp"
+                continue
+            fi
+
             echo "✓ Added codex_sync to $(basename "$DOC") (existing front matter)"
         fi
         ((UPDATED++))
@@ -64,15 +75,34 @@ while IFS= read -r DOC; do
         if [[ "$DRY_RUN" == "true" ]]; then
             echo "✓ Would add front matter to $(basename "$DOC") (new front matter)"
         else
-            cat > "${DOC}.tmp" <<EOF
+            # Create temp file with new front matter
+            if ! cat > "${DOC}.tmp" <<EOF
 ---
 title: "$TITLE"
 codex_sync: true
 ---
 
 EOF
-            cat "$DOC" >> "${DOC}.tmp"
-            mv "${DOC}.tmp" "$DOC"
+            then
+                echo "✗ Error: Failed to write front matter for $(basename "$DOC")"
+                rm -f "${DOC}.tmp"
+                continue
+            fi
+
+            # Append original content with error checking
+            if ! cat "$DOC" >> "${DOC}.tmp"; then
+                echo "✗ Error: Failed to append content for $(basename "$DOC")"
+                rm -f "${DOC}.tmp"
+                continue
+            fi
+
+            # Move temp file to original with error checking
+            if ! mv "${DOC}.tmp" "$DOC"; then
+                echo "✗ Error: Failed to update $(basename "$DOC")"
+                rm -f "${DOC}.tmp"
+                continue
+            fi
+
             echo "✓ Added front matter to $(basename "$DOC") (new front matter)"
         fi
         ((UPDATED++))

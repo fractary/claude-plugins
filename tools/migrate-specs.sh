@@ -41,25 +41,24 @@ echo
 
 # Create target directory (not in dry-run)
 if [[ "$DRY_RUN" == "false" ]]; then
-    mkdir -p "$TARGET_DIR"
-fi
-
-# Find spec files
-SPECS=$(find "$SPEC_DIR" -type f \( -name "SPEC-*.md" -o -name "spec-*.md" \) 2>/dev/null || true)
-
-if [[ -z "$SPECS" ]]; then
-    echo "No spec files found in $SPEC_DIR"
-    exit 0
+    mkdir -p "$TARGET_DIR" || {
+        echo "Error: Failed to create target directory: $TARGET_DIR"
+        exit 1
+    }
 fi
 
 MIGRATED=0
 SKIPPED=0
 
-for SPEC in $SPECS; do
+# Use null-terminated strings to handle filenames with spaces/special chars
+while IFS= read -r -d '' SPEC; do
     BASENAME=$(basename "$SPEC")
 
     # Skip if already in target directory
-    if [[ "$(dirname "$(realpath "$SPEC")")" == "$(realpath "$TARGET_DIR")" ]]; then
+    SPEC_DIR_REAL=$(dirname "$(realpath "$SPEC")")
+    TARGET_DIR_REAL=$(realpath "$TARGET_DIR" 2>/dev/null || echo "$TARGET_DIR")
+
+    if [[ "$SPEC_DIR_REAL" == "$TARGET_DIR_REAL" ]]; then
         echo "⊘ Skipping $BASENAME (already in target directory)"
         ((SKIPPED++))
         continue
@@ -69,13 +68,14 @@ for SPEC in $SPECS; do
     ISSUE=$(echo "$BASENAME" | grep -oP '\d+' | head -1 || echo "unknown")
 
     # Add fractary-spec front matter
-    if ! grep -q "^---$" "$SPEC"; then
+    if ! grep -q "^---$" "$SPEC" 2>/dev/null; then
         CREATED_DATE=$(get_file_date "$SPEC")
 
         if [[ "$DRY_RUN" == "true" ]]; then
             echo "✓ Would migrate $BASENAME (issue #${ISSUE})"
         else
-            cat > "${TARGET_DIR}/${BASENAME}.new" <<EOF
+            # Create front matter and content with error checking
+            if ! cat > "${TARGET_DIR}/${BASENAME}.new" <<EOF
 ---
 spec_id: $(basename "$BASENAME" .md)
 issue_number: ${ISSUE}
@@ -86,8 +86,24 @@ migration_date: $(date +%Y-%m-%d)
 ---
 
 EOF
-            cat "$SPEC" >> "${TARGET_DIR}/${BASENAME}.new"
-            mv "${TARGET_DIR}/${BASENAME}.new" "${TARGET_DIR}/${BASENAME}"
+            then
+                echo "✗ Error: Failed to write front matter for $BASENAME"
+                continue
+            fi
+
+            # Append original content with error checking
+            if ! cat "$SPEC" >> "${TARGET_DIR}/${BASENAME}.new"; then
+                echo "✗ Error: Failed to append content for $BASENAME"
+                rm -f "${TARGET_DIR}/${BASENAME}.new"
+                continue
+            fi
+
+            # Move to final location with error checking
+            if ! mv "${TARGET_DIR}/${BASENAME}.new" "${TARGET_DIR}/${BASENAME}"; then
+                echo "✗ Error: Failed to move migrated file for $BASENAME"
+                rm -f "${TARGET_DIR}/${BASENAME}.new"
+                continue
+            fi
 
             echo "✓ Migrated $BASENAME (issue #${ISSUE})"
         fi
@@ -96,12 +112,22 @@ EOF
         if [[ "$DRY_RUN" == "true" ]]; then
             echo "✓ Would copy $BASENAME (already has front matter)"
         else
-            cp "$SPEC" "$TARGET_DIR/"
+            # Copy with error checking
+            if ! cp "$SPEC" "$TARGET_DIR/"; then
+                echo "✗ Error: Failed to copy $BASENAME"
+                continue
+            fi
             echo "✓ Copied $BASENAME (already has front matter)"
         fi
         ((MIGRATED++))
     fi
-done
+done < <(find "$SPEC_DIR" -type f \( -name "SPEC-*.md" -o -name "spec-*.md" \) -print0 2>/dev/null)
+
+# Check if any files were found
+if ((MIGRATED == 0 && SKIPPED == 0)); then
+    echo "No spec files found in $SPEC_DIR"
+    exit 0
+fi
 
 echo
 echo "=== Migration Summary ==="
