@@ -21,23 +21,32 @@ You are the init command for the fractary-file plugin. Your role is to parse arg
 
 <INPUTS>
 Command-line arguments (all optional):
-- `--handler <provider>`: Configure specific handler (local|r2|s3|gcs|gdrive)
+- `--handlers <providers>`: Configure specific handler(s), comma-separated (local|r2|s3|gcs|gdrive)
+  - Single: `--handlers local`
+  - Multiple: `--handlers local,s3,r2`
+- `--handler <provider>`: (Deprecated, use --handlers) Configure single handler
 - `--non-interactive`: Skip prompts, use defaults or environment variables
 - `--test`: Test connection after configuration (default: true)
 
 Examples:
 ```bash
-# Interactive setup (local by default)
+# Interactive setup (prompts for handler selection)
 /fractary-file:init
 
-# Setup S3 for this project
-/fractary-file:init --handler s3
+# Setup S3 only
+/fractary-file:init --handlers s3
+
+# Setup multiple handlers (local and S3)
+/fractary-file:init --handlers local,s3
+
+# Setup all cloud handlers
+/fractary-file:init --handlers r2,s3,gcs
 
 # Non-interactive setup using environment variables
-/fractary-file:init --handler r2 --non-interactive
+/fractary-file:init --handlers r2,s3 --non-interactive
 
 # Setup without connection test
-/fractary-file:init --handler local --no-test
+/fractary-file:init --handlers local --no-test
 ```
 </INPUTS>
 
@@ -52,6 +61,9 @@ Display welcome banner:
 
 This wizard will help you configure file storage for your project.
 
+You can configure multiple storage providers and choose a default.
+Different files can use different storage locations as needed.
+
 Default: Local filesystem storage (zero configuration required)
 Supported: Local, Cloudflare R2, AWS S3, Google Cloud Storage, Google Drive
 
@@ -62,14 +74,17 @@ Press Ctrl+C at any time to cancel.
 ## Step 2: Parse Arguments
 
 Extract from user input:
-- `handler`: specific handler or null (prompts user)
+- `handlers`: comma-separated list or null (prompts user)
+  - Accept both `--handlers` (new) and `--handler` (backwards compatibility)
+  - Convert single handler to list: "s3" → "s3"
 - `interactive`: true or false (default: true)
 - `test_connection`: true or false (default: true)
 
 Validation:
-- If `--handler` specified, validate it's one of: local, r2, s3, gcs, gdrive
-- If invalid handler, show error and exit
-- If `--non-interactive` and no `--handler`, default to "local"
+- If `--handlers` or `--handler` specified, validate each handler is one of: local, r2, s3, gcs, gdrive
+- If invalid handler found, show error listing valid options and exit
+- If `--non-interactive` and no handlers specified, default to "local"
+- Remove duplicates from handler list if any
 
 ## Step 3: Invoke Config Wizard Skill
 
@@ -78,12 +93,14 @@ Use the @agent-fractary-file:file-manager agent to invoke the config-wizard skil
 {
   "skill": "config-wizard",
   "parameters": {
-    "handler": "local|r2|s3|gcs|gdrive|null",
+    "handlers": "local,s3,r2|s3|null",
     "interactive": true|false,
     "test_connection": true|false
   }
 }
 ```
+
+Note: Pass handlers as comma-separated string, not as array.
 
 ## Step 4: Display Results
 
@@ -91,13 +108,16 @@ After skill completes, show final summary:
 ```
 ✅ Configuration complete!
 
-Handler: {provider}
+Configured handlers: {handler1, handler2, ...}
+Default handler: {active_handler}
 Location: {config_path}
 Status: {tested ? "Tested and working" : "Saved (not tested)"}
 
 Next steps:
   • Test connection: /fractary-file:test-connection
   • Upload a file: Use @agent-fractary-file:file-manager
+  • Override handler for specific operations with handler_override
+  • Switch default: /fractary-file:switch-handler
   • View config: /fractary-file:show-config
 
 Documentation: plugins/file/README.md

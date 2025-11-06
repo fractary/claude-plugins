@@ -9,9 +9,11 @@ The `fractary-file` plugin provides a unified interface for file storage operati
 ### Key Features
 
 - **5 Storage Providers**: Local filesystem, Cloudflare R2, AWS S3, Google Cloud Storage, Google Drive
+- **Multiple Handlers Simultaneously**: Configure multiple storage providers and choose per-operation
 - **6 Core Operations**: Upload, download, delete, list, get-url, read
 - **Handler Pattern**: Easy to add new storage providers
 - **Configuration-Driven**: Switch providers via configuration without code changes
+- **Per-Operation Override**: Route specific files to specific storage locations
 - **Environment Variables**: Secure credential management
 - **Zero-Config Default**: Local handler works out of the box
 - **IAM Role Support**: S3 and GCS work without credentials
@@ -87,6 +89,62 @@ Use the @agent-fractary-file:file-manager agent to upload:
   }
 }
 ```
+
+### Multi-Handler Setup
+
+Configure multiple storage providers simultaneously and route different files to different locations:
+
+1. **Initialize with multiple handlers**:
+```bash
+# Interactive setup for multiple providers
+/fractary-file:init
+
+# Or specify handlers directly
+/fractary-file:init --handlers local,s3,r2
+```
+
+2. **Use default handler** (configured as `active_handler`):
+```bash
+Use the @agent-fractary-file:file-manager agent:
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "./document.pdf",
+    "remote_path": "docs/document.pdf"
+  }
+}
+# → Uses active_handler (e.g., local)
+```
+
+3. **Override to specific handler** for specific files:
+```bash
+# Store backups on S3
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "./backup.tar.gz",
+    "remote_path": "backups/2025-01-15.tar.gz"
+  },
+  "handler_override": "s3"
+}
+
+# Store specs on R2 for global CDN
+{
+  "operation": "upload",
+  "parameters": {
+    "local_path": "./spec-123.md",
+    "remote_path": "specs/spec-123.md"
+  },
+  "handler_override": "r2"
+}
+```
+
+4. **Use cases**:
+   - **Local** for temporary/working files
+   - **S3** for long-term archival
+   - **R2** for public CDN content
+   - **GCS** for integration with Google services
+   - **Google Drive** for shared documents
 
 ## Architecture
 
@@ -234,7 +292,9 @@ Stream file contents without downloading (NEW).
 
 ## Configuration
 
-Configuration is stored in `.fractary/plugins/file/config.json`:
+Configuration is stored in `.fractary/plugins/file/config.json`.
+
+**Multi-Handler Support**: You can configure multiple storage providers in a single configuration file. Set `active_handler` to your default, and override per-operation as needed.
 
 ### Configuration File Location (Priority Order)
 
@@ -263,6 +323,32 @@ Configuration is stored in `.fractary/plugins/file/config.json`:
   }
 }
 ```
+
+**Example: Multi-Handler Configuration**
+
+Configure local for working files and S3 for backups:
+
+```json
+{
+  "schema_version": "1.0",
+  "active_handler": "local",
+  "handlers": {
+    "local": {
+      "base_path": "./storage",
+      "create_directories": true,
+      "permissions": "0755"
+    },
+    "s3": {
+      "region": "us-east-1",
+      "bucket_name": "my-backups",
+      "access_key_id": "${AWS_ACCESS_KEY_ID}",
+      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}"
+    }
+  }
+}
+```
+
+Now you can use `local` by default, and override to `s3` for specific files.
 
 ### Handler Configurations
 
