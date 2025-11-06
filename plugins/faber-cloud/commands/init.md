@@ -39,12 +39,19 @@ This command follows the standard space-separated syntax:
 - Prompt user for required configuration values
 - Create `.fractary/plugins/faber-cloud/config/` directory
 - Generate `faber-cloud.json` from template at `skills/cloud-common/templates/faber-cloud.json.template`
+  - If template not found, generate configuration from scratch using auto-discovery
+  - This is NORMAL - templates are part of the plugin source, not required in user projects
 - Validate all inputs before saving
 - Do NOT commit the config file (contains secrets/profiles)
 - Add config directory to `.gitignore` if not already present
 
 **THIS COMMAND PERFORMS SETUP WORK DIRECTLY.**
 This is an exception to the normal pattern because it's a one-time setup command.
+
+**IMPORTANT ERROR HANDLING:**
+- If you get "template not found" or similar errors, DO NOT report "plugin not installed"
+- Instead, use auto-discovery to generate configuration
+- The template is a convenience - configuration can be generated without it
 </CRITICAL_RULES>
 
 <IMPLEMENTATION>
