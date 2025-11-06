@@ -53,6 +53,12 @@ You provide a friendly, interactive experience that makes setup straightforward 
    - ALWAYS warn about missing CLI tools but don't block
    - ALWAYS provide manual setup instructions as fallback
    - NEVER fail silently
+
+6. **Script-Based Execution**
+   - ALWAYS use scripts in scripts/ directory for deterministic operations
+   - NEVER include bash code inline (use scripts instead)
+   - ALWAYS pass script output to user in readable format
+   - NEVER expose internal script implementation details
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -88,89 +94,73 @@ You receive operation requests from:
 
 <WORKFLOW>
 
-**1. DISPLAY WELCOME MESSAGE:**
+**1. DISPLAY START MESSAGE:**
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Fractary Repo Plugin Setup Wizard
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 STARTING: Config Wizard
+Mode: {interactive|non-interactive}
+Force: {true|false}
+───────────────────────────────────────
 ```
 
 **2. DETECT ENVIRONMENT:**
 
-Check if in git repository:
+Execute detection script:
 ```bash
-git rev-parse --git-dir >/dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "✗ Not in a git repository"
-    exit 3
-fi
+DETECTION=$(bash plugins/repo/skills/config-wizard/scripts/detect-environment.sh)
 ```
 
-Get remote URL:
-```bash
-REMOTE_URL=$(git remote get-url origin 2>/dev/null)
-if [ -z "$REMOTE_URL" ]; then
-    echo "⚠ Warning: No git remote configured"
-    echo "You can still configure the plugin, but you'll need to add a remote later."
-fi
-```
-
-Detect platform from remote:
-```bash
-if echo "$REMOTE_URL" | grep -q "github"; then
-    PLATFORM="github"
-elif echo "$REMOTE_URL" | grep -q "gitlab"; then
-    PLATFORM="gitlab"
-elif echo "$REMOTE_URL" | grep -q "bitbucket"; then
-    PLATFORM="bitbucket"
-else
-    # Will prompt user
-    PLATFORM=""
-fi
-```
-
-Detect auth method:
-```bash
-if echo "$REMOTE_URL" | grep -q "^git@\|^ssh://"; then
-    AUTH_METHOD="SSH"
-elif echo "$REMOTE_URL" | grep -q "^https://"; then
-    AUTH_METHOD="HTTPS"
-fi
-```
+The script returns JSON with:
+- `in_git_repo`: boolean
+- `remote_url`: string
+- `platform`: github|gitlab|bitbucket|unknown
+- `auth_method`: SSH|HTTPS|unknown
 
 Display detection results:
 ```
 Detecting environment...
 ✓ Git repository detected
-✓ Remote: git@github.com:owner/repo.git
-✓ Platform: GitHub
-✓ Auth method: SSH
+✓ Remote: {remote_url}
+✓ Platform: {platform}
+✓ Auth method: {auth_method}
+```
+
+If not in git repository (exit code 3):
+```
+✗ Not in a git repository
+
+Initialize a git repository first:
+  git init
+  git remote add origin <url>
+
+Or navigate to an existing repository.
+
+RETURN: {"status": "failure", "error_code": 3, "error": "Not in git repository"}
 ```
 
 **3. CHECK EXISTING CONFIGURATION:**
 
-Check for existing config files:
+Execute check script:
 ```bash
-# Check project-specific config
-if [ -f ".fractary/plugins/repo/config.json" ]; then
-    EXISTING_PROJECT_CONFIG=true
-fi
-
-# Check global config
-if [ -f "$HOME/.fractary/repo/config.json" ]; then
-    EXISTING_GLOBAL_CONFIG=true
-fi
+EXISTING=$(bash plugins/repo/skills/config-wizard/scripts/check-existing-config.sh)
 ```
+
+The script returns JSON with:
+- `project_config_exists`: boolean
+- `project_config_path`: string
+- `global_config_exists`: boolean
+- `global_config_path`: string
 
 If config exists and not --force:
 ```
 ⚠ Configuration already exists at:
-  ~/.fractary/repo/config.json
+  {config_path}
+
+**Note:** A backup will be created before making changes.
 
 Options:
-  1. Update existing config (merge changes)
-  2. Overwrite with new config
+  1. Update existing config (merge changes, backup created)
+  2. Overwrite with new config (backup created)
   3. Cancel and keep existing
 
 Choice [1-3]:
@@ -178,7 +168,7 @@ Choice [1-3]:
 
 **4. PLATFORM SELECTION:**
 
-If platform not detected or user wants to override:
+If platform not detected (`platform == "unknown"`) or user wants to override:
 ```
 Select source control platform:
   1. GitHub (github.com or Enterprise)
@@ -193,9 +183,10 @@ Validate selection and set PLATFORM variable.
 **5. AUTHENTICATION SETUP:**
 
 **For SSH method:**
+Display authentication requirements:
 ```
 Current setup:
-  Remote URL: git@github.com:owner/repo.git
+  Remote URL: {remote_url}
   Method: SSH (git push/pull use SSH keys)
 
 You still need a Personal Access Token for API operations:
@@ -204,84 +195,103 @@ You still need a Personal Access Token for API operations:
   • Commenting on PRs
   • Review operations
 
-Do you have a GITHUB_TOKEN environment variable set? (y/n):
+Environment variable check:
+  • GitHub: GITHUB_TOKEN
+  • GitLab: GITLAB_TOKEN
+  • Bitbucket: BITBUCKET_TOKEN and BITBUCKET_USERNAME
 ```
 
 **For HTTPS method:**
 ```
 Current setup:
-  Remote URL: https://github.com/owner/repo.git
+  Remote URL: {remote_url}
   Method: HTTPS (requires token for all operations)
 
 Personal Access Token is required for:
   • Git operations (push, pull, fetch)
   • API operations (PRs, issues, comments)
 
-Do you have a GITHUB_TOKEN environment variable set? (y/n):
+Environment variable check:
+  • GitHub: GITHUB_TOKEN
+  • GitLab: GITLAB_TOKEN
+  • Bitbucket: BITBUCKET_TOKEN and BITBUCKET_USERNAME
 ```
 
-**Token detection:**
-```bash
-# Check for token in environment
-if [ -n "$GITHUB_TOKEN" ]; then
-    echo "✓ Found GITHUB_TOKEN in environment"
-    TOKEN="$GITHUB_TOKEN"
-elif [ -n "$GITLAB_TOKEN" ]; then
-    echo "✓ Found GITLAB_TOKEN in environment"
-    TOKEN="$GITLAB_TOKEN"
-elif [ -n "$BITBUCKET_TOKEN" ]; then
-    echo "✓ Found BITBUCKET_TOKEN in environment"
-    TOKEN="$BITBUCKET_TOKEN"
-else
-    # Prompt for token
-    echo "Enter ${PLATFORM^^} Personal Access Token (or press Enter to use environment):"
-    # Note: In real implementation, this would use secure input
-fi
-```
+Check for token in environment variables and display found/not found status.
 
 **6. VALIDATE TOKEN:**
 
-Test token with platform API:
+Execute platform-specific validation script:
 
 **GitHub:**
 ```bash
-gh auth status 2>/dev/null
-if [ $? -eq 0 ]; then
-    echo "✓ GitHub authentication valid"
-    USER=$(gh api user --jq .login)
-    echo "✓ User: $USER"
-else
-    echo "⚠ GitHub CLI not authenticated"
-    echo "Run: gh auth login"
-fi
+VALIDATION=$(bash plugins/repo/skills/config-wizard/scripts/validate-token-github.sh)
 ```
 
 **GitLab:**
 ```bash
-glab auth status 2>/dev/null
-if [ $? -eq 0 ]; then
-    echo "✓ GitLab authentication valid"
-else
-    echo "⚠ GitLab CLI not authenticated"
-fi
+VALIDATION=$(bash plugins/repo/skills/config-wizard/scripts/validate-token-gitlab.sh)
 ```
 
 **Bitbucket:**
 ```bash
-# Bitbucket doesn't have official CLI, test with API
-curl -s -u "$BITBUCKET_USERNAME:$BITBUCKET_TOKEN" \
-  https://api.bitbucket.org/2.0/user | jq -r .username
+VALIDATION=$(bash plugins/repo/skills/config-wizard/scripts/validate-token-bitbucket.sh)
 ```
+
+Scripts return JSON with:
+- `valid`: boolean
+- `user`: string
+- `scopes`: string (GitHub only)
+- `cli_available`: boolean
 
 Display validation results:
 ```
 Validating token...
 ✓ Token is valid
-✓ Scopes: repo, workflow, read:org
-✓ User: username
+✓ User: {user}
+✓ Scopes: {scopes}  (if applicable)
+✓ CLI available: {yes|no}
 ```
 
-**7. CONFIGURATION SCOPE:**
+If validation fails (exit code 11):
+```
+✗ Token validation failed
+
+Possible issues:
+  1. Token is invalid or expired
+  2. Token doesn't have required scopes
+  3. Network connectivity issues
+
+Generate a new token:
+  • GitHub: https://github.com/settings/tokens (scopes: repo, workflow, read:org)
+  • GitLab: https://gitlab.com/-/profile/personal_access_tokens (scopes: api, write_repository)
+  • Bitbucket: https://bitbucket.org/account/settings/app-passwords/
+
+RETURN: {"status": "failure", "error_code": 11, "error": "Token validation failed"}
+```
+
+**7. ENVIRONMENT VARIABLE PERSISTENCE:**
+
+If token found in environment, verify persistence:
+```
+⚠ Token Environment Variable Detected
+
+The {PLATFORM}_TOKEN environment variable is currently set.
+To ensure this persists across sessions, add it to your shell profile:
+
+  • bash: echo 'export {PLATFORM}_TOKEN="your_token"' >> ~/.bashrc
+  • zsh: echo 'export {PLATFORM}_TOKEN="your_token"' >> ~/.zshrc
+  • fish: echo 'set -Ux {PLATFORM}_TOKEN "your_token"' | fish
+
+Or use a secure credential manager:
+  • macOS: Use keychain or 'gh auth login'
+  • Linux: Use gnome-keyring or 'gh auth login'
+  • Windows: Use Windows Credential Manager
+
+Continue with setup? (y/n):
+```
+
+**8. CONFIGURATION SCOPE:**
 
 If not specified in parameters, prompt:
 ```
@@ -289,7 +299,7 @@ Where should the configuration be stored?
 
   1. Project-specific (.fractary/plugins/repo/config.json)
      - Only for this repository
-     - Can be committed to version control
+     - Can be committed to version control (see .gitignore guidance below)
      - Overrides user-global config
 
   2. User-global (~/.fractary/repo/config.json)
@@ -300,154 +310,142 @@ Where should the configuration be stored?
 Choice [1-2]:
 ```
 
-Set config path based on choice:
-```bash
-if [ "$SCOPE" = "project" ]; then
-    CONFIG_PATH=".fractary/plugins/repo/config.json"
-    mkdir -p .fractary/plugins/repo
-else
-    CONFIG_PATH="$HOME/.fractary/repo/config.json"
-    mkdir -p "$HOME/.fractary/repo"
-fi
+**9. .GITIGNORE GUIDANCE:**
+
+If scope is "project", provide .gitignore guidance:
+```
+📋 .gitignore Guidance for Project-Specific Config
+
+The .fractary/ directory will be created in your project root.
+
+Recommended .gitignore patterns:
+
+  Option 1: Ignore all config (recommended for public repos)
+    .fractary/
+
+  Option 2: Ignore only sensitive data
+    .fractary/plugins/repo/config.json
+    .fractary/**/*.backup
+
+  Option 3: Commit config template (team projects)
+    # Add to .gitignore:
+    .fractary/**/*.backup
+    # But commit config.example.json with token placeholder
+
+Current .gitignore status: {exists|missing}
+
+Add .fractary/ to .gitignore? (y/n):
 ```
 
-**8. ADDITIONAL OPTIONS:**
+If user says yes, append to .gitignore:
+```bash
+echo ".fractary/" >> .gitignore
+```
+
+**10. ADDITIONAL OPTIONS:**
 
 In interactive mode, prompt for configuration options:
 ```
 Additional configuration:
 
-  Default branch [main]:
-  Protected branches [main,master,production]:
-  Merge strategy (no-ff/squash/ff-only) [no-ff]:
-  Push sync strategy (auto-merge/pull-rebase/pull-merge/manual/fail) [auto-merge]:
+  Default branch [{main}]:
+  Protected branches [{main,master,production}]:
+  Merge strategy (no-ff/squash/ff-only) [{no-ff}]:
+  Push sync strategy (auto-merge/pull-rebase/pull-merge/manual/fail) [{auto-merge}]:
 
 Use defaults? (y/n):
 ```
 
-If user says yes, use defaults. Otherwise, prompt for each option.
+If user says no, prompt for each option individually.
 
 **Push Sync Strategy explanation:**
 ```
 Push Sync Strategy Options:
-  • auto-merge: Automatically pull and merge when branch is out of sync (recommended)
+  • auto-merge: Automatically pull and merge when branch is out of sync (recommended for solo)
   • pull-rebase: Automatically pull and rebase local commits
   • pull-merge: Pull with explicit merge commit
   • manual: Prompt for action when out of sync
-  • fail: Abort push if out of sync
+  • fail: Abort push if out of sync (safest for teams)
 ```
 
-**9. CREATE CONFIGURATION FILE:**
+**11. CREATE CONFIGURATION FILE:**
 
-Build configuration JSON:
-```json
-{
-  "handlers": {
-    "source_control": {
-      "active": "github",
-      "github": {
-        "token": "$GITHUB_TOKEN"
-      }
-    }
-  },
-  "defaults": {
-    "default_branch": "main",
-    "protected_branches": ["main", "master", "production"],
-    "merge_strategy": "no-ff",
-    "push_sync_strategy": "auto-merge"
-  }
-}
-```
-
-**Backup existing config if present:**
+Execute creation script:
 ```bash
-if [ -f "$CONFIG_PATH" ]; then
-    cp "$CONFIG_PATH" "${CONFIG_PATH}.backup"
-    echo "✓ Backed up existing config to ${CONFIG_PATH}.backup"
-fi
+CREATE_RESULT=$(bash plugins/repo/skills/config-wizard/scripts/create-config.sh \
+  --platform "$PLATFORM" \
+  --scope "$SCOPE" \
+  --default-branch "$DEFAULT_BRANCH" \
+  --protected-branches "$PROTECTED_BRANCHES" \
+  --merge-strategy "$MERGE_STRATEGY" \
+  --push-sync-strategy "$PUSH_SYNC_STRATEGY" \
+  $([ "$FORCE" = true ] && echo "--force"))
 ```
 
-**Write configuration:**
+The script:
+- Creates directory structure
+- Backs up existing config (unless --force)
+- Writes configuration JSON
+- Sets permissions to 600
+- Returns JSON with status and paths
+
+Display creation results:
+```
+Creating configuration...
+✓ Configuration file created: {config_path}
+✓ Backup created: {backup_path} (if applicable)
+✓ Permissions set: 600 (owner read/write only)
+```
+
+**12. VALIDATE SETUP:**
+
+Execute connectivity test script:
 ```bash
-cat > "$CONFIG_PATH" <<EOF
-{
-  "handlers": {
-    "source_control": {
-      "active": "$PLATFORM",
-      "$PLATFORM": {
-        "token": "\$$PLATFORM_TOKEN_VAR"
-      }
-    }
-  },
-  "defaults": {
-    "default_branch": "$DEFAULT_BRANCH",
-    "protected_branches": $(echo "$PROTECTED_BRANCHES" | jq -R 'split(",")'),
-    "merge_strategy": "$MERGE_STRATEGY",
-    "push_sync_strategy": "$PUSH_SYNC_STRATEGY"
-  }
-}
-EOF
+CONNECTIVITY=$(bash plugins/repo/skills/config-wizard/scripts/test-connectivity.sh \
+  --platform "$PLATFORM" \
+  --auth-method "$AUTH_METHOD")
 ```
 
-**Set appropriate permissions:**
-```bash
-chmod 600 "$CONFIG_PATH"  # Only owner can read/write
+The script returns JSON with:
+- `ssh_connected`: boolean
+- `api_connected`: boolean
+- `cli_available`: boolean
+
+Display validation results:
+```
+Testing connectivity...
+✓ SSH connection: {verified|not tested}
+✓ API connection: {verified|failed}
+✓ CLI available: {gh|glab|none}
 ```
 
-**10. VALIDATE SETUP:**
+Warnings for missing/failed items:
+```
+⚠ SSH connection failed
+  Setup SSH keys: ssh-keygen -t ed25519
+  Add to platform: https://github.com/settings/keys
 
-Run validation checks:
-
-**Test API connectivity:**
-```bash
-case "$PLATFORM" in
-  github)
-    gh auth status && echo "✓ GitHub CLI available" || echo "⚠ GitHub CLI not available"
-    ;;
-  gitlab)
-    glab auth status && echo "✓ GitLab CLI available" || echo "⚠ GitLab CLI not available"
-    ;;
-  bitbucket)
-    echo "⚠ Bitbucket CLI not available (uses curl for API)"
-    ;;
-esac
+⚠ {Platform} CLI not installed
+  The plugin can work without CLI but some features are limited.
+  Install: brew install gh (macOS) or see docs
 ```
 
-**Test SSH connectivity (if SSH method):**
-```bash
-if [ "$AUTH_METHOD" = "SSH" ]; then
-    case "$PLATFORM" in
-      github)
-        ssh -T git@github.com 2>&1 | grep -q "successfully authenticated" && \
-          echo "✓ SSH connection verified" || echo "⚠ SSH connection failed"
-        ;;
-      gitlab)
-        ssh -T git@gitlab.com 2>&1 | grep -q "Welcome to GitLab" && \
-          echo "✓ SSH connection verified" || echo "⚠ SSH connection failed"
-        ;;
-      bitbucket)
-        ssh -T git@bitbucket.org 2>&1 | grep -q "authenticated" && \
-          echo "✓ SSH connection verified" || echo "⚠ SSH connection failed"
-        ;;
-    esac
-fi
-```
-
-**11. DISPLAY SUMMARY:**
+**13. DISPLAY SUMMARY:**
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Configuration Summary
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Platform: GitHub
-Auth: SSH + Token
-Config: ~/.fractary/repo/config.json
+Platform: {platform}
+Auth: {auth_method} + Token
+Config: {config_path}
+Scope: {project|global}
 
 ✓ Configuration file created
-✓ GitHub token validated
-✓ SSH connection verified
-✓ gh CLI available
+✓ {Platform} token validated
+✓ SSH connection {verified|not tested}
+✓ {Platform} CLI {available|not available}
 
 Setup complete! Try these commands:
 
@@ -456,10 +454,10 @@ Setup complete! Try these commands:
   /repo:push --set-upstream
   /repo:pr create "feat: New feature"
 
-Documentation: plugins/repo/docs/setup/github-setup.md
+Documentation: plugins/repo/docs/
 ```
 
-**12. DISPLAY COMPLETION MESSAGE:**
+**14. DISPLAY COMPLETION MESSAGE:**
 
 ```
 ✅ COMPLETED: Config Wizard
@@ -467,11 +465,22 @@ Documentation: plugins/repo/docs/setup/github-setup.md
 Configuration file: {config_path}
 Platform: {platform}
 Auth method: {auth_method}
+Backup created: {yes|no}
+
+Environment variables required:
+  • {PLATFORM}_TOKEN must be set in your shell
+  • Add to ~/.bashrc, ~/.zshrc, or use CLI login
 
 Next steps:
-  1. Try creating a branch: /repo:branch create test-123 "test"
-  2. Review configuration: cat {config_path}
-  3. See documentation: plugins/repo/docs/
+  1. Verify token persists: echo $GITHUB_TOKEN
+  2. Test repo commands: /repo:branch create test-123 "test"
+  3. Review configuration: cat {config_path}
+  4. See documentation: plugins/repo/docs/
+
+Troubleshooting:
+  • Restore backup: mv {config_path}.backup {config_path}
+  • Reconfigure: /repo:init --force
+  • Manual setup: plugins/repo/docs/setup/
 ───────────────────────────────────────
 ```
 
@@ -489,18 +498,19 @@ The configuration is complete when:
 
 2. **Authentication Validated:**
    - Token validated with platform API
-   - Environment variable or token stored correctly
+   - Environment variable persistence verified
    - SSH connectivity tested (if SSH method)
 
 3. **User Informed:**
    - Setup summary displayed
+   - Environment variable persistence guidance provided
+   - .gitignore guidance provided (for project scope)
    - Next steps provided
    - Documentation references given
-   - Troubleshooting guidance available
 
 4. **No Errors:**
    - All validation checks passed
-   - No connectivity issues
+   - No connectivity issues (or warnings shown)
    - Configuration loadable by plugin
 
 </COMPLETION_CRITERIA>
@@ -555,24 +565,25 @@ Initialize a git repository first:
 
 Or navigate to an existing repository.
 
-Exit code: 3
+RETURN: {"status": "failure", "error_code": 3, "error": "Not in git repository"}
 ```
 
 **Token Validation Failed:**
 ```
-✗ Error: GitHub token validation failed
+✗ Error: {Platform} token validation failed
 
 Possible issues:
   1. Token is invalid or expired
   2. Token doesn't have required scopes (repo, workflow)
   3. Network connectivity issues
+  4. Environment variable not set
 
 Generate a new token:
-  https://github.com/settings/tokens
+  • GitHub: https://github.com/settings/tokens (scopes: repo, workflow, read:org)
+  • GitLab: https://gitlab.com/-/profile/personal_access_tokens
+  • Bitbucket: https://bitbucket.org/account/settings/app-passwords/
 
-Required scopes: repo, workflow, read:org
-
-Exit code: 11
+RETURN: {"status": "failure", "error_code": 11, "error": "Token validation failed"}
 ```
 
 **SSH Not Configured:**
@@ -581,19 +592,20 @@ Exit code: 11
 
 Git operations may fail. Setup SSH:
   1. Generate key: ssh-keygen -t ed25519
-  2. Add to GitHub: https://github.com/settings/keys
-  3. Test: ssh -T git@github.com
+  2. Add to {Platform}: {platform_ssh_url}
+  3. Test: ssh -T git@{platform}.com
 
 Or switch to HTTPS:
-  git remote set-url origin https://github.com/owner/repo.git
+  git remote set-url origin https://{platform}.com/owner/repo.git
 
 Continuing with setup...
 ```
 
 **Configuration Already Exists:**
 ```
-⚠ Configuration already exists at:
-  ~/.fractary/repo/config.json
+⚠ Configuration already exists at: {config_path}
+
+A backup will be created automatically before any changes.
 
 Options:
   1. Update existing config (merge changes)
@@ -602,7 +614,7 @@ Options:
 
 Choice [1-3]:
 
-(If --force flag: automatically overwrite without prompting)
+(If --force flag: automatically overwrite without prompting, backup still created)
 ```
 
 **Network Error:**
@@ -612,30 +624,84 @@ Choice [1-3]:
 Network connectivity issues detected.
 
 Troubleshooting:
-  1. Check internet connection
+  1. Check internet connection: ping {platform}.com
   2. Verify firewall settings
-  3. Test platform access: curl -I https://github.com
+  3. Test platform access: curl -I https://{platform}.com
   4. Try again later
 
-Exit code: 12
+RETURN: {"status": "failure", "error_code": 12, "error": "Network connectivity error"}
 ```
 
 **CLI Tools Missing:**
 ```
-⚠ Warning: GitHub CLI (gh) not installed
+⚠ Warning: {Platform} CLI ({cli_name}) not installed
 
 The plugin can still work using git commands and API calls,
 but some features will be limited.
 
-Install GitHub CLI:
-  • macOS: brew install gh
-  • Linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
-  • Windows: winget install GitHub.cli
+Install {Platform} CLI:
+  • macOS: brew install {cli_name}
+  • Linux: See {install_url}
+  • Windows: winget install {package_name}
 
 Continuing with setup...
 ```
 
 </ERROR_HANDLING>
+
+<SCRIPTS>
+
+**Available Scripts:**
+
+All scripts are in `plugins/repo/skills/config-wizard/scripts/`:
+
+1. **detect-environment.sh**
+   - Detects git repository, remote URL, platform, auth method
+   - Output: JSON with detection results
+   - Exit codes: 0 (success), 3 (not in git repo)
+
+2. **check-existing-config.sh**
+   - Checks for existing project and global configuration files
+   - Output: JSON with paths and existence booleans
+   - Exit codes: 0 (success)
+
+3. **validate-token-github.sh**
+   - Validates GitHub authentication using gh CLI or API
+   - Requires: GITHUB_TOKEN environment variable
+   - Output: JSON with validation results, user, scopes
+   - Exit codes: 0 (valid), 11 (invalid)
+
+4. **validate-token-gitlab.sh**
+   - Validates GitLab authentication using glab CLI or API
+   - Requires: GITLAB_TOKEN environment variable
+   - Output: JSON with validation results, user
+   - Exit codes: 0 (valid), 11 (invalid)
+
+5. **validate-token-bitbucket.sh**
+   - Validates Bitbucket authentication using API
+   - Requires: BITBUCKET_TOKEN and BITBUCKET_USERNAME
+   - Output: JSON with validation results, user
+   - Exit codes: 0 (valid), 11 (invalid)
+
+6. **create-config.sh**
+   - Creates configuration file with proper structure and permissions
+   - Arguments: --platform, --scope, --default-branch, --protected-branches, --merge-strategy, --push-sync-strategy, --force
+   - Output: JSON with config path, backup status
+   - Exit codes: 0 (success), 2 (invalid args), 3 (config error)
+
+7. **test-connectivity.sh**
+   - Tests SSH and API connectivity for platform
+   - Arguments: --platform, --auth-method
+   - Output: JSON with SSH/API/CLI status
+   - Exit codes: 0 (success), 12 (network error)
+
+**Script Usage Pattern:**
+- All scripts output JSON for easy parsing
+- All scripts use consistent exit codes
+- All scripts are idempotent (can be run multiple times)
+- All scripts handle missing environment variables gracefully
+
+</SCRIPTS>
 
 <INTEGRATION>
 
@@ -644,14 +710,15 @@ Continuing with setup...
 - `repo-manager` agent (initialize-configuration operation)
 
 **Calls:**
-- Bash tool - For git commands and validation
-- Read tool - For checking existing configs
-- Write tool - For creating config files
+- Bash tool - To execute scripts in scripts/ directory
+- Read tool - For checking .gitignore (optional)
+- Write tool - For updating .gitignore (optional)
 
 **Creates:**
 - `.fractary/plugins/repo/config.json` (project scope)
 - `~/.fractary/repo/config.json` (global scope)
 - `*.backup` files (when updating existing config)
+- `.gitignore` entry (if user confirms)
 
 **Validates:**
 - Git repository presence
@@ -659,45 +726,9 @@ Continuing with setup...
 - Token validity and scopes
 - SSH connectivity
 - CLI tool availability
+- Environment variable persistence
 
 </INTEGRATION>
-
-<SECURITY_CONSIDERATIONS>
-
-**Token Handling:**
-- NEVER log tokens in plain text
-- ALWAYS mask tokens in output (show as ***)
-- Store tokens as environment variable references in config
-- Set config file permissions to 600 (owner read/write only)
-
-**Config File Security:**
-```json
-{
-  "handlers": {
-    "source_control": {
-      "github": {
-        "token": "$GITHUB_TOKEN"  // Reference to env var, not actual token
-      }
-    }
-  }
-}
-```
-
-**File Permissions:**
-```bash
-chmod 600 config.json  # Only owner can read/write
-```
-
-**Backup Before Changes:**
-- Always create .backup file before modifying existing config
-- Preserve existing config in case of errors
-- Provide rollback instructions
-
-**Validation Before Commitment:**
-- Test token before saving config
-- Validate JSON structure before writing
-- Check connectivity before confirming success
-</SECURITY_CONSIDERATIONS>
 
 <PLATFORM_SPECIFICS>
 
@@ -731,8 +762,13 @@ This skill provides an interactive, user-friendly setup wizard that:
 - **Auto-detects** environment (git repo, platform, auth method)
 - **Validates** credentials before saving
 - **Guides** users through configuration options
+- **Provides** environment variable persistence guidance
+- **Offers** .gitignore recommendations for project configs
 - **Tests** connectivity and CLI availability
 - **Creates** properly secured configuration files
 - **Provides** clear next steps and documentation
+- **Uses** separate script files for all deterministic operations (55-60% context reduction)
 
 The wizard handles both interactive and non-interactive modes, supports all three platforms (GitHub, GitLab, Bitbucket), and provides helpful error messages with solutions when issues occur.
+
+All bash operations are delegated to scripts in the `scripts/` directory, following the 3-layer architecture pattern for maximum context efficiency.
