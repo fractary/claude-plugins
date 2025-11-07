@@ -124,11 +124,86 @@ Hooks are custom scripts that execute at specific lifecycle stages:
 - Notify team
 - Archive logs
 
+## Hook Types: Scripts vs Skills
+
+The faber-cloud hook system supports **two types of hooks**:
+
+### 1. Script Hooks (Traditional)
+
+Execute shell scripts or commands at lifecycle points.
+
+**Best for:**
+- Build steps (compile, package)
+- Simple validations
+- Shell commands and CLI tools
+- Quick one-off operations
+
+**Format:**
+```json
+{
+  "type": "script",
+  "path": "./scripts/build.sh",
+  "required": true,
+  "timeout": 300
+}
+```
+
+### 2. Skill Hooks (New)
+
+Invoke Claude Code skills as hook handlers with structured interfaces.
+
+**Best for:**
+- Complex validation logic
+- Reusable workflows across projects
+- Structured data handling
+- Integration with Claude Code ecosystem
+- Testable, discoverable extensions
+
+**Format:**
+```json
+{
+  "type": "skill",
+  "name": "dataset-validator-deploy-pre",
+  "required": true,
+  "failureMode": "stop",
+  "timeout": 300
+}
+```
+
+**Key Differences:**
+
+| Feature | Script Hooks | Skill Hooks |
+|---------|-------------|-------------|
+| Execution | Shell commands | Claude Code skills |
+| Input | Environment variables | Structured WorkflowContext JSON |
+| Output | Exit codes | Structured WorkflowResult JSON |
+| Discoverability | Hidden in scripts | Visible via `/help` |
+| Testability | Manual testing | `/skill skill-name` |
+| Reusability | Copy files | Install skill package |
+| Type Safety | None | Structured interfaces |
+
+**When to use each:**
+- **Script hooks:** For simple, one-time operations specific to your project
+- **Skill hooks:** For complex, reusable logic you want to test and share
+
+### Backward Compatibility
+
+Legacy string hooks are still supported:
+```json
+{
+  "hooks": {
+    "pre_deploy": ["bash ./scripts/build.sh"]  // Still works!
+  }
+}
+```
+
+These are automatically treated as script hooks with default settings.
+
 ## Configuration
 
 ### Basic Hook Configuration
 
-**faber-cloud.json:**
+**Script Hook (Legacy Format):**
 ```json
 {
   "hooks": {
@@ -144,16 +219,69 @@ Hooks are custom scripts that execute at specific lifecycle stages:
 }
 ```
 
+**Script Hook (New Format):**
+```json
+{
+  "hooks": {
+    "pre_deploy": [
+      {
+        "type": "script",
+        "path": "./scripts/build-lambdas.sh",
+        "name": "build-lambdas",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 600
+      }
+    ]
+  }
+}
+```
+
+**Skill Hook:**
+```json
+{
+  "hooks": {
+    "pre_deploy": [
+      {
+        "type": "skill",
+        "name": "custom-validator",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300
+      }
+    ]
+  }
+}
+```
+
 ### Hook Properties
+
+**Common Properties (all hook types):**
 
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `name` | string | Yes | - | Human-readable hook identifier |
-| `command` | string | Yes | - | Shell command to execute |
-| `critical` | boolean | No | `true` | If true, failure stops workflow |
+| `type` | string | No | (inferred) | "script" or "skill" - type of hook |
+| `name` | string | Conditional | - | Human-readable identifier (required for skills) |
+| `required` | boolean | No | `true` | If true, failure stops workflow |
+| `failureMode` | string | No | `"stop"` | "stop" or "warn" - action on failure |
 | `timeout` | number | No | `300` | Timeout in seconds |
-| `environments` | array | No | `["test", "prod"]` | Environments where hook runs |
+| `environments` | array | No | all | Environments where hook runs |
 | `description` | string | No | - | Documentation for the hook |
+
+**Script Hook Properties:**
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `command` | string | Yes (legacy) | - | Shell command to execute (legacy format) |
+| `path` | string | Yes (new) | - | Path to script file (new format) |
+
+**Skill Hook Properties:**
+
+| Property | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `name` | string | Yes | - | Name of Claude Code skill to invoke |
+
+**Note:** Retry logic for skill hooks is planned for a future release.
 
 ### Template Variables
 
@@ -846,6 +974,167 @@ echo "✓ Documentation generated in ${DOCS_DIR}/"
   }
 }
 ```
+
+### Example 12: Skill Hook for Dataset Validation
+
+**Scenario:** Validate datasets before and after deployment using a reusable Claude Code skill.
+
+**Skill Location:** `.claude/skills/dataset-validator-deploy-pre/SKILL.md`
+
+```markdown
+---
+name: dataset-validator-deploy-pre
+description: Validate datasets before infrastructure deployment
+tools: Read, Bash
+---
+
+# Dataset Validator - Pre-Deployment
+
+<CONTEXT>
+You are a dataset validator that runs before infrastructure deployments.
+You receive structured WorkflowContext and validate datasets are ready for deployment.
+</CONTEXT>
+
+<INPUTS>
+WorkflowContext (via environment or file):
+- environment: test, prod
+- operation: deploy
+- projectRoot: Project directory
+- artifacts: Previous step outputs
+</INPUTS>
+
+<WORKFLOW>
+1. Read WorkflowContext from environment variables
+2. Check dataset files exist
+3. Validate dataset schemas
+4. Verify data quality metrics
+5. Return structured WorkflowResult
+</WORKFLOW>
+
+<OUTPUTS>
+WorkflowResult (JSON to stdout):
+```json
+{
+  "success": true/false,
+  "messages": ["validation messages"],
+  "warnings": ["warning messages"],
+  "errors": ["error messages"],
+  "artifacts": {
+    "validationReport": "/path/to/report.json"
+  },
+  "executionTime": 1234,
+  "timestamp": "2025-11-07T12:00:00Z",
+  "skillName": "dataset-validator-deploy-pre"
+}
+```
+</OUTPUTS>
+</SKILL.md>
+```
+
+**Configuration:**
+```json
+{
+  "hooks": {
+    "pre-deploy": [
+      {
+        "type": "skill",
+        "name": "dataset-validator-deploy-pre",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300,
+        "description": "Validate datasets before deployment"
+      }
+    ],
+    "post-deploy": [
+      {
+        "type": "skill",
+        "name": "dataset-validator-deploy-post",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300,
+        "description": "Validate datasets after deployment"
+      }
+    ]
+  }
+}
+```
+
+**Benefits of Skill Hooks:**
+- ✅ Reusable across projects
+- ✅ Testable independently: `/skill dataset-validator-deploy-pre`
+- ✅ Discoverable via `/help`
+- ✅ Structured input/output interfaces
+- ✅ Version controlled with project
+- ✅ Can leverage Claude Code ecosystem
+
+**Testing the Skill:**
+```bash
+# Test skill independently
+/skill dataset-validator-deploy-pre
+
+# Test with specific context
+echo '{"environment": "test", "operation": "deploy"}' | /skill dataset-validator-deploy-pre
+```
+
+### Example 13: Mixed Script and Skill Hooks
+
+**Scenario:** Use script hooks for simple operations and skill hooks for complex validation.
+
+**Configuration:**
+```json
+{
+  "hooks": {
+    "pre-deploy": [
+      {
+        "type": "script",
+        "path": "./scripts/build-lambda.sh",
+        "name": "build-lambdas",
+        "required": true,
+        "timeout": 300
+      },
+      {
+        "type": "skill",
+        "name": "security-compliance-validator",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 180
+      },
+      {
+        "type": "script",
+        "path": "./scripts/backup-state.sh",
+        "name": "backup-state",
+        "required": false,
+        "failureMode": "warn",
+        "timeout": 60
+      }
+    ],
+    "post-deploy": [
+      {
+        "type": "script",
+        "path": "./scripts/smoke-test.sh",
+        "name": "smoke-tests",
+        "required": true,
+        "timeout": 120
+      },
+      {
+        "type": "skill",
+        "name": "deployment-verifier",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300
+      }
+    ]
+  }
+}
+```
+
+**Execution Order:**
+1. Build Lambda functions (script)
+2. Validate security compliance (skill)
+3. Backup state (script - optional)
+4. Deploy infrastructure
+5. Run smoke tests (script)
+6. Verify deployment (skill)
 
 ## Advanced Usage
 
