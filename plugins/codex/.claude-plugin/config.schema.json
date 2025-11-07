@@ -241,6 +241,79 @@
           "default": 7
         }
       }
+    },
+    "sources": {
+      "type": "array",
+      "description": "Multi-source configuration for knowledge retrieval (Phase 2)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique source identifier",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": ["codex", "external-url", "s3", "local"],
+            "description": "Source type"
+          },
+          "handler": {
+            "type": "string",
+            "enum": ["github", "http", "s3", "local"],
+            "description": "Handler to use for fetching"
+          },
+          "handler_config": {
+            "type": "object",
+            "description": "Handler-specific configuration",
+            "properties": {
+              "org": {"type": "string"},
+              "repo": {"type": "string"},
+              "branch": {"type": "string", "default": "main"},
+              "base_path": {"type": "string", "default": "projects"},
+              "url_pattern": {"type": "string"},
+              "bucket": {"type": "string"},
+              "region": {"type": "string"},
+              "path_prefix": {"type": "string"}
+            }
+          },
+          "url_pattern": {
+            "type": "string",
+            "description": "URL pattern for external sources (supports ** wildcard)"
+          },
+          "cache": {
+            "type": "object",
+            "description": "Source-specific cache settings",
+            "properties": {
+              "ttl_days": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 365,
+                "default": 7
+              }
+            }
+          },
+          "permissions": {
+            "type": "object",
+            "description": "Permission configuration for this source",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Enable frontmatter-based permission checking",
+                "default": false
+              },
+              "default": {
+                "type": "string",
+                "enum": ["allow", "deny", "check_frontmatter"],
+                "description": "Default permission when frontmatter missing",
+                "default": "check_frontmatter"
+              }
+            }
+          }
+        },
+        "required": ["name", "type", "handler"]
+      },
+      "minItems": 1
     }
   },
   "required": ["version", "organization", "codex_repo"],
