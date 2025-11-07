@@ -1,6 +1,6 @@
 # Fractary faber-cloud Plugin
 
-**Version:** 2.3.0
+**Version:** 2.3.1
 
 Comprehensive cloud infrastructure lifecycle management plugin for Claude Code.
 
@@ -27,12 +27,15 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 - Production safety through multiple validation layers
 - Configurable validation rules per template
 
-**Lifecycle Hook System** (SPEC-0030-01):
+**Lifecycle Hook System** (SPEC-0030-01, SPEC-0034):
 - Pre/post hooks at 6 lifecycle points (plan, deploy, destroy)
+- **Script hooks** for shell commands and build steps
+- **Skill hooks** for reusable Claude Code skills (NEW in v2.3.1)
 - Custom logic injection (build, validate, notify, backup)
+- Structured interfaces (WorkflowContext/WorkflowResult)
 - Critical vs non-critical hooks with failure handling
 - Template variables for environment-aware scripts
-- 11+ real-world examples in documentation
+- 13+ real-world examples including skill hooks
 
 **Migration from Custom Agents**:
 - Capability mapping from custom scripts to faber-cloud features
@@ -402,9 +405,66 @@ Error → Categorize → Search Issue Log → Propose Solution → Log Outcome
 Check Status → Query CloudWatch → Analyze Metrics → Report Health
 ```
 
+## Hook System
+
+### Extension Hooks
+
+Extend faber-cloud with custom logic at lifecycle points using **script hooks** or **skill hooks**:
+
+**Script Hooks** (traditional):
+```json
+{
+  "hooks": {
+    "pre-deploy": [
+      {
+        "type": "script",
+        "path": "./scripts/build-lambda.sh",
+        "required": true,
+        "timeout": 300
+      }
+    ]
+  }
+}
+```
+
+**Skill Hooks** (NEW - reusable, testable):
+```json
+{
+  "hooks": {
+    "pre-deploy": [
+      {
+        "type": "skill",
+        "name": "dataset-validator-deploy-pre",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300
+      }
+    ]
+  }
+}
+```
+
+**Benefits of Skill Hooks:**
+- ✅ **Reusable** across projects
+- ✅ **Testable** independently via `/skill skill-name`
+- ✅ **Discoverable** via `/help`
+- ✅ **Structured interfaces** (WorkflowContext/WorkflowResult)
+- ✅ **Type-safe** with JSON schemas
+
+**When to use each:**
+- **Script hooks**: Simple operations (build, notify, backup)
+- **Skill hooks**: Complex validation logic you want to test and share
+
+**Available hook points:**
+- `pre-plan` / `post-plan` - Around terraform plan
+- `pre-deploy` / `post-deploy` - Around terraform apply
+- `pre-destroy` / `post-destroy` - Around terraform destroy
+
+See [Hook System Guide](docs/guides/HOOKS.md) for complete documentation and [Skill Hook Examples](docs/examples/skill-hooks/) for working examples.
+
 ## Configuration
 
-Configuration file: `.fractary/plugins/faber-cloud/config/devops.json`
+Configuration file: `.fractary/plugins/faber-cloud/config/faber-cloud.json`
 
 ### Example Configuration
 
@@ -661,9 +721,16 @@ Format: JSON with detailed findings, severity levels, recommendations
 - [Getting Started](docs/guides/getting-started.md)
 - [User Guide](docs/guides/user-guide.md)
 - [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) *(NEW in v2.3.0)*
-- [Hook System](docs/guides/HOOKS.md) *(NEW in v2.3.0)*
+- [Hook System](docs/guides/HOOKS.md) *(Updated for v2.3.1 - Skill Hooks)*
 - [Configuration Templates](docs/guides/CONFIGURATION-TEMPLATES.md) *(NEW in v2.3.0)*
 - [Troubleshooting](docs/guides/TROUBLESHOOTING.md) *(Updated for v2.3.0)*
+
+### Examples
+
+- [Skill Hook Examples](docs/examples/skill-hooks/) *(NEW in v2.3.1)*
+  - Dataset validation skill
+  - WorkflowContext/WorkflowResult interfaces
+  - Testing and integration guide
 
 ### Reference Documentation
 
@@ -726,10 +793,17 @@ git clone https://github.com/fractary/claude-plugins.git
 
 ## Version History
 
+**2.3.1 (SPEC-0034 Complete - Skill-Based Hooks):**
+- **Skill hooks** - Invoke Claude Code skills at lifecycle points
+- Structured WorkflowContext/WorkflowResult interfaces
+- Backward compatible (script hooks still work)
+- Example skills for dataset validation
+- Complete testing suite (14/14 tests passing)
+
 **2.3.0 (SPEC-0030 Complete - Adoption & Migration):**
 - Infrastructure adoption and discovery (adopt command)
 - Enhanced environment validation (multi-signal validation)
-- Lifecycle hook system (6 hook types with 11+ examples)
+- Lifecycle hook system (6 hook types with script support)
 - Configuration templates (flat, modular, multi-environment)
 - Migration from custom agents (comprehensive guide)
 - Comprehensive documentation suite (4 new guides)
