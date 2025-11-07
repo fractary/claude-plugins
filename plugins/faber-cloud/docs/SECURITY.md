@@ -1,8 +1,47 @@
 # Security Considerations for Faber-Cloud Hooks
 
+```
+╔═══════════════════════════════════════════════════════════════════════╗
+║                    ⚠️  CRITICAL SECURITY WARNING ⚠️                    ║
+╠═══════════════════════════════════════════════════════════════════════╣
+║                                                                       ║
+║  HOOKS EXECUTE ARBITRARY CODE WITH DEPLOYMENT PERMISSIONS             ║
+║                                                                       ║
+║  🚨 NEVER include user-provided input in hook configurations         ║
+║  🚨 NEVER execute hooks from untrusted sources                        ║
+║  🚨 NEVER use dynamic hook commands with external data                ║
+║                                                                       ║
+║  COMMAND INJECTION RISK:                                              ║
+║  Hook commands execute with bash and have full access to:            ║
+║  - AWS credentials (production if deploying to production)            ║
+║  - Terraform state files (may contain secrets)                        ║
+║  - Project source code and configuration                              ║
+║  - Environment variables (including sensitive data)                   ║
+║                                                                       ║
+║  SAFE PRACTICES:                                                      ║
+║  ✅ Use explicit script paths: {"type": "script", "path": "..."}     ║
+║  ✅ Store all hook scripts in version control                         ║
+║  ✅ Review all hook configurations before deployment                  ║
+║  ✅ Use skill hooks for complex logic (validated interface)           ║
+║  ✅ Apply principle of least privilege to AWS profiles                ║
+║                                                                       ║
+║  UNSAFE PRACTICES (DO NOT USE):                                       ║
+║  ❌ String hooks with variables: "curl $USER_PROVIDED_URL"           ║
+║  ❌ Hooks from environment variables                                  ║
+║  ❌ Dynamic hook generation from user input                           ║
+║  ❌ Unvetted scripts downloaded at runtime                            ║
+║                                                                       ║
+║  If you accept user input that affects deployments, ensure hooks     ║
+║  are STATICALLY CONFIGURED and cannot be modified by users.          ║
+║                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════╝
+```
+
 ## Overview
 
 The faber-cloud hook system allows execution of custom logic at infrastructure lifecycle points. This document outlines security considerations and best practices.
+
+**Read the warning box above carefully before configuring hooks.**
 
 ## Hook Types and Security Implications
 

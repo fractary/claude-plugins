@@ -99,17 +99,33 @@ create_workflow_context() {
     return 1
   fi
 
+  # SECURITY: Sanitize environment variables for JSON
+  # Escape quotes and backslashes to prevent JSON injection
+  local safe_env="${FABER_CLOUD_ENV//\\/\\\\}"
+  safe_env="${safe_env//\"/\\\"}"
+
+  local safe_operation="${FABER_CLOUD_OPERATION//\\/\\\\}"
+  safe_operation="${safe_operation//\"/\\\"}"
+
+  local safe_hook_type="${FABER_CLOUD_HOOK_TYPE//\\/\\\\}"
+  safe_hook_type="${safe_hook_type//\"/\\\"}"
+
+  local safe_project="${FABER_CLOUD_PROJECT:-unknown}"
+  safe_project="${safe_project//\\/\\\\}"
+  safe_project="${safe_project//\"/\\\"}"
+
   # Build WorkflowContext JSON
-  cat > "$context_file" <<EOF
+  # ERROR HANDLING: Check if write succeeds
+  if ! cat > "$context_file" <<EOF
 {
-  "workflowType": "infrastructure-${FABER_CLOUD_OPERATION}",
-  "workflowPhase": "${FABER_CLOUD_HOOK_TYPE}",
+  "workflowType": "infrastructure-${safe_operation}",
+  "workflowPhase": "${safe_hook_type}",
   "pluginName": "faber-cloud",
   "pluginVersion": "2.3.1",
-  "projectName": "${FABER_CLOUD_PROJECT:-unknown}",
+  "projectName": "${safe_project}",
   "projectRoot": "$(pwd)",
-  "environment": "${FABER_CLOUD_ENV}",
-  "operation": "${FABER_CLOUD_OPERATION}",
+  "environment": "${safe_env}",
+  "operation": "${safe_operation}",
   "targetResources": [],
   "projectConfig": {},
   "workflowConfig": {},
@@ -123,6 +139,26 @@ create_workflow_context() {
   "artifacts": {}
 }
 EOF
+  then
+    log_error "Failed to write WorkflowContext to $context_file"
+    log_error "Possible causes: disk full, permission denied, or invalid path"
+    return 1
+  fi
+
+  # Validate JSON was written correctly
+  if ! jq empty "$context_file" 2>/dev/null; then
+    log_error "WorkflowContext JSON is malformed in $context_file"
+    log_error "This may indicate environment variable contains invalid characters"
+    # Show the file content for debugging
+    cat "$context_file" >&2
+    return 1
+  fi
+
+  # Verify file is not empty
+  if [ ! -s "$context_file" ]; then
+    log_error "WorkflowContext file is empty: $context_file"
+    return 1
+  fi
 
   log_info "WorkflowContext created: $context_file"
   log_info "Environment: ${FABER_CLOUD_ENV}"
@@ -227,6 +263,21 @@ main() {
 
   local skill_name="$1"
   local context_file="${2:-}"
+
+  # SECURITY: Validate skill name to prevent path traversal attacks
+  # Only allow alphanumeric, hyphens, and underscores
+  if [[ ! "$skill_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    log_error "SECURITY: Invalid skill name: $skill_name"
+    log_error "Skill names must contain only alphanumeric characters, hyphens, and underscores"
+    log_error "Rejected characters: slashes (/), dots (.), or other special characters"
+    exit 2
+  fi
+
+  # Additional validation: Prevent path traversal patterns
+  if [[ "$skill_name" == *".."* ]] || [[ "$skill_name" == *"/"* ]]; then
+    log_error "SECURITY: Skill name contains path traversal patterns: $skill_name"
+    exit 2
+  fi
 
   # Create temp context file if not provided
   if [ -z "$context_file" ]; then
