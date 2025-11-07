@@ -196,9 +196,9 @@
         "required": "If true (default), failure blocks operation",
         "failureMode": "'stop' (default) or 'warn' - controls failure behavior",
         "timeout": "Max execution time in seconds (default: 300)",
-        "retries": "Number of retry attempts on failure (default: 0)",
         "environments": "Array of environments where hook applies (optional)",
-        "description": "Optional description for documentation"
+        "description": "Optional description for documentation",
+        "note": "Retry logic planned for future release"
       },
       "BACKWARD_COMPATIBILITY": "String hooks are still supported (treated as scripts)"
     },

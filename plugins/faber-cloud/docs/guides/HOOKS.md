@@ -280,7 +280,8 @@ These are automatically treated as script hooks with default settings.
 | Property | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
 | `name` | string | Yes | - | Name of Claude Code skill to invoke |
-| `retries` | number | No | `0` | Number of retry attempts on failure |
+
+**Note:** Retry logic for skill hooks is planned for a future release.
 
 ### Template Variables
 

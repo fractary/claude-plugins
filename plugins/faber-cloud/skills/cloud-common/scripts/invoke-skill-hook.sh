@@ -3,6 +3,20 @@
 #
 # This script prepares the WorkflowContext and invokes a skill for hook execution.
 # Skills receive structured context about the workflow and return structured results.
+#
+# IMPORTANT: This is a RUNTIME PLACEHOLDER for testing purposes.
+# In production Claude Code environments, skills are invoked via the Skill tool.
+# This script demonstrates the interface and validates skill existence.
+#
+# Production behavior:
+# - Claude Code runtime invokes skills directly via Skill tool
+# - WorkflowContext is passed automatically
+# - WorkflowResult is parsed from skill output
+#
+# Test/Development behavior:
+# - Validates skill directory exists
+# - Shows expected interface
+# - Returns success if skill found
 
 set -euo pipefail
 
@@ -62,17 +76,40 @@ EOF
 create_workflow_context() {
   local context_file="$1"
 
+  # Validate required environment variables
+  local missing_vars=()
+
+  if [ -z "${FABER_CLOUD_ENV:-}" ]; then
+    missing_vars+=("FABER_CLOUD_ENV")
+  fi
+
+  if [ -z "${FABER_CLOUD_OPERATION:-}" ]; then
+    missing_vars+=("FABER_CLOUD_OPERATION")
+  fi
+
+  if [ -z "${FABER_CLOUD_HOOK_TYPE:-}" ]; then
+    missing_vars+=("FABER_CLOUD_HOOK_TYPE")
+  fi
+
+  # Fail fast if critical variables are missing
+  if [ ${#missing_vars[@]} -gt 0 ]; then
+    log_error "Critical environment variables missing: ${missing_vars[*]}"
+    log_error "These variables should be set by the hook executor"
+    log_error "Expected: FABER_CLOUD_ENV, FABER_CLOUD_OPERATION, FABER_CLOUD_HOOK_TYPE"
+    return 1
+  fi
+
   # Build WorkflowContext JSON
   cat > "$context_file" <<EOF
 {
-  "workflowType": "infrastructure-${FABER_CLOUD_OPERATION:-unknown}",
-  "workflowPhase": "${FABER_CLOUD_HOOK_TYPE:-unknown}",
+  "workflowType": "infrastructure-${FABER_CLOUD_OPERATION}",
+  "workflowPhase": "${FABER_CLOUD_HOOK_TYPE}",
   "pluginName": "faber-cloud",
-  "pluginVersion": "2.0.0",
+  "pluginVersion": "2.3.1",
   "projectName": "${FABER_CLOUD_PROJECT:-unknown}",
   "projectRoot": "$(pwd)",
-  "environment": "${FABER_CLOUD_ENV:-unknown}",
-  "operation": "${FABER_CLOUD_OPERATION:-unknown}",
+  "environment": "${FABER_CLOUD_ENV}",
+  "operation": "${FABER_CLOUD_OPERATION}",
   "targetResources": [],
   "projectConfig": {},
   "workflowConfig": {},
@@ -88,6 +125,9 @@ create_workflow_context() {
 EOF
 
   log_info "WorkflowContext created: $context_file"
+  log_info "Environment: ${FABER_CLOUD_ENV}"
+  log_info "Operation: ${FABER_CLOUD_OPERATION}"
+  log_info "Hook Type: ${FABER_CLOUD_HOOK_TYPE}"
 }
 
 # Function: Invoke skill via Claude Code
@@ -98,46 +138,63 @@ invoke_skill() {
   log_info "Invoking skill: $skill_name"
   log_info "Context: $context_file"
 
-  # Note: In actual Claude Code environment, this would use the Skill tool
-  # For now, we'll check if the skill exists and provide a placeholder
+  # RUNTIME DETECTION: Check if we're in Claude Code environment
+  # In production, the Skill tool would be available and skills would be invoked directly
+  # In test/dev, we validate the interface and skill existence
 
   # Check if skill exists in .claude/skills/
-  if [ -d ".claude/skills/$skill_name" ]; then
-    log_info "✓ Skill found: .claude/skills/$skill_name"
-  else
+  if [ ! -d ".claude/skills/$skill_name" ]; then
     log_error "Skill not found: .claude/skills/$skill_name"
     log_error "Skills should be located in: .claude/skills/$skill_name/"
     return 1
   fi
 
-  # In Claude Code environment, this would be:
-  # /skill:$skill_name < $context_file
+  log_info "✓ Skill found: .claude/skills/$skill_name"
 
-  # For testing/development, we'll output instructions
+  # PRODUCTION MODE (Claude Code runtime with Skill tool):
+  # This is where the actual skill invocation would happen via the Skill tool
+  # The Skill tool is only available in the Claude Code runtime environment
+  #
+  # Expected invocation:
+  #   - Skill tool invoked with skill name
+  #   - WorkflowContext passed as JSON input
+  #   - WorkflowResult received as JSON output
+  #   - Exit code determines success/failure
+
+  # TEST/DEV MODE (current implementation):
+  # Demonstrate the interface without actual skill execution
   cat <<EOF
 
 ╔══════════════════════════════════════════════════════════════╗
-║  SKILL HOOK INVOCATION                                       ║
+║  SKILL HOOK INVOCATION (TEST MODE)                          ║
 ╚══════════════════════════════════════════════════════════════╝
 
 Skill:    $skill_name
 Context:  $context_file
 
-In Claude Code environment, this would invoke:
-  /skill:$skill_name
+⚠️  RUNTIME PLACEHOLDER ACTIVE
+This script validates the skill hook interface but does not invoke skills.
+In Claude Code production environments, skills are invoked via the Skill tool.
 
-With WorkflowContext:
+WorkflowContext prepared:
 $(cat "$context_file" | jq '.')
 
 ─────────────────────────────────────────────────────────────
 
-Expected skill output format (JSON):
+Production behavior (Claude Code runtime):
+  1. Skill tool invokes: $skill_name
+  2. WorkflowContext passed as input
+  3. Skill executes validation logic
+  4. WorkflowResult returned as JSON
+  5. Exit code: 0 (success) or 1 (failure)
+
+Expected WorkflowResult format:
 {
   "success": true/false,
-  "messages": ["message1", "message2"],
-  "warnings": [],
-  "errors": [],
-  "artifacts": {},
+  "messages": ["Validation messages"],
+  "warnings": ["Warning messages"],
+  "errors": ["Error messages"],
+  "artifacts": {"key": "value"},
   "executionTime": 1234,
   "timestamp": "2025-11-07T12:00:00Z",
   "skillName": "$skill_name"
@@ -145,23 +202,24 @@ Expected skill output format (JSON):
 
 ─────────────────────────────────────────────────────────────
 
-NOTE: In production, the skill would be invoked automatically.
-For now, this is a placeholder that demonstrates the interface.
+Test mode result: PASS (skill found, interface validated)
 
 EOF
 
-  # For testing, treat skill invocation as success if skill directory exists
-  if [ -d ".claude/skills/$skill_name" ]; then
-    log_success "Skill invocation completed (placeholder mode)"
-    return 0
-  else
-    log_error "Skill not found - would fail in production"
-    return 1
-  fi
+  log_success "Skill hook interface validated (test mode)"
+  log_info "In production, skill would be invoked via Claude Code Skill tool"
+  return 0
 }
 
 # Main execution
 main() {
+  # Check dependencies
+  if ! command -v jq &> /dev/null; then
+    log_error "Required dependency 'jq' not found"
+    log_error "Install jq: https://stedolan.github.io/jq/download/"
+    exit 2
+  fi
+
   # Validate arguments
   if [ $# -lt 1 ]; then
     usage
@@ -173,11 +231,16 @@ main() {
   # Create temp context file if not provided
   if [ -z "$context_file" ]; then
     context_file=$(mktemp /tmp/workflow-context.XXXXXX.json)
+    # Set restrictive permissions for security
+    chmod 600 "$context_file"
     trap "rm -f $context_file" EXIT
   fi
 
   # Create WorkflowContext
-  create_workflow_context "$context_file"
+  if ! create_workflow_context "$context_file"; then
+    log_error "Failed to create WorkflowContext"
+    exit 2
+  fi
 
   # Invoke skill
   if invoke_skill "$skill_name" "$context_file"; then

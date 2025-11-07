@@ -248,6 +248,13 @@ execute_skill_hook() {
 
 # Main execution
 main() {
+  # Check dependencies
+  if ! command -v jq &> /dev/null; then
+    log_error "Required dependency 'jq' not found"
+    log_error "Install jq: https://stedolan.github.io/jq/download/"
+    exit 2
+  fi
+
   # Validate arguments
   if [ $# -lt 2 ]; then
     usage
