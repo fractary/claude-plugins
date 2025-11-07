@@ -720,6 +720,7 @@ Format: JSON with detailed findings, severity levels, recommendations
 
 - [Getting Started](docs/guides/getting-started.md)
 - [User Guide](docs/guides/user-guide.md)
+- [Integration Patterns](docs/guides/INTEGRATION-PATTERNS.md) *(NEW in v2.3.1 - Best practices for adopting faber-cloud)*
 - [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) *(NEW in v2.3.0)*
 - [Hook System](docs/guides/HOOKS.md) *(Updated for v2.3.1 - Skill Hooks)*
 - [Configuration Templates](docs/guides/CONFIGURATION-TEMPLATES.md) *(NEW in v2.3.0)*
