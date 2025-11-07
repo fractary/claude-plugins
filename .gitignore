@@ -26,4 +26,4 @@ node_modules
 !.claude/README.md
 
 # Codex knowledge cache (ephemeral, regeneratable)
-codex/
+/codex/
