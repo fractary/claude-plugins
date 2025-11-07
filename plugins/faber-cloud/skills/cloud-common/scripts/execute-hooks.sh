@@ -89,8 +89,34 @@ get_operation_type() {
   esac
 }
 
-# Function: Execute a single hook
-execute_hook() {
+# Function: Get hook type (legacy string, script object, or skill object)
+get_hook_type() {
+  local config_file="$1"
+  local hook_type_key="$2"
+  local hook_index="$3"
+
+  # Check if hook is a string (legacy format)
+  local hook_value_type=$(jq -r ".hooks[\"$hook_type_key\"][$hook_index] | type" "$config_file")
+
+  if [ "$hook_value_type" = "string" ]; then
+    echo "legacy-script"
+    return 0
+  fi
+
+  # Check if hook is an object with type field
+  local hook_object_type=$(jq -r ".hooks[\"$hook_type_key\"][$hook_index].type // \"\"" "$config_file")
+
+  if [ "$hook_object_type" = "skill" ]; then
+    echo "skill"
+  elif [ "$hook_object_type" = "script" ]; then
+    echo "script"
+  else
+    echo "unknown"
+  fi
+}
+
+# Function: Execute a script hook
+execute_script_hook() {
   local hook_index="$1"
   local hook_name="$2"
   local hook_command="$3"
@@ -109,7 +135,7 @@ execute_hook() {
 
   echo ""
   echo "═══════════════════════════════════════════════════════════"
-  log_info "Executing hook [$hook_index]: $hook_name"
+  log_info "Executing SCRIPT hook [$hook_index]: $hook_name"
   log_info "Command: $hook_command"
   log_info "Critical: $hook_critical | Timeout: ${hook_timeout}s"
   echo "═══════════════════════════════════════════════════════════"
@@ -149,6 +175,72 @@ execute_hook() {
       return 1
     else
       log_warning "Optional hook failed - continuing"
+      return 0
+    fi
+  fi
+}
+
+# Function: Execute a skill hook
+execute_skill_hook() {
+  local hook_index="$1"
+  local hook_name="$2"
+  local skill_name="$3"
+  local hook_critical="${4:-true}"
+  local hook_timeout="${5:-300}"
+  local hook_envs="$6"
+  local current_env="$7"
+
+  # Check if hook applies to this environment
+  if [ -n "$hook_envs" ]; then
+    if ! echo "$hook_envs" | grep -qw "$current_env"; then
+      log_info "Skipping hook '$hook_name' (not configured for $current_env)"
+      return 0
+    fi
+  fi
+
+  echo ""
+  echo "═══════════════════════════════════════════════════════════"
+  log_info "Executing SKILL hook [$hook_index]: $hook_name"
+  log_info "Skill: $skill_name"
+  log_info "Critical: $hook_critical | Timeout: ${hook_timeout}s"
+  echo "═══════════════════════════════════════════════════════════"
+
+  # Execute skill hook with timeout
+  local start_time=$(date +%s)
+  local exit_code=0
+
+  # Invoke skill via helper script
+  if timeout "$hook_timeout" bash "${SCRIPT_DIR}/invoke-skill-hook.sh" "$skill_name"; then
+    exit_code=0
+  else
+    exit_code=$?
+  fi
+
+  local end_time=$(date +%s)
+  local duration=$((end_time - start_time))
+
+  echo "───────────────────────────────────────────────────────────"
+
+  # Handle hook result
+  if [ $exit_code -eq 0 ]; then
+    log_success "Skill hook '$hook_name' completed successfully (${duration}s)"
+    return 0
+  elif [ $exit_code -eq 124 ]; then
+    log_error "Skill hook '$hook_name' timed out after ${hook_timeout}s"
+    if [ "$hook_critical" = "true" ]; then
+      log_error "CRITICAL skill hook failed - blocking operation"
+      return 1
+    else
+      log_warning "Optional skill hook failed - continuing"
+      return 0
+    fi
+  else
+    log_error "Skill hook '$hook_name' failed with exit code $exit_code (${duration}s)"
+    if [ "$hook_critical" = "true" ]; then
+      log_error "CRITICAL skill hook failed - blocking operation"
+      return 1
+    else
+      log_warning "Optional skill hook failed - continuing"
       return 0
     fi
   fi
@@ -231,24 +323,93 @@ main() {
   local failed_hooks=0
 
   while [ $hook_index -lt "$hooks_count" ]; do
-    # Extract hook details
-    local hook_name=$(jq -r ".hooks[\"$hook_type\"][$hook_index].name // \"hook-$hook_index\"" "$config_file")
-    local hook_command=$(jq -r ".hooks[\"$hook_type\"][$hook_index].command" "$config_file")
-    local hook_critical=$(jq -r ".hooks[\"$hook_type\"][$hook_index].critical // true" "$config_file")
-    local hook_timeout=$(jq -r ".hooks[\"$hook_type\"][$hook_index].timeout // 300" "$config_file")
-    local hook_envs=$(jq -r ".hooks[\"$hook_type\"][$hook_index].environments[]? // empty" "$config_file" | tr '\n' ' ')
+    # Determine hook type (legacy string, script object, or skill object)
+    local current_hook_type=$(get_hook_type "$config_file" "$hook_type" "$hook_index")
 
-    # Validate hook has command
-    if [ -z "$hook_command" ] || [ "$hook_command" = "null" ]; then
-      log_error "Hook '$hook_name' has no command configured"
-      ((hook_index++))
-      continue
-    fi
+    # Extract common hook details
+    local hook_name
+    local hook_critical
+    local hook_timeout
+    local hook_envs
 
-    # Execute hook
-    if ! execute_hook "$((hook_index + 1))" "$hook_name" "$hook_command" "$hook_critical" "$hook_timeout" "$hook_envs" "$environment"; then
-      ((failed_hooks++))
-    fi
+    # Handle different hook formats
+    case "$current_hook_type" in
+      "legacy-script")
+        # Legacy string format: "script.sh" or "command"
+        hook_name="hook-$hook_index"
+        local hook_command=$(jq -r ".hooks[\"$hook_type\"][$hook_index]" "$config_file")
+        hook_critical="true"
+        hook_timeout="300"
+        hook_envs=""
+
+        log_info "Legacy script hook detected: $hook_command"
+
+        # Execute as script hook
+        if ! execute_script_hook "$((hook_index + 1))" "$hook_name" "$hook_command" "$hook_critical" "$hook_timeout" "$hook_envs" "$environment"; then
+          ((failed_hooks++))
+        fi
+        ;;
+
+      "script")
+        # Script object format: {"type": "script", "path": "...", ...}
+        hook_name=$(jq -r ".hooks[\"$hook_type\"][$hook_index].name // \"script-hook-$hook_index\"" "$config_file")
+        local hook_path=$(jq -r ".hooks[\"$hook_type\"][$hook_index].path" "$config_file")
+        hook_critical=$(jq -r ".hooks[\"$hook_type\"][$hook_index].required // true" "$config_file")
+        hook_timeout=$(jq -r ".hooks[\"$hook_type\"][$hook_index].timeout // 300" "$config_file")
+        hook_envs=$(jq -r ".hooks[\"$hook_type\"][$hook_index].environments[]? // empty" "$config_file" | tr '\n' ' ')
+
+        # Use 'required' field for 'critical' (backward compatibility)
+        local failure_mode=$(jq -r ".hooks[\"$hook_type\"][$hook_index].failureMode // \"stop\"" "$config_file")
+        if [ "$failure_mode" = "warn" ]; then
+          hook_critical="false"
+        fi
+
+        # Validate hook has path
+        if [ -z "$hook_path" ] || [ "$hook_path" = "null" ]; then
+          log_error "Script hook '$hook_name' has no path configured"
+          ((hook_index++))
+          continue
+        fi
+
+        # Execute as script hook
+        if ! execute_script_hook "$((hook_index + 1))" "$hook_name" "bash $hook_path" "$hook_critical" "$hook_timeout" "$hook_envs" "$environment"; then
+          ((failed_hooks++))
+        fi
+        ;;
+
+      "skill")
+        # Skill object format: {"type": "skill", "name": "...", ...}
+        hook_name=$(jq -r ".hooks[\"$hook_type\"][$hook_index].name // \"skill-hook-$hook_index\"" "$config_file")
+        local skill_name=$(jq -r ".hooks[\"$hook_type\"][$hook_index].name" "$config_file")
+        hook_critical=$(jq -r ".hooks[\"$hook_type\"][$hook_index].required // true" "$config_file")
+        hook_timeout=$(jq -r ".hooks[\"$hook_type\"][$hook_index].timeout // 300" "$config_file")
+        hook_envs=$(jq -r ".hooks[\"$hook_type\"][$hook_index].environments[]? // empty" "$config_file" | tr '\n' ' ')
+
+        # Use 'required' field for 'critical'
+        local failure_mode=$(jq -r ".hooks[\"$hook_type\"][$hook_index].failureMode // \"stop\"" "$config_file")
+        if [ "$failure_mode" = "warn" ]; then
+          hook_critical="false"
+        fi
+
+        # Validate hook has skill name
+        if [ -z "$skill_name" ] || [ "$skill_name" = "null" ]; then
+          log_error "Skill hook has no name configured"
+          ((hook_index++))
+          continue
+        fi
+
+        # Execute as skill hook
+        if ! execute_skill_hook "$((hook_index + 1))" "$hook_name" "$skill_name" "$hook_critical" "$hook_timeout" "$hook_envs" "$environment"; then
+          ((failed_hooks++))
+        fi
+        ;;
+
+      "unknown"|*)
+        log_error "Unknown hook type at index $hook_index"
+        log_error "Hook must be a string (legacy) or object with type='script' or type='skill'"
+        ((failed_hooks++))
+        ;;
+    esac
 
     ((hook_index++))
   done

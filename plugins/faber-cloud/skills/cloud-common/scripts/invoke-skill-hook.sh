@@ -1,0 +1,193 @@
+#!/bin/bash
+# invoke-skill-hook.sh - Invoke a Claude Code skill as a hook handler
+#
+# This script prepares the WorkflowContext and invokes a skill for hook execution.
+# Skills receive structured context about the workflow and return structured results.
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function: Log with color
+log_info() {
+  echo -e "${BLUE}[SKILL-HOOK]${NC} $*"
+}
+
+log_success() {
+  echo -e "${GREEN}[SKILL-HOOK]${NC} $*"
+}
+
+log_error() {
+  echo -e "${RED}[SKILL-HOOK]${NC} $*"
+}
+
+# Function: Display usage
+usage() {
+  cat <<EOF
+Usage: invoke-skill-hook.sh <skill_name> [context_json_file]
+
+Invoke a Claude Code skill as a hook handler.
+
+Arguments:
+  skill_name        Name of skill to invoke (e.g., "dataset-validator-deploy-pre")
+  context_json_file Optional path to WorkflowContext JSON file (defaults to temp file)
+
+Environment Variables (used to build WorkflowContext):
+  FABER_CLOUD_ENV             - Environment name
+  FABER_CLOUD_TERRAFORM_DIR   - Terraform working directory
+  FABER_CLOUD_PROJECT         - Project name
+  FABER_CLOUD_SUBSYSTEM       - Subsystem name
+  FABER_CLOUD_OPERATION       - Operation type (plan, deploy, destroy)
+  FABER_CLOUD_HOOK_TYPE       - Hook type (pre-plan, post-deploy, etc.)
+  AWS_PROFILE                 - Active AWS profile for this environment
+
+Examples:
+  invoke-skill-hook.sh dataset-validator-deploy-pre
+  invoke-skill-hook.sh custom-validator /tmp/context.json
+
+Exit Codes:
+  0 - Skill executed successfully
+  1 - Skill failed or returned error
+  2 - Invalid arguments or configuration error
+EOF
+  exit 2
+}
+
+# Function: Create WorkflowContext JSON
+create_workflow_context() {
+  local context_file="$1"
+
+  # Build WorkflowContext JSON
+  cat > "$context_file" <<EOF
+{
+  "workflowType": "infrastructure-${FABER_CLOUD_OPERATION:-unknown}",
+  "workflowPhase": "${FABER_CLOUD_HOOK_TYPE:-unknown}",
+  "pluginName": "faber-cloud",
+  "pluginVersion": "2.0.0",
+  "projectName": "${FABER_CLOUD_PROJECT:-unknown}",
+  "projectRoot": "$(pwd)",
+  "environment": "${FABER_CLOUD_ENV:-unknown}",
+  "operation": "${FABER_CLOUD_OPERATION:-unknown}",
+  "targetResources": [],
+  "projectConfig": {},
+  "workflowConfig": {},
+  "extensionConfig": {},
+  "flags": {
+    "dryRun": false,
+    "complete": false,
+    "productionConfirmed": $([ "${FABER_CLOUD_ENV}" = "prod" ] && echo "true" || echo "false"),
+    "force": false
+  },
+  "artifacts": {}
+}
+EOF
+
+  log_info "WorkflowContext created: $context_file"
+}
+
+# Function: Invoke skill via Claude Code
+invoke_skill() {
+  local skill_name="$1"
+  local context_file="$2"
+
+  log_info "Invoking skill: $skill_name"
+  log_info "Context: $context_file"
+
+  # Note: In actual Claude Code environment, this would use the Skill tool
+  # For now, we'll check if the skill exists and provide a placeholder
+
+  # Check if skill exists in .claude/skills/
+  if [ -d ".claude/skills/$skill_name" ]; then
+    log_info "✓ Skill found: .claude/skills/$skill_name"
+  else
+    log_error "Skill not found: .claude/skills/$skill_name"
+    log_error "Skills should be located in: .claude/skills/$skill_name/"
+    return 1
+  fi
+
+  # In Claude Code environment, this would be:
+  # /skill:$skill_name < $context_file
+
+  # For testing/development, we'll output instructions
+  cat <<EOF
+
+╔══════════════════════════════════════════════════════════════╗
+║  SKILL HOOK INVOCATION                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Skill:    $skill_name
+Context:  $context_file
+
+In Claude Code environment, this would invoke:
+  /skill:$skill_name
+
+With WorkflowContext:
+$(cat "$context_file" | jq '.')
+
+─────────────────────────────────────────────────────────────
+
+Expected skill output format (JSON):
+{
+  "success": true/false,
+  "messages": ["message1", "message2"],
+  "warnings": [],
+  "errors": [],
+  "artifacts": {},
+  "executionTime": 1234,
+  "timestamp": "2025-11-07T12:00:00Z",
+  "skillName": "$skill_name"
+}
+
+─────────────────────────────────────────────────────────────
+
+NOTE: In production, the skill would be invoked automatically.
+For now, this is a placeholder that demonstrates the interface.
+
+EOF
+
+  # For testing, treat skill invocation as success if skill directory exists
+  if [ -d ".claude/skills/$skill_name" ]; then
+    log_success "Skill invocation completed (placeholder mode)"
+    return 0
+  else
+    log_error "Skill not found - would fail in production"
+    return 1
+  fi
+}
+
+# Main execution
+main() {
+  # Validate arguments
+  if [ $# -lt 1 ]; then
+    usage
+  fi
+
+  local skill_name="$1"
+  local context_file="${2:-}"
+
+  # Create temp context file if not provided
+  if [ -z "$context_file" ]; then
+    context_file=$(mktemp /tmp/workflow-context.XXXXXX.json)
+    trap "rm -f $context_file" EXIT
+  fi
+
+  # Create WorkflowContext
+  create_workflow_context "$context_file"
+
+  # Invoke skill
+  if invoke_skill "$skill_name" "$context_file"; then
+    log_success "Skill hook completed successfully"
+    exit 0
+  else
+    log_error "Skill hook failed"
+    exit 1
+  fi
+}
+
+# Run main function
+main "$@"

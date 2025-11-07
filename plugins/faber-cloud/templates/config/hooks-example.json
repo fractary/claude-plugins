@@ -51,6 +51,14 @@
         "description": "Compile frontend assets for CDN"
       },
       {
+        "type": "skill",
+        "name": "dataset-validator-deploy-pre",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300,
+        "description": "Validate datasets before deployment (skill hook example)"
+      },
+      {
         "name": "notify-deployment-start",
         "command": "curl -X POST $SLACK_WEBHOOK -d '{\"text\":\"🚀 Deployment starting: ${FABER_CLOUD_PROJECT} (${FABER_CLOUD_ENV})\"}'",
         "critical": false,
@@ -67,6 +75,14 @@
         "critical": true,
         "timeout": 120,
         "description": "Run smoke tests to verify deployment"
+      },
+      {
+        "type": "skill",
+        "name": "dataset-validator-deploy-post",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 300,
+        "description": "Validate datasets after deployment (skill hook example)"
       },
       {
         "name": "health-check",
@@ -163,12 +179,28 @@
       "post-destroy: After terraform destroy succeeds"
     ],
     "hook_properties": {
-      "name": "Human-readable hook name (required)",
-      "command": "Shell command to execute (required)",
-      "critical": "If true (default), failure blocks operation. If false, logs warning and continues.",
-      "timeout": "Max execution time in seconds (default: 300)",
-      "environments": "Array of environments where hook applies (optional, default: all environments)",
-      "description": "Optional description for documentation"
+      "LEGACY_FORMAT": "String value (e.g., 'bash script.sh') - backward compatible",
+      "SCRIPT_OBJECT_FORMAT": {
+        "type": "Must be 'script'",
+        "path": "Path to script file (required for script type)",
+        "name": "Human-readable hook name (optional)",
+        "required": "If true (default), failure blocks operation",
+        "failureMode": "'stop' (default) or 'warn' - controls failure behavior",
+        "timeout": "Max execution time in seconds (default: 300)",
+        "environments": "Array of environments where hook applies (optional)",
+        "description": "Optional description for documentation"
+      },
+      "SKILL_OBJECT_FORMAT": {
+        "type": "Must be 'skill'",
+        "name": "Name of Claude Code skill to invoke (required for skill type)",
+        "required": "If true (default), failure blocks operation",
+        "failureMode": "'stop' (default) or 'warn' - controls failure behavior",
+        "timeout": "Max execution time in seconds (default: 300)",
+        "retries": "Number of retry attempts on failure (default: 0)",
+        "environments": "Array of environments where hook applies (optional)",
+        "description": "Optional description for documentation"
+      },
+      "BACKWARD_COMPATIBILITY": "String hooks are still supported (treated as scripts)"
     },
     "environment_variables": {
       "FABER_CLOUD_ENV": "Environment name (test, prod, etc.)",
@@ -180,26 +212,34 @@
       "AWS_PROFILE": "Active AWS profile for this environment"
     },
     "common_use_cases": [
-      "Build Lambda functions or compile assets before deployment",
-      "Run smoke tests or health checks after deployment",
-      "Send notifications to Slack/Teams/PagerDuty",
-      "Estimate costs from Terraform plan",
-      "Run security scans (Checkov, tfsec) on plans",
-      "Back up data before destroying resources",
-      "Warm up Lambda functions after deployment",
-      "Generate documentation after changes",
-      "Validate prerequisites before operations",
-      "Clean up or archive state files after destruction"
+      "Build Lambda functions or compile assets before deployment (script hooks)",
+      "Run smoke tests or health checks after deployment (script or skill hooks)",
+      "Send notifications to Slack/Teams/PagerDuty (script hooks)",
+      "Estimate costs from Terraform plan (script hooks)",
+      "Run security scans (Checkov, tfsec) on plans (script hooks)",
+      "Back up data before destroying resources (script hooks)",
+      "Warm up Lambda functions after deployment (script hooks)",
+      "Generate documentation after changes (script hooks)",
+      "Validate prerequisites before operations (script or skill hooks)",
+      "Clean up or archive state files after destruction (script hooks)",
+      "Custom dataset/data validation (skill hooks - reusable, testable)",
+      "Complex multi-step validation workflows (skill hooks - structured interface)",
+      "Integration with external systems via Claude Code (skill hooks)"
     ],
     "best_practices": [
-      "Use critical: true for hooks that must succeed (builds, backups, smoke tests)",
-      "Use critical: false for nice-to-have hooks (notifications, documentation, cost estimates)",
-      "Set appropriate timeouts (builds: 300s, API calls: 30s, backups: 600s)",
+      "Use required: true for hooks that must succeed (builds, backups, smoke tests)",
+      "Use required: false for nice-to-have hooks (notifications, documentation, cost estimates)",
+      "Set appropriate timeouts (builds: 300s, API calls: 30s, backups: 600s, validations: 300s)",
       "Use environments array to run hooks only in specific environments",
-      "Keep hook commands simple - delegate complex logic to scripts",
+      "Keep script hook commands simple - delegate complex logic to scripts",
       "Include descriptive names and descriptions for maintainability",
       "Test hooks in test environment before deploying to production",
-      "Use environment variables ($FABER_CLOUD_ENV, etc.) for dynamic behavior"
+      "Use environment variables ($FABER_CLOUD_ENV, etc.) for dynamic behavior",
+      "SKILL HOOKS: Prefer skill hooks for complex, reusable validation logic",
+      "SKILL HOOKS: Skills receive structured WorkflowContext (see invoke-skill-hook.sh)",
+      "SKILL HOOKS: Skills are discoverable via /help and testable independently",
+      "SKILL HOOKS: Place skills in .claude/skills/{skill-name}/ directory",
+      "BACKWARD COMPATIBILITY: String hooks still work (treated as script commands)"
     ]
   }
 }
