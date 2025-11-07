@@ -50,5 +50,11 @@
     "on_success": false,
     "on_failure": true,
     "webhook_url": ""
+  },
+  "cache": {
+    "ttl_days": 7,
+    "max_size_mb": 0,
+    "auto_cleanup": true,
+    "cleanup_interval_days": 7
   }
 }

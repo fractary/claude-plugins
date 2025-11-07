@@ -210,6 +210,37 @@
           "format": "uri"
         }
       }
+    },
+    "cache": {
+      "type": "object",
+      "description": "Cache configuration for knowledge retrieval (SPEC-0030)",
+      "properties": {
+        "ttl_days": {
+          "type": "integer",
+          "description": "Default time-to-live for cached documents in days",
+          "minimum": 1,
+          "maximum": 365,
+          "default": 7
+        },
+        "max_size_mb": {
+          "type": "integer",
+          "description": "Maximum cache size in megabytes (0 = unlimited)",
+          "minimum": 0,
+          "default": 0
+        },
+        "auto_cleanup": {
+          "type": "boolean",
+          "description": "Automatically remove expired cache entries",
+          "default": true
+        },
+        "cleanup_interval_days": {
+          "type": "integer",
+          "description": "Interval in days between automatic cleanup runs",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 7
+        }
+      }
     }
   },
   "required": ["version", "organization", "codex_repo"],
