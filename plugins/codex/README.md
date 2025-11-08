@@ -102,6 +102,13 @@ The codex plugin implements a progressive architecture across three phases:
 - **Dual-mode access** (plugin commands + MCP resources)
 - **Context7 integration** (documented, hybrid caching)
 
+#### Phase 4: Migration & Optimization ✅
+- **Migration tooling** from v2.0 (push-sync) to v3.0 (pull-retrieval)
+- **Deprecation warnings** on legacy commands with 6-9 month timeline
+- **Metrics & monitoring** (cache hit rate, performance tracking)
+- **Health checks** (diagnostics, auto-repair, system validation)
+- **Performance optimizations** (10-50ms cache hits, improved indexing)
+
 ### Architecture Diagram
 
 ```
@@ -400,6 +407,92 @@ Clear cache entries by filter.
 - Atomic index updates
 - Only affects cache (source documents unchanged)
 
+### `/fractary-codex:migrate`
+
+Migrate configuration from v2.0 (push-based sync) to v3.0 (pull-based retrieval).
+
+**Usage:**
+```bash
+/fractary-codex:migrate                   # Interactive migration
+/fractary-codex:migrate --dry-run         # Preview changes
+/fractary-codex:migrate --yes             # Auto-confirm
+/fractary-codex:migrate --force           # Re-migrate if already v3.0
+```
+
+**What it does:**
+- Detects v2.0 configuration
+- Converts to v3.0 format with `sources` array
+- Creates backup of old configuration
+- Validates new configuration
+- Provides rollback instructions
+
+**See:** [MIGRATION-PHASE4.md](docs/MIGRATION-PHASE4.md) for complete migration guide
+
+### `/fractary-codex:metrics`
+
+Display cache statistics, performance metrics, and health information.
+
+**Usage:**
+```bash
+/fractary-codex:metrics                     # Show all metrics
+/fractary-codex:metrics --category cache    # Cache stats only
+/fractary-codex:metrics --format json       # Machine-readable output
+/fractary-codex:metrics --history           # Include trends (7 days)
+```
+
+**Metrics shown:**
+- **Cache**: Total docs, size, fresh/expired ratio
+- **Performance**: Hit rate, avg times, failed fetches
+- **Sources**: Documents per source, size breakdown
+- **Storage**: Disk usage, compression savings
+
+**Example output:**
+```
+📊 Codex Knowledge Retrieval Metrics
+═══════════════════════════════════════
+
+CACHE STATISTICS
+────────────────────────────────────────
+Total Documents:        156 files
+Cache Size:             45.2 MB
+Fresh Documents:        142 (91%)
+Cache Hit Rate:         94.5%
+Avg Cache Hit Time:     12 ms
+```
+
+### `/fractary-codex:health`
+
+Perform comprehensive health checks and diagnose issues.
+
+**Usage:**
+```bash
+/fractary-codex:health                    # Run all checks
+/fractary-codex:health --check cache      # Specific category
+/fractary-codex:health --fix              # Auto-repair issues
+/fractary-codex:health --verbose          # Detailed diagnostics
+```
+
+**Health checks:**
+- **Cache**: Index validity, file accessibility, orphaned files
+- **Configuration**: Valid JSON, required fields, source configs
+- **Performance**: Hit rate, fetch times, failure rate
+- **Storage**: Disk space, cache size, growth rate
+- **System**: Git, jq, network, permissions
+
+**Example output:**
+```
+🏥 Codex Health Check
+═══════════════════════════════════════
+
+CACHE HEALTH                     ✅ PASS
+✓ Cache directory exists
+✓ Cache index valid
+✓ All cached files accessible
+
+OVERALL STATUS: ✅ Healthy
+Checks passed: 22/24 (92%)
+```
+
 ---
 
 ## Configuration
@@ -527,19 +620,78 @@ See [MCP Integration Guide](./docs/MCP-INTEGRATION.md) for detailed setup and tr
 
 ---
 
-## Legacy: Push-Based Sync
+## Legacy: Push-Based Sync & Migration
 
-> **Note:** The original push-based sync commands (`/fractary-codex:sync-project`, `/fractary-codex:sync-org`) are still available for backward compatibility and migration scenarios.
+> **⚠️ Deprecation Notice:** The push-based sync system (v2.0, SPEC-0012) is being phased out in favor of pull-based retrieval (v3.0, SPEC-0030). Both systems are currently supported during the transition period (6-9 months).
 
-The legacy sync system implements bidirectional synchronization:
-- **Project → Codex**: Aggregate project docs into codex
-- **Codex → Projects**: Distribute shared docs to projects
+### Deprecation Timeline
 
-**Legacy Commands:**
-- `/fractary-codex:sync-project` - Sync single project
-- `/fractary-codex:sync-org` - Sync entire organization
+The migration from v2.0 to v3.0 follows a **4-stage rollout over 6-12 months**:
 
-For new implementations, use the pull-based retrieval system (`/fractary-codex:fetch`) which is faster, more scalable, and supports multi-source integration.
+| Stage | Timeline | Status | Description |
+|-------|----------|--------|-------------|
+| **Stage 1** | Months 0-3 | **Current** | Both systems work, retrieval opt-in |
+| **Stage 2** | Months 3-6 | Planned | Push works, pull deprecated, retrieval recommended |
+| **Stage 3** | Months 6-9 | Planned | Sync commands show warnings, retrieval is standard |
+| **Stage 4** | Months 9-12 | Planned | Sync commands removed, retrieval only |
+
+### Migration Path
+
+**Automated migration:**
+```bash
+/fractary-codex:migrate              # Convert v2.0 config to v3.0
+/fractary-codex:migrate --dry-run    # Preview changes first
+```
+
+**What changes:**
+- **Old (v2.0)**: Bidirectional sync with `sync_patterns`
+  - Project → Codex: Aggregate project docs into codex
+  - Codex → Projects: Distribute shared docs to projects
+- **New (v3.0)**: Pull-based retrieval with `sources` array
+  - On-demand fetching from any source
+  - Cache-first with TTL management
+
+**See:** [MIGRATION-PHASE4.md](docs/MIGRATION-PHASE4.md) for complete migration guide
+
+### Legacy Commands
+
+⚠️ **These commands are deprecated and will be removed in Stage 4 (Month 9-12)**
+
+- `/fractary-codex:sync-project [project] [--to-codex|--from-codex|--bidirectional]` - Sync single project
+- `/fractary-codex:sync-org [--to-codex|--from-codex|--bidirectional]` - Sync entire organization
+
+**Migration examples:**
+```bash
+# Old (v2.0): Sync from codex
+/fractary-codex:sync-project my-project --from-codex
+
+# New (v3.0): Fetch on-demand
+/fractary-codex:fetch @codex/my-project/docs/architecture.md
+/fractary-codex:cache-prefetch    # Or prefetch multiple docs
+
+# Old (v2.0): Sync to codex
+/fractary-codex:sync-project my-project --to-codex
+
+# New (v3.0): Publishing workflows separate from retrieval
+# Continue using git push or CI/CD to publish to codex repository
+```
+
+### Why Migrate?
+
+**Performance improvements:**
+- **10-50x faster** cache hits (< 50ms vs 1-3s)
+- **No manual sync** required - fetch on-demand
+- **Multi-source support** (not just codex repository)
+- **Offline-first** with local cache
+- **MCP integration** for Claude Desktop/Code
+
+**Architectural benefits:**
+- No single-repository bottleneck
+- Document-level permission control
+- Flexible source configuration
+- Simpler mental model (pull vs bidirectional sync)
+
+For new implementations, use the pull-based retrieval system which is faster, more scalable, and supports multi-source integration.
 
 ---
 
@@ -804,6 +956,14 @@ Follows [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDAR
 - Dual-mode access
 - Context7 integration (documented)
 - Claude Desktop/Code support
+
+**Phase 4: Migration & Optimization**
+- Migration tooling (/fractary-codex:migrate)
+- Deprecation warnings on legacy commands
+- Metrics & monitoring (/fractary-codex:metrics)
+- Health checks (/fractary-codex:health)
+- Performance optimizations (10-50ms cache hits)
+- 4-stage deprecation timeline (6-12 months)
 
 ### v2.0.0 - Push-Based Sync (Legacy)
 
