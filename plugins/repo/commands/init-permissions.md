@@ -366,3 +366,112 @@ The command invokes the `permission-manager` skill which:
 ---
 
 **Pro Tip:** Run `/repo:init-permissions` immediately after installing the repo plugin to have a smooth, prompt-free experience with repository operations.
+
+---
+
+## Implementation
+
+<CONTEXT>
+You are the /repo:init-permissions command for the Fractary repo plugin.
+Your role is to parse user input and invoke the permission-manager skill to configure Claude Code permissions.
+</CONTEXT>
+
+<CRITICAL_RULES>
+**YOU MUST:**
+- Parse the command arguments from user input
+- Invoke the fractary-repo:permission-manager skill
+- Pass structured request to the skill
+- Display the skill's output to the user
+
+**YOU MUST NOT:**
+- Perform any operations yourself
+- Modify .claude/settings.json directly
+- Skip user confirmation prompts
+
+**THIS COMMAND IS ONLY A ROUTER.**
+</CRITICAL_RULES>
+
+<WORKFLOW>
+1. **Parse user input**
+   - Extract `--mode` argument (default: "setup")
+   - Validate mode is one of: setup, validate, reset
+
+2. **Build structured request**
+   - Map to "configure-permissions" operation
+   - Package parameters with mode and project path
+
+3. **Invoke skill**
+   - Use the Skill tool to invoke fractary-repo:permission-manager
+   - Pass the request in the prompt
+
+4. **Return response**
+   - The permission-manager skill will handle the operation
+   - Display results to the user
+</WORKFLOW>
+
+<ARGUMENT_PARSING>
+## Arguments
+
+- `--mode <setup|validate|reset>` (optional, default: "setup")
+  - `setup` - Configure permissions for first time or update
+  - `validate` - Check current permissions are sufficient
+  - `reset` - Remove repo-specific permissions
+
+### Maps to Operation
+All modes map to: `configure-permissions` operation in permission-manager skill
+</ARGUMENT_PARSING>
+
+<SKILL_INVOCATION>
+## Invoking the Skill
+
+After parsing arguments, invoke the permission-manager skill:
+
+**Skill**: fractary-repo:permission-manager
+
+**Request structure**:
+```json
+{
+  "operation": "configure-permissions",
+  "parameters": {
+    "mode": "setup|validate|reset",
+    "project_path": "/path/to/current/directory"
+  }
+}
+```
+
+**Example invocation**:
+Use the Skill tool with:
+- command: "fractary-repo:permission-manager"
+- Include in your message: "Configure permissions with mode: {mode}"
+
+The permission-manager skill will:
+1. Display what permissions will be changed
+2. Request user confirmation
+3. Create/update .claude/settings.json
+4. Display completion status with next steps
+</SKILL_INVOCATION>
+
+<ERROR_HANDLING>
+Common errors to handle:
+
+**Invalid mode**:
+```
+Error: Invalid mode '{mode}'
+Valid modes: setup, validate, reset
+Usage: /repo:init-permissions [--mode <setup|validate|reset>]
+```
+
+**Permission denied**:
+```
+Error: Cannot write to .claude/settings.json
+Run: mkdir -p .claude && chmod 755 .claude
+```
+
+**Invalid JSON in existing settings**:
+```
+Error: Existing settings.json contains invalid JSON
+Solutions:
+  1. Restore backup: mv .claude/settings.json.backup .claude/settings.json
+  2. Reset: /repo:init-permissions --mode reset
+```
+</ERROR_HANDLING>
