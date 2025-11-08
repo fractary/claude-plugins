@@ -316,7 +316,7 @@ cat .claude/settings.json | jq '.permissions.bash.allow'
 
 ### Implementation
 
-The command invokes the `permission-manager` skill which:
+The command invokes the `repo-manager` agent with a `configure-permissions` operation, which routes to the `permission-manager` skill. The skill then:
 1. Reads existing `.claude/settings.json` (if any)
 2. Creates backup
 3. Merges repo permissions with existing rules
@@ -373,18 +373,19 @@ The command invokes the `permission-manager` skill which:
 
 <CONTEXT>
 You are the /repo:init-permissions command for the Fractary repo plugin.
-Your role is to parse user input and invoke the permission-manager skill to configure Claude Code permissions.
+Your role is to parse user input and invoke the repo-manager agent to configure Claude Code permissions.
 </CONTEXT>
 
 <CRITICAL_RULES>
 **YOU MUST:**
 - Parse the command arguments from user input
-- Invoke the fractary-repo:permission-manager skill
-- Pass structured request to the skill
-- Display the skill's output to the user
+- Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager)
+- Pass structured request to the agent
+- Return the agent's response to the user
 
 **YOU MUST NOT:**
 - Perform any operations yourself
+- Invoke skills directly (the repo-manager agent handles skill invocation)
 - Modify .claude/settings.json directly
 - Skip user confirmation prompts
 
@@ -400,12 +401,11 @@ Your role is to parse user input and invoke the permission-manager skill to conf
    - Map to "configure-permissions" operation
    - Package parameters with mode and project path
 
-3. **Invoke skill**
-   - Use the Skill tool to invoke fractary-repo:permission-manager
-   - Pass the request in the prompt
+3. **Invoke agent**
+   - Invoke fractary-repo:repo-manager agent with the request
 
 4. **Return response**
-   - The permission-manager skill will handle the operation
+   - The repo-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
 
@@ -421,12 +421,12 @@ Your role is to parse user input and invoke the permission-manager skill to conf
 All modes map to: `configure-permissions` operation in permission-manager skill
 </ARGUMENT_PARSING>
 
-<SKILL_INVOCATION>
-## Invoking the Skill
+<AGENT_INVOCATION>
+## Invoking the Agent
 
-After parsing arguments, invoke the permission-manager skill:
+After parsing arguments, invoke the repo-manager agent using declarative syntax:
 
-**Skill**: fractary-repo:permission-manager
+**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
 
 **Request structure**:
 ```json
@@ -439,17 +439,18 @@ After parsing arguments, invoke the permission-manager skill:
 }
 ```
 
-**Example invocation**:
-Use the Skill tool with:
-- command: "fractary-repo:permission-manager"
-- Include in your message: "Configure permissions with mode: {mode}"
+The repo-manager agent will:
+1. Receive the request
+2. Route to fractary-repo:permission-manager skill based on operation
+3. Display what permissions will be changed
+4. Request user confirmation
+5. Create/update .claude/settings.json
+6. Return structured response with completion status and next steps
 
-The permission-manager skill will:
-1. Display what permissions will be changed
-2. Request user confirmation
-3. Create/update .claude/settings.json
-4. Display completion status with next steps
-</SKILL_INVOCATION>
+## Supported Operations
+
+- `configure-permissions` - Configure Claude Code permissions for repo operations
+</AGENT_INVOCATION>
 
 <ERROR_HANDLING>
 Common errors to handle:
