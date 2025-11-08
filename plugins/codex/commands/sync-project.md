@@ -4,6 +4,58 @@ description: Sync a single project bidirectionally with codex repository
 argument-hint: [project-name] [--to-codex|--from-codex|--bidirectional] [--dry-run]
 ---
 
+# ⚠️ DEPRECATION WARNING - Legacy Command
+
+**This command is part of the legacy push-based sync system (SPEC-0012, Codex v2.0) and is deprecated.**
+
+## Migration Required
+
+**New approach (v3.0)**: Pull-based knowledge retrieval with cache-first strategy
+
+```bash
+# Instead of syncing FROM codex:
+/codex:sync-project my-project --from-codex
+
+# Use the new fetch command:
+/fractary-codex:fetch @codex/my-project/docs/architecture.md
+/fractary-codex:fetch @codex/my-project/**
+
+# View cached documents:
+/fractary-codex:cache-list
+
+# Clear expired cache:
+/fractary-codex:cache-clear --expired
+```
+
+## Deprecation Timeline
+
+- **Stage 1 (Current - Month 3)**: Both systems work, retrieval opt-in
+- **Stage 2 (Month 3-6)**: Push still works, pull deprecated, retrieval recommended
+- **Stage 3 (Month 6-9)**: Sync commands show warnings, retrieval is standard
+- **Stage 4 (Month 9-12)**: Sync commands removed, retrieval only
+
+## Migration Steps
+
+1. **Read migration guide**: `plugins/codex/docs/MIGRATION-PHASE4.md`
+2. **Convert config**: `/fractary-codex:migrate` (or `/fractary-codex:migrate --dry-run` to preview)
+3. **Test retrieval**: `/fractary-codex:fetch @codex/project/path`
+4. **Switch workflows**: Replace sync commands with fetch commands
+
+## Benefits of Migrating
+
+- **10-50x faster** cache hits (< 50ms vs 1-3s)
+- **Multi-source support** (not just codex repository)
+- **Offline-first** with local cache
+- **No manual sync** required
+- **MCP integration** for Claude Desktop/Code
+
+## Support
+
+This legacy command will continue to work during the transition period (Stages 1-3, ~6-9 months).
+For help migrating: See [MIGRATION-PHASE4.md](../docs/MIGRATION-PHASE4.md)
+
+---
+
 <CONTEXT>
 You are the **sync-project command router** for the codex plugin.
 

@@ -1,9 +1,15 @@
 {
   "name": "fractary-codex",
-  "version": "2.0.0",
-  "description": "Documentation and knowledge sync across organization projects - memory fabric for AI agents.",
+  "version": "3.0.0",
+  "description": "Knowledge retrieval and documentation sync - memory fabric for AI agents with cache-first retrieval, multi-source support, MCP integration, and bidirectional synchronization.",
   "commands": "./commands/",
   "agents": ["./agents/codex-manager.md"],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcp_server": "./mcp-server/dist/index.js",
+  "mcp_server_config": {
+    "name": "fractary-codex",
+    "version": "1.0.0",
+    "capabilities": ["resources", "tools"]
+  }
 }
   
