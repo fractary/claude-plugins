@@ -317,7 +317,61 @@ show_differences() {
         fi
     done <<< "$current_denies"
 
+    # Check for MISSING commands (should be present but aren't)
+    local missing_allows=()
+    for cmd in "${ALLOW_COMMANDS[@]}"; do
+        if ! echo "$current_allows" | grep -qxF "$cmd"; then
+            missing_allows+=("$cmd")
+        fi
+    done
+
+    local missing_requires=()
+    for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
+        if ! echo "$current_requires" | grep -qxF "$cmd"; then
+            missing_requires+=("$cmd")
+        fi
+    done
+
+    local missing_denies=()
+    for cmd in "${DENY_COMMANDS[@]}"; do
+        if ! echo "$current_denies" | grep -qxF "$cmd"; then
+            missing_denies+=("$cmd")
+        fi
+    done
+
     # Show findings
+    if [ ${#missing_allows[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Missing from ALLOW list (${#missing_allows[@]} commands):${NC}"
+        local show_count=$((${#missing_allows[@]} > 10 ? 10 : ${#missing_allows[@]}))
+        for ((i=0; i<$show_count; i++)); do
+            echo "  • ${missing_allows[$i]}"
+        done
+        if [ ${#missing_allows[@]} -gt 10 ]; then
+            echo "  ... and $((${#missing_allows[@]} - 10)) more"
+        fi
+        echo ""
+    fi
+
+    if [ ${#missing_requires[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Missing from REQUIRE APPROVAL list (${#missing_requires[@]} commands):${NC}"
+        for cmd in "${missing_requires[@]}"; do
+            echo "  • $cmd"
+        done
+        echo ""
+    fi
+
+    if [ ${#missing_denies[@]} -gt 0 ]; then
+        echo -e "${RED}Missing from DENY list (${#missing_denies[@]} commands):${NC}"
+        local show_count=$((${#missing_denies[@]} > 10 ? 10 : ${#missing_denies[@]}))
+        for ((i=0; i<$show_count; i++)); do
+            echo "  • ${missing_denies[$i]}"
+        done
+        if [ ${#missing_denies[@]} -gt 10 ]; then
+            echo "  ... and $((${#missing_denies[@]} - 10)) more"
+        fi
+        echo ""
+    fi
+
     if [ ${#custom_allows[@]} -gt 0 ]; then
         echo -e "${YELLOW}Custom Allows (not in repo recommendations):${NC}"
         for cmd in "${custom_allows[@]}"; do
@@ -342,7 +396,7 @@ show_differences() {
         echo ""
     fi
 
-    if [ ${#custom_allows[@]} -eq 0 ] && [ ${#custom_denies[@]} -eq 0 ] && [ ${#misplaced[@]} -eq 0 ]; then
+    if [ ${#missing_allows[@]} -eq 0 ] && [ ${#missing_requires[@]} -eq 0 ] && [ ${#missing_denies[@]} -eq 0 ] && [ ${#custom_allows[@]} -eq 0 ] && [ ${#custom_denies[@]} -eq 0 ] && [ ${#misplaced[@]} -eq 0 ]; then
         echo -e "${GREEN}✓ No differences from recommended settings${NC}"
         echo ""
     fi

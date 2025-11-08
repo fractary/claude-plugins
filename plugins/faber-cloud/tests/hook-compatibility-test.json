@@ -1,0 +1,64 @@
+{
+  "hooks": {
+    "pre-plan": [
+      "echo 'Legacy string hook: pre-plan'",
+      {
+        "name": "script-object-hook",
+        "type": "script",
+        "path": "echo 'Script object hook: pre-plan'",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 30
+      }
+    ],
+
+    "pre-deploy": [
+      "echo 'Legacy hook 1: Building...'",
+      {
+        "name": "legacy-format-hook",
+        "command": "echo 'Legacy format with command field'",
+        "critical": true,
+        "timeout": 30
+      },
+      {
+        "type": "script",
+        "name": "new-format-hook",
+        "path": "echo 'New format with path field'",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 30
+      }
+    ],
+
+    "post-deploy": [
+      "echo 'Simple legacy hook'",
+      {
+        "type": "script",
+        "name": "verification",
+        "path": "echo 'Verification complete'",
+        "required": false,
+        "failureMode": "warn"
+      }
+    ]
+  },
+
+  "_test_description": {
+    "purpose": "Test backward compatibility of hook system",
+    "test_cases": [
+      "Legacy string hooks (e.g., 'echo hello')",
+      "Legacy object hooks with 'command' field",
+      "New script object hooks with 'type' and 'path' fields",
+      "Mixed hooks in same lifecycle point",
+      "Required vs optional hooks",
+      "Stop vs warn failure modes"
+    ],
+    "expected_behavior": [
+      "All legacy string hooks execute as scripts",
+      "Legacy object hooks execute with 'command' field",
+      "New script objects execute with 'path' field",
+      "All hooks execute in array order",
+      "Required hooks block on failure",
+      "Optional hooks warn on failure but continue"
+    ]
+  }
+}
