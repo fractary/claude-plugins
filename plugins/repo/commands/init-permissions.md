@@ -314,7 +314,7 @@ cat .claude/settings.json | jq '.permissions.bash.allow'
 
 ## Technical Details
 
-### Implementation
+### How It Works
 
 The command invokes the `repo-manager` agent with a `configure-permissions` operation, which routes to the `permission-manager` skill. The skill then:
 1. Reads existing `.claude/settings.json` (if any)
