@@ -58,6 +58,14 @@ This command follows the standard space-separated syntax:
 - `--project-root`: Root directory to audit. **Defaults to current directory.**
 - `--execute`: Execute high-priority remediations immediately after audit. Defaults to false (generate spec only).
 
+## Requirements
+
+**For Spec Generation (Phase 2)**:
+- **fractary-spec plugin** must be installed
+- Spec generation uses `fractary-spec:spec-manager`
+- Without it, audit still runs and presents findings, but cannot save as formal spec
+- Install fractary-spec to enable "Save as Spec" option
+
 ## What This Does
 
 ### Two-Phase Interactive Audit Workflow
@@ -101,27 +109,37 @@ This command follows the standard space-separated syntax:
    - Report results
 
 **User Options After Phase 1:**
-- **Approve**: Generate the spec as proposed
-- **Revise**: Provide feedback to adjust the proposed actions
-- **Cancel**: Stop without generating spec (findings saved for reference)
+- **Save as Spec**: Generate a formal remediation specification using fractary-spec:spec-manager
+- **Refine Plan**: Provide feedback to adjust priorities, actions, or scope
+- **Hold Off**: Save findings for later without generating spec (discovery reports available)
 
 ## Output
 
 The audit produces:
 
-### Remediation Specification (Markdown)
-- `REMEDIATION-SPEC.md` - Actionable plan to fix issues
+### Phase 1 Outputs (Always Generated)
+
+**Discovery Reports (JSON)**:
+- `discovery-docs.json` - Documentation inventory
+- `discovery-structure.json` - Organization analysis
+- `discovery-frontmatter.json` - Front matter coverage
+- `discovery-quality.json` - Quality assessment
+
+**Findings Presentation (Interactive)**:
+- Detailed issue breakdown by priority
+- Proposed remediation actions
+- Estimated effort
+- User decision prompt
+
+### Phase 2 Outputs (Generated After "Save as Spec")
+
+**Remediation Specification (Markdown)**:
+- `REMEDIATION-SPEC.md` - Generated via fractary-spec:spec-manager
   - Issue summary by priority
   - Detailed requirements with rationale
   - Phase-based implementation plan
   - Executable commands
   - Verification steps
-
-### Discovery Reports (JSON)
-- `discovery-docs.json` - Documentation inventory
-- `discovery-structure.json` - Organization analysis
-- `discovery-frontmatter.json` - Front matter coverage
-- `discovery-quality.json` - Quality assessment
 
 ## Examples
 
@@ -240,21 +258,21 @@ Step 4: Findings Presentation
 
   ⏱️ Estimated Effort: 8 hours
 
-  💡 Waiting for User Decision:
-     1. Approve → Generate spec
-     2. Revise → Adjust actions
-     3. Cancel → Stop here
+  💡 What would you like to do next?
+     1. Save as Spec → Generate formal spec via spec-manager
+     2. Refine Plan → Adjust priorities/actions/scope
+     3. Hold Off → Save findings for later
 
-  ⏸️  PAUSED - Awaiting your approval
+  ⏸️  PAUSED - Awaiting your decision
 ```
 
-### Phase 2: Specification Generation (After User Approves)
+### Phase 2: Specification Generation (After "Save as Spec")
 
 ```
 Step 5: Spec Generation
-  📝 User approved - generating remediation spec...
-  📝 Using fractary-spec plugin ✓
-  📝 Creating actionable plan...
+  📝 Generating remediation spec via spec-manager...
+  📝 Using fractary-spec:spec-manager ✓
+  📝 Creating formal specification...
   ✅ REMEDIATION-SPEC.md generated
 
 Step 6: Final Summary
@@ -283,16 +301,18 @@ If you want to adjust the proposed remediation actions after seeing Phase 1 find
 
 **Example revision conversation:**
 ```
-You: I'd like to revise the plan. Can we:
+You: I'd like to refine the plan. Can we:
      1. Move "Add missing ADR sections" from high to medium priority
      2. Remove the action to reorganize all files (too disruptive right now)
      3. Add an action to set up automated validation
 
-Claude: [Presents revised plan with your changes]
+Claude: [Presents revised findings with your changes]
+        [Shows updated priority breakdown and effort estimate]
 
-You: That looks good, please generate the spec
+You: That looks great, please save as spec
 
-Claude: [Generates spec with revised actions]
+Claude: [Generates formal spec via fractary-spec:spec-manager]
+        [Spec saved to .fractary/audit/REMEDIATION-SPEC.md]
 ```
 
 ## Use Cases

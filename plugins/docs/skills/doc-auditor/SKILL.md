@@ -68,14 +68,25 @@ This skill executes in TWO phases with a mandatory user approval step:
 
 ## Step 1: Check for Spec Plugin
 
+**CRITICAL**: The fractary-spec plugin is REQUIRED for generating remediation specs.
+
 Check if fractary-spec plugin is available:
 ```bash
 if [ -f ".fractary/plugins/spec/config/config.json" ] || [ -d "plugins/spec" ]; then
   USE_SPEC_PLUGIN=true
 else
   USE_SPEC_PLUGIN=false
+  echo "⚠️  WARNING: fractary-spec plugin not found"
+  echo "The audit will present findings, but cannot generate a formal spec."
+  echo "To enable spec generation, install fractary-spec plugin."
 fi
 ```
+
+**If spec plugin is NOT available:**
+- Continue with audit and present findings (Step 1-6)
+- Warn user that spec generation is not available
+- User can still review findings and discovery reports
+- User should install fractary-spec plugin to enable spec generation
 
 ## Step 2: Load Configuration and Standards
 
@@ -185,24 +196,46 @@ Present the audit findings and proposed remediation actions to the user for revi
 
 ═══════════════════════════════════════════════════════════
 
-Would you like me to generate a formal remediation specification with these actions?
+📋 What would you like to do next?
 
-You can:
-1. **Approve**: Generate the spec as proposed
-2. **Revise**: Provide feedback to adjust the actions
-3. **Cancel**: Stop without generating spec
+{IF spec plugin available:}
+1. **Save as Spec**: Generate a formal remediation specification using
+   fractary-spec:spec-manager (recommended for tracking and execution)
+
+2. **Refine Plan**: Provide feedback to adjust priorities, actions, or scope
+   (I'll revise and present an updated plan for your approval)
+
+3. **Hold Off**: Save these findings for later without generating a spec
+   (Discovery reports remain available for future reference)
+
+{IF spec plugin NOT available:}
+⚠️  Note: fractary-spec plugin not installed - cannot generate formal spec
+
+1. **Refine Plan**: Provide feedback to adjust priorities, actions, or scope
+   (I'll revise and present an updated plan for your approval)
+
+2. **Hold Off**: Save these findings for later
+   (Discovery reports remain available for future reference)
+
+   To enable spec generation, install fractary-spec plugin first.
+
 ═══════════════════════════════════════════════════════════
 ```
 
 **STOP HERE and wait for user response.**
 
-Do NOT proceed to spec generation until user explicitly approves.
+**User Decision Handling:**
+- **"Save as Spec"** (or similar approval) → Proceed to Step 7
+- **"Refine Plan"** (or requests changes) → Revise actions and re-present Step 6
+- **"Hold Off"** (or cancels) → Skip to completion with discovery reports only
 
-## Step 7: Generate Remediation Specification (After Approval)
+Do NOT proceed to spec generation until user explicitly chooses "Save as Spec".
 
-**ONLY execute this step if user approves the findings in Step 6.**
+## Step 7: Generate Remediation Specification (After "Save as Spec")
 
-**If fractary-spec plugin available:**
+**ONLY execute this step if user explicitly chooses to save as spec in Step 6.**
+
+**CRITICAL**: Always use fractary-spec:spec-manager when generating the spec.
 
 Use the @agent-fractary-spec:spec-manager agent to generate specification:
 ```
@@ -282,92 +315,6 @@ Use the @agent-fractary-spec:spec-manager agent to generate specification:
   },
   "output_path": "{output_dir}/REMEDIATION-SPEC.md"
 }
-```
-
-**If fractary-spec NOT available:**
-
-Generate markdown specification directly:
-```bash
-cat > {output_dir}/REMEDIATION-SPEC.md <<'EOF'
-# Documentation Remediation Specification
-
-**Generated:** {date}
-**Project:** {project_name}
-**Estimated Time:** {hours} hours
-
-## Overview
-
-### Summary
-{Summary of what needs to be done}
-
-### Current State
-- Total Files: {count}
-- With Front Matter: {count}/{total} ({percentage}%)
-- Quality Score: {score}/10
-- Structure: {type}
-
-### Target State
-- Organization: Type-based directory structure
-- Front Matter: 100% coverage with codex sync
-- Quality Score: 8+/10
-
-## Requirements
-
-### [REQ-1] {Requirement Title} - {PRIORITY}
-
-**Description:** {What needs to be done}
-
-**Rationale:** {Why this is needed}
-
-**Files Affected:**
-- {file1}
-- {file2}
-
-**Acceptance Criteria:**
-- [ ] {Criterion 1}
-- [ ] {Criterion 2}
-
-## Implementation Plan
-
-### Phase 1: Critical Fixes ({hours} hours)
-
-**Objective:** Establish baseline compliance
-
-#### Task 1.1: {Task Name}
-
-**Commands:**
-```bash
-{Executable commands}
-```
-
-**Verification:**
-```bash
-{Verification commands}
-```
-
-### Phase 2: Organization ({hours} hours)
-
-{Similar structure...}
-
-### Phase 3: Enhancements ({hours} hours)
-
-{Similar structure...}
-
-## Acceptance Criteria
-
-- [ ] All documentation has valid front matter
-- [ ] Files organized per plugin standards
-- [ ] All validation rules pass
-- [ ] No broken links
-
-## Verification Steps
-
-```bash
-/fractary-docs:validate
-/fractary-docs:link check
-/fractary-docs:link index
-```
-EOF
 ```
 
 ## Step 8: Present Final Summary to User (After Spec Generation)
@@ -471,7 +418,7 @@ Next: Review and follow remediation spec
 }
 ```
 
-**Phase 2 Output (After Spec Generation):**
+**Phase 2 Output (After Spec Generation via spec-manager):**
 ```json
 {
   "success": true,
@@ -489,7 +436,8 @@ Next: Review and follow remediation spec
     "compliance_percentage": 45,
     "spec_path": ".fractary/audit/REMEDIATION-SPEC.md",
     "estimated_hours": 8,
-    "used_spec_plugin": true
+    "spec_manager_used": true,
+    "spec_issue_number": "123"
   },
   "timestamp": "2025-01-15T12:00:00Z"
 }
@@ -538,7 +486,8 @@ Handle errors gracefully:
 - Permission denied: Report access issue
 
 **Spec Generation Errors:**
-- Spec plugin unavailable: Fall back to direct generation
+- Spec plugin unavailable: Warn user and explain spec generation requires fractary-spec
+- spec-manager invocation fails: Report error and suggest checking spec plugin installation
 - Invalid discovery data: Report parsing error
 - Cannot write output: Report permission issue
 
@@ -569,7 +518,9 @@ Use the doc-auditor skill to audit documentation:
 
 <DEPENDENCIES>
 - **Discovery scripts**: plugins/docs/skills/doc-adoption/scripts/
-- **Spec plugin** (optional): fractary-spec for standardized spec generation
+- **Spec plugin** (REQUIRED for spec generation): fractary-spec:spec-manager
+  - Audit can run without it (presents findings only)
+  - Spec generation requires fractary-spec plugin installed
 - **Configuration**: .fractary/plugins/docs/config/config.json
 - **Project standards** (optional): Configured in validation.project_standards_doc
 </DEPENDENCIES>
@@ -578,13 +529,16 @@ Use the doc-auditor skill to audit documentation:
 Document the audit process:
 
 **What to document:**
-- Discovery results
+- Discovery results (saved to .fractary/audit/discovery-*.json)
 - Issues identified by priority
 - Standards applied (plugin + project)
-- Remediation actions generated
+- Remediation actions presented for review
 - Estimated effort
+- User decision (save as spec, refine, or hold off)
+- Spec generation results (if user approves)
 
 **Format:**
-Audit summary as formatted text
-Remediation spec as structured markdown (via spec-manager or direct)
+- Audit findings: Formatted text presentation for user review
+- Remediation spec: Generated via fractary-spec:spec-manager (if approved)
+- Discovery reports: JSON files for programmatic access
 </DOCUMENTATION>
