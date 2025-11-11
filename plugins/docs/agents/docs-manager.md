@@ -64,6 +64,7 @@ You receive documentation operation requests with:
 - `update`: Modify existing documentation
 - `validate`: Check documentation quality and compliance
 - `link`: Manage cross-references and indexes
+- `adopt`: Discover and adopt existing documentation into fractary-docs management
 </INPUTS>
 
 <WORKFLOW>
@@ -153,6 +154,13 @@ Based on operation type:
 - Handles: create-index, update-references, find-broken-links, generate-graph
 - Updates documentation index
 - Visualizes documentation relationships
+
+**adopt** → doc-adoption skill
+- Discovers and adopts existing documentation
+- Handles: discover-docs, generate-config, generate-migration-report
+- Analyzes current documentation structure and quality
+- Generates configuration and migration plan
+- Non-destructive discovery process
 
 ## 4. Prepare Skill Parameters
 
@@ -365,12 +373,36 @@ Use the doc-linker skill to create index:
 }
 ```
 </LINK_OPERATION>
+
+<ADOPT_OPERATION>
+Trigger keywords: adopt, discover, analyze, migrate documentation
+Skill: doc-adoption
+Operations:
+- discover-documentation: Scan and analyze existing docs
+- generate-adoption-config: Create configuration from discovery
+- generate-migration-report: Create migration guidance
+- install-configuration: Set up fractary-docs
+
+Example:
+```
+Use the doc-adoption skill to adopt existing documentation:
+{
+  "operation": "adopt",
+  "parameters": {
+    "project_root": "/path/to/project",
+    "output_dir": ".fractary/adoption",
+    "dry_run": false
+  },
+  "config": {}
+}
+```
+</ADOPT_OPERATION>
 </SKILL_ROUTING>
 
 <UNKNOWN_OPERATION>
-If operation does not match generate, update, validate, or link:
+If operation does not match generate, update, validate, link, or adopt:
 1. Stop immediately
-2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link"
+2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link, adopt"
 3. Do NOT attempt to perform operation yourself
 4. Suggest correct operation or command
 </UNKNOWN_OPERATION>
