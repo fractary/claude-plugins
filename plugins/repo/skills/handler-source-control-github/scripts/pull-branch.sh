@@ -67,6 +67,18 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 3
 fi
 
+# Check Git version (requires 2.18+ for merge-tree command)
+GIT_VERSION=$(git --version | grep -oP '\d+\.\d+' | head -1)
+GIT_MAJOR=$(echo "$GIT_VERSION" | cut -d. -f1)
+GIT_MINOR=$(echo "$GIT_VERSION" | cut -d. -f2)
+
+if [ "$GIT_MAJOR" -lt 2 ] || { [ "$GIT_MAJOR" -eq 2 ] && [ "$GIT_MINOR" -lt 18 ]; }; then
+    echo "Warning: Git version $GIT_VERSION detected. This script requires Git 2.18+ for full functionality." >&2
+    echo "Some conflict detection features may not work correctly." >&2
+    echo "Please upgrade Git or use 'manual' strategy for safer operation." >&2
+    # Don't exit - allow operation to continue with degraded functionality
+fi
+
 # Check if branch exists locally
 if ! git rev-parse --verify "$BRANCH_NAME" > /dev/null 2>&1; then
     echo "Error: Branch '$BRANCH_NAME' does not exist locally" >&2
@@ -81,8 +93,26 @@ if ! git remote | grep -q "^${REMOTE}$"; then
     exit 1
 fi
 
+# Check for uncommitted changes BEFORE potentially switching branches
+# This prevents accidentally carrying uncommitted changes to another branch
+if [ -n "$(git status --porcelain)" ]; then
+    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
+        echo "⚠️  WARNING: You have uncommitted changes on '$CURRENT_BRANCH'" >&2
+        echo "These changes will be carried over when switching to '$BRANCH_NAME'" >&2
+        echo "Uncommitted files:" >&2
+        git status --short >&2
+        echo "" >&2
+        echo "Consider stashing changes first: git stash" >&2
+        echo "Continuing in 3 seconds... (Ctrl+C to abort)" >&2
+        sleep 3
+    else
+        echo "Note: You have uncommitted changes. They will be preserved during pull." >&2
+    fi
+fi
+
 # Ensure we're on the specified branch
-# NOTE: This auto-switches branches. Users should be aware of this behavior.
+# NOTE: This auto-switches branches. Uncommitted changes warning given above.
 # This is intentional to ensure pull happens on the correct branch.
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
@@ -91,11 +121,6 @@ if [ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
         echo "Error: Failed to checkout branch '$BRANCH_NAME'" >&2
         exit 1
     fi
-fi
-
-# Check for uncommitted changes
-if [ -n "$(git status --porcelain)" ]; then
-    echo "Warning: You have uncommitted changes. They will be preserved during pull." >&2
 fi
 
 # Fetch latest changes from remote

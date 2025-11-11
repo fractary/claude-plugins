@@ -259,6 +259,30 @@ Set upstream first: git branch --set-upstream-to=origin/feature/123
 </ERROR_HANDLING>
 
 <NOTES>
+## Requirements
+
+**Git Version:**
+- Minimum: Git 2.18+ (for merge-tree conflict detection)
+- Script will warn if Git version is too old but will continue with degraded functionality
+- Older versions: Use `--strategy manual` for safer operation
+
+**Bash Version:**
+- Minimum: Bash 4.0+ (for regex input validation)
+
+## Important Behavior Warnings
+
+⚠️ **Auto-Switch Warning:**
+The pull command automatically switches to the target branch if you're not already on it.
+
+- **If you have uncommitted changes**: You'll get a 3-second warning with option to abort (Ctrl+C)
+- **Uncommitted changes are carried over** to the new branch during the switch
+- **Recommendation**: Stash changes first if switching branches: `git stash`
+
+⚠️ **Uncommitted Changes:**
+- Uncommitted changes are preserved during pull operations
+- They may conflict with pulled changes
+- Consider committing or stashing before pulling
+
 ## Intelligent Conflict Handling
 
 The pull command includes intelligent merge strategies:
