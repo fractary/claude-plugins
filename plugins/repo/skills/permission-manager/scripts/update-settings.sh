@@ -661,22 +661,40 @@ show_changes() {
         done
 
         if [ ${#new_git_read[@]} -gt 0 ]; then
-            echo "  ✅ ${#new_git_read[@]} safe git read operations (status, log, diff, etc.)"
+            local examples=$(printf ", %s" "${new_git_read[@]:0:5}" | cut -c 3-)
+            [ ${#new_git_read[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_git_read[@]} safe git read operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_git_write[@]} -gt 0 ]; then
-            echo "  ✅ ${#new_git_write[@]} git write operations (commit, push, merge, etc.)"
+            local examples=$(printf ", %s" "${new_git_write[@]:0:5}" | cut -c 3-)
+            [ ${#new_git_write[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_git_write[@]} git write operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_gh_read[@]} -gt 0 ]; then
-            echo "  ✅ ${#new_gh_read[@]} GitHub read operations (view PRs/issues)"
+            local examples=$(printf ", %s" "${new_gh_read[@]:0:5}" | cut -c 3-)
+            [ ${#new_gh_read[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_gh_read[@]} GitHub read operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_gh_write[@]} -gt 0 ]; then
-            echo "  ✅ ${#new_gh_write[@]} GitHub write operations (create PRs/comments)"
+            local examples=$(printf ", %s" "${new_gh_write[@]:0:5}" | cut -c 3-)
+            [ ${#new_gh_write[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_gh_write[@]} GitHub write operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_utilities[@]} -gt 0 ]; then
-            echo "  ✅ ${#new_utilities[@]} safe utility commands (cat, grep, jq, etc.)"
+            local examples=$(printf ", %s" "${new_utilities[@]:0:5}" | cut -c 3-)
+            [ ${#new_utilities[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_utilities[@]} safe utility commands"
+            echo "     ($examples)"
         fi
         if [ ${#NEW_REQUIRES[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${NEW_REQUIRES[@]:0:3}" | cut -c 3-)
+            [ ${#NEW_REQUIRES[@]} -gt 3 ] && examples="$examples, ..."
             echo "  ⚠️  ${#NEW_REQUIRES[@]} protected branch operations (require approval)"
+            echo "     ($examples)"
         fi
 
         # Categorize new denies
@@ -701,19 +719,32 @@ show_changes() {
         done
 
         if [ ${#new_file_destructive[@]} -gt 0 ]; then
-            echo "  ❌ ${#new_file_destructive[@]} destructive file operations (rm -rf /, dd, mkfs)"
+            local examples=$(printf ", %s" "${new_file_destructive[@]:0:4}" | cut -c 3-)
+            [ ${#new_file_destructive[@]} -gt 4 ] && examples="$examples, ..."
+            echo "  ❌ ${#new_file_destructive[@]} destructive file operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_git_dangerous[@]} -gt 0 ]; then
-            echo "  ❌ ${#new_git_dangerous[@]} dangerous git operations (force push to main, etc.)"
+            local examples=$(printf ", %s" "${new_git_dangerous[@]:0:4}" | cut -c 3-)
+            [ ${#new_git_dangerous[@]} -gt 4 ] && examples="$examples, ..."
+            echo "  ❌ ${#new_git_dangerous[@]} dangerous git operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_gh_dangerous[@]} -gt 0 ]; then
-            echo "  ❌ ${#new_gh_dangerous[@]} dangerous GitHub operations (repo delete, etc.)"
+            local examples=$(printf ", %s" "${new_gh_dangerous[@]:0:3}" | cut -c 3-)
+            echo "  ❌ ${#new_gh_dangerous[@]} dangerous GitHub operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_system_ops[@]} -gt 0 ]; then
-            echo "  ❌ ${#new_system_ops[@]} system operations (sudo, shutdown, etc.)"
+            local examples=$(printf ", %s" "${new_system_ops[@]:0:5}" | cut -c 3-)
+            [ ${#new_system_ops[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ❌ ${#new_system_ops[@]} system operations"
+            echo "     ($examples)"
         fi
         if [ ${#new_network_rce[@]} -gt 0 ]; then
-            echo "  ❌ ${#new_network_rce[@]} remote code execution patterns (curl | sh, etc.)"
+            local examples=$(printf ", %s" "${new_network_rce[@]}" | cut -c 3-)
+            echo "  ❌ ${#new_network_rce[@]} remote code execution patterns"
+            echo "     ($examples)"
         fi
 
         echo ""

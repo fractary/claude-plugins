@@ -127,17 +127,28 @@ This configuration lets the agent work efficiently while keeping you safe.
 ───────────────────────────────────────────────────────────────────
 
 New Permissions to Add:
-  ✅ 10 safe git read operations (status, log, diff, etc.)
-  ✅ 13 git write operations (commit, push, merge, etc.)
-  ✅ 7 GitHub read operations (view PRs/issues)
-  ✅ 11 GitHub write operations (create PRs/comments)
-  ✅ 15 safe utility commands (cat, grep, jq, etc.)
+  ✅ 10 safe git read operations
+     (git status, git branch, git log, git diff, git show, ...)
+  ✅ 13 git write operations
+     (git add, git checkout, git switch, git fetch, git pull, ...)
+  ✅ 7 GitHub read operations
+     (gh pr view, gh pr list, gh pr status, gh issue view, gh issue list, ...)
+  ✅ 11 GitHub write operations
+     (gh pr create, gh pr comment, gh pr review, gh pr close, gh issue create, ...)
+  ✅ 15 safe utility commands
+     (cat, head, tail, grep, find, ...)
   ⚠️  9 protected branch operations (require approval)
-  ❌ 7 destructive file operations (rm -rf /, dd, mkfs)
-  ❌ 12 dangerous git operations (force push to main, etc.)
-  ❌ 3 dangerous GitHub operations (repo delete, etc.)
-  ❌ 10 system operations (sudo, shutdown, etc.)
-  ❌ 4 remote code execution patterns (curl | sh, etc.)
+     (git push origin main, git push origin master, git push origin production, ...)
+  ❌ 7 destructive file operations
+     (rm -rf /, rm -rf *, rm -rf ., rm -rf ~, ...)
+  ❌ 12 dangerous git operations
+     (git push --force origin main, git push --force origin master, git push --force origin production, ...)
+  ❌ 3 dangerous GitHub operations
+     (gh repo delete, gh repo archive, gh secret delete)
+  ❌ 10 system operations
+     (sudo, su, chmod 777, chown, kill -9, ...)
+  ❌ 4 remote code execution patterns
+     (curl | sh, wget | sh, curl | bash, wget | bash)
 
 ───────────────────────────────────────────────────────────────────
 📋 Detailed Permission Breakdown
