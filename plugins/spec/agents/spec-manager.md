@@ -16,7 +16,7 @@ description: |
   </example>
 
   <example>
-  user: "Please write a specification for the authentication feature in issue 456"
+  user: "Please write a specification for the authentication feature in issue #456"
   assistant: "I'll use the @agent-fractary-spec:spec-manager agent to create a specification for issue #456."
   <commentary>
   Natural language request to "write a specification" triggers spec generation
