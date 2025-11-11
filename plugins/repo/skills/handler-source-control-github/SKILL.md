@@ -285,9 +285,7 @@ Next: {what_calling_skill_should_do}
   "branch_name": "feat/123-add-export",
   "remote": "origin",
   "strategy": "auto-merge-prefer-remote",
-  "commits_pulled": 3,
-  "conflicts_detected": 2,
-  "conflicts_auto_resolved": 2
+  "commits_pulled": 3
 }
 ```
 

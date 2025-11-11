@@ -202,7 +202,6 @@ If config_exists is false, include the recommendation in completion message:
 Branch Updated: {branch_name} ← {remote}/{branch_name}
 Strategy Used: {strategy}
 Commits Pulled: {commit_count}
-Conflicts: {conflict_count} (auto-resolved: {auto_resolved_count})
 ───────────────────────────────────────
 Next: Continue working on your changes
 
@@ -217,7 +216,6 @@ If config exists, omit the recommendation:
 Branch Updated: {branch_name} ← {remote}/{branch_name}
 Strategy Used: {strategy}
 Commits Pulled: {commit_count}
-Conflicts: {conflict_count} (auto-resolved: {auto_resolved_count})
 ───────────────────────────────────────
 Next: Continue working on your changes
 ```
@@ -229,7 +227,6 @@ If conflicts require manual resolution:
 Branch Updated: {branch_name} ← {remote}/{branch_name}
 Strategy Used: manual
 Commits Pulled: {commit_count}
-Conflicts: {conflict_count} files need manual resolution
 ───────────────────────────────────────
 Files with conflicts:
   - {file1}
@@ -266,8 +263,6 @@ Return structured JSON response:
   "remote": "origin",
   "strategy": "auto-merge-prefer-remote",
   "commits_pulled": 3,
-  "conflicts_detected": 2,
-  "conflicts_auto_resolved": 2,
   "platform": "github"
 }
 ```
@@ -281,8 +276,6 @@ Return structured JSON response:
   "remote": "origin",
   "strategy": "manual",
   "commits_pulled": 3,
-  "conflicts_detected": 2,
-  "conflicts_auto_resolved": 0,
   "conflicted_files": ["src/app.js", "src/utils.js"],
   "platform": "github"
 }
@@ -365,8 +358,7 @@ OUTPUT:
   "branch_name": "feat/123-user-export",
   "remote": "origin",
   "strategy": "auto-merge-prefer-remote",
-  "commits_pulled": 2,
-  "conflicts_detected": 0
+  "commits_pulled": 2
 }
 ```
 
@@ -389,12 +381,11 @@ OUTPUT:
   "branch_name": "feat/456-dashboard",
   "remote": "origin",
   "strategy": "rebase",
-  "commits_pulled": 3,
-  "conflicts_detected": 0
+  "commits_pulled": 3
 }
 ```
 
-**Example 3: Pull with Auto-Merge Prefer Remote (Conflicts)**
+**Example 3: Pull with Auto-Merge Prefer Remote**
 ```
 INPUT:
 {
@@ -413,9 +404,7 @@ OUTPUT:
   "branch_name": "fix/789-auth-bug",
   "remote": "origin",
   "strategy": "auto-merge-prefer-remote",
-  "commits_pulled": 5,
-  "conflicts_detected": 3,
-  "conflicts_auto_resolved": 3
+  "commits_pulled": 5
 }
 ```
 
@@ -439,8 +428,6 @@ OUTPUT:
   "remote": "origin",
   "strategy": "manual",
   "commits_pulled": 2,
-  "conflicts_detected": 1,
-  "conflicts_auto_resolved": 0,
   "conflicted_files": ["src/app.js"]
 }
 ```

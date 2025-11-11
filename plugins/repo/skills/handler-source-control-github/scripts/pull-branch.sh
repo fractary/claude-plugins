@@ -1,23 +1,52 @@
 #!/bin/bash
 # Repo Manager: GitHub Pull Branch
 # Pulls branch from remote repository with intelligent conflict resolution
+#
+# Requirements:
+#   - Git 2.18+ (for merge-tree command support)
+#   - Bash 4.0+ (for regex support)
+#
+# Security:
+#   - Branch and remote names are validated against injection patterns
+#   - Only known merge strategies are accepted
+#
+# Behavior Notes:
+#   - Auto-switches to target branch if not currently on it
+#   - Preserves uncommitted changes during pull operations
+#   - Uses git merge-tree for conflict detection (Git 2.18+ feature)
 
 set -euo pipefail
 
 # Check arguments
 # Usage: pull-branch.sh [branch_name] [remote] [strategy]
 if [ $# -lt 1 ] || [ -z "$1" ]; then
+    # No arguments provided - use current branch and defaults
     BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
     if [ -z "$BRANCH_NAME" ] || [ "$BRANCH_NAME" = "HEAD" ]; then
         echo "Error: Not on a branch and no branch name provided" >&2
         exit 2
     fi
-    REMOTE="${1:-origin}"
-    STRATEGY="${2:-auto-merge-prefer-remote}"
+    REMOTE="origin"
+    STRATEGY="auto-merge-prefer-remote"
 else
+    # Arguments provided - parse them
     BRANCH_NAME="$1"
     REMOTE="${2:-origin}"
     STRATEGY="${3:-auto-merge-prefer-remote}"
+fi
+
+# Validate branch name - prevent injection and invalid characters
+if [[ ! "$BRANCH_NAME" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
+    echo "Error: Invalid branch name: $BRANCH_NAME" >&2
+    echo "Branch names can only contain: letters, numbers, /, _, ., -" >&2
+    exit 2
+fi
+
+# Validate remote name - prevent injection
+if [[ ! "$REMOTE" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+    echo "Error: Invalid remote name: $REMOTE" >&2
+    echo "Remote names can only contain: letters, numbers, _, ., -" >&2
+    exit 2
 fi
 
 # Validate strategy - only allow known values
@@ -53,9 +82,11 @@ if ! git remote | grep -q "^${REMOTE}$"; then
 fi
 
 # Ensure we're on the specified branch
+# NOTE: This auto-switches branches. Users should be aware of this behavior.
+# This is intentional to ensure pull happens on the correct branch.
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
-    echo "Switching to branch '$BRANCH_NAME'..." >&2
+    echo "⚠️  Switching to branch '$BRANCH_NAME'..." >&2
     if ! git checkout "$BRANCH_NAME" 2>&1; then
         echo "Error: Failed to checkout branch '$BRANCH_NAME'" >&2
         exit 1
@@ -97,10 +128,30 @@ COMMITS_TO_PULL=$(git rev-list --count "${BRANCH_NAME}..${REMOTE}/${BRANCH_NAME}
 echo "Found ${COMMITS_TO_PULL} commit(s) to pull from '${REMOTE}/${BRANCH_NAME}'" >&2
 
 # Function to check for potential conflicts
+# Note: Requires Git 2.18+ for merge-tree command
+# The conflict detection may not catch all conflict types across Git versions
 check_conflicts() {
     # Try a test merge to see if there would be conflicts
     # This doesn't modify the working tree
-    git merge-tree "$(git merge-base "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}")" "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}" 2>/dev/null | grep -q "^changed in both" && return 0 || return 1
+    # Note: Output format may vary across Git versions
+    local merge_base
+    merge_base=$(git merge-base "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}" 2>/dev/null || echo "")
+
+    if [ -z "$merge_base" ]; then
+        # No common ancestor, likely new branch
+        return 1
+    fi
+
+    # Check for conflicts in merge-tree output
+    # Look for multiple patterns to improve reliability
+    local merge_output
+    merge_output=$(git merge-tree "$merge_base" "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}" 2>/dev/null || echo "")
+
+    if echo "$merge_output" | grep -qE "^changed in both|^both modified|^both added"; then
+        return 0  # Conflicts detected
+    else
+        return 1  # No conflicts
+    fi
 }
 
 # Function to apply strategy

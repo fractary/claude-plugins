@@ -122,7 +122,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 **Example**:
 ```
 /repo:pull feature/123-add-csv-export
-→ Invoke agent with {"operation": "pull-branch", "parameters": {"branch": "feature/123-add-csv-export"}}
+→ Invoke agent with {"operation": "pull-branch", "parameters": {"branch_name": "feature/123-add-csv-export"}}
 ```
 
 **Strategy Examples**:
@@ -193,7 +193,7 @@ Task(
   prompt='{
     "operation": "pull-branch",
     "parameters": {
-      "branch": "feature/123-add-export",
+      "branch_name": "feature/123-add-export",
       "remote": "origin",
       "strategy": "auto-merge-prefer-remote"
     }
@@ -216,7 +216,7 @@ Task(
 {
   "operation": "pull-branch",
   "parameters": {
-    "branch": "branch-name",
+    "branch_name": "branch-name",
     "remote": "origin",
     "rebase": true|false,
     "strategy": "auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail"
