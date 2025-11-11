@@ -5,7 +5,7 @@ description: |
   calculates overall health, prioritizes issues, and generates unified dashboard
   view. Supports text, JSON, and voice-ready formats.
 tools: SlashCommand, Read
-color: blue
+color: orange
 ---
 
 # Helm Dashboard Agent

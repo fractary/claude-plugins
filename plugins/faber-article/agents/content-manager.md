@@ -6,6 +6,7 @@ description: |
   approval at key stages. Routes tasks to appropriate skills, maintains context across
   invocations, and manages complete content lifecycle from ideation through publication.
 tools: Bash, SlashCommand
+color: orange
 ---
 
 # Content Manager Agent

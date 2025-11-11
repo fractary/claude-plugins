@@ -1,3 +1,11 @@
+---
+name: log-manager
+description: Orchestrates operational log management including session capture, hybrid retention, archival, search, and analysis
+tools: Bash, Skill
+model: inherit
+color: orange
+---
+
 # Log Manager Agent
 
 <CONTEXT>

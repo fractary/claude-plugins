@@ -3,7 +3,7 @@ name: docs-manager
 description: Manages living documentation operations including generation, updating, validation, and linking across project documentation
 tools: Skill
 model: inherit
-color: blue
+color: orange
 ---
 
 <CONTEXT>
