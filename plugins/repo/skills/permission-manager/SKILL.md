@@ -35,10 +35,12 @@ You manage permissions for:
    - NEVER grant broader permissions than necessary
 
 3. **User Control**
-   - ALWAYS show what permissions will be changed
-   - ALWAYS require confirmation for permission changes
-   - ALWAYS explain security implications
+   - ALWAYS show what permissions will be changed (with detailed categorization and reasoning)
+   - ALWAYS require explicit "yes" confirmation for permission changes (no exceptions)
+   - ALWAYS explain security implications and benefits of each permission category
+   - ALWAYS show delta analysis (NEW vs PRESERVED vs CUSTOM permissions)
    - NEVER make silent permission changes
+   - NEVER proceed without user typing "yes"
 
 4. **Error Handling**
    - ALWAYS validate settings.json exists or can be created
@@ -229,43 +231,114 @@ Merge new permissions with existing settings:
 
 **5. SHOW CHANGES:**
 
-Display permission changes to user:
+Display comprehensive permission changes to user with detailed categorization and reasoning:
+
 ```
-🔐 Permission Changes
-───────────────────────────────────────
+╔════════════════════════════════════════════════════════════════════╗
+║  Permission Configuration Philosophy                               ║
+╚════════════════════════════════════════════════════════════════════╝
 
-ALLOWING (new):
-  ✓ git status, branch, commit, push, fetch, tag
-  ✓ gh pr create, view, comment, review, merge
-  ✓ gh issue create, view, comment
-  ✓ Safe utilities (cat, grep, jq)
+We carefully balance agent autonomy with safety:
 
-DENYING (new):
-  ✗ rm -rf / * .
-  ✗ git push --force to main/master
-  ✗ gh repo delete/archive
-  ✗ sudo, chmod 777, shutdown
-  ✗ curl/wget pipe to shell
+✓ MAXIMIZE AUTONOMY: Auto-approve safe operations so you're not
+  constantly clicking 'yes' for routine git/GitHub commands.
 
-EXISTING (preserved):
-  • {count} existing allow rules
-  • {count} existing deny rules
+⚠️  PROTECT CRITICAL PATHS: Require explicit approval for operations
+  on protected branches (main/master/production) to prevent accidents.
 
-───────────────────────────────────────
-These permissions will:
-  ✓ Eliminate prompts for repo operations
-  ✓ Prevent accidental catastrophic commands
-  ✓ Allow safe git and GitHub operations
+✗ BLOCK CATASTROPHIC MISTAKES: Deny destructive operations that could
+  destroy your repo, system, or execute remote code.
 
-Continue? (yes/no)
+This configuration lets the agent work efficiently while keeping you safe.
+
+───────────────────────────────────────────────────────────────────
+📊 Permission Changes Summary
+───────────────────────────────────────────────────────────────────
+
+New Permissions to Add:
+  ✅ 10 safe git read operations (status, log, diff, etc.)
+  ✅ 13 git write operations (commit, push, merge, etc.)
+  ✅ 7 GitHub read operations (view PRs/issues)
+  ✅ 11 GitHub write operations (create PRs/comments)
+  ✅ 15 safe utility commands (cat, grep, jq, etc.)
+  ⚠️  9 protected branch operations (require approval)
+  ❌ 7 destructive file operations (rm -rf /, dd, mkfs)
+  ❌ 12 dangerous git operations (force push to main, etc.)
+  ❌ 3 dangerous GitHub operations (repo delete, etc.)
+  ❌ 10 system operations (sudo, shutdown, etc.)
+  ❌ 4 remote code execution patterns (curl | sh, etc.)
+
+Existing Permissions (Preserved):
+  ✅ {count} commands already allowed
+  ⚠️  {count} commands already require approval
+  ❌ {count} commands already denied
+
+Custom Permissions (Your additions - will be preserved):
+  • {count} custom allowed commands
+  • {count} custom denied commands
+
+───────────────────────────────────────────────────────────────────
+📋 Detailed Permission Breakdown
+───────────────────────────────────────────────────────────────────
+
+══════ NEW AUTO-ALLOWED COMMANDS (No prompts) ══════
+
+Git Read Operations (10 commands)
+  Check repository state without modifying anything
+  Why: These are 100% safe - they only read info, never modify your repo
+    • git status
+    • git branch
+    • git log
+    ... and 7 more
+
+Git Write Operations (13 commands)
+  Normal git workflow operations on any branch
+  Why: Safe for daily work - commits, pushes to feature branches, merges, etc.
+    • git commit
+    • git push
+    ... and 11 more
+
+[... similar detailed categorization for all command types ...]
+
+══════ NEW BLOCKED COMMANDS (Always denied) ══════
+
+Destructive File Operations (7 commands)
+  Commands that could destroy your filesystem
+  Why: These could wipe your entire disk or critical directories - always blocked
+    • rm -rf /
+    • dd if=
+    ... and 5 more
+
+[... etc ...]
+
+───────────────────────────────────────────────────────────────────
+Benefits of This Configuration:
+
+  ✓ Smooth workflow - No interruptions for routine operations
+  ✓ Smart protection - Approval required only for risky operations
+  ✓ Safety net - Catastrophic mistakes blocked automatically
+  ✓ Team friendly - Prevents accidentally breaking shared branches
+  ✓ Security first - Blocks common attack patterns and dangerous commands
+
+───────────────────────────────────────────────────────────────────
+
+Do you want to apply these permission changes?
+Type yes to apply, or no to cancel:
 ```
 
 **6. WAIT FOR CONFIRMATION:**
 
-If user does not confirm, abort:
+**CRITICAL:** User confirmation is ALWAYS REQUIRED. The script will pause and wait for explicit "yes" confirmation.
+
+If user does not type "yes", abort:
 ```
 ❌ Permission update cancelled
-Settings unchanged
+No changes made to settings.json
+```
+
+If user types "yes", proceed:
+```
+Applying changes...
 ```
 
 **7. WRITE UPDATED SETTINGS:**
