@@ -58,11 +58,14 @@ The following commands are explicitly allowed (no prompts):
 - `git add`, `reset`, `show`, `config`
 
 ### GitHub CLI Operations
-- `gh pr create`, `view`, `list`, `comment`, `review`, `merge`, `close`, `status`
-- `gh issue create`, `view`, `list`, `comment`, `close`
-- `gh repo view`, `clone`
-- `gh auth status`, `login`, `refresh`
-- `gh api` (safe API calls)
+- **Pull Requests**: `gh pr create`, `view`, `list`, `comment`, `review`, `merge`, `close`, `status`
+- **Issues**: `gh issue create`, `view`, `list`, `comment`, `close`
+- **Repositories**: `gh repo view`, `clone`
+- **Authentication**: `gh auth status`, `login`, `refresh`
+- **Workflows**: `gh workflow list`, `view`, `run`, `enable`, `disable`
+- **Secrets**: `gh secret list`, `set` (delete/remove are denied for safety)
+- **Apps**: `gh app list`, `view`
+- **API**: `gh api` (safe API calls)
 
 ### Safe Utilities
 - `cat`, `head`, `tail`, `grep`, `find`, `ls`, `pwd`
@@ -85,7 +88,7 @@ The following dangerous commands are explicitly blocked:
 
 ### Dangerous GitHub Operations
 - `gh repo delete`, `gh repo archive`
-- `gh secret delete`
+- `gh secret delete`, `gh secret remove`
 
 ### System Operations
 - `sudo`, `su`, `chmod 777`, `chown`
@@ -128,24 +131,24 @@ This configuration lets the agent work efficiently while keeping you safe.
 
 New Permissions to Add:
   ✅ 10 safe git read operations
-     (git status, git branch, git log, git diff, git show, ...)
+     (git status, git branch, log, diff, git show, ...)
   ✅ 13 git write operations
      (git add, git checkout, git switch, git fetch, git pull, ...)
   ✅ 7 GitHub read operations
      (gh pr view, gh pr list, gh pr status, gh issue view, gh issue list, ...)
-  ✅ 11 GitHub write operations
-     (gh pr create, gh pr comment, gh pr review, gh pr close, gh issue create, ...)
+  ✅ 20 GitHub write operations
+     (gh pr create, gh pr comment, gh pr review, gh workflow list, gh secret set, ...)
   ✅ 15 safe utility commands
      (cat, head, tail, grep, find, ...)
   ⚠️  9 protected branch operations (require approval)
      (git push origin main, git push origin master, git push origin production, ...)
-  ❌ 7 destructive file operations
+  ❌ 8 destructive file operations
      (rm -rf /, rm -rf *, rm -rf ., rm -rf ~, ...)
-  ❌ 12 dangerous git operations
+  ❌ 15 dangerous git operations
      (git push --force origin main, git push --force origin master, git push --force origin production, ...)
-  ❌ 3 dangerous GitHub operations
-     (gh repo delete, gh repo archive, gh secret delete)
-  ❌ 10 system operations
+  ❌ 4 dangerous GitHub operations
+     (gh repo delete, gh repo archive, gh secret delete, gh secret remove)
+  ❌ 9 system operations
      (sudo, su, chmod 777, chown, kill -9, ...)
   ❌ 4 remote code execution patterns
      (curl | sh, wget | sh, curl | bash, wget | bash)
@@ -186,7 +189,7 @@ Applying changes...
   Settings file: .claude/settings.json
   Backup: .claude/settings.json.backup
 
-  Commands auto-allowed: 56
+  Commands auto-allowed: 65
   Protected branch operations (require approval): 9
   Dangerous operations (denied): 40
 

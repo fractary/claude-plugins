@@ -137,7 +137,7 @@ ALLOW_COMMANDS = [
   "git ls-remote",
   "git show-ref",
 
-  // GitHub CLI operations
+  // GitHub CLI operations (11 commands)
   "gh pr create",
   "gh pr view",
   "gh pr list",
@@ -157,6 +157,21 @@ ALLOW_COMMANDS = [
   "gh auth login",
   "gh auth refresh",
   "gh api",
+
+  // GitHub Actions workflow operations (5 commands)
+  "gh workflow list",
+  "gh workflow view",
+  "gh workflow run",
+  "gh workflow enable",
+  "gh workflow disable",
+
+  // GitHub secrets management (2 commands)
+  "gh secret list",
+  "gh secret set",
+
+  // GitHub Apps management (2 commands)
+  "gh app list",
+  "gh app view",
 
   // Safe utility commands
   "cat",
@@ -199,6 +214,7 @@ DENY_COMMANDS = [
   "gh repo archive",
   "gh api --method DELETE",
   "gh secret delete",
+  "gh secret remove",
 
   // System operations
   "sudo",
@@ -558,8 +574,8 @@ Will deny: dangerous operations
 Continue? yes
 
 ✅ Created .claude/settings.json
-   56 commands allowed
-   39 commands denied
+   65 commands allowed
+   40 commands denied
 ```
 
 **Example 2: Update Existing Settings**
