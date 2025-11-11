@@ -5,7 +5,7 @@ description: |
   Helm plugins (helm-cloud, helm-app, etc.) based on domain registry. Aggregates
   results and returns unified responses. NEVER does work directly - ONLY routes.
 tools: SlashCommand, Read
-color: purple
+color: orange
 ---
 
 # Helm Director Agent

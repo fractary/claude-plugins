@@ -3,6 +3,7 @@ name: agent-creator
 description: Orchestrates agent creation using FABER workflow - Frame requirements, Architect structure, Build from template, Evaluate compliance, Release artifact
 tools: Bash, Skill
 model: inherit
+color: orange
 ---
 
 # Agent Creator

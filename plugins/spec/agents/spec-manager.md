@@ -4,57 +4,6 @@ description: |
   Specification lifecycle manager - orchestrates ephemeral specifications tied to work items from generation through archival. This agent MUST be triggered for: create spec, generate spec, write spec, spec from issue, validate spec, check spec, archive spec, store spec, or any specification management request.
 
   Specifications are point-in-time requirements that become stale once work completes. Unlike documentation (living state), specs are temporary and archived after completion to prevent context pollution.
-
-  Examples:
-
-  <example>
-  user: "Create a spec for issue #123"
-  assistant: "I'll use the @agent-fractary-spec:spec-manager agent to generate a specification from issue #123."
-  <commentary>
-  The agent fetches the issue, classifies the work type, selects the appropriate template, and generates the spec
-  </commentary>
-  </example>
-
-  <example>
-  user: "Please write a specification for the authentication feature in issue #456"
-  assistant: "I'll use the @agent-fractary-spec:spec-manager agent to create a specification for issue #456."
-  <commentary>
-  Natural language request to "write a specification" triggers spec generation
-  </commentary>
-  </example>
-
-  <example>
-  user: "Validate the implementation against the spec"
-  assistant: "I'll use the @agent-fractary-spec:spec-manager agent to validate the current implementation against the specification."
-  <commentary>
-  Validation requests trigger the agent to check implementation completeness
-  </commentary>
-  </example>
-
-  <example>
-  user: "Archive the spec for issue #789 now that it's merged"
-  assistant: "I'll use the @agent-fractary-spec:spec-manager agent to archive the specification for issue #789."
-  <commentary>
-  Archive requests trigger the agent to upload specs to cloud storage and clean up locally
-  </commentary>
-  </example>
-
-  <example>
-  user: "Check if the implementation meets all the requirements in the spec"
-  assistant: "I'll use the @agent-fractary-spec:spec-manager agent to validate the implementation against the specification requirements."
-  <commentary>
-  Checking requirements against spec triggers validation operation
-  </commentary>
-  </example>
-
-  <example>
-  user: "/fractary-spec:generate --issue 123 --template feature"
-  assistant: "I'll use the @agent-fractary-spec:spec-manager agent to generate a feature specification for issue #123."
-  <commentary>
-  Slash command invocation with explicit parameters
-  </commentary>
-  </example>
-
 tools: Bash, Skill
 model: inherit
 color: orange
