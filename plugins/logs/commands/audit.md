@@ -93,21 +93,39 @@ This command follows the standard space-separated syntax:
 
 ## Output
 
-The audit produces:
+The audit produces **two separate documents** plus discovery data:
 
-### Remediation Specification (Markdown)
-- `REMEDIATION-SPEC.md` - Actionable plan to manage logs
-  - Current vs target state
-  - Prioritized actions
-  - Phase-based implementation plan
-  - Executable commands
-  - Verification steps
+### 1. Audit Report (Assessment)
+**File**: `AUDIT-REPORT.md`
+- Executive summary with quick stats
+- Current state assessment
+- Standard definition
+- Gap analysis (current vs standard)
+- Recommendations by priority
+- Benefits of remediation
 
-### Discovery Reports (JSON)
+**Purpose**: Understand what's wrong and why.
+
+### 2. Remediation Specification (Action Plan)
+**File**: `REMEDIATION-SPEC.md` (via Spec Manager)
+- Overview with current/target state
+- Detailed requirements
+- 4-phase implementation plan
+- Executable commands
+- Verification steps
+- Acceptance criteria
+
+**Purpose**: Know exactly how to fix it.
+
+### 3. Discovery Data (JSON)
 - `discovery-logs.json` - Log file inventory
 - `discovery-vcs-logs.json` - Logs in version control
 - `discovery-patterns.json` - Log patterns identified
 - `discovery-storage.json` - Storage analysis
+
+**Key Distinction:**
+- **Audit Report** = Assessment (what's wrong)
+- **Remediation Spec** = Action plan (how to fix)
 
 ## Examples
 
@@ -208,33 +226,48 @@ Step 2: Discovery
   🔍 Identifying patterns...
   ✅ Discovery complete
 
-Step 3: Analysis
-  📊 Comparing against best practices...
-  📊 Identifying unmanaged logs...
-  📊 Calculating savings...
-  ✅ Analysis complete
+Step 3: Define Standard
+  📋 Defining fractary-logs best practices...
+  📋 Standard configuration and structure...
+  ✅ Standard defined
 
-Step 4: Spec Generation
-  📝 Generating remediation spec...
-  📝 Creating actionable plan...
+Step 4: Gap Analysis
+  📊 Comparing current vs standard...
+  📊 Identifying gaps by priority...
+  📊 Calculating storage savings...
+  ✅ Gap analysis complete
+
+Step 5: Generate Audit Report
+  📝 Documenting current state...
+  📝 Writing gap analysis...
+  📝 Adding recommendations...
+  ✅ AUDIT-REPORT.md generated
+
+Step 6: Generate Remediation Spec
+  📝 Invoking Spec Manager agent...
+  📝 Creating 4-phase implementation plan...
+  📝 Adding executable commands...
   ✅ REMEDIATION-SPEC.md generated
 
-Step 5: Summary
+Step 7: Summary
   📋 Audit Results:
      - Total Logs: 45 files (2.3 GB)
-     - Unmanaged: 32 files (1.8 GB)
+     - Managed: 3 files (150 MB)
+     - Unmanaged: 42 files (2.15 GB)
      - In VCS: 12 files (450 MB)
-     - Potential Savings: 1.9 GB in repo
-     - Actions: 8 high, 4 medium, 2 low
+     - Gaps: 14 (8 high, 4 medium, 2 low)
+     - Potential Savings: 1.9 GB from repo
 
   📁 Outputs:
-     - Spec: .fractary/audit/REMEDIATION-SPEC.md
-     - Reports: .fractary/audit/discovery-*.json
+     - Audit Report: .fractary/audit/AUDIT-REPORT.md
+     - Remediation Spec: .fractary/audit/REMEDIATION-SPEC.md
+     - Discovery Data: .fractary/audit/discovery-*.json
 
   💡 Next Steps:
-     1. Review remediation spec
-     2. Follow implementation plan
-     3. Archive historical logs to cloud
+     1. Review audit report (assessment)
+     2. Review remediation spec (action plan)
+     3. Follow 4-phase implementation
+     4. Verify with search command
 ```
 
 ## Use Cases
@@ -288,28 +321,55 @@ Ensure logs properly managed:
 project/
 ├── .fractary/
 │   └── audit/
+│       ├── AUDIT-REPORT.md          # Current state + gap analysis
+│       ├── REMEDIATION-SPEC.md      # Actionable implementation plan
 │       ├── discovery-logs.json
 │       ├── discovery-vcs-logs.json
 │       ├── discovery-patterns.json
-│       ├── discovery-storage.json
-│       └── REMEDIATION-SPEC.md
+│       └── discovery-storage.json
 ```
 
-### Remediation Specification
+### Audit Report (AUDIT-REPORT.md)
 
-The spec contains:
+The assessment document contains:
 
-- **Overview**: Current vs target state, storage analysis
-- **Requirements**: Prioritized actions with rationale
-- **Implementation Plan**: Phase-based with executable commands
-  - Phase 1: Configure cloud storage
-  - Phase 2: Move logs to managed locations
+- **Executive Summary**: Quick stats and compliance level
+- **Current State**: What logs exist, where they are, how they're managed
+- **Standard Definition**: What proper fractary-logs management looks like
+- **Gap Analysis**: Detailed comparison of current vs standard
+  - Configuration gaps
+  - Directory structure gaps
+  - Version control gaps
+  - Archival gaps
+  - Integration gaps
+  - Storage gaps
+- **Recommendations**: Prioritized actions (high/medium/low)
+- **Benefits**: Storage savings, cost estimates, improvements
+
+**Purpose**: Understand the current situation and what needs to change.
+
+### Remediation Specification (REMEDIATION-SPEC.md)
+
+The action plan document contains:
+
+- **Overview**: Current vs target state summary
+- **Requirements**: Detailed actions needed with rationale
+- **Implementation Plan**: 4-phase approach
+  - Phase 1: Configure cloud storage (fractary-file)
+  - Phase 2: Set up log management (fractary-logs)
   - Phase 3: Archive historical logs
-  - Phase 4: Update .gitignore
+  - Phase 4: Configure auto-capture
+- **Each Task Includes**:
+  - Task ID and title
+  - Executable commands (copy/paste ready)
+  - Verification steps
 - **Acceptance Criteria**: Checklist for completion
-- **Verification Steps**: Commands to verify setup
+- **Verification Steps**: Final validation commands
+
+**Purpose**: Step-by-step guide to bring logs into compliance.
 
 **Key Features:**
+- ✅ Generated by Spec Manager agent (standardized format)
 - ✅ Human-readable and editable
 - ✅ Contains copy/paste commands
 - ✅ Organized by priority and phase
@@ -319,30 +379,45 @@ The spec contains:
 
 ## After Audit
 
-Follow the remediation spec to adopt log management:
+Follow this process to adopt log management:
 
-1. **Review the spec**
+1. **Review the audit report** (understand what needs to change)
+   ```bash
+   cat .fractary/audit/AUDIT-REPORT.md
+   ```
+
+2. **Review the remediation spec** (understand how to change it)
    ```bash
    cat .fractary/audit/REMEDIATION-SPEC.md
    ```
 
-2. **Configure cloud storage** (Phase 1)
+3. **Execute Phase 1** (Configure cloud storage)
    - Set up fractary-file plugin
    - Configure S3/R2 bucket
    - Test connection
 
-3. **Execute high-priority actions** (Phase 2)
+4. **Execute Phase 2** (Set up log management)
+   - Initialize fractary-logs
    - Move logs to managed locations
-   - Archive historical logs to cloud
    - Update .gitignore
 
-4. **Verify setup** (Phase 3)
+5. **Execute Phase 3** (Archive historical logs)
+   - Archive existing logs to cloud
+   - Remove logs from VCS (if applicable)
+   - Verify archival
+
+6. **Execute Phase 4** (Configure auto-capture)
+   - Set up build log capture
+   - Set up deployment log capture
+   - Test auto-capture
+
+7. **Verify setup**
    ```bash
-   /fractary-logs:init
    /fractary-logs:search "test"
+   git status  # Should show no log files
    ```
 
-5. **Commit configuration**
+8. **Commit configuration**
    ```bash
    git add .fractary/plugins/logs/config.json .gitignore
    git commit -m "feat: adopt fractary-logs for log management"

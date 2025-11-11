@@ -109,58 +109,218 @@ bash plugins/logs/skills/log-auditor/scripts/analyze-storage.sh {output_dir}/dis
 - Estimate cloud storage costs
 - Output: JSON storage analysis
 
-## Step 4: Analyze Against Best Practices
+## Step 4: Define the Standard
 
-Load discovery results and compare against best practices:
+Define what proper fractary-logs management looks like (the target state):
 
-**Managed Logs (Good):**
-- Logs in fractary-logs managed locations (/logs/)
-- Properly excluded from version control
-- Configured for archival
+**Standard Configuration:**
+- fractary-logs initialized with config at `.fractary/plugins/logs/config/config.json`
+- fractary-file configured for cloud storage (S3/R2)
+- Hybrid retention strategy enabled (30 days local, archived to cloud)
 
-**Unmanaged Logs (Needs Action):**
-- Log files outside managed locations
-- Logs that should be captured but aren't
-- Build/deployment logs scattered across project
-- No archival configuration
+**Standard Directory Structure:**
+```
+/logs/
+├── .archive-index.json       # Archive metadata
+├── sessions/                 # Session logs (*.md)
+├── builds/                   # Build logs (npm-debug.log, etc.)
+├── deployments/              # Deployment logs (terraform.log, etc.)
+├── debug/                    # Debug logs
+└── tests/                    # Test output logs
+```
 
-**VCS Logs (Critical Issue):**
-- Logs tracked in Git (should be archived)
-- Logs bloating repository size
-- Potential sensitive data in commits
-- Missing .gitignore entries
+**Standard Version Control:**
+- All `/logs/` directories excluded in .gitignore
+- No log files tracked in Git
+- Historical logs removed from Git history (if applicable)
 
-**Storage Analysis:**
-- Total log storage (local + VCS)
-- Wasted storage (logs that should be archived)
-- Potential savings from adoption
-- Cloud storage cost estimates
+**Standard Archival:**
+- Auto-archive enabled on issue close
+- Auto-archive enabled for logs older than 30 days
+- Compression enabled for logs > 1MB
+- Archive index maintained and updated
 
-## Step 5: Generate Remediation Actions
+**Standard Integration:**
+- GitHub commenting enabled on archive
+- FABER auto-capture enabled (if using FABER)
+- Build/deployment logs automatically captured
 
-For each issue identified, create remediation action:
+## Step 5: Analyze Current State vs Standard (Gap Analysis)
 
-**Action Types:**
-- `configure-cloud-storage`: Set up fractary-file for cloud archival
-- `create-managed-locations`: Create /logs/ directory structure
-- `move-logs`: Move existing logs to managed locations
-- `archive-historical`: Archive old logs to cloud
-- `update-gitignore`: Add log exclusion patterns
-- `remove-from-vcs`: Remove logs from Git history
-- `configure-auto-capture`: Set up auto-capture for build/deploy
-- `initial-archive`: Archive all existing logs to cloud
+Load discovery results and explicitly compare against the standard:
 
-**Prioritization:**
-- HIGH: Logs in VCS (security/size risk), missing cloud storage config
-- MEDIUM: Unmanaged logs, missing auto-capture
-- LOW: Optimization, additional patterns
+### Configuration Gaps
+- **Current**: Check if config exists and is valid
+- **Standard**: Config at `.fractary/plugins/logs/config/config.json` with hybrid retention
+- **Gap**: Missing config? Invalid settings? No cloud storage configured?
 
-## Step 6: Generate Remediation Specification
+### Directory Structure Gaps
+- **Current**: Where are logs actually located? (from discovery-logs.json)
+- **Standard**: All logs in `/logs/{category}/` directories
+- **Gap**: Logs scattered across project? Wrong directories? Missing categories?
+
+### Version Control Gaps
+- **Current**: Which logs are tracked in Git? (from discovery-vcs-logs.json)
+- **Standard**: No logs in version control, all in .gitignore
+- **Gap**: X files (Y MB) tracked in Git that should be archived
+
+### Archival Gaps
+- **Current**: Is archive index present? Any cloud-archived logs?
+- **Standard**: Archive index exists, auto-archive enabled, cloud storage configured
+- **Gap**: No archival? Manual archival only? Missing cloud storage?
+
+### Integration Gaps
+- **Current**: Are build/deploy logs being captured?
+- **Standard**: Auto-capture for all operational logs
+- **Gap**: Manual capture only? Logs being ignored?
+
+### Storage Gaps
+- **Current**: Total storage, breakdown by location (from discovery-storage.json)
+- **Standard**: 80% of logs archived to cloud (compressed), 20% local (recent)
+- **Gap**: All local? Wasted repository space? No compression?
+
+**Categorize All Gaps by Priority:**
+- **HIGH**: Logs in VCS (security/size risk), no cloud storage config, no .gitignore
+- **MEDIUM**: Unmanaged logs, scattered directories, no auto-capture
+- **LOW**: Missing categories, optimization opportunities
+
+## Step 6: Generate Audit Report
+
+Create comprehensive audit report documenting current state and gaps:
+
+**Write to**: `{output_dir}/AUDIT-REPORT.md`
+
+**Report Structure:**
+```markdown
+# Log Management Audit Report
+
+**Project**: {project_name}
+**Date**: {date}
+**Auditor**: fractary-logs v1.0
+
+---
+
+## Executive Summary
+
+This report assesses the current state of log management in the project against fractary-logs standards and identifies gaps that need to be addressed.
+
+### Quick Stats
+- Total Logs: X files (Y GB)
+- Managed: X files (Y GB)
+- Unmanaged: X files (Y GB)
+- In Version Control: X files (Y GB) ⚠️
+- Compliance: X%
+
+---
+
+## 1. Current State Assessment
+
+### 1.1 Log Inventory
+[Table showing all discovered logs by type, location, size]
+
+### 1.2 Configuration Status
+- fractary-logs config: [EXISTS | MISSING]
+- fractary-file config: [CONFIGURED | NOT CONFIGURED]
+- Cloud storage: [CONFIGURED | NOT CONFIGURED]
+
+### 1.3 Directory Structure
+[Current directory layout vs standard]
+
+### 1.4 Version Control Status
+[List of logs tracked in Git]
+
+### 1.5 Storage Analysis
+[Breakdown by category, location, total usage]
+
+---
+
+## 2. Standard Definition
+
+### 2.1 Target Configuration
+[What the standard configuration looks like]
+
+### 2.2 Target Directory Structure
+[Standard /logs/ structure]
+
+### 2.3 Target Version Control
+[No logs in Git, all .gitignored]
+
+### 2.4 Target Archival
+[Hybrid retention: 30 days local, cloud archived]
+
+---
+
+## 3. Gap Analysis
+
+### 3.1 Configuration Gaps
+- **Current**: [what exists now]
+- **Standard**: [what should exist]
+- **Gap**: [difference]
+- **Priority**: HIGH | MEDIUM | LOW
+- **Impact**: [description]
+
+### 3.2 Directory Structure Gaps
+[Similar format]
+
+### 3.3 Version Control Gaps
+[Similar format]
+
+### 3.4 Archival Gaps
+[Similar format]
+
+### 3.5 Integration Gaps
+[Similar format]
+
+### 3.6 Storage Gaps
+[Similar format]
+
+---
+
+## 4. Recommendations Summary
+
+### High Priority (Immediate Action Required)
+1. [Gap description] - [Impact]
+2. [Gap description] - [Impact]
+
+### Medium Priority (Address Soon)
+1. [Gap description] - [Impact]
+2. [Gap description] - [Impact]
+
+### Low Priority (Optimization)
+1. [Gap description] - [Impact]
+
+---
+
+## 5. Benefits of Remediation
+
+- **Repository Size**: Reduce by X GB
+- **Cloud Storage**: ~$X/month for permanent archival
+- **Compression**: Save X GB through compression
+- **Searchability**: All logs indexed and searchable
+- **Retention**: Never lose logs, 30-day local + cloud archive
+
+---
+
+## Next Steps
+
+See REMEDIATION-SPEC.md for detailed implementation plan to address these gaps.
+```
+
+## Step 7: Generate Remediation Specification via Spec Manager
+
+Now create the actionable implementation plan using the Spec Manager agent.
+
+**CRITICAL: This is a separate document from the audit report!**
+- Audit Report (Step 6): Documents current state + gaps (assessment)
+- Remediation Spec (Step 7): Actionable plan to fix gaps (implementation)
 
 **If fractary-spec plugin available:**
 
-Use the @agent-fractary-spec:spec-manager agent to generate specification:
+Invoke the spec-manager agent using natural language to generate the specification:
+
 ```
+Use the @agent-fractary-spec:spec-manager agent to generate a remediation specification with the following request:
+
 {
   "operation": "generate",
   "spec_type": "implementation",
@@ -315,11 +475,18 @@ Use the @agent-fractary-spec:spec-manager agent to generate specification:
 }
 ```
 
+**Important Notes on Spec Manager Invocation:**
+- Use natural language agent invocation (not a tool call)
+- The spec-manager agent will create `REMEDIATION-SPEC.md`
+- Pass all gap analysis findings as requirements
+- Include executable commands for each task
+- Ensure verification steps are specific and testable
+
 **If fractary-spec NOT available:**
 
-Generate markdown specification directly following similar structure but in plain markdown format.
+Generate markdown specification directly following similar structure but in plain markdown format. Write directly to `{output_dir}/REMEDIATION-SPEC.md`.
 
-## Step 7: Present Summary to User
+## Step 8: Present Summary to User
 
 Display audit summary:
 
@@ -348,16 +515,22 @@ Display audit summary:
   Medium Priority: {count}
   Low Priority: {count}
 
-📋 REMEDIATION SPEC
-  Generated: {output_dir}/REMEDIATION-SPEC.md
-  Estimated Time: {hours} hours
-  Phases: 4
+📋 OUTPUT DOCUMENTS
+  1. Audit Report: {output_dir}/AUDIT-REPORT.md
+     - Current state assessment
+     - Standard definition
+     - Detailed gap analysis
+
+  2. Remediation Spec: {output_dir}/REMEDIATION-SPEC.md
+     - Actionable implementation plan
+     - Estimated Time: {hours} hours
+     - Phases: 4
 
 💡 NEXT STEPS
-  1. Review remediation spec: {path}
-  2. Set up cloud storage (fractary-file)
-  3. Follow implementation plan
-  4. Archive historical logs
+  1. Review audit report: {output_dir}/AUDIT-REPORT.md
+  2. Review remediation spec: {output_dir}/REMEDIATION-SPEC.md
+  3. Set up cloud storage (fractary-file)
+  4. Follow implementation plan phases
   5. Verify with search command
 
 ═══════════════════════════════════════════════════════════
@@ -367,21 +540,33 @@ Display audit summary:
 ```
 ✅ COMPLETED: Log Audit
 Logs Found: {count} ({size} GB)
-Actions Required: {count}
-Spec Generated: {path}
+Gaps Identified: {count}
 ───────────────────────────────────────────────────────────
-Next: Review and follow remediation spec
+Outputs:
+  • Audit Report: {output_dir}/AUDIT-REPORT.md
+  • Remediation Spec: {output_dir}/REMEDIATION-SPEC.md
+───────────────────────────────────────────────────────────
+Next: Review both documents and follow implementation plan
 ```
 
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 Audit is complete when:
-- All discovery scripts have executed
-- Logs analyzed against best practices
-- Remediation actions identified and prioritized
-- Storage analysis calculated
-- Specification generated (via spec-manager or direct)
+- All discovery scripts have executed successfully
+- Current state documented in discovery JSON files
+- Standard clearly defined
+- Gap analysis performed (current vs standard)
+- **Audit report generated**: `AUDIT-REPORT.md` with:
+  - Current state assessment
+  - Standard definition
+  - Detailed gap analysis
+  - Recommendations summary
+- **Remediation spec generated**: `REMEDIATION-SPEC.md` with:
+  - Actionable implementation plan (via spec-manager or direct)
+  - Phase-based tasks with commands
+  - Verification steps
+  - Acceptance criteria
 - Summary presented to user
 - Next steps provided
 </COMPLETION_CRITERIA>
@@ -395,29 +580,46 @@ Return structured results:
   "success": true,
   "operation": "audit",
   "result": {
-    "total_logs": {
-      "count": 45,
-      "size_gb": 2.3
+    "discovery": {
+      "total_logs": {
+        "count": 45,
+        "size_gb": 2.3
+      },
+      "managed": {
+        "count": 3,
+        "size_gb": 0.15
+      },
+      "unmanaged": {
+        "count": 32,
+        "size_gb": 1.8
+      },
+      "vcs_logs": {
+        "count": 12,
+        "size_gb": 0.45
+      }
     },
-    "unmanaged": {
-      "count": 32,
-      "size_gb": 1.8
-    },
-    "vcs_logs": {
-      "count": 12,
-      "size_gb": 0.45
-    },
-    "actions": {
-      "high": 8,
-      "medium": 4,
-      "low": 2,
-      "total": 14
+    "gap_analysis": {
+      "gaps_identified": 14,
+      "by_priority": {
+        "high": 8,
+        "medium": 4,
+        "low": 2
+      }
     },
     "storage_savings": {
       "repository_gb": 1.9,
       "cloud_cost_monthly": 5.50
     },
-    "spec_path": ".fractary/audit/REMEDIATION-SPEC.md",
+    "outputs": {
+      "audit_report": ".fractary/audit/AUDIT-REPORT.md",
+      "remediation_spec": ".fractary/audit/REMEDIATION-SPEC.md",
+      "discovery_files": [
+        ".fractary/audit/discovery-logs.json",
+        ".fractary/audit/discovery-vcs-logs.json",
+        ".fractary/audit/discovery-patterns.json",
+        ".fractary/audit/discovery-storage.json"
+      ]
+    },
     "estimated_hours": 4,
     "used_spec_plugin": true
   },
