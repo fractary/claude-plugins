@@ -26,14 +26,14 @@ You delegate to the active source control handler to generate platform-specific 
 1. **Branch Naming Conventions**
    - ALWAYS follow the configured branch naming pattern
    - ALWAYS use semantic prefixes (feat|fix|chore|hotfix|docs|test|refactor|style|perf)
-   - ALWAYS include work item ID in branch name
+   - Include work item ID in branch name when provided (optional)
    - ALWAYS create URL-safe slugs from descriptions (lowercase, hyphens, no special chars)
 
 2. **Validation**
-   - ALWAYS validate work_id is present
    - ALWAYS validate branch type/prefix is valid
    - ALWAYS validate description is provided
    - NEVER allow empty or whitespace-only descriptions
+   - work_id is optional and can be omitted
 
 3. **Handler Invocation**
    - ALWAYS load configuration to determine active handler
@@ -54,19 +54,19 @@ You receive structured operation requests:
 {
   "operation": "generate-branch-name",
   "parameters": {
-    "work_id": "123",
     "prefix": "feat",
-    "description": "add user export feature"
+    "description": "add user export feature",
+    "work_id": "123"  // optional
   }
 }
 ```
 
 **Required Parameters**:
-- `work_id` (string) - Work item identifier
 - `prefix` (string) - Branch prefix: feat|fix|chore|hotfix|docs|test|refactor|style|perf
 - `description` (string) - Brief description for branch slug
 
 **Optional Parameters**:
+- `work_id` (string) - Work item identifier (if provided, will be included in branch name)
 - `pattern` (string) - Override default branch naming pattern
 </INPUTS>
 
@@ -76,7 +76,7 @@ You receive structured operation requests:
 
 ```
 🎯 STARTING: Branch Name Generator
-Work ID: {work_id}
+Work ID: {work_id or "none"}
 Type: {prefix}
 Description: {description}
 ───────────────────────────────────────
@@ -86,17 +86,17 @@ Description: {description}
 
 Load repo configuration to determine:
 - Active handler platform (github|gitlab|bitbucket)
-- Branch naming pattern (default: "{prefix}/{issue_id}-{slug}")
+- Branch naming pattern (default: "{prefix}/{issue_id}-{slug}" if work_id, otherwise "{prefix}/{slug}")
 - Any naming conventions or restrictions
 
 Use repo-common skill to load configuration.
 
 **3. VALIDATE INPUTS:**
 
-- Check work_id is non-empty
 - Check prefix is valid semantic type
 - Check description is non-empty and reasonable length
 - Validate pattern if provided
+- work_id is optional (can be empty/null)
 
 **4. INVOKE HANDLER:**
 
@@ -176,7 +176,6 @@ The active handler is determined by configuration: `config.handlers.source_contr
 <ERROR_HANDLING>
 
 **Invalid Inputs** (Exit Code 2):
-- Missing work_id: "Error: work_id is required"
 - Invalid prefix: "Error: Invalid branch prefix. Valid: feat|fix|chore|hotfix|docs|test|refactor|style|perf"
 - Empty description: "Error: description is required"
 
@@ -196,15 +195,15 @@ The active handler is determined by configuration: `config.handlers.source_contr
 
 <USAGE_EXAMPLES>
 
-**Example 1: Generate Feature Branch Name**
+**Example 1: Generate Feature Branch Name (with work_id)**
 ```
 INPUT:
 {
   "operation": "generate-branch-name",
   "parameters": {
-    "work_id": "123",
     "prefix": "feat",
-    "description": "add CSV export functionality"
+    "description": "add CSV export functionality",
+    "work_id": "123"
   }
 }
 
@@ -215,15 +214,33 @@ OUTPUT:
 }
 ```
 
-**Example 2: Generate Fix Branch Name**
+**Example 2: Generate Feature Branch Name (without work_id)**
 ```
 INPUT:
 {
   "operation": "generate-branch-name",
   "parameters": {
-    "work_id": "456",
+    "prefix": "feat",
+    "description": "add CSV export functionality"
+  }
+}
+
+OUTPUT:
+{
+  "status": "success",
+  "branch_name": "feat/add-csv-export-functionality"
+}
+```
+
+**Example 3: Generate Fix Branch Name**
+```
+INPUT:
+{
+  "operation": "generate-branch-name",
+  "parameters": {
     "prefix": "fix",
-    "description": "authentication timeout bug"
+    "description": "authentication timeout bug",
+    "work_id": "456"
   }
 }
 
@@ -234,15 +251,15 @@ OUTPUT:
 }
 ```
 
-**Example 3: Custom Pattern**
+**Example 4: Custom Pattern**
 ```
 INPUT:
 {
   "operation": "generate-branch-name",
   "parameters": {
-    "work_id": "789",
     "prefix": "feat",
     "description": "user dashboard",
+    "work_id": "789",
     "pattern": "{prefix}_{issue_id}_{slug}"
   }
 }

@@ -194,8 +194,8 @@ Next: {what_calling_skill_should_do}
 **Parameters**:
 - `message` - Commit message
 - `type` - Commit type (feat|fix|chore|docs|test|refactor|style|perf)
-- `work_id` - Work item reference (e.g., "#123", "PROJ-456")
-- `author_context` - FABER context (architect|implementor|tester|reviewer)
+- `work_id` - Work item reference (e.g., "#123", "PROJ-456") - OPTIONAL
+- `author_context` - FABER context (architect|implementor|tester|reviewer) - OPTIONAL
 - `description` - Optional extended description
 
 **Format**: Follows Conventional Commits + FABER metadata
@@ -264,11 +264,11 @@ Next: {what_calling_skill_should_do}
 - `body` - PR description (markdown)
 - `base_branch` - Target branch (default: main)
 - `head_branch` - Source branch (current branch if not specified)
-- `work_id` - Work item to close (e.g., "123" for "closes #123")
+- `work_id` - Work item to close (e.g., "123" for "closes #123") - OPTIONAL
 
 **Features**:
 - Auto-generates PR body with FABER metadata
-- Includes "closes #{work_id}" reference
+- Includes "closes #{work_id}" reference if work_id provided
 - Adds "Generated with Claude Code" attribution
 
 **Example Invocation**:
