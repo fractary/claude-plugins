@@ -81,7 +81,7 @@ You receive structured operation requests from:
 }
 ```
 
-**Supported Operations:** (16 total)
+**Supported Operations:** (17 total)
 - initialize-configuration
 - generate-branch-name
 - create-branch
@@ -89,6 +89,7 @@ You receive structured operation requests from:
 - create-commit
 - push-branch
 - pull-branch
+- commit-and-push
 - create-pr
 - comment-pr
 - review-pr
@@ -117,7 +118,7 @@ Check operation is supported:
 ```
 SUPPORTED_OPERATIONS = [
   "generate-branch-name", "create-branch", "delete-branch",
-  "create-commit", "push-branch", "pull-branch",
+  "create-commit", "push-branch", "pull-branch", "commit-and-push",
   "create-pr", "comment-pr", "review-pr", "merge-pr",
   "create-tag", "push-tag", "list-stale-branches",
   "configure-permissions"
@@ -150,6 +151,14 @@ For other operations:
 - Validate required parameters for chosen mode
 - Set defaults for optional parameters
 
+**Special handling for commit-and-push:**
+- This is a composite operation that performs both commit and push
+- Extract and validate both commit and push parameters
+- Invoke commit-creator skill first
+- If commit succeeds, invoke branch-pusher skill
+- Return combined results from both operations
+- If commit fails, do not attempt push
+
 If validation fails:
 ```
 RETURN: {
@@ -173,6 +182,7 @@ Use routing table to determine which skill to invoke:
 | create-commit | fractary-repo:commit-creator |
 | push-branch | fractary-repo:branch-pusher |
 | pull-branch | fractary-repo:branch-puller |
+| commit-and-push | fractary-repo:commit-creator → fractary-repo:branch-pusher |
 | create-pr | fractary-repo:pr-manager |
 | comment-pr | fractary-repo:pr-manager |
 | review-pr | fractary-repo:pr-manager |
@@ -237,6 +247,9 @@ Return structured response to caller:
 - `push-branch` → fractary-repo:branch-pusher
 - `pull-branch` → fractary-repo:branch-puller
 
+**Composite Operations:**
+- `commit-and-push` → fractary-repo:commit-creator → fractary-repo:branch-pusher
+
 **PR Operations:**
 - `create-pr` → fractary-repo:pr-manager
 - `comment-pr` → fractary-repo:pr-manager
@@ -254,7 +267,7 @@ Return structured response to caller:
 - `configure-permissions` → fractary-repo:permission-manager
 
 **Total Skills**: 10 specialized skills
-**Total Operations**: 16 operations
+**Total Operations**: 17 operations
 
 </ROUTING_TABLE>
 
@@ -301,6 +314,20 @@ Return structured response to caller:
 - remote (string, default: "origin")
 - rebase (boolean, default: false)
 - strategy (string, default: "auto-merge-prefer-remote"): auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail
+
+**commit-and-push:**
+- commit (object):
+  - message (string)
+  - type (string): feat|fix|chore|docs|test|refactor|style|perf (default: "feat")
+  - work_id (string, optional)
+  - scope (string, optional)
+  - breaking (boolean, optional)
+  - description (string, optional)
+- push (object):
+  - branch (string, optional): defaults to current branch
+  - remote (string, optional): defaults to "origin"
+  - set_upstream (boolean, optional): defaults to false
+  - force (boolean, optional): defaults to false
 
 **create-pr:**
 - title (string)
@@ -582,6 +609,46 @@ OUTPUT:
   "result": {
     "commit_sha": "def456...",
     "message": "feat: Add CSV export functionality"
+  }
+}
+```
+
+**Example 3b: Commit and Push (composite operation)**
+```
+INPUT:
+{
+  "operation": "commit-and-push",
+  "parameters": {
+    "commit": {
+      "message": "Add CSV export feature",
+      "type": "feat",
+      "work_id": "123"
+    },
+    "push": {
+      "set_upstream": true,
+      "remote": "origin"
+    }
+  }
+}
+
+ROUTING:
+  1. → commit-creator skill (create commit)
+  2. → branch-pusher skill (push to remote)
+
+OUTPUT:
+{
+  "status": "success",
+  "operation": "commit-and-push",
+  "result": {
+    "commit": {
+      "commit_sha": "def456...",
+      "message": "feat: Add CSV export feature"
+    },
+    "push": {
+      "branch": "feat/123-add-csv-export",
+      "remote": "origin",
+      "pushed": true
+    }
   }
 }
 ```
