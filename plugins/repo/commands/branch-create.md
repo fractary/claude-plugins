@@ -17,92 +17,51 @@ This command supports:
 <CRITICAL_RULES>
 **YOU MUST:**
 - Parse the command arguments from user input using flexible parsing logic
-- Check for work tracking integration when work_id is not provided (see WORKFLOW step 2)
-- Present three numbered options if fractary-work plugin is configured (create issue+branch, branch only, or cancel)
-- For Option 1: Create issue first, capture ID and URL, then create branch with that ID automatically
-- For Option 2: Create branch only without work tracking
-- For Option 3: Cancel and do nothing
-- Extract and display direct URLs for created issues and branches (from plugin responses)
-- Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager) when creating branch
-- Pass structured request to the agent
-- Return the agent's response to the user with clickable URLs
+- Invoke the fractary-repo:repo-manager agent with the parsed parameters
+- Pass the structured request to the agent
+- Return the agent's response to the user
 
 **YOU MUST NOT:**
-- Perform any operations yourself (except invoking /work:issue-create for Option 1)
+- Perform any operations yourself
 - Invoke skills directly (the repo-manager agent handles skill invocation)
 - Execute platform-specific logic (that's the agent's job)
-- Force work tracking if user chooses Option 2
-- Skip the prompt if in description-based mode without work_id (only skip for direct mode)
-- Omit URLs when they're available in plugin responses
+- Detect or check for work plugin availability (the agent handles this)
+- Present prompts or make decisions (the agent handles orchestration)
 
-**THIS COMMAND IS A ROUTER WITH INTELLIGENT PROMPTING AND WORKFLOW AUTOMATION.**
+**THIS COMMAND IS ONLY A ROUTER.**
+
+**Note**: The repo-manager agent handles all work tracking integration, including:
+- Detecting if fractary-work plugin is configured
+- Presenting the three-option prompt (create issue+branch, branch only, cancel)
+- Invoking /work:issue-create if user selects Option 1
+- Extracting and displaying URLs for created resources
 </CRITICAL_RULES>
 
 <WORKFLOW>
-1. **Parse user input with flexible logic**
-   - Determine invocation mode based on first argument
+1. **Parse user input**
+   - Determine invocation mode based on first argument (direct vs description-based)
    - Extract parameters based on mode (see PARSING_LOGIC)
    - Parse optional arguments: --base, --prefix, --work-id
-   - Validate required arguments are present for chosen mode
+   - Validate required arguments are present
 
-2. **Check for work tracking integration (if no --work-id provided)**
-   - If work_id is NOT provided AND mode is description-based (not direct), check if fractary-work plugin is installed and configured
-   - Look for `.fractary/plugins/work/config.json` to detect work plugin
-   - If work plugin is available, present three options to the user:
-     ```
-     ℹ️  Notice: No work item specified for this branch.
-
-     The fractary-work plugin is configured. How would you like to proceed?
-
-     1. [RECOMMENDED] Create issue and branch (automatic)
-        → Creates issue: /work:issue-create "{description}" --type {inferred_type}
-        → Then creates branch: {prefix}/{issue-id}-{slug}
-
-     2. Create branch only (no work tracking)
-        → Creates branch: {prefix}/{slug}
-
-     3. Cancel (do nothing)
-
-     Enter your choice (1, 2, or 3):
-     ```
-   - Wait for user input (1, 2, or 3)
-   - **Option 1 (Recommended) - Automatic Issue + Branch Creation**:
-     - Invoke /work:issue-create command: `/work:issue-create "{description}" --type {inferred_type}`
-     - Parse the response to extract the issue ID (e.g., "123" from "#123") and issue URL
-     - If issue creation succeeds:
-       - Display: `✅ Created issue #{issue_id}: "{description}"`
-       - Display: `   View issue: {issue_url}`
-       - Automatically proceed to create branch with that work_id
-       - The branch will be named: `{prefix}/{issue_id}-{slug}`
-       - Parse the branch creation response to extract the branch URL
-       - Display: `✅ Created branch: {prefix}/{issue_id}-{slug}`
-       - Display: `   View branch: {branch_url}`
-       - Display: `Branch is now linked to issue #{issue_id} for automatic tracking.`
-     - If issue creation fails:
-       - Display the error message
-       - Offer fallback options (see ERROR_HANDLING)
-   - **Option 2 - Branch Only**:
-     - Proceed with branch creation without work tracking
-     - Use the original parameters (no work_id)
-     - The branch will be named: `{prefix}/{slug}`
-     - Parse the branch creation response to extract the branch URL
-     - Display: `✅ Created branch: {prefix}/{slug}`
-     - Display: `   View branch: {branch_url}`
-   - **Option 3 - Cancel**:
-     - Exit gracefully without creating anything
-     - Display: "Branch creation cancelled."
-
-3. **Build structured request**
+2. **Build structured request**
    - Map to "create-branch" operation
-   - Package parameters based on mode
-   - Include work_id if provided
+   - Package parameters based on mode:
+     - Direct mode: branch_name, base_branch, work_id (optional)
+     - Description mode: description, prefix, base_branch, work_id (optional)
 
-4. **Invoke agent**
-   - Invoke fractary-repo:repo-manager agent with the request
+3. **Invoke repo-manager agent**
+   - Pass the structured request to fractary-repo:repo-manager
+   - The agent will handle:
+     - Work plugin detection (if work_id not provided)
+     - User prompting (three-option workflow)
+     - Issue creation (if user selects Option 1)
+     - Branch creation
+     - URL extraction and display
 
-5. **Return response**
-   - The repo-manager agent will handle the operation and return results
-   - Display results to the user
+4. **Return agent response**
+   - Display the agent's output to the user
+   - This includes any prompts, success messages, URLs, and errors
 </WORKFLOW>
 
 <ARGUMENT_SYNTAX>
@@ -237,53 +196,20 @@ All modes map to: `create-branch` operation in repo-manager agent
 
 ### Work Tracking Integration Example
 ```bash
-# Create branch without work_id (triggers work plugin prompt)
+# Without work_id - triggers prompt (handled by repo-manager agent)
 /repo:branch-create "add CSV export" --prefix feat
+# Agent presents: 3 options (create issue+branch, branch only, cancel)
 
-# Output shows:
-# ℹ️  Notice: No work item specified for this branch.
-#
-# The fractary-work plugin is configured. How would you like to proceed?
-#
-# 1. [RECOMMENDED] Create issue and branch (automatic)
-#    → Creates issue: /work:issue-create "add CSV export" --type feature
-#    → Then creates branch: feat/123-add-csv-export
-#
-# 2. Create branch only (no work tracking)
-#    → Creates branch: feat/add-csv-export
-#
-# 3. Cancel (do nothing)
-#
-# Enter your choice (1, 2, or 3):
-
-# ===== OPTION 1: User enters "1" (RECOMMENDED) =====
-# System automatically:
-# 1. Creates issue #123: "add CSV export"
-# 2. Creates branch: feat/123-add-csv-export
-# 3. Output:
-#    ✅ Created issue #123: "add CSV export"
-#       View issue: https://github.com/owner/repo/issues/123
-#    ✅ Created branch: feat/123-add-csv-export
-#       View branch: https://github.com/owner/repo/tree/feat/123-add-csv-export
-#    Branch is now linked to issue #123 for automatic tracking.
-
-# ===== OPTION 2: User enters "2" =====
-# System creates branch without work tracking:
-# ✅ Created branch: feat/add-csv-export
-#    View branch: https://github.com/owner/repo/tree/feat/add-csv-export
-
-# ===== OPTION 3: User enters "3" =====
-# System cancels:
-# Branch creation cancelled.
-
-# ===== SKIP PROMPT: Use direct mode =====
-/repo:branch-create feat/experimental-feature
-# → No work tracking prompt, creates branch: feat/experimental-feature
-
-# ===== SKIP PROMPT: Provide work_id explicitly =====
+# With work_id - skips prompt
 /repo:branch-create "add CSV export" --work-id 123 --prefix feat
-# → No prompt, creates branch: feat/123-add-csv-export
+# Result: feat/123-add-csv-export
+
+# Direct mode - skips prompt
+/repo:branch-create feat/experimental-feature
+# Result: feat/experimental-feature
 ```
+
+For detailed workflow examples, see the Work Tracking Integration section below.
 </EXAMPLES>
 
 <AGENT_INVOCATION>
@@ -332,7 +258,7 @@ The repo-manager agent will:
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>
-Common errors to handle:
+Common errors to handle at the **command level** (argument parsing):
 
 **Missing branch name or description**:
 ```
@@ -344,189 +270,64 @@ Examples:
   /repo:branch-create "add CSV export" --work-id 123
 ```
 
-**Branch already exists**:
+**Invalid argument format**:
 ```
-Error: Branch already exists: feature/my-new-feature
-Use a different name or delete the existing branch with /repo:branch-delete
-```
-
-**Invalid branch name**:
-```
-Error: Invalid branch name format: invalid//branch
-Branch names cannot contain consecutive slashes or invalid characters
+Error: Invalid argument format
+Expected: /repo:branch-create <branch-name-or-description> [options]
 ```
 
-**Invalid option selection**:
-```
-Error: Invalid choice. Please enter 1, 2, or 3.
-
-Enter your choice (1, 2, or 3):
-```
-
-**Option 1 failure (issue creation fails)**:
-```
-❌ Failed to create issue: [error message]
-
-Would you like to:
-  A. Retry issue creation
-  B. Create branch only (without work tracking)
-  C. Cancel
-
-Enter your choice (A, B, or C):
-```
-
-**Work plugin not configured properly**:
-```
-Warning: fractary-work plugin detected but not properly configured.
-Creating branch without work tracking.
-
-To configure: /work:init
-```
+All other errors are handled by the repo-manager agent, including:
+- Branch already exists
+- Invalid branch name format
+- Invalid option selection (in work tracking prompt)
+- Issue creation failures
+- Work plugin configuration issues
+- Network errors
+- Permission errors
 </ERROR_HANDLING>
 
 <NOTES>
 ## Branch Naming Conventions
 
-### Description-based Mode (with work_id)
-When you provide `--work-id`, branches follow the pattern: `<prefix>/<work-id>-<description-slug>`
+**Description mode with work_id**: `<prefix>/<work-id>-<slug>` (e.g., `feat/123-add-csv-export`)
+**Description mode without work_id**: `<prefix>/<slug>` (e.g., `feat/my-experimental-feature`)
+**Direct mode**: Exact name you specify (e.g., `feature/my-custom-branch-name`)
 
-Example: `feat/123-add-csv-export`
-
-### Description-based Mode (without work_id)
-When you don't provide `--work-id`, branches follow the pattern: `<prefix>/<description-slug>`
-
-Example: `feat/my-experimental-feature`
-
-### Direct Mode
-You specify the exact branch name: `<prefix>/<whatever-you-want>`
-
-Example: `feature/my-custom-branch-name`
-
-## Branch Prefixes
-
-- **feat/**: New features
-- **fix/**: Bug fixes
-- **hotfix/**: Urgent production fixes
-- **chore/**: Maintenance tasks
-- **docs/**: Documentation changes
-- **test/**: Test-related changes
-- **refactor/**: Code refactoring
-- **style/**: Code style/formatting changes
-- **perf/**: Performance improvements
-
-## When to Use Each Mode
-
-- **Direct Mode**: When you want full control over branch naming, or following a specific convention
-- **Description-based Mode**: For quick branch creation where the system auto-generates the name from your description
-- **With --work-id**: Optional flag to link the branch to a work item (issue, ticket, etc.)
+**Common prefixes**: `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf`
 
 ## Work Tracking Integration
 
-This command integrates with the fractary-work plugin for issue tracking:
+This command integrates with the fractary-work plugin for issue tracking.
+
+**Important**: The work tracking integration is handled by the **repo-manager agent**, not by this command. The command simply routes your request to the agent, which then detects work plugin availability and manages the workflow.
 
 ### Three-Option Workflow Prompt
 
-When you create a branch **without** `--work-id` (and in description-based mode), the command checks if fractary-work is configured.
+When you create a branch **without** `--work-id` (and in description-based mode), the **repo-manager agent** checks if fractary-work is configured.
 
-If detected, you're presented with **three numbered options**:
+If detected, the **agent** presents you with **three numbered options**:
+1. **[RECOMMENDED] Create issue and branch** - Automatic workflow, creates issue first then branch
+2. **Create branch only** - Skip work tracking
+3. **Cancel** - Do nothing
 
-#### Option 1: Create Issue and Branch (RECOMMENDED)
-- **Automatic workflow**: Creates issue first, then branch with that issue ID
-- **Seamless**: No need to run multiple commands or copy/paste issue IDs
-- **Best practice**: Ensures all branches are tracked from the start
-- Infers issue type from branch prefix:
-  - `feat` → `feature` or `enhancement`
-  - `fix` → `bug`
-  - `hotfix` → `bug` (high priority)
-  - `chore` → `task` or `chore`
-  - `docs` → `documentation`
-  - `test` → `test`
-  - `refactor` → `enhancement` or `task`
+The agent infers issue type from branch prefix (feat→feature, fix→bug, etc.)
 
-#### Option 2: Create Branch Only
-- **Quick mode**: Just creates the branch without work tracking
-- **Use when**: You'll add work tracking later, or don't need it for this branch
-- Creates branch: `{prefix}/{description-slug}`
+### How It Works
 
-#### Option 3: Cancel
-- **Stop**: Exits without creating anything
-- **Use when**: You need to reconsider or change your approach
-
-### Interactive Workflow Example
-
-```bash
-# 1. Command detects no work_id
-/repo:branch-create "add CSV export" --prefix feat
-
-# 2. System prompts with three options
-# ℹ️  Notice: No work item specified for this branch.
-#
-# The fractary-work plugin is configured. How would you like to proceed?
-#
-# 1. [RECOMMENDED] Create issue and branch (automatic)
-#    → Creates issue: /work:issue-create "add CSV export" --type feature
-#    → Then creates branch: feat/123-add-csv-export
-#
-# 2. Create branch only (no work tracking)
-#    → Creates branch: feat/add-csv-export
-#
-# 3. Cancel (do nothing)
-#
-# Enter your choice (1, 2, or 3): 1
-
-# 3. System executes Option 1 automatically
-# ✅ Created issue #123: "add CSV export"
-#    View issue: https://github.com/owner/repo/issues/123
-# ✅ Created branch: feat/123-add-csv-export
-#    View branch: https://github.com/owner/repo/tree/feat/123-add-csv-export
-# Branch is now linked to issue #123 for automatic tracking.
-```
-
-### Direct Links to Issues and Branches
-
-When Option 1 or 2 completes successfully, the command provides direct URLs to view the created resources:
-
-**Issue URLs** (from work plugin response):
-- **GitHub**: `https://github.com/owner/repo/issues/123`
-- **GitLab**: `https://gitlab.com/owner/repo/-/issues/123`
-- **Jira**: `https://company.atlassian.net/browse/PROJ-123`
-- **Linear**: `https://linear.app/team/issue/ABC-123`
-
-**Branch URLs** (from repo plugin response):
-- **GitHub**: `https://github.com/owner/repo/tree/feat/123-branch-name`
-- **GitLab**: `https://gitlab.com/owner/repo/-/tree/feat/123-branch-name`
-- **Bitbucket**: `https://bitbucket.org/owner/repo/branch/feat/123-branch-name`
-
-The command automatically extracts these URLs from the plugin responses and displays them for quick access.
-
-### Benefits of Work Tracking
-
-- **Traceability**: Link commits, branches, and PRs to issues
-- **Automatic closing**: PRs can auto-close issues with "closes #123"
-- **Better organization**: See which branches relate to which issues
-- **Team visibility**: Others can see what you're working on
-- **Quick access**: Direct links to view issues and branches in your web UI
+1. **No work_id provided** (description mode) → Agent checks for fractary-work plugin
+2. **Plugin detected** → Agent presents 3 options:
+   - Option 1: Create issue + branch automatically
+   - Option 2: Create branch only
+   - Option 3: Cancel
+3. **Option 1 selected** → Agent creates issue, captures ID, creates branch with that ID
+4. **URLs displayed** → Direct links to created issue and branch
 
 ### Skipping the Prompt
 
-The three-option prompt **only appears** when:
-- You're in description-based mode (no `/` in branch name)
-- No `--work-id` is provided
-- The fractary-work plugin is installed and configured
-
-**To skip the prompt entirely**, use any of these approaches:
-
-1. **Direct branch naming**: `/repo:branch-create feature/my-branch`
-   - Prompt is skipped for direct mode
-
-2. **Provide work_id explicitly**: `/repo:branch-create "description" --work-id 123`
-   - Prompt is skipped when work_id is provided
-
-3. **Select Option 2**: When prompted, enter `2` to proceed without work tracking
-   - Quick escape if you don't want tracking for this branch
-
-4. **Unconfigure work plugin**: Remove `.fractary/plugins/work/config.json`
-   - Disables work tracking integration globally
+The prompt only appears in description mode without `--work-id`. To skip:
+- Use direct mode: `/repo:branch-create feature/my-branch`
+- Provide `--work-id`: `/repo:branch-create "desc" --work-id 123`
+- Select Option 2 when prompted
 
 ## Platform Support
 
