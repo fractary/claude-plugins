@@ -158,16 +158,12 @@ ALLOW_COMMANDS = [
   "gh auth refresh",
   "gh api",
 
-  // GitHub Actions workflow operations (5 commands)
+  // GitHub Actions workflow operations - read only (2 commands)
   "gh workflow list",
   "gh workflow view",
-  "gh workflow run",
-  "gh workflow enable",
-  "gh workflow disable",
 
-  // GitHub secrets management (2 commands)
+  // GitHub secrets management - read only (1 command)
   "gh secret list",
-  "gh secret set",
 
   // GitHub Apps management (2 commands)
   "gh app list",
@@ -574,7 +570,8 @@ Will deny: dangerous operations
 Continue? yes
 
 ✅ Created .claude/settings.json
-   65 commands allowed
+   61 commands allowed
+   13 commands require approval
    40 commands denied
 ```
 

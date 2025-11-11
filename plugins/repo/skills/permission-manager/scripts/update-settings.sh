@@ -53,7 +53,7 @@ SETTINGS_FILE="$PROJECT_PATH/.claude/settings.json"
 BACKUP_FILE="$PROJECT_PATH/.claude/settings.json.backup"
 
 # Commands to allow (safe operations, most write operations)
-# Total: 65 commands
+# Total: 61 commands
 ALLOW_COMMANDS=(
     # Git read operations (10 commands)
     "git status"
@@ -104,16 +104,12 @@ ALLOW_COMMANDS=(
     "gh auth refresh"
     "gh api"
 
-    # GitHub Actions workflow operations (5 commands)
+    # GitHub Actions workflow operations - read only (2 commands)
     "gh workflow list"
     "gh workflow view"
-    "gh workflow run"
-    "gh workflow enable"
-    "gh workflow disable"
 
-    # GitHub secrets management (2 commands)
+    # GitHub secrets management - read only (1 command)
     "gh secret list"
-    "gh secret set"
 
     # GitHub Apps management (2 commands)
     "gh app list"
@@ -137,11 +133,11 @@ ALLOW_COMMANDS=(
     "wc"
 )
 
-# Commands that require approval (ONLY for protected branches)
-# Total: 9 commands
-# These use pattern matching to detect operations on main/master/production
+# Commands that require approval
+# Total: 13 commands
+# Includes protected branch operations and potentially risky workflow/secrets operations
 REQUIRE_APPROVAL_COMMANDS=(
-    # Protected branch push operations (8 commands)
+    # Protected branch push operations (9 commands)
     "git push origin main"
     "git push origin master"
     "git push origin production"
@@ -151,6 +147,16 @@ REQUIRE_APPROVAL_COMMANDS=(
     "git push --set-upstream origin main"
     "git push --set-upstream origin master"
     "git push --set-upstream origin production"
+
+    # GitHub Actions workflow write operations (3 commands)
+    # These could trigger CI/CD runs or disable critical workflows
+    "gh workflow run"
+    "gh workflow enable"
+    "gh workflow disable"
+
+    # GitHub secrets write operations (1 command)
+    # Could overwrite important secrets
+    "gh secret set"
 )
 
 # Commands to deny (dangerous operations)
