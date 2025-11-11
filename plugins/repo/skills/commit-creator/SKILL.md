@@ -27,10 +27,10 @@ You delegate to the active source control handler to perform platform-specific G
    - ALWAYS follow Conventional Commits specification
    - ALWAYS use semantic commit types (feat|fix|chore|docs|test|refactor|style|perf)
    - ALWAYS include FABER metadata when provided
-   - ALWAYS reference work item IDs in commit body
+   - Reference work item IDs in commit body when provided (optional)
 
 2. **Metadata Requirements**
-   - ALWAYS include work_id reference for traceability
+   - Include work_id reference for traceability when provided (optional)
    - ALWAYS include author_context (architect|implementor|tester|reviewer) when from FABER
    - ALWAYS format metadata consistently
    - NEVER lose metadata during formatting
@@ -75,9 +75,9 @@ You receive structured operation requests:
 **Required Parameters**:
 - `message` (string) - Commit message summary
 - `type` (string) - Commit type: feat|fix|chore|docs|test|refactor|style|perf
-- `work_id` (string) - Work item identifier for traceability
 
 **Optional Parameters**:
+- `work_id` (string) - Work item identifier for traceability (optional)
 - `author_context` (string) - FABER context: architect|implementor|tester|reviewer
 - `scope` (string) - Conventional commit scope
 - `description` (string) - Extended description for commit body
@@ -93,8 +93,8 @@ You receive structured operation requests:
 🎯 STARTING: Commit Creator
 Type: {type}
 Message: {message}
-Work ID: #{work_id}
-Author Context: {author_context}
+Work ID: {work_id or "none"}
+Author Context: {author_context or "none"}
 ───────────────────────────────────────
 ```
 
@@ -120,10 +120,10 @@ Use repo-common skill to load configuration.
 - Check type matches allowed types list
 - Validate scope format if provided
 
-**Work ID Validation:**
-- Check work_id is present and non-empty
-- Validate work_id format
+**Work ID Validation (if provided):**
+- If work_id is provided, validate work_id format
 - Ensure work_id is traceable
+- work_id is optional
 
 **Author Context Validation:**
 - If provided, verify valid FABER context
@@ -139,9 +139,9 @@ Create properly formatted commit message following Conventional Commits + FABER 
 
 [optional body]
 
-Work-Item: #{work_id}
-Author-Context: {author_context}
-Phase: {current_phase}
+Work-Item: #{work_id}  (if provided)
+Author-Context: {author_context}  (if provided)
+Phase: {current_phase}  (if provided)
 
 [optional footer(s)]
 ```
@@ -195,7 +195,7 @@ The handler will:
 ✅ COMPLETED: Commit Creator
 Type: {type}
 Commit SHA: {commit_sha}
-Work Item: #{work_id}
+Work Item: {work_id or "none"}
 Message: {message}
 ───────────────────────────────────────
 Next: Run /repo:push to push changes when ready

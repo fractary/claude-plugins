@@ -1,17 +1,17 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
-argument-hint: '[work_id] "<branch-name-or-description>" [--base <branch>] [--prefix <prefix>]'
+argument-hint: '"<branch-name-or-description>" [--base <branch>] [--prefix <prefix>] [--work-id <id>]'
 ---
 
 <CONTEXT>
 You are the repo:branch-create command for the fractary-repo plugin.
 Your role is to parse user input and invoke the repo-manager agent to create a new branch.
 
-This command supports BOTH:
-- **Semantic naming** (FABER workflows): Requires work_id + description
-- **Direct branch names** (standalone use): Just provide the full branch name
-- **Simple descriptions** (standalone use): Provide description + optional prefix
+This command supports:
+- **Direct branch names**: Provide the full branch name (e.g., "feature/my-branch")
+- **Description-based naming**: Provide description + optional prefix (auto-generates branch name)
+- **Optional work tracking**: Add --work-id flag to link branch to work item (optional)
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -94,63 +94,52 @@ This command intelligently determines the invocation mode based on the arguments
 ```bash
 /repo:branch-create feature/my-new-feature
 /repo:branch-create bugfix/authentication-fix --base develop
+/repo:branch-create feature/123-add-export --work-id 123
 ```
 
 **Parsing**:
 - `branch_name` = first argument
 - `base_branch` = --base value or "main"
-- Skip semantic naming, create branch directly
+- `work_id` = --work-id value (optional)
+- Create branch directly with the specified name
 
-### Mode 2: Semantic Naming (FABER workflow)
-**Pattern**: First arg is numeric or JIRA-style (123, PROJ-456)
-```bash
-/repo:branch-create 123 "add CSV export"
-/repo:branch-create PROJ-456 "fix auth bug" --base develop
-```
-
-**Parsing**:
-- `work_id` = first argument
-- `description` = second argument
-- Generate branch name from work metadata
-- Use branch-namer skill for semantic naming
-
-### Mode 3: Simple Description
-**Pattern**: Single non-numeric argument without `/`
+### Mode 2: Description-based Naming
+**Pattern**: First arg doesn't contain `/`
 ```bash
 /repo:branch-create "my experimental feature" --prefix feat
+/repo:branch-create "add CSV export" --prefix feat --work-id 123
 /repo:branch-create "quick-fix" --prefix fix
 ```
 
 **Parsing**:
 - `description` = first argument
 - `prefix` = --prefix value or "feat"
-- Generate simple branch name: `{prefix}/{description-slug}`
-- No work_id in branch name
+- `work_id` = --work-id value (optional)
+- Generate branch name: `{prefix}/{work_id-}{description-slug}` if work_id provided, otherwise `{prefix}/{description-slug}`
 
 ### Detection Logic
 
 ```
 IF arg contains "/" THEN
   Mode 1: Direct branch name
-ELSE IF arg matches /^\d+$/ or /^[A-Z]+-\d+$/ THEN
-  Mode 2: Semantic naming (require second arg)
 ELSE
-  Mode 3: Simple description
+  Mode 2: Description-based naming
 END
+
+work_id is always optional via --work-id flag
 ```
 </PARSING_LOGIC>
 
 <ARGUMENT_PARSING>
 ## Arguments
 
-### Flexible Arguments (mode-dependent):
-- **Direct mode**: `<branch_name>` - Full branch name (e.g., "feature/my-branch")
-- **Semantic mode**: `<work_id> <description>` - Work ID + description (e.g., "123 'add CSV export'")
-- **Simple mode**: `<description>` - Just description (e.g., "'my feature'")
+### Required Argument:
+- `<branch-name-or-description>` (string): Either a full branch name (e.g., "feature/my-branch") or a description (e.g., "add CSV export")
 
 ### Optional Arguments (all modes):
 - `--base <branch>` (string): Base branch name to create from (default: main/master)
-- `--prefix <type>` (string): Branch prefix - `feature`, `bugfix`, `hotfix`, `chore` (default: `feature` for simple mode, auto-detect for semantic mode)
+- `--prefix <type>` (string): Branch prefix - `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf` (default: `feat`)
+- `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional.
 
 ### Maps to Operation
 All modes map to: `create-branch` operation in repo-manager agent
@@ -167,38 +156,26 @@ All modes map to: `create-branch` operation in repo-manager agent
 # Create from specific base branch
 /repo:branch-create bugfix/auth-issue --base develop
 
+# Create with work item tracking
+/repo:branch-create feature/123-csv-export --work-id 123
+
 # Create hotfix branch
 /repo:branch-create hotfix/critical-security-patch --base production
 ```
 
-### Mode 2: Semantic Naming (FABER Workflows)
+### Mode 2: Description-based Naming
 ```bash
-# Create feature branch from work item
-/repo:branch-create 123 "add CSV export"
-
-# Create with specific base
-/repo:branch-create 123 "fix auth bug" --base develop
-
-# Create bugfix branch (auto-detects prefix from work item type)
-/repo:branch-create PROJ-456 "fix login timeout"
-
-# Force specific prefix
-/repo:branch-create 789 "urgent patch" --prefix hotfix
-```
-
-### Mode 3: Simple Description
-```bash
-# Create feature branch from description
+# Create feature branch from description (auto-generates: feat/my-experimental-feature)
 /repo:branch-create "my experimental feature"
-# Result: feature/my-experimental-feature
 
-# Specify branch type
+# Specify branch type (auto-generates: fix/quick-authentication-fix)
 /repo:branch-create "quick authentication fix" --prefix fix
-# Result: fix/quick-authentication-fix
 
-# Create from specific base
-/repo:branch-create "new dashboard" --prefix feat --base develop
-# Result: feat/new-dashboard
+# Link to work item (auto-generates: feat/123-add-csv-export)
+/repo:branch-create "add CSV export" --work-id 123
+
+# Full example with all options (auto-generates: feat/456-new-dashboard)
+/repo:branch-create "new dashboard" --prefix feat --work-id 456 --base develop
 ```
 </EXAMPLES>
 
@@ -218,34 +195,22 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
   "parameters": {
     "mode": "direct",
     "branch_name": "feature/my-new-feature",
-    "base_branch": "main"
-  }
-}
-```
-
-### Mode 2: Semantic Naming
-```json
-{
-  "operation": "create-branch",
-  "parameters": {
-    "mode": "semantic",
-    "work_id": "123",
-    "description": "add CSV export",
     "base_branch": "main",
-    "prefix": "feat"
+    "work_id": "123"  // optional
   }
 }
 ```
 
-### Mode 3: Simple Description
+### Mode 2: Description-based Naming
 ```json
 {
   "operation": "create-branch",
   "parameters": {
-    "mode": "simple",
+    "mode": "description",
     "description": "my experimental feature",
     "prefix": "feat",
-    "base_branch": "main"
+    "base_branch": "main",
+    "work_id": "123"  // optional
   }
 }
 ```
@@ -254,8 +219,7 @@ The repo-manager agent will:
 1. Receive the request with mode indicator
 2. Route to appropriate skill(s) based on mode:
    - **Direct**: branch-manager only
-   - **Semantic**: branch-namer → branch-manager
-   - **Simple**: generate simple name → branch-manager
+   - **Description**: branch-namer → branch-manager (if work_id provided, includes in branch name)
 3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
 4. Return structured response
 </AGENT_INVOCATION>
@@ -263,20 +227,14 @@ The repo-manager agent will:
 <ERROR_HANDLING>
 Common errors to handle:
 
-**Mode 2: Missing description when work_id detected**:
-```
-Error: Description is required when using semantic naming
-Usage: /repo:branch-create <work_id> <description>
-Example: /repo:branch-create 123 "add CSV export"
-```
-
-**Mode 3: Missing description**:
+**Missing branch name or description**:
 ```
 Error: Branch name or description is required
-Usage: /repo:branch-create <branch-name-or-description>
+Usage: /repo:branch-create <branch-name-or-description> [options]
 Examples:
   /repo:branch-create feature/my-branch
   /repo:branch-create "my feature description"
+  /repo:branch-create "add CSV export" --work-id 123
 ```
 
 **Branch already exists**:
@@ -285,7 +243,7 @@ Error: Branch already exists: feature/my-new-feature
 Use a different name or delete the existing branch with /repo:branch-delete
 ```
 
-**Invalid branch name (Mode 1)**:
+**Invalid branch name**:
 ```
 Error: Invalid branch name format: invalid//branch
 Branch names cannot contain consecutive slashes or invalid characters
@@ -295,36 +253,38 @@ Branch names cannot contain consecutive slashes or invalid characters
 <NOTES>
 ## Branch Naming Conventions
 
-### Semantic Mode (Mode 2)
-Branches follow the pattern: `<prefix>/<work-id>-<description-slug>`
+### Description-based Mode (with work_id)
+When you provide `--work-id`, branches follow the pattern: `<prefix>/<work-id>-<description-slug>`
 
 Example: `feat/123-add-csv-export`
 
-### Simple Mode (Mode 3)
-Branches follow the pattern: `<prefix>/<description-slug>`
+### Description-based Mode (without work_id)
+When you don't provide `--work-id`, branches follow the pattern: `<prefix>/<description-slug>`
 
 Example: `feat/my-experimental-feature`
 
-### Direct Mode (Mode 1)
+### Direct Mode
 You specify the exact branch name: `<prefix>/<whatever-you-want>`
 
 Example: `feature/my-custom-branch-name`
 
 ## Branch Prefixes
 
-- **feature/** or **feat/**: New features
-- **bugfix/** or **fix/**: Bug fixes
+- **feat/**: New features
+- **fix/**: Bug fixes
 - **hotfix/**: Urgent production fixes
 - **chore/**: Maintenance tasks
 - **docs/**: Documentation changes
 - **test/**: Test-related changes
 - **refactor/**: Code refactoring
+- **style/**: Code style/formatting changes
+- **perf/**: Performance improvements
 
 ## When to Use Each Mode
 
-- **Direct Mode**: When you want full control over branch naming, or following a non-standard convention
-- **Semantic Mode**: When working in FABER workflows with work tracking integration
-- **Simple Mode**: For quick ad-hoc branches without work item tracking
+- **Direct Mode**: When you want full control over branch naming, or following a specific convention
+- **Description-based Mode**: For quick branch creation where the system auto-generates the name from your description
+- **With --work-id**: Optional flag to link the branch to a work item (issue, ticket, etc.)
 
 ## Platform Support
 
@@ -334,12 +294,6 @@ This command works with:
 - Bitbucket
 
 Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/config.json`.
-
-## Backward Compatibility
-
-✅ Existing FABER workflow calls unchanged - semantic mode still works exactly the same
-✅ Commands like `/repo:branch-create 123 "description"` continue to work as before
-✅ New modes are additive, not breaking changes
 
 ## See Also
 
