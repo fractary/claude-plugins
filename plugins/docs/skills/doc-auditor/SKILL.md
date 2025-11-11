@@ -25,10 +25,10 @@ You generate specifications that can be followed to bring documentation into com
 - ONLY read and analyze
 - Generate specification for remediation
 
-**IMPORTANT:** Use Spec Plugin When Available
+**IMPORTANT:** Use fractary-spec Plugin When Available
 - Check if fractary-spec plugin is installed
-- If available: Use spec-manager to generate standardized spec
-- If not available: Generate basic markdown spec
+- If available: Use spec-manager agent (fractary-spec:spec-manager) to generate standardized spec
+- If not available: Cannot generate spec (audit presents findings only)
 - Either way, output must be actionable
 
 **IMPORTANT:** Respect Project-Specific Documentation
@@ -46,7 +46,7 @@ You generate specifications that can be followed to bring documentation into com
 
 <WORKFLOW>
 
-**IMPORTANT: Two-Phase Interactive Workflow**
+**IMPORTANT: Two-Phase Interactive Workflow with State Tracking**
 
 This skill executes in TWO phases with a mandatory user approval step:
 
@@ -56,11 +56,26 @@ This skill executes in TWO phases with a mandatory user approval step:
 - Identify issues and remediation actions
 - Present findings to user for review
 - **STOP and wait for approval**
+- **State: AWAITING_USER_DECISION**
 
 **Phase 2: Specification Generation** (Steps 7-8)
 - **ONLY execute after explicit user approval**
-- Generate formal remediation specification
+- **State: USER_APPROVED → GENERATING_SPEC**
+- Create GitHub tracking issue
+- Generate formal remediation specification via spec-manager agent
 - Present final summary
+- **State: COMPLETED**
+
+**Phase State Management**:
+- Track current phase state to prevent accidental skipping
+- Never transition from Phase 1 to Phase 2 without user approval
+- Valid state transitions:
+  - ANALYZING → AWAITING_USER_DECISION (end of Step 6)
+  - AWAITING_USER_DECISION → USER_APPROVED (user chooses "Save as Spec")
+  - AWAITING_USER_DECISION → REFINING (user chooses "Refine Plan")
+  - AWAITING_USER_DECISION → CANCELLED (user chooses "Hold Off")
+  - USER_APPROVED → GENERATING_SPEC (Step 7 begins)
+  - GENERATING_SPEC → COMPLETED (Step 8 done)
 
 **CRITICAL**: Never skip the approval step in Step 6. Always present findings first and wait for user to approve, revise, or cancel.
 
@@ -70,23 +85,50 @@ This skill executes in TWO phases with a mandatory user approval step:
 
 **CRITICAL**: The fractary-spec plugin is REQUIRED for generating remediation specs.
 
-Check if fractary-spec plugin is available:
+Execute plugin availability check:
 ```bash
-if [ -f ".fractary/plugins/spec/config/config.json" ] || [ -d "plugins/spec" ]; then
-  USE_SPEC_PLUGIN=true
+#!/bin/bash
+
+# Check for spec plugin in both local project and global plugin directory
+SPEC_PLUGIN_AVAILABLE=false
+
+if [ -f ".fractary/plugins/spec/config/config.json" ]; then
+  echo "✓ Found spec plugin in project config"
+  SPEC_PLUGIN_AVAILABLE=true
+elif [ -d "plugins/spec" ] && [ -f "plugins/spec/.claude-plugin/plugin.json" ]; then
+  echo "✓ Found spec plugin in plugins directory"
+  SPEC_PLUGIN_AVAILABLE=true
 else
-  USE_SPEC_PLUGIN=false
   echo "⚠️  WARNING: fractary-spec plugin not found"
+  echo "   Searched:"
+  echo "   - .fractary/plugins/spec/config/config.json"
+  echo "   - plugins/spec/.claude-plugin/plugin.json"
+  echo ""
   echo "The audit will present findings, but cannot generate a formal spec."
   echo "To enable spec generation, install fractary-spec plugin."
+  echo ""
+  SPEC_PLUGIN_AVAILABLE=false
 fi
+
+# Export for use in later steps
+export SPEC_PLUGIN_AVAILABLE
 ```
 
-**If spec plugin is NOT available:**
-- Continue with audit and present findings (Step 1-6)
-- Warn user that spec generation is not available
-- User can still review findings and discovery reports
-- User should install fractary-spec plugin to enable spec generation
+**Behavior based on plugin availability:**
+
+If `SPEC_PLUGIN_AVAILABLE=true`:
+- Continue with full workflow (Steps 2-8)
+- User will see "Save as Spec" option in Step 6
+- Can generate formal specification via spec-manager agent (fractary-spec:spec-manager)
+
+If `SPEC_PLUGIN_AVAILABLE=false`:
+- Continue with audit and present findings (Steps 2-6 only)
+- User will see modified options in Step 6 (no "Save as Spec")
+- User can still:
+  - Review detailed findings
+  - Refine the remediation plan
+  - Access discovery reports
+- Workflow ends after Step 6 unless plugin is installed
 
 ## Step 2: Load Configuration and Standards
 
@@ -235,87 +277,45 @@ Do NOT proceed to spec generation until user explicitly chooses "Save as Spec".
 
 **ONLY execute this step if user explicitly chooses to save as spec in Step 6.**
 
-**CRITICAL**: Always use fractary-spec:spec-manager when generating the spec.
+**CRITICAL**: The spec-manager agent requires an issue number for tracking. Create a GitHub issue first.
+
+### Step 7.1: Create Tracking Issue
+
+Use the @agent-fractary-work:work-manager agent to create a GitHub issue:
+```
+{
+  "operation": "create-issue",
+  "parameters": {
+    "title": "Documentation Remediation - {project_name}",
+    "body": "Audit identified {total_issues} compliance issues with documentation:\n\n**High Priority**: {high_count} issues\n**Medium Priority**: {medium_count} issues\n**Low Priority**: {low_count} issues\n\n**Quality Score**: {score}/10\n**Compliance**: {percentage}%\n**Estimated Effort**: {hours} hours\n\nA detailed remediation specification will be generated to address these issues.",
+    "labels": ["documentation", "remediation", "automated-audit"],
+    "assignee": null
+  }
+}
+```
+
+**Capture the returned issue number** for use in Step 7.2.
+
+### Step 7.2: Generate Spec via Spec-Manager
 
 Use the @agent-fractary-spec:spec-manager agent to generate specification:
 ```
 {
   "operation": "generate",
-  "spec_type": "implementation",
+  "issue_number": "{issue_number_from_step_7.1}",
   "parameters": {
-    "title": "Documentation Remediation - {project_name}",
-    "context": "Bring project documentation into alignment with fractary-docs standards",
-    "metadata": {
-      "complexity": "{MINIMAL|MODERATE|EXTENSIVE}",
-      "estimated_hours": {hours},
-      "total_actions": {count},
-      "priority_breakdown": {
-        "high": {high_count},
-        "medium": {medium_count},
-        "low": {low_count}
-      },
-      "discovery_date": "{date}",
-      "plugin_version": "1.0"
-    }
-  },
-  "sections": {
-    "overview": {
-      "summary": "This specification outlines required changes to bring documentation into alignment with fractary-docs standards.",
-      "current_state": {
-        "total_files": {count},
-        "with_frontmatter": {count},
-        "quality_score": {score},
-        "structure": "{flat|organized|hierarchical}"
-      },
-      "target_state": {
-        "organization": "Type-based directory structure per plugin standards",
-        "frontmatter": "100% coverage with codex sync enabled",
-        "quality_score": "8+/10"
-      }
-    },
-    "requirements": [
-      {
-        "id": "REQ-{n}",
-        "priority": "{high|medium|low}",
-        "title": "{Action title}",
-        "description": "{What needs to be done}",
-        "rationale": "{Why this is needed}",
-        "files_affected": ["{list of files}"],
-        "acceptance_criteria": ["{checklist}"]
-      }
-    ],
-    "implementation_plan": {
-      "phases": [
-        {
-          "phase": 1,
-          "name": "Critical Fixes",
-          "estimated_hours": {hours},
-          "objective": "Establish baseline compliance",
-          "tasks": [
-            {
-              "task_id": "1.1",
-              "title": "{Task name}",
-              "commands": ["{executable commands}"],
-              "verification": ["{verification commands}"]
-            }
-          ]
-        }
-      ]
-    },
-    "acceptance_criteria": [
-      "All documentation has valid front matter with codex_sync",
-      "Files organized per plugin standards",
-      "All validation rules pass",
-      "No broken links"
-    ],
-    "verification_steps": [
-      "/fractary-docs:validate",
-      "/fractary-docs:link check"
-    ]
-  },
-  "output_path": "{output_dir}/REMEDIATION-SPEC.md"
+    "template": "infrastructure",
+    "force": false
+  }
 }
 ```
+
+**Note**: The spec-manager agent will:
+1. Fetch the issue created in Step 7.1
+2. Use the issue body and audit findings to populate the spec
+3. Generate spec file: `specs/spec-{issue_number}-documentation-remediation.md`
+4. Link the spec back to the issue via GitHub comment
+5. Return the spec path for verification
 
 ## Step 8: Present Final Summary to User (After Spec Generation)
 

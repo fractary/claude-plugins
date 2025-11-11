@@ -259,7 +259,7 @@ Step 4: Findings Presentation
   ⏱️ Estimated Effort: 8 hours
 
   💡 What would you like to do next?
-     1. Save as Spec → Generate formal spec via spec-manager
+     1. Save as Spec → Generate formal spec via spec-manager agent
      2. Refine Plan → Adjust priorities/actions/scope
      3. Hold Off → Save findings for later
 
@@ -269,21 +269,64 @@ Step 4: Findings Presentation
 ### Phase 2: Specification Generation (After "Save as Spec")
 
 ```
-Step 5: Spec Generation
-  📝 Generating remediation spec via spec-manager...
-  📝 Using fractary-spec:spec-manager ✓
-  📝 Creating formal specification...
-  ✅ REMEDIATION-SPEC.md generated
+Step 5: Create Tracking Issue
+  🎫 Creating GitHub issue for remediation tracking...
+  🎫 Issue #456 created: "Documentation Remediation - myproject"
+  ✅ Tracking issue ready
 
-Step 6: Final Summary
+Step 6: Generate Spec
+  📝 Generating remediation spec via spec-manager agent...
+  📝 Using fractary-spec:spec-manager with issue #456 ✓
+  📝 Creating formal specification...
+  ✅ specs/spec-456-documentation-remediation.md generated
+
+Step 7: Final Summary
   📁 Outputs:
-     - Spec: .fractary/audit/REMEDIATION-SPEC.md
+     - Spec: specs/spec-456-documentation-remediation.md
+     - Issue: #456 (tracking)
      - Reports: .fractary/audit/discovery-*.json
 
   💡 Next Steps:
      1. Review remediation spec
      2. Follow implementation plan
      3. Verify with /fractary-docs:validate
+```
+
+### Workflow Without Spec Plugin
+
+If `fractary-spec` plugin is not installed:
+
+```
+Step 1: Loading Configuration
+  📖 Configuration: .fractary/plugins/docs/config/config.json
+  ⚠️  WARNING: fractary-spec plugin not found
+  ⚠️  Audit will present findings, but cannot generate formal spec
+  ✅ Configuration loaded
+
+Step 2-3: Discovery and Analysis
+  [Same as above]
+
+Step 4: Findings Presentation
+  📋 Audit Findings:
+     - Total Documents: 23
+     - Issues Found: 12 (5 high, 5 medium, 2 low)
+     - Quality Score: 7.2/10
+     - Compliance: 68%
+
+  📋 Proposed Remediation Actions:
+     [Detailed list of actions by priority]
+
+  ⏱️ Estimated Effort: 8 hours
+
+  ⚠️  Note: fractary-spec plugin not installed - cannot generate formal spec
+
+  💡 What would you like to do next?
+     1. Refine Plan → Adjust priorities/actions/scope
+     2. Hold Off → Save findings for later
+
+     To enable spec generation, install fractary-spec plugin first.
+
+  ⏸️  Workflow complete - Discovery reports available
 ```
 
 ## Revision Workflow
@@ -440,6 +483,84 @@ Before running audit:
 3. **Follow phase-based implementation plan**
 4. **Verify fixes with validation**
 5. **Re-audit to confirm compliance**
+
+## Testing the Audit Workflow
+
+### Test Case 1: Happy Path (Full Workflow)
+
+**Prerequisites:**
+- fractary-spec plugin installed
+- fractary-docs configured
+- Documentation files present
+- GitHub credentials configured
+
+**Steps:**
+1. Run: `/fractary-docs:audit`
+2. Verify: Findings presentation shows issues and options
+3. Action: Choose "Save as Spec"
+4. Verify: GitHub issue created
+5. Verify: Spec file generated in `specs/` directory
+6. Verify: Spec linked to GitHub issue
+
+**Expected Result:** Complete audit with formal spec generated
+
+### Test Case 2: Refinement Workflow
+
+**Prerequisites:** Same as Test Case 1
+
+**Steps:**
+1. Run: `/fractary-docs:audit`
+2. Verify: Findings presentation appears
+3. Action: Choose "Refine Plan"
+4. Action: Request priority changes (e.g., "Move action X from high to medium")
+5. Verify: Updated findings presentation with changes
+6. Action: Choose "Save as Spec"
+7. Verify: Spec reflects refined priorities
+
+**Expected Result:** Spec reflects user refinements
+
+### Test Case 3: Hold Off (Cancel)
+
+**Prerequisites:** Same as Test Case 1
+
+**Steps:**
+1. Run: `/fractary-docs:audit`
+2. Verify: Findings presentation appears
+3. Action: Choose "Hold Off"
+4. Verify: Discovery reports saved to `.fractary/audit/`
+5. Verify: No spec generated
+6. Verify: No GitHub issue created
+
+**Expected Result:** Findings saved, workflow stops gracefully
+
+### Test Case 4: Missing Spec Plugin
+
+**Prerequisites:**
+- fractary-spec plugin NOT installed
+- fractary-docs configured
+- Documentation files present
+
+**Steps:**
+1. Run: `/fractary-docs:audit`
+2. Verify: Warning about missing spec plugin
+3. Verify: Findings presentation appears
+4. Verify: Only "Refine Plan" and "Hold Off" options (no "Save as Spec")
+5. Action: Try to refine plan
+6. Verify: Refinement works without spec plugin
+
+**Expected Result:** Audit completes, findings available, spec generation unavailable
+
+### Test Case 5: No Documentation Found
+
+**Prerequisites:**
+- Empty or no docs directory
+
+**Steps:**
+1. Run: `/fractary-docs:audit`
+2. Verify: Error message about no documentation found
+3. Verify: Suggestion to create documentation first
+
+**Expected Result:** Clear error with guidance
 
 ## Invocation
 
