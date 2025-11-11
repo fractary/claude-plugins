@@ -53,7 +53,7 @@ SETTINGS_FILE="$PROJECT_PATH/.claude/settings.json"
 BACKUP_FILE="$PROJECT_PATH/.claude/settings.json.backup"
 
 # Commands to allow (safe operations, most write operations)
-# Total: 56 commands
+# Total: 65 commands
 ALLOW_COMMANDS=(
     # Git read operations (10 commands)
     "git status"
@@ -104,6 +104,21 @@ ALLOW_COMMANDS=(
     "gh auth refresh"
     "gh api"
 
+    # GitHub Actions workflow operations (5 commands)
+    "gh workflow list"
+    "gh workflow view"
+    "gh workflow run"
+    "gh workflow enable"
+    "gh workflow disable"
+
+    # GitHub secrets management (2 commands)
+    "gh secret list"
+    "gh secret set"
+
+    # GitHub Apps management (2 commands)
+    "gh app list"
+    "gh app view"
+
     # Safe utility commands (15 commands)
     "cat"
     "head"
@@ -139,7 +154,7 @@ REQUIRE_APPROVAL_COMMANDS=(
 )
 
 # Commands to deny (dangerous operations)
-# Total: 39 commands
+# Total: 40 commands
 DENY_COMMANDS=(
     # Destructive file operations (8 commands)
     "rm -rf /"
@@ -170,10 +185,11 @@ DENY_COMMANDS=(
     "git filter-branch"
     "git rebase --onto"
 
-    # GitHub dangerous operations (3 commands)
+    # GitHub dangerous operations (4 commands)
     "gh repo delete"
     "gh repo archive"
     "gh secret delete"
+    "gh secret remove"
 
     # System operations (9 commands)
     "sudo"
