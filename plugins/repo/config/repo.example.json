@@ -83,6 +83,17 @@
       "$comment_upstream": "Automatically set upstream when pushing new branches"
     },
 
+    "push_sync_strategy": "auto-merge",
+    "$comment_push_sync": "Strategy when push fails due to non-fast-forward: auto-merge|pull-rebase|pull-merge|manual|fail",
+
+    "pull_sync_strategy": "auto-merge-prefer-remote",
+    "$comment_pull_sync": "Strategy for pull conflict resolution: auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail",
+    "$comment_pull_prefer_remote": "auto-merge-prefer-remote (default): Remote changes win in conflicts - respects committed/pushed work",
+    "$comment_pull_prefer_local": "auto-merge-prefer-local: Local changes win in conflicts",
+    "$comment_pull_rebase": "rebase: Rebase local commits onto remote - cleaner history",
+    "$comment_pull_manual": "manual: User resolves conflicts manually - most control",
+    "$comment_pull_fail": "fail: Abort if conflicts detected - safest option",
+
     "pr": {
       "template": "standard",
       "$comment_template": "PR body template: standard|minimal|detailed",

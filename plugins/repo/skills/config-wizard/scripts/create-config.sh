@@ -11,6 +11,7 @@
 #   --protected-branches <list>: Comma-separated list (default: main,master,production)
 #   --merge-strategy <type>: no-ff|squash|ff-only (default: no-ff)
 #   --push-sync-strategy <type>: auto-merge|pull-rebase|pull-merge|manual|fail (default: auto-merge)
+#   --pull-sync-strategy <type>: auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail (default: auto-merge-prefer-remote)
 #   --force: Overwrite existing config without backup
 #
 # Environment:
@@ -38,6 +39,7 @@ DEFAULT_BRANCH="main"
 PROTECTED_BRANCHES="main,master,production"
 MERGE_STRATEGY="no-ff"
 PUSH_SYNC_STRATEGY="auto-merge"
+PULL_SYNC_STRATEGY="auto-merge-prefer-remote"
 FORCE=false
 
 # Parse arguments
@@ -65,6 +67,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --push-sync-strategy)
             PUSH_SYNC_STRATEGY="$2"
+            shift 2
+            ;;
+        --pull-sync-strategy)
+            PULL_SYNC_STRATEGY="$2"
             shift 2
             ;;
         --force)
@@ -136,6 +142,7 @@ jq -n \
     --argjson protected_branches "$PROTECTED_BRANCHES_JSON" \
     --arg merge_strategy "$MERGE_STRATEGY" \
     --arg push_sync "$PUSH_SYNC_STRATEGY" \
+    --arg pull_sync "$PULL_SYNC_STRATEGY" \
     '{
         handlers: {
             source_control: {
@@ -149,7 +156,8 @@ jq -n \
             default_branch: $default_branch,
             protected_branches: $protected_branches,
             merge_strategy: $merge_strategy,
-            push_sync_strategy: $push_sync
+            push_sync_strategy: $push_sync,
+            pull_sync_strategy: $pull_sync
         }
     }' > "$CONFIG_PATH"
 
