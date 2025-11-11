@@ -494,44 +494,385 @@ merge_arrays_smart() {
     printf "%s\n" "${combined[@]}" | sort -u
 }
 
-# Function to show permission changes
-show_changes() {
-    echo -e "${BLUE}🔐 Branch-Aware Permission Configuration${NC}"
-    echo "───────────────────────────────────────"
-    echo ""
-    echo -e "${GREEN}AUTO-ALLOWED (no prompts - fast workflow):${NC}"
-    echo "  All git/gh operations on feature branches"
-    echo "  Total: ${#ALLOW_COMMANDS[@]} commands"
-    echo "  Examples:"
-    echo "    ✓ git commit (on feat/123)"
-    echo "    ✓ git push origin feat/123"
-    echo "    ✓ gh pr create"
-    echo "    ✓ gh pr comment/review"
-    echo ""
-    echo -e "${YELLOW}REQUIRE APPROVAL (protected branch operations only):${NC}"
-    echo "  Operations targeting main/master/production"
-    echo "  Total: ${#REQUIRE_APPROVAL_COMMANDS[@]} commands"
-    for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
-        echo "    ⚠️  $cmd"
+# Function to analyze permission deltas (what's new vs existing)
+analyze_permission_deltas() {
+    local settings_file="$1"
+
+    # Get current permissions
+    local current_allows=()
+    local current_requires=()
+    local current_denies=()
+
+    if [ -f "$settings_file" ]; then
+        mapfile -t current_allows < <(jq -r '.permissions.bash.allow[]?' "$settings_file" 2>/dev/null | sort -u)
+        mapfile -t current_requires < <(jq -r '.permissions.bash.requireApproval[]?' "$settings_file" 2>/dev/null | sort -u)
+        mapfile -t current_denies < <(jq -r '.permissions.bash.deny[]?' "$settings_file" 2>/dev/null | sort -u)
+    fi
+
+    # Build lookup maps for current state
+    declare -A current_allow_map current_require_map current_deny_map
+    for cmd in "${current_allows[@]}"; do current_allow_map["$cmd"]=1; done
+    for cmd in "${current_requires[@]}"; do current_require_map["$cmd"]=1; done
+    for cmd in "${current_denies[@]}"; do current_deny_map["$cmd"]=1; done
+
+    # Analyze ALLOW commands
+    local new_allows=()
+    local preserved_allows=()
+    for cmd in "${ALLOW_COMMANDS[@]}"; do
+        if [[ -n "${current_allow_map[$cmd]:-}" ]]; then
+            preserved_allows+=("$cmd")
+        elif [[ -z "${current_require_map[$cmd]:-}" ]] && [[ -z "${current_deny_map[$cmd]:-}" ]]; then
+            new_allows+=("$cmd")
+        fi
     done
+
+    # Analyze REQUIRE APPROVAL commands
+    local new_requires=()
+    local preserved_requires=()
+    for cmd in "${REQUIRE_APPROVAL_COMMANDS[@]}"; do
+        if [[ -n "${current_require_map[$cmd]:-}" ]]; then
+            preserved_requires+=("$cmd")
+        elif [[ -z "${current_allow_map[$cmd]:-}" ]] && [[ -z "${current_deny_map[$cmd]:-}" ]]; then
+            new_requires+=("$cmd")
+        fi
+    done
+
+    # Analyze DENY commands
+    local new_denies=()
+    local preserved_denies=()
+    for cmd in "${DENY_COMMANDS[@]}"; do
+        if [[ -n "${current_deny_map[$cmd]:-}" ]]; then
+            preserved_denies+=("$cmd")
+        else
+            new_denies+=("$cmd")
+        fi
+    done
+
+    # Count non-repo custom commands (user's own additions)
+    local custom_allows=()
+    for cmd in "${current_allows[@]}"; do
+        if ! command_in_map "$cmd" ALLOW_MAP && ! command_in_map "$cmd" REQUIRE_MAP; then
+            custom_allows+=("$cmd")
+        fi
+    done
+
+    local custom_denies=()
+    for cmd in "${current_denies[@]}"; do
+        if ! command_in_map "$cmd" DENY_MAP; then
+            custom_denies+=("$cmd")
+        fi
+    done
+
+    # Export results as global variables for use in show_changes
+    NEW_ALLOWS=("${new_allows[@]}")
+    PRESERVED_ALLOWS=("${preserved_allows[@]}")
+    NEW_REQUIRES=("${new_requires[@]}")
+    PRESERVED_REQUIRES=("${preserved_requires[@]}")
+    NEW_DENIES=("${new_denies[@]}")
+    PRESERVED_DENIES=("${preserved_denies[@]}")
+    CUSTOM_ALLOWS=("${custom_allows[@]}")
+    CUSTOM_DENIES=("${custom_denies[@]}")
+}
+
+# Function to categorize and display commands with reasoning
+show_command_category() {
+    local category_name="$1"
+    local category_description="$2"
+    local category_reasoning="$3"
+    shift 3
+    local commands=("$@")
+
+    if [ ${#commands[@]} -eq 0 ]; then
+        return
+    fi
+
+    echo -e "${BLUE}${category_name}${NC}"
+    echo "  ${category_description}"
+    echo -e "  ${MAGENTA}Why: ${category_reasoning}${NC}"
+
+    # Show first 5 commands as examples
+    local show_count=$((${#commands[@]} > 5 ? 5 : ${#commands[@]}))
+    for ((i=0; i<$show_count; i++)); do
+        echo "    • ${commands[$i]}"
+    done
+    if [ ${#commands[@]} -gt 5 ]; then
+        echo "    ... and $((${#commands[@]} - 5)) more"
+    fi
     echo ""
-    echo -e "${RED}ALWAYS DENIED (catastrophic operations):${NC}"
-    echo "  Dangerous operations that could destroy data/repos"
-    echo "  Total: ${#DENY_COMMANDS[@]} commands"
-    echo "  Examples:"
-    echo "    ✗ rm -rf /"
-    echo "    ✗ git push --force origin main/master/production"
-    echo "    ✗ gh repo delete"
-    echo "    ✗ sudo, shutdown, etc."
+}
+
+# Function to show permission changes with detailed categorization
+show_changes() {
+    # High-level philosophy
     echo ""
-    echo "───────────────────────────────────────"
-    echo -e "${GREEN}Benefits:${NC}"
-    echo "  ✓ Fast workflow on feature branches (no prompts)"
-    echo "  ⚠️  Protection for production branches (approval required)"
-    echo "  ✗ Safety net for catastrophic mistakes (always blocked)"
+    echo -e "${MAGENTA}╔════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${MAGENTA}║  Permission Configuration Philosophy                               ║${NC}"
+    echo -e "${MAGENTA}╚════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${MAGENTA}⚠️  IMPORTANT: --dangerously-skip-permissions bypasses ALL checks${NC}"
-    echo -e "${MAGENTA}   Even deny rules won't protect you in skip mode!${NC}"
+    echo "We carefully balance agent autonomy with safety:"
+    echo ""
+    echo -e "${GREEN}✓ MAXIMIZE AUTONOMY:${NC} Auto-approve safe operations so you're not"
+    echo "  constantly clicking 'yes' for routine git/GitHub commands."
+    echo ""
+    echo -e "${YELLOW}⚠️  PROTECT CRITICAL PATHS:${NC} Require explicit approval for operations"
+    echo "  on protected branches (main/master/production) to prevent accidents."
+    echo ""
+    echo -e "${RED}✗ BLOCK CATASTROPHIC MISTAKES:${NC} Deny destructive operations that could"
+    echo "  destroy your repo, system, or execute remote code."
+    echo ""
+    echo "This configuration lets the agent work efficiently while keeping you safe."
+    echo ""
+
+    # Analyze deltas
+    analyze_permission_deltas "$SETTINGS_FILE"
+
+    # Show summary of changes
+    echo "───────────────────────────────────────────────────────────────────"
+    echo -e "${BLUE}📊 Permission Changes Summary${NC}"
+    echo "───────────────────────────────────────────────────────────────────"
+    echo ""
+
+    if [ ${#NEW_ALLOWS[@]} -gt 0 ] || [ ${#NEW_REQUIRES[@]} -gt 0 ] || [ ${#NEW_DENIES[@]} -gt 0 ]; then
+        echo -e "${GREEN}New Permissions to Add:${NC}"
+
+        # Categorize new allows
+        local new_git_read=()
+        local new_git_write=()
+        local new_gh_read=()
+        local new_gh_write=()
+        local new_utilities=()
+
+        for cmd in "${NEW_ALLOWS[@]}"; do
+            if [[ "$cmd" == git\ * ]]; then
+                if [[ "$cmd" =~ ^git\ (status|branch|log|diff|show|rev-parse|for-each-ref|ls-remote|show-ref|config)$ ]]; then
+                    new_git_read+=("$cmd")
+                else
+                    new_git_write+=("$cmd")
+                fi
+            elif [[ "$cmd" == gh\ * ]]; then
+                if [[ "$cmd" =~ ^gh\ (pr\ view|pr\ list|pr\ status|issue\ view|issue\ list|repo\ view|auth\ status)$ ]]; then
+                    new_gh_read+=("$cmd")
+                else
+                    new_gh_write+=("$cmd")
+                fi
+            else
+                new_utilities+=("$cmd")
+            fi
+        done
+
+        if [ ${#new_git_read[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_git_read[@]:0:5}" | cut -c 3-)
+            [ ${#new_git_read[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_git_read[@]} safe git read operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_git_write[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_git_write[@]:0:5}" | cut -c 3-)
+            [ ${#new_git_write[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_git_write[@]} git write operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_gh_read[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_gh_read[@]:0:5}" | cut -c 3-)
+            [ ${#new_gh_read[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_gh_read[@]} GitHub read operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_gh_write[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_gh_write[@]:0:5}" | cut -c 3-)
+            [ ${#new_gh_write[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_gh_write[@]} GitHub write operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_utilities[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_utilities[@]:0:5}" | cut -c 3-)
+            [ ${#new_utilities[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ✅ ${#new_utilities[@]} safe utility commands"
+            echo "     ($examples)"
+        fi
+        if [ ${#NEW_REQUIRES[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${NEW_REQUIRES[@]:0:3}" | cut -c 3-)
+            [ ${#NEW_REQUIRES[@]} -gt 3 ] && examples="$examples, ..."
+            echo "  ⚠️  ${#NEW_REQUIRES[@]} protected branch operations (require approval)"
+            echo "     ($examples)"
+        fi
+
+        # Categorize new denies
+        local new_file_destructive=()
+        local new_git_dangerous=()
+        local new_gh_dangerous=()
+        local new_system_ops=()
+        local new_network_rce=()
+
+        for cmd in "${NEW_DENIES[@]}"; do
+            if [[ "$cmd" =~ ^(rm|dd|mkfs|format) ]]; then
+                new_file_destructive+=("$cmd")
+            elif [[ "$cmd" =~ ^git\ (push\ .*--force|reset\ --hard|clean|filter-branch|rebase\ --onto) ]]; then
+                new_git_dangerous+=("$cmd")
+            elif [[ "$cmd" =~ ^gh\ (repo\ delete|repo\ archive|secret\ delete) ]]; then
+                new_gh_dangerous+=("$cmd")
+            elif [[ "$cmd" =~ ^(sudo|su|chmod|chown|kill|pkill|shutdown|reboot|init|systemctl) ]]; then
+                new_system_ops+=("$cmd")
+            elif [[ "$cmd" =~ (curl|wget).*\|.*(sh|bash) ]]; then
+                new_network_rce+=("$cmd")
+            fi
+        done
+
+        if [ ${#new_file_destructive[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_file_destructive[@]:0:4}" | cut -c 3-)
+            [ ${#new_file_destructive[@]} -gt 4 ] && examples="$examples, ..."
+            echo "  ❌ ${#new_file_destructive[@]} destructive file operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_git_dangerous[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_git_dangerous[@]:0:4}" | cut -c 3-)
+            [ ${#new_git_dangerous[@]} -gt 4 ] && examples="$examples, ..."
+            echo "  ❌ ${#new_git_dangerous[@]} dangerous git operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_gh_dangerous[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_gh_dangerous[@]:0:3}" | cut -c 3-)
+            echo "  ❌ ${#new_gh_dangerous[@]} dangerous GitHub operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_system_ops[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_system_ops[@]:0:5}" | cut -c 3-)
+            [ ${#new_system_ops[@]} -gt 5 ] && examples="$examples, ..."
+            echo "  ❌ ${#new_system_ops[@]} system operations"
+            echo "     ($examples)"
+        fi
+        if [ ${#new_network_rce[@]} -gt 0 ]; then
+            local examples=$(printf ", %s" "${new_network_rce[@]}" | cut -c 3-)
+            echo "  ❌ ${#new_network_rce[@]} remote code execution patterns"
+            echo "     ($examples)"
+        fi
+
+        echo ""
+    fi
+
+    if [ ${#PRESERVED_ALLOWS[@]} -gt 0 ] || [ ${#PRESERVED_REQUIRES[@]} -gt 0 ] || [ ${#PRESERVED_DENIES[@]} -gt 0 ]; then
+        echo -e "${BLUE}Existing Permissions (Preserved):${NC}"
+        if [ ${#PRESERVED_ALLOWS[@]} -gt 0 ]; then
+            echo "  ✅ ${#PRESERVED_ALLOWS[@]} commands already allowed"
+        fi
+        if [ ${#PRESERVED_REQUIRES[@]} -gt 0 ]; then
+            echo "  ⚠️  ${#PRESERVED_REQUIRES[@]} commands already require approval"
+        fi
+        if [ ${#PRESERVED_DENIES[@]} -gt 0 ]; then
+            echo "  ❌ ${#PRESERVED_DENIES[@]} commands already denied"
+        fi
+        echo ""
+    fi
+
+    if [ ${#CUSTOM_ALLOWS[@]} -gt 0 ] || [ ${#CUSTOM_DENIES[@]} -gt 0 ]; then
+        echo -e "${MAGENTA}Custom Permissions (Your additions - will be preserved):${NC}"
+        if [ ${#CUSTOM_ALLOWS[@]} -gt 0 ]; then
+            echo "  • ${#CUSTOM_ALLOWS[@]} custom allowed commands"
+        fi
+        if [ ${#CUSTOM_DENIES[@]} -gt 0 ]; then
+            echo "  • ${#CUSTOM_DENIES[@]} custom denied commands"
+        fi
+        echo ""
+    fi
+
+    # Show detailed breakdown with reasoning
+    echo "───────────────────────────────────────────────────────────────────"
+    echo -e "${BLUE}📋 Detailed Permission Breakdown${NC}"
+    echo "───────────────────────────────────────────────────────────────────"
+    echo ""
+
+    if [ ${#NEW_ALLOWS[@]} -gt 0 ]; then
+        echo -e "${GREEN}══════ NEW AUTO-ALLOWED COMMANDS (No prompts) ══════${NC}"
+        echo ""
+
+        show_command_category \
+            "Git Read Operations (${#new_git_read[@]} commands)" \
+            "Check repository state without modifying anything" \
+            "These are 100% safe - they only read info, never modify your repo" \
+            "${new_git_read[@]}"
+
+        show_command_category \
+            "Git Write Operations (${#new_git_write[@]} commands)" \
+            "Normal git workflow operations on any branch" \
+            "Safe for daily work - commits, pushes to feature branches, merges, etc." \
+            "${new_git_write[@]}"
+
+        show_command_category \
+            "GitHub Read Operations (${#new_gh_read[@]} commands)" \
+            "View PRs, issues, and repository information" \
+            "Read-only GitHub operations - no risk of modifying or deleting anything" \
+            "${new_gh_read[@]}"
+
+        show_command_category \
+            "GitHub Write Operations (${#new_gh_write[@]} commands)" \
+            "Create PRs, add comments, manage issues" \
+            "Standard GitHub workflow - these operations are reversible and safe" \
+            "${new_gh_write[@]}"
+
+        show_command_category \
+            "Safe Utilities (${#new_utilities[@]} commands)" \
+            "Read files and process data" \
+            "Common Unix tools for viewing and processing files - all read-only" \
+            "${new_utilities[@]}"
+    fi
+
+    if [ ${#NEW_REQUIRES[@]} -gt 0 ]; then
+        echo -e "${YELLOW}══════ NEW REQUIRE APPROVAL (Protected branches) ══════${NC}"
+        echo ""
+        echo "Operations targeting main/master/production branches"
+        echo -e "${MAGENTA}Why: Extra confirmation prevents accidental changes to production${NC}"
+        echo ""
+        for cmd in "${NEW_REQUIRES[@]}"; do
+            echo "  ⚠️  $cmd"
+        done
+        echo ""
+    fi
+
+    if [ ${#NEW_DENIES[@]} -gt 0 ]; then
+        echo -e "${RED}══════ NEW BLOCKED COMMANDS (Always denied) ══════${NC}"
+        echo ""
+
+        show_command_category \
+            "Destructive File Operations (${#new_file_destructive[@]} commands)" \
+            "Commands that could destroy your filesystem" \
+            "These could wipe your entire disk or critical directories - always blocked" \
+            "${new_file_destructive[@]}"
+
+        show_command_category \
+            "Dangerous Git Operations (${#new_git_dangerous[@]} commands)" \
+            "Git commands that could corrupt or destroy repository history" \
+            "Force pushing to protected branches could destroy team's work - blocked" \
+            "${new_git_dangerous[@]}"
+
+        show_command_category \
+            "Dangerous GitHub Operations (${#new_gh_dangerous[@]} commands)" \
+            "GitHub operations that could delete repositories or secrets" \
+            "Irreversible repository deletion and secret management - blocked" \
+            "${new_gh_dangerous[@]}"
+
+        show_command_category \
+            "System Operations (${#new_system_ops[@]} commands)" \
+            "Commands requiring root or that could crash your system" \
+            "Privilege escalation and system control - blocked for security" \
+            "${new_system_ops[@]}"
+
+        show_command_category \
+            "Remote Code Execution (${#new_network_rce[@]} commands)" \
+            "Download and execute code from the internet" \
+            "Classic attack vector (curl | sh) - extremely dangerous, always blocked" \
+            "${new_network_rce[@]}"
+    fi
+
+    echo "───────────────────────────────────────────────────────────────────"
+    echo -e "${GREEN}Benefits of This Configuration:${NC}"
+    echo ""
+    echo "  ✓ Smooth workflow - No interruptions for routine operations"
+    echo "  ✓ Smart protection - Approval required only for risky operations"
+    echo "  ✓ Safety net - Catastrophic mistakes blocked automatically"
+    echo "  ✓ Team friendly - Prevents accidentally breaking shared branches"
+    echo "  ✓ Security first - Blocks common attack patterns and dangerous commands"
+    echo ""
+    echo "───────────────────────────────────────────────────────────────────"
     echo ""
 }
 
@@ -589,6 +930,23 @@ setup_permissions() {
 
     # Show what will change
     show_changes
+
+    # Request user confirmation
+    echo -e "${YELLOW}Do you want to apply these permission changes?${NC}"
+    echo -e "Type ${GREEN}yes${NC} to apply, or ${RED}no${NC} to cancel: "
+    read -r confirmation
+
+    if [[ "$confirmation" != "yes" ]]; then
+        echo ""
+        echo -e "${YELLOW}❌ Permission update cancelled${NC}"
+        echo "No changes made to settings.json"
+        echo ""
+        exit 0
+    fi
+
+    echo ""
+    echo -e "${GREEN}Applying changes...${NC}"
+    echo ""
 
     # Create temporary file for updates
     local temp_file=$(mktemp)

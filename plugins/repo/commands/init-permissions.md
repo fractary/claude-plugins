@@ -10,10 +10,17 @@ Configure Claude Code permissions in `.claude/settings.json` to allow repository
 ## What This Does
 
 This command:
-1. **Allows** safe git and GitHub CLI commands the repo plugin needs
-2. **Denies** dangerous operations that could harm your system or repository
-3. **Eliminates** permission prompts during repo operations
-4. **Protects** against catastrophic mistakes
+1. **Analyzes** your current permission settings and shows detailed changes
+2. **Explains** the reasoning behind each permission category with clear examples
+3. **Categorizes** permissions by type (git read/write, GitHub operations, utilities, dangerous commands)
+4. **Shows deltas** - what's NEW, what's PRESERVED, and what's CUSTOM
+5. **Requests confirmation** - ALWAYS asks for explicit "yes" before applying changes
+6. **Allows** safe git and GitHub CLI commands the repo plugin needs
+7. **Denies** dangerous operations that could harm your system or repository
+8. **Eliminates** permission prompts during repo operations
+9. **Protects** against catastrophic mistakes
+
+**Philosophy**: This configuration carefully balances agent autonomy with safety - maximizing productivity while protecting against catastrophic mistakes.
 
 ## Usage
 
@@ -98,27 +105,93 @@ The following dangerous commands are explicitly blocked:
 
 **Output:**
 ```
-🔐 Permission Manager
-Mode: setup
-No existing settings found
+╔════════════════════════════════════════════════════════════════════╗
+║  Permission Configuration Philosophy                               ║
+╚════════════════════════════════════════════════════════════════════╝
 
-ALLOWING (repo operations):
-  ✓ git status, branch, commit, push...
-  ✓ gh pr create, view, comment...
+We carefully balance agent autonomy with safety:
 
-DENYING (dangerous operations):
-  ✗ rm -rf /
-  ✗ git push --force origin main
-  ✗ sudo, shutdown
+✓ MAXIMIZE AUTONOMY: Auto-approve safe operations so you're not
+  constantly clicking 'yes' for routine git/GitHub commands.
 
-These permissions will:
-  ✓ Eliminate prompts for repo operations
-  ✓ Prevent accidental catastrophic commands
-  ✓ Allow safe git and GitHub operations
+⚠️  PROTECT CRITICAL PATHS: Require explicit approval for operations
+  on protected branches (main/master/production) to prevent accidents.
 
-✅ Created .claude/settings.json
-   56 commands allowed
-   25 commands denied
+✗ BLOCK CATASTROPHIC MISTAKES: Deny destructive operations that could
+  destroy your repo, system, or execute remote code.
+
+This configuration lets the agent work efficiently while keeping you safe.
+
+───────────────────────────────────────────────────────────────────
+📊 Permission Changes Summary
+───────────────────────────────────────────────────────────────────
+
+New Permissions to Add:
+  ✅ 10 safe git read operations
+     (git status, git branch, git log, git diff, git show, ...)
+  ✅ 13 git write operations
+     (git add, git checkout, git switch, git fetch, git pull, ...)
+  ✅ 7 GitHub read operations
+     (gh pr view, gh pr list, gh pr status, gh issue view, gh issue list, ...)
+  ✅ 11 GitHub write operations
+     (gh pr create, gh pr comment, gh pr review, gh pr close, gh issue create, ...)
+  ✅ 15 safe utility commands
+     (cat, head, tail, grep, find, ...)
+  ⚠️  9 protected branch operations (require approval)
+     (git push origin main, git push origin master, git push origin production, ...)
+  ❌ 7 destructive file operations
+     (rm -rf /, rm -rf *, rm -rf ., rm -rf ~, ...)
+  ❌ 12 dangerous git operations
+     (git push --force origin main, git push --force origin master, git push --force origin production, ...)
+  ❌ 3 dangerous GitHub operations
+     (gh repo delete, gh repo archive, gh secret delete)
+  ❌ 10 system operations
+     (sudo, su, chmod 777, chown, kill -9, ...)
+  ❌ 4 remote code execution patterns
+     (curl | sh, wget | sh, curl | bash, wget | bash)
+
+───────────────────────────────────────────────────────────────────
+📋 Detailed Permission Breakdown
+───────────────────────────────────────────────────────────────────
+
+══════ NEW AUTO-ALLOWED COMMANDS (No prompts) ══════
+
+Git Read Operations (10 commands)
+  Check repository state without modifying anything
+  Why: These are 100% safe - they only read info, never modify your repo
+    • git status
+    • git branch
+    • git log
+    ... and 7 more
+
+[... additional detailed categories ...]
+
+───────────────────────────────────────────────────────────────────
+Benefits of This Configuration:
+
+  ✓ Smooth workflow - No interruptions for routine operations
+  ✓ Smart protection - Approval required only for risky operations
+  ✓ Safety net - Catastrophic mistakes blocked automatically
+  ✓ Team friendly - Prevents accidentally breaking shared branches
+  ✓ Security first - Blocks common attack patterns and dangerous commands
+
+───────────────────────────────────────────────────────────────────
+
+Do you want to apply these permission changes?
+Type yes to apply, or no to cancel: yes
+
+Applying changes...
+
+✅ Updated settings
+  Settings file: .claude/settings.json
+  Backup: .claude/settings.json.backup
+
+  Commands auto-allowed: 56
+  Protected branch operations (require approval): 9
+  Dangerous operations (denied): 40
+
+Fast workflow enabled! Most operations won't prompt.
+Protected: Operations on main/master/production require approval.
 ```
 
 ### Example 2: Validate Permissions
