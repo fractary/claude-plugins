@@ -85,9 +85,13 @@ This skill executes in TWO phases with a mandatory user approval step:
 
 **CRITICAL**: The fractary-spec plugin is REQUIRED for generating remediation specs.
 
-Execute plugin availability check:
+Execute plugin availability check and store state for later steps:
 ```bash
 #!/bin/bash
+
+# Set output directory for state tracking
+output_dir="${output_dir:-./.fractary/audit}"
+mkdir -p "$output_dir"
 
 # Check for spec plugin in both local project and global plugin directory
 SPEC_PLUGIN_AVAILABLE=false
@@ -110,18 +114,31 @@ else
   SPEC_PLUGIN_AVAILABLE=false
 fi
 
-# Export for use in later steps
-export SPEC_PLUGIN_AVAILABLE
+# Store plugin availability state for use in later steps
+# Using file-based state tracking for persistence across LLM turns
+if [ "$SPEC_PLUGIN_AVAILABLE" = "true" ]; then
+  echo "available" > "$output_dir/spec-plugin-status.txt"
+else
+  echo "unavailable" > "$output_dir/spec-plugin-status.txt"
+fi
+
+echo "State saved to: $output_dir/spec-plugin-status.txt"
 ```
+
+**State Tracking**:
+- Plugin availability is stored in `{output_dir}/spec-plugin-status.txt`
+- File contains either "available" or "unavailable"
+- This persists across workflow steps and LLM turns
+- Later steps check this file to determine workflow behavior
 
 **Behavior based on plugin availability:**
 
-If `SPEC_PLUGIN_AVAILABLE=true`:
+If plugin status is `"available"`:
 - Continue with full workflow (Steps 2-8)
 - User will see "Save as Spec" option in Step 6
 - Can generate formal specification via spec-manager agent (fractary-spec:spec-manager)
 
-If `SPEC_PLUGIN_AVAILABLE=false`:
+If plugin status is `"unavailable"`:
 - Continue with audit and present findings (Steps 2-6 only)
 - User will see modified options in Step 6 (no "Save as Spec")
 - User can still:
@@ -194,7 +211,18 @@ For each issue identified, create remediation action:
 
 **CRITICAL: This is an interactive approval step.**
 
-Present the audit findings and proposed remediation actions to the user for review:
+Check plugin availability state and present the audit findings to the user for review.
+
+**Read plugin status from state file**:
+```bash
+if [ -f "$output_dir/spec-plugin-status.txt" ]; then
+  PLUGIN_STATUS=$(cat "$output_dir/spec-plugin-status.txt")
+else
+  PLUGIN_STATUS="unavailable"
+fi
+```
+
+Present the audit findings and proposed remediation actions:
 
 ```
 ═══════════════════════════════════════════════════════════
@@ -240,7 +268,7 @@ Present the audit findings and proposed remediation actions to the user for revi
 
 📋 What would you like to do next?
 
-{IF spec plugin available:}
+{IF $PLUGIN_STATUS == "available":}
 1. **Save as Spec**: Generate a formal remediation specification using
    fractary-spec:spec-manager (recommended for tracking and execution)
 
@@ -250,7 +278,7 @@ Present the audit findings and proposed remediation actions to the user for revi
 3. **Hold Off**: Save these findings for later without generating a spec
    (Discovery reports remain available for future reference)
 
-{IF spec plugin NOT available:}
+{IF $PLUGIN_STATUS == "unavailable":}
 ⚠️  Note: fractary-spec plugin not installed - cannot generate formal spec
 
 1. **Refine Plan**: Provide feedback to adjust priorities, actions, or scope
@@ -281,8 +309,12 @@ Do NOT proceed to spec generation until user explicitly chooses "Save as Spec".
 
 ### Step 7.1: Create Tracking Issue
 
-Use the @agent-fractary-work:work-manager agent to create a GitHub issue:
+Use the @agent-fractary-work:work-manager agent to create a GitHub issue for tracking the remediation work.
+
+**Natural Language Invocation**:
 ```
+Use the @agent-fractary-work:work-manager agent to create a GitHub issue with the following request:
+
 {
   "operation": "create-issue",
   "parameters": {
@@ -294,12 +326,18 @@ Use the @agent-fractary-work:work-manager agent to create a GitHub issue:
 }
 ```
 
+**Note**: The JSON structure above specifies the request parameters for the agent. The agent is invoked via natural language declaration, and the system routes the request automatically.
+
 **Capture the returned issue number** for use in Step 7.2.
 
 ### Step 7.2: Generate Spec via Spec-Manager
 
-Use the @agent-fractary-spec:spec-manager agent to generate specification:
+Use the @agent-fractary-spec:spec-manager agent to generate a formal specification from the tracking issue.
+
+**Natural Language Invocation**:
 ```
+Use the @agent-fractary-spec:spec-manager agent to generate specification with the following request:
+
 {
   "operation": "generate",
   "issue_number": "{issue_number_from_step_7.1}",
@@ -310,10 +348,12 @@ Use the @agent-fractary-spec:spec-manager agent to generate specification:
 }
 ```
 
-**Note**: The spec-manager agent will:
+**Note**: The JSON structure above specifies the request parameters for the agent. The agent is invoked via natural language declaration, and the system routes the request automatically.
+
+**The spec-manager agent will**:
 1. Fetch the issue created in Step 7.1
 2. Use the issue body and audit findings to populate the spec
-3. Generate spec file: `specs/spec-{issue_number}-documentation-remediation.md`
+3. Generate spec file: `specs/spec-{issue_number}-documentation-remediation.md` (path configurable via spec plugin)
 4. Link the spec back to the issue via GitHub comment
 5. Return the spec path for verification
 
@@ -341,12 +381,13 @@ Display audit completion summary:
   Low Priority: {count}
 
 📋 REMEDIATION SPEC
-  Generated: {output_dir}/REMEDIATION-SPEC.md
+  Generated: specs/spec-{issue_number}-documentation-remediation.md
+  Tracking Issue: #{issue_number}
   Estimated Time: {hours} hours
   Phases: {count}
 
 💡 NEXT STEPS
-  1. Review remediation spec: {path}
+  1. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
   2. Follow implementation plan
   3. Verify with: /fractary-docs:validate
 
@@ -375,10 +416,11 @@ Next: Review and follow remediation spec
 - **Skill pauses and waits for user response**
 
 **Phase 2 Complete When (After User Approval):**
-- Specification generated (via spec-manager or direct)
+- GitHub tracking issue created
+- Specification generated via spec-manager agent
+- Spec file created at `specs/spec-{issue_number}-documentation-remediation.md`
 - Final summary presented to user
-- Next steps provided
-- Spec file path confirmed
+- Next steps provided with spec path and tracking issue
 
 **If User Cancels:**
 - No spec is generated
@@ -434,10 +476,11 @@ Next: Review and follow remediation spec
     },
     "quality_score": 6.2,
     "compliance_percentage": 45,
-    "spec_path": ".fractary/audit/REMEDIATION-SPEC.md",
+    "spec_path": "specs/spec-123-documentation-remediation.md",
+    "tracking_issue_number": "123",
+    "tracking_issue_url": "https://github.com/org/repo/issues/123",
     "estimated_hours": 8,
-    "spec_manager_used": true,
-    "spec_issue_number": "123"
+    "spec_manager_used": true
   },
   "timestamp": "2025-01-15T12:00:00Z"
 }

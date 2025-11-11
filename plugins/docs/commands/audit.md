@@ -98,13 +98,16 @@ This command follows the standard space-separated syntax:
 
 #### Phase 2: Specification Generation (After Approval)
 
-5. **Generate Remediation Specification** (Only if approved)
-   - Create actionable remediation plan
-   - **Uses fractary-spec plugin** if available for standardized spec
-   - Include executable commands and verification steps
-   - Save to `.fractary/audit/REMEDIATION-SPEC.md`
+5. **Create GitHub Tracking Issue**
+   - Create issue for remediation tracking
+   - Capture issue number for spec generation
 
-6. **Optional Execution** (if --execute flag)
+6. **Generate Remediation Specification** (Only if approved)
+   - Create actionable remediation plan via fractary-spec:spec-manager
+   - Include executable commands and verification steps
+   - Save to `specs/spec-{issue_number}-documentation-remediation.md` (default path, configurable via spec plugin)
+
+7. **Optional Execution** (if --execute flag)
    - Execute high-priority remediations automatically
    - Report results
 
@@ -133,13 +136,20 @@ The audit produces:
 
 ### Phase 2 Outputs (Generated After "Save as Spec")
 
+**GitHub Tracking Issue**:
+- Created automatically for remediation tracking
+- Contains audit summary and findings
+- Labels: `documentation`, `remediation`, `automated-audit`
+
 **Remediation Specification (Markdown)**:
-- `REMEDIATION-SPEC.md` - Generated via fractary-spec:spec-manager
+- `specs/spec-{issue_number}-documentation-remediation.md` - Generated via fractary-spec:spec-manager
+  - Path is configurable via spec plugin (default: `specs/` directory)
   - Issue summary by priority
   - Detailed requirements with rationale
   - Phase-based implementation plan
   - Executable commands
   - Verification steps
+  - Linked to GitHub tracking issue
 
 ## Examples
 
@@ -164,8 +174,8 @@ cd /path/to/my-project
 # Run weekly or after standards updates
 /fractary-docs:audit
 
-# Review spec
-cat .fractary/audit/REMEDIATION-SPEC.md
+# Review spec (path returned after generation)
+cat specs/spec-123-documentation-remediation.md
 
 # Execute in separate session if needed
 ```
@@ -183,8 +193,8 @@ cat .fractary/audit/REMEDIATION-SPEC.md
 # Audit against new standards
 /fractary-docs:audit
 
-# Review what changed
-cat .fractary/audit/REMEDIATION-SPEC.md
+# Review what changed (path returned after generation)
+cat specs/spec-456-documentation-remediation.md
 
 # Follow spec to update docs
 ```
@@ -354,8 +364,9 @@ Claude: [Presents revised findings with your changes]
 
 You: That looks great, please save as spec
 
-Claude: [Generates formal spec via fractary-spec:spec-manager]
-        [Spec saved to .fractary/audit/REMEDIATION-SPEC.md]
+Claude: [Creates GitHub tracking issue #789]
+        [Generates formal spec via fractary-spec:spec-manager]
+        [Spec saved to specs/spec-789-documentation-remediation.md]
 ```
 
 ## Use Cases
@@ -408,8 +419,12 @@ project/
 │       ├── discovery-structure.json
 │       ├── discovery-frontmatter.json
 │       ├── discovery-quality.json
-│       └── REMEDIATION-SPEC.md
+│       └── spec-plugin-status.txt
+└── specs/
+    └── spec-{issue_number}-documentation-remediation.md
 ```
+
+**Note**: The spec file is generated in the `specs/` directory (default location, configurable via spec plugin). Discovery reports and state files remain in `.fractary/audit/`.
 
 ### Remediation Specification
 
@@ -432,9 +447,10 @@ The spec contains:
 
 Follow the remediation spec to address issues:
 
-1. **Review the spec**
+1. **Review the spec** (path displayed after generation)
    ```bash
-   cat .fractary/audit/REMEDIATION-SPEC.md
+   # Example: cat specs/spec-456-documentation-remediation.md
+   cat specs/spec-{issue_number}-documentation-remediation.md
    ```
 
 2. **Execute high-priority fixes**
