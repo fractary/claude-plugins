@@ -19,12 +19,13 @@ This command supports:
 - Parse the command arguments from user input using flexible parsing logic
 - Check for work tracking integration when work_id is not provided (see WORKFLOW step 2)
 - Present three numbered options if fractary-work plugin is configured (create issue+branch, branch only, or cancel)
-- For Option 1: Create issue first, capture ID, then create branch with that ID automatically
+- For Option 1: Create issue first, capture ID and URL, then create branch with that ID automatically
 - For Option 2: Create branch only without work tracking
 - For Option 3: Cancel and do nothing
+- Extract and display direct URLs for created issues and branches (from plugin responses)
 - Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager) when creating branch
 - Pass structured request to the agent
-- Return the agent's response to the user
+- Return the agent's response to the user with clickable URLs
 
 **YOU MUST NOT:**
 - Perform any operations yourself (except invoking /work:issue-create for Option 1)
@@ -32,6 +33,7 @@ This command supports:
 - Execute platform-specific logic (that's the agent's job)
 - Force work tracking if user chooses Option 2
 - Skip the prompt if in description-based mode without work_id (only skip for direct mode)
+- Omit URLs when they're available in plugin responses
 
 **THIS COMMAND IS A ROUTER WITH INTELLIGENT PROMPTING AND WORKFLOW AUTOMATION.**
 </CRITICAL_RULES>
@@ -66,12 +68,15 @@ This command supports:
    - Wait for user input (1, 2, or 3)
    - **Option 1 (Recommended) - Automatic Issue + Branch Creation**:
      - Invoke /work:issue-create command: `/work:issue-create "{description}" --type {inferred_type}`
-     - Parse the response to extract the issue ID (e.g., "123" from "#123")
+     - Parse the response to extract the issue ID (e.g., "123" from "#123") and issue URL
      - If issue creation succeeds:
        - Display: `✅ Created issue #{issue_id}: "{description}"`
+       - Display: `   View issue: {issue_url}`
        - Automatically proceed to create branch with that work_id
        - The branch will be named: `{prefix}/{issue_id}-{slug}`
+       - Parse the branch creation response to extract the branch URL
        - Display: `✅ Created branch: {prefix}/{issue_id}-{slug}`
+       - Display: `   View branch: {branch_url}`
        - Display: `Branch is now linked to issue #{issue_id} for automatic tracking.`
      - If issue creation fails:
        - Display the error message
@@ -80,7 +85,9 @@ This command supports:
      - Proceed with branch creation without work tracking
      - Use the original parameters (no work_id)
      - The branch will be named: `{prefix}/{slug}`
+     - Parse the branch creation response to extract the branch URL
      - Display: `✅ Created branch: {prefix}/{slug}`
+     - Display: `   View branch: {branch_url}`
    - **Option 3 - Cancel**:
      - Exit gracefully without creating anything
      - Display: "Branch creation cancelled."
@@ -255,12 +262,15 @@ All modes map to: `create-branch` operation in repo-manager agent
 # 2. Creates branch: feat/123-add-csv-export
 # 3. Output:
 #    ✅ Created issue #123: "add CSV export"
+#       View issue: https://github.com/owner/repo/issues/123
 #    ✅ Created branch: feat/123-add-csv-export
+#       View branch: https://github.com/owner/repo/tree/feat/123-add-csv-export
 #    Branch is now linked to issue #123 for automatic tracking.
 
 # ===== OPTION 2: User enters "2" =====
 # System creates branch without work tracking:
 # ✅ Created branch: feat/add-csv-export
+#    View branch: https://github.com/owner/repo/tree/feat/add-csv-export
 
 # ===== OPTION 3: User enters "3" =====
 # System cancels:
@@ -466,9 +476,28 @@ If detected, you're presented with **three numbered options**:
 
 # 3. System executes Option 1 automatically
 # ✅ Created issue #123: "add CSV export"
+#    View issue: https://github.com/owner/repo/issues/123
 # ✅ Created branch: feat/123-add-csv-export
+#    View branch: https://github.com/owner/repo/tree/feat/123-add-csv-export
 # Branch is now linked to issue #123 for automatic tracking.
 ```
+
+### Direct Links to Issues and Branches
+
+When Option 1 or 2 completes successfully, the command provides direct URLs to view the created resources:
+
+**Issue URLs** (from work plugin response):
+- **GitHub**: `https://github.com/owner/repo/issues/123`
+- **GitLab**: `https://gitlab.com/owner/repo/-/issues/123`
+- **Jira**: `https://company.atlassian.net/browse/PROJ-123`
+- **Linear**: `https://linear.app/team/issue/ABC-123`
+
+**Branch URLs** (from repo plugin response):
+- **GitHub**: `https://github.com/owner/repo/tree/feat/123-branch-name`
+- **GitLab**: `https://gitlab.com/owner/repo/-/tree/feat/123-branch-name`
+- **Bitbucket**: `https://bitbucket.org/owner/repo/branch/feat/123-branch-name`
+
+The command automatically extracts these URLs from the plugin responses and displays them for quick access.
 
 ### Benefits of Work Tracking
 
@@ -476,6 +505,7 @@ If detected, you're presented with **three numbered options**:
 - **Automatic closing**: PRs can auto-close issues with "closes #123"
 - **Better organization**: See which branches relate to which issues
 - **Team visibility**: Others can see what you're working on
+- **Quick access**: Direct links to view issues and branches in your web UI
 
 ### Skipping the Prompt
 
