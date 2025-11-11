@@ -6,6 +6,13 @@
 
 set -euo pipefail
 
+# Get script directory for sourcing shared functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source shared complexity assessment
+# shellcheck source=./shared/assess-complexity.sh
+source "$SCRIPT_DIR/shared/assess-complexity.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -91,88 +98,7 @@ validate_reports() {
   return 0
 }
 
-# Function: Assess infrastructure complexity
-assess_complexity() {
-  local tf_report="$1"
-  local aws_report="$2"
-  local agents_report="$3"
-
-  log_info "Assessing infrastructure complexity..."
-
-  local complexity="simple"
-  local complexity_score=0
-
-  # Terraform complexity factors
-  local structure=$(jq -r '.summary.primary_structure // "flat"' "$tf_report")
-  local resource_count=$(jq -r '.summary.total_resources // 0' "$tf_report")
-  local module_count=$(jq -r '.terraform_directories[0].modules | length' "$tf_report")
-  local backend_type=$(jq -r '.terraform_directories[0].backend.type // "local"' "$tf_report")
-
-  # Structure complexity
-  case "$structure" in
-    flat)
-      complexity_score=$((complexity_score + 1))
-      ;;
-    modular)
-      complexity_score=$((complexity_score + 3))
-      ;;
-    multi-environment)
-      complexity_score=$((complexity_score + 5))
-      ;;
-  esac
-
-  # Resource count complexity
-  if [ "$resource_count" -gt 50 ]; then
-    complexity_score=$((complexity_score + 3))
-  elif [ "$resource_count" -gt 20 ]; then
-    complexity_score=$((complexity_score + 2))
-  elif [ "$resource_count" -gt 10 ]; then
-    complexity_score=$((complexity_score + 1))
-  fi
-
-  # Module complexity
-  if [ "$module_count" -gt 5 ]; then
-    complexity_score=$((complexity_score + 2))
-  elif [ "$module_count" -gt 0 ]; then
-    complexity_score=$((complexity_score + 1))
-  fi
-
-  # Backend complexity
-  if [ "$backend_type" != "local" ]; then
-    complexity_score=$((complexity_score + 1))
-  fi
-
-  # AWS complexity
-  local env_count=$(jq -r '.summary.project_related_profiles // 0' "$aws_report")
-  if [ "$env_count" -gt 3 ]; then
-    complexity_score=$((complexity_score + 2))
-  elif [ "$env_count" -gt 1 ]; then
-    complexity_score=$((complexity_score + 1))
-  fi
-
-  # Custom agents complexity
-  local agent_count=$(jq -r '.summary.total_files // 0' "$agents_report")
-  if [ "$agent_count" -gt 10 ]; then
-    complexity_score=$((complexity_score + 3))
-  elif [ "$agent_count" -gt 5 ]; then
-    complexity_score=$((complexity_score + 2))
-  elif [ "$agent_count" -gt 0 ]; then
-    complexity_score=$((complexity_score + 1))
-  fi
-
-  # Determine complexity level
-  if [ "$complexity_score" -le 3 ]; then
-    complexity="simple"
-  elif [ "$complexity_score" -le 7 ]; then
-    complexity="moderate"
-  else
-    complexity="complex"
-  fi
-
-  log_info "Complexity score: $complexity_score → $complexity"
-
-  echo "$complexity|$complexity_score"
-}
+# Note: assess_complexity() is now sourced from shared/assess-complexity.sh
 
 # Function: Estimate timeline
 estimate_timeline() {
@@ -387,10 +313,11 @@ generate_report() {
   local agent_purposes=$(jq -r '.summary.purposes_detected | join(", ")' "$agents_report")
   local untracked=$(jq -r '.summary.not_version_controlled // 0' "$agents_report")
 
-  # Assess complexity
+  # Assess complexity (uses shared function from shared/assess-complexity.sh)
   local complexity_info=$(assess_complexity "$tf_report" "$aws_report" "$agents_report")
   local complexity=$(echo "$complexity_info" | cut -d'|' -f1)
   local complexity_score=$(echo "$complexity_info" | cut -d'|' -f2)
+  # Note: Third field is estimated_hours, but we get more detailed phases from estimate_timeline()
 
   # Estimate timeline
   local timeline_info=$(estimate_timeline "$complexity")
