@@ -312,8 +312,9 @@ Return structured response to caller:
 **pull-branch:**
 - branch_name (string)
 - remote (string, default: "origin")
-- rebase (boolean, default: false)
+- rebase (boolean, default: false): If true, overrides strategy to "rebase" (takes precedence over --strategy flag)
 - strategy (string, default: "auto-merge-prefer-remote"): auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail
+- allow_switch (boolean, default: false): Allow switching branches with uncommitted changes (SECURITY: defaults to false)
 
 **commit-and-push:**
 - commit (object):

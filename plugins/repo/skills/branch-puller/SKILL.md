@@ -73,13 +73,14 @@ You receive structured operation requests:
 **Optional Parameters**:
 - `branch_name` (string) - Name of branch to pull (default: current branch)
 - `remote` (string) - Remote name (default: "origin")
-- `rebase` (boolean) - Use rebase instead of merge (default: false)
+- `rebase` (boolean) - Use rebase instead of merge (default: false). **PRECEDENCE**: If true, overrides `strategy` to "rebase"
 - `strategy` (string) - Conflict resolution strategy (default: "auto-merge-prefer-remote")
   - `auto-merge-prefer-remote` - Merge preferring remote changes (DEFAULT)
   - `auto-merge-prefer-local` - Merge preferring local changes
   - `rebase` - Rebase local commits onto remote
   - `manual` - Fetch and merge without auto-resolution
   - `fail` - Fail if conflicts would occur
+- `allow_switch` (boolean) - Allow switching branches with uncommitted changes (default: false). **SECURITY**: Defaults to false to prevent accidental commits on wrong branch
 
 </INPUTS>
 
@@ -114,8 +115,11 @@ Use repo-common skill to load configuration.
 **Branch Validation:**
 - If branch_name not provided, use current branch (git rev-parse --abbrev-ref HEAD)
 - Check branch_name exists locally
-- Verify branch is checked out
-- Check for uncommitted changes (warn if present)
+- **SECURITY**: If switching branches with uncommitted changes:
+  - FAIL by default (exit code 2) unless `allow_switch=true`
+  - Show clear error message with 3 options: commit, stash, or use --allow-switch
+  - If `allow_switch=true`, warn that uncommitted changes will be carried over
+- Check for uncommitted changes on same branch (warn if present)
 
 **Remote Validation:**
 - Verify remote exists in Git config
@@ -125,7 +129,7 @@ Use repo-common skill to load configuration.
 
 **Strategy Validation:**
 - Validate strategy is one of the allowed values
-- If rebase=true, set strategy to "rebase"
+- **PRECEDENCE**: If `rebase=true`, override strategy to "rebase" (--rebase flag takes precedence over --strategy)
 - Check if strategy is compatible with current state
 
 **4. CHECK FOR UNCOMMITTED CHANGES:**

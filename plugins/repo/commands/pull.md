@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pull
 description: Pull branches from remote repository with intelligent conflict handling
-argument-hint: [branch_name] [--remote <name>] [--rebase] [--strategy <strategy>]
+argument-hint: [branch_name] [--remote <name>] [--rebase] [--strategy <strategy>] [--allow-switch]
 ---
 
 <CONTEXT>
@@ -103,19 +103,20 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <ARGUMENT_PARSING>
 ## Arguments
 
-### [branch_name] [--remote <name>] [--rebase] [--strategy <strategy>]
+### [branch_name] [--remote <name>] [--rebase] [--strategy <strategy>] [--allow-switch]
 **Purpose**: Pull branch from remote repository with intelligent merge conflict handling
 
 **Optional Arguments**:
 - `branch_name` (string): Branch name to pull (default: current branch). Example: "feature/123-add-export"
 - `--remote` (string): Remote repository name (default: origin). Examples: "origin", "upstream", "fork"
-- `--rebase` (boolean flag): Use rebase instead of merge. No value needed, just include the flag. Shortcut for `--strategy rebase`
+- `--rebase` (boolean flag): Use rebase instead of merge. No value needed, just include the flag. **PRECEDENCE**: Overrides --strategy flag
 - `--strategy` (string): Conflict resolution strategy. Options:
   - `auto-merge-prefer-remote` - Automatically merge, preferring remote changes in conflicts (DEFAULT)
   - `auto-merge-prefer-local` - Automatically merge, preferring local changes in conflicts
   - `rebase` - Rebase local commits onto remote branch
   - `manual` - Fetch and merge without auto-resolution (user handles conflicts)
   - `fail` - Fail if conflicts would occur (safe mode)
+- `--allow-switch` (boolean flag): Allow switching branches with uncommitted changes. No value needed, just include the flag. **SECURITY**: By default, pull fails if switching branches with uncommitted changes
 
 **Maps to**: pull-branch
 
@@ -165,6 +166,13 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Pull in safe mode (fail on conflicts)
 /repo:pull --strategy fail
+
+# Pull different branch while allowing uncommitted changes to carry over
+# (By default, this would fail with uncommitted changes)
+/repo:pull feature/456-other-branch --allow-switch
+
+# Combine flags: pull with rebase and allow switch
+/repo:pull feature/789-refactor --rebase --allow-switch
 ```
 </EXAMPLES>
 
@@ -219,10 +227,15 @@ Task(
     "branch_name": "branch-name",
     "remote": "origin",
     "rebase": true|false,
-    "strategy": "auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail"
+    "strategy": "auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail",
+    "allow_switch": true|false
   }
 }
 ```
+
+**Important Notes**:
+- If `rebase: true` is provided, it overrides the `strategy` parameter (--rebase takes precedence)
+- `allow_switch` defaults to `false` for security - must be explicitly set to `true` to switch branches with uncommitted changes
 
 ## Supported Operations
 
@@ -263,20 +276,30 @@ Set upstream first: git branch --set-upstream-to=origin/feature/123
 
 **Git Version:**
 - Minimum: Git 2.18+ (for merge-tree conflict detection)
-- Script will warn if Git version is too old but will continue with degraded functionality
-- Older versions: Use `--strategy manual` for safer operation
+- Recommended: Git 2.27+ (for reliable conflict detection)
+- Git 2.18-2.26: Uses fallback conflict detection method with warning
+- Older versions: Will fail with error message
 
 **Bash Version:**
 - Minimum: Bash 4.0+ (for regex input validation)
 
 ## Important Behavior Warnings
 
-⚠️ **Auto-Switch Warning:**
-The pull command automatically switches to the target branch if you're not already on it.
+⚠️ **Branch Switching with Uncommitted Changes:**
+The pull command switches to the target branch if you're not already on it.
 
-- **If you have uncommitted changes**: You'll get a 3-second warning with option to abort (Ctrl+C)
-- **Uncommitted changes are carried over** to the new branch during the switch
-- **Recommendation**: Stash changes first if switching branches: `git stash`
+- **SECURITY: Fails by default** if switching branches with uncommitted changes
+- **Use --allow-switch flag** to explicitly permit branch switching with uncommitted changes
+- **Uncommitted changes carry over** to the new branch when --allow-switch is used
+- **Recommendation**: Commit or stash changes before switching branches
+  ```bash
+  git stash                              # Stash changes
+  /repo:pull feature/other-branch        # Pull works without --allow-switch
+  git stash pop                          # Restore changes
+
+  # OR explicitly allow switch
+  /repo:pull feature/other-branch --allow-switch
+  ```
 
 ⚠️ **Uncommitted Changes:**
 - Uncommitted changes are preserved during pull operations

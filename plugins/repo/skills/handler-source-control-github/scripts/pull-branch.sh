@@ -3,22 +3,24 @@
 # Pulls branch from remote repository with intelligent conflict resolution
 #
 # Requirements:
-#   - Git 2.18+ (for merge-tree command support)
+#   - Git 2.27+ (recommended for reliable conflict detection)
+#   - Git 2.18+ (minimum, with degraded conflict detection)
 #   - Bash 4.0+ (for regex support)
 #
 # Security:
 #   - Branch and remote names are validated against injection patterns
 #   - Only known merge strategies are accepted
+#   - Requires explicit --allow-switch to change branches with uncommitted changes
 #
 # Behavior Notes:
-#   - Auto-switches to target branch if not currently on it
+#   - SAFE: Fails if switching branches with uncommitted changes (unless --allow-switch)
 #   - Preserves uncommitted changes during pull operations
-#   - Uses git merge-tree for conflict detection (Git 2.18+ feature)
+#   - Uses git merge-tree for conflict detection (Git 2.27+ for best reliability)
 
 set -euo pipefail
 
 # Check arguments
-# Usage: pull-branch.sh [branch_name] [remote] [strategy]
+# Usage: pull-branch.sh [branch_name] [remote] [strategy] [allow_switch]
 if [ $# -lt 1 ] || [ -z "$1" ]; then
     # No arguments provided - use current branch and defaults
     BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
@@ -28,11 +30,13 @@ if [ $# -lt 1 ] || [ -z "$1" ]; then
     fi
     REMOTE="origin"
     STRATEGY="auto-merge-prefer-remote"
+    ALLOW_SWITCH="false"
 else
     # Arguments provided - parse them
     BRANCH_NAME="$1"
     REMOTE="${2:-origin}"
     STRATEGY="${3:-auto-merge-prefer-remote}"
+    ALLOW_SWITCH="${4:-false}"
 fi
 
 # Validate branch name - prevent injection and invalid characters
@@ -67,16 +71,24 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 3
 fi
 
-# Check Git version (requires 2.18+ for merge-tree command)
+# Check Git version (requires 2.18+ minimum, 2.27+ recommended)
 GIT_VERSION=$(git --version | grep -oP '\d+\.\d+' | head -1)
 GIT_MAJOR=$(echo "$GIT_VERSION" | cut -d. -f1)
 GIT_MINOR=$(echo "$GIT_VERSION" | cut -d. -f2)
 
+# Check for minimum version (2.18)
 if [ "$GIT_MAJOR" -lt 2 ] || { [ "$GIT_MAJOR" -eq 2 ] && [ "$GIT_MINOR" -lt 18 ]; }; then
-    echo "Warning: Git version $GIT_VERSION detected. This script requires Git 2.18+ for full functionality." >&2
-    echo "Some conflict detection features may not work correctly." >&2
-    echo "Please upgrade Git or use 'manual' strategy for safer operation." >&2
-    # Don't exit - allow operation to continue with degraded functionality
+    echo "Error: Git version $GIT_VERSION detected. This script requires Git 2.18+ minimum." >&2
+    echo "Please upgrade Git or use 'manual' strategy." >&2
+    exit 3
+fi
+
+# Warn if below recommended version (2.27) - merge-tree output format changed
+RELIABLE_CONFLICT_DETECTION="true"
+if [ "$GIT_MAJOR" -eq 2 ] && [ "$GIT_MINOR" -lt 27 ]; then
+    echo "Warning: Git version $GIT_VERSION detected. Git 2.27+ recommended for reliable conflict detection." >&2
+    echo "Using fallback conflict detection method." >&2
+    RELIABLE_CONFLICT_DETECTION="false"
 fi
 
 # Check if branch exists locally
@@ -93,33 +105,45 @@ if ! git remote | grep -q "^${REMOTE}$"; then
     exit 1
 fi
 
-# Check for uncommitted changes BEFORE potentially switching branches
-# This prevents accidentally carrying uncommitted changes to another branch
-if [ -n "$(git status --porcelain)" ]; then
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    if [ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
-        echo "⚠️  WARNING: You have uncommitted changes on '$CURRENT_BRANCH'" >&2
-        echo "These changes will be carried over when switching to '$BRANCH_NAME'" >&2
-        echo "Uncommitted files:" >&2
-        git status --short >&2
-        echo "" >&2
-        echo "Consider stashing changes first: git stash" >&2
-        echo "Continuing in 3 seconds... (Ctrl+C to abort)" >&2
-        sleep 3
-    else
-        echo "Note: You have uncommitted changes. They will be preserved during pull." >&2
-    fi
-fi
-
-# Ensure we're on the specified branch
-# NOTE: This auto-switches branches. Uncommitted changes warning given above.
-# This is intentional to ensure pull happens on the correct branch.
+# Check current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Check for uncommitted changes BEFORE potentially switching branches
+# SECURITY: Fail by default if switching with uncommitted changes
 if [ "$CURRENT_BRANCH" != "$BRANCH_NAME" ]; then
-    echo "⚠️  Switching to branch '$BRANCH_NAME'..." >&2
+    if [ -n "$(git status --porcelain)" ]; then
+        if [ "$ALLOW_SWITCH" != "true" ]; then
+            echo "🛑 ERROR: Cannot switch from '$CURRENT_BRANCH' to '$BRANCH_NAME' with uncommitted changes" >&2
+            echo "" >&2
+            echo "Uncommitted files:" >&2
+            git status --short >&2
+            echo "" >&2
+            echo "To proceed, either:" >&2
+            echo "  1. Commit your changes: git add . && git commit -m 'message'" >&2
+            echo "  2. Stash your changes: git stash" >&2
+            echo "  3. Use --allow-switch flag (carries changes to target branch)" >&2
+            echo "" >&2
+            echo "Example: /repo:pull $BRANCH_NAME --allow-switch" >&2
+            exit 2
+        else
+            echo "⚠️  WARNING: Switching branches with uncommitted changes (--allow-switch enabled)" >&2
+            echo "From: '$CURRENT_BRANCH' → To: '$BRANCH_NAME'" >&2
+            echo "Uncommitted files will be carried over:" >&2
+            git status --short >&2
+            echo "" >&2
+        fi
+    fi
+
+    # Switch to target branch
+    echo "Switching to branch '$BRANCH_NAME'..." >&2
     if ! git checkout "$BRANCH_NAME" 2>&1; then
         echo "Error: Failed to checkout branch '$BRANCH_NAME'" >&2
         exit 1
+    fi
+else
+    # Already on target branch
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "Note: You have uncommitted changes. They will be preserved during pull." >&2
     fi
 fi
 
@@ -153,30 +177,52 @@ COMMITS_TO_PULL=$(git rev-list --count "${BRANCH_NAME}..${REMOTE}/${BRANCH_NAME}
 echo "Found ${COMMITS_TO_PULL} commit(s) to pull from '${REMOTE}/${BRANCH_NAME}'" >&2
 
 # Function to check for potential conflicts
-# Note: Requires Git 2.18+ for merge-tree command
-# The conflict detection may not catch all conflict types across Git versions
+# Uses merge-tree for Git 2.27+, fallback method for 2.18-2.26
 check_conflicts() {
-    # Try a test merge to see if there would be conflicts
-    # This doesn't modify the working tree
-    # Note: Output format may vary across Git versions
     local merge_base
     merge_base=$(git merge-base "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}" 2>/dev/null || echo "")
 
     if [ -z "$merge_base" ]; then
-        # No common ancestor, likely new branch
+        # No common ancestor, likely new branch - no conflicts
         return 1
     fi
 
-    # Check for conflicts in merge-tree output
-    # Look for multiple patterns to improve reliability
-    local merge_output
-    merge_output=$(git merge-tree "$merge_base" "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}" 2>/dev/null || echo "")
+    if [ "$RELIABLE_CONFLICT_DETECTION" = "true" ]; then
+        # Git 2.27+: Use merge-tree with reliable output format
+        local merge_output
+        merge_output=$(git merge-tree "$merge_base" "$BRANCH_NAME" "${REMOTE}/${BRANCH_NAME}" 2>/dev/null || echo "")
 
-    if echo "$merge_output" | grep -qE "^changed in both|^both modified|^both added"; then
-        return 0  # Conflicts detected
+        # Check for conflicts in multiple formats for Git 2.27+
+        if echo "$merge_output" | grep -qE "^changed in both|^both modified|^both added|^\+<<<<<<< "; then
+            return 0  # Conflicts detected
+        fi
     else
-        return 1  # No conflicts
+        # Git 2.18-2.26: Use fallback - attempt dry-run merge
+        # Save current state
+        local current_head
+        current_head=$(git rev-parse HEAD)
+
+        # Try merge without commit or fast-forward
+        if git merge --no-commit --no-ff "${REMOTE}/${BRANCH_NAME}" &>/dev/null; then
+            # Merge would succeed - abort it and return no conflicts
+            git merge --abort &>/dev/null || true
+            return 1
+        else
+            # Merge would fail - check if it's due to conflicts
+            if git ls-files -u | grep -q .; then
+                # Conflicts detected
+                git merge --abort &>/dev/null || true
+                return 0
+            else
+                # Other error, not conflicts
+                git merge --abort &>/dev/null || true
+                return 1
+            fi
+        fi
     fi
+
+    # No conflicts
+    return 1
 }
 
 # Function to apply strategy
@@ -232,7 +278,8 @@ apply_strategy() {
                     echo "  1. Edit conflicted files" >&2
                     echo "  2. git add <resolved-files>" >&2
                     echo "  3. git commit" >&2
-                    return 13
+                    # Exit 0 - manual conflict resolution is expected behavior, not an error
+                    return 0
                 else
                     echo "Error: Pull failed for non-conflict reason" >&2
                     return 12
