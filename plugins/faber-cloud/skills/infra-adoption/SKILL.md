@@ -218,6 +218,38 @@ This generates:
 - 7-phase migration checklist
 - Rollback procedures
 
+## Step 6b: Generate Detailed Adoption Spec
+
+Execute adoption spec generation:
+```bash
+bash plugins/faber-cloud/skills/infra-adoption/scripts/generate-adoption-spec.sh \
+  {project_root} \
+  {output_dir} \
+  {output_dir}/ADOPTION-SPEC.md
+```
+
+This generates a comprehensive, actionable adoption specification with:
+- **Complete file contents** ready to create
+  - Full ARCHITECTURE.md with discovered components
+  - Full DEPLOYMENT-STANDARDS.md with extracted standards
+  - Full NAMING-CONVENTIONS.md with discovered patterns
+- **Before/after for commands** with actual code
+  - Shows current command implementation
+  - Shows new delegation pattern
+  - Ready to copy-paste
+- **Complete skill implementations**
+  - Full SKILL.md for each validation script
+  - Migrated logic from existing scripts
+  - Ready to create and test
+- **Complete faber-cloud configuration**
+  - Full faber-cloud.json with all settings
+  - All hooks configured
+  - All environments configured
+- **Step-by-step testing** with actual commands
+- **Rollback procedures** specific to the project
+
+The adoption spec is designed to be handed to another Claude Code session for immediate implementation.
+
 ## Step 7: Present Comprehensive Findings
 
 Display complete adoption summary:
@@ -271,6 +303,7 @@ Display complete adoption summary:
   - {output_dir}/discovery-custom-agents.json
   - {output_dir}/faber-cloud.json
   - {output_dir}/MIGRATION.md
+  - {output_dir}/ADOPTION-SPEC.md ⭐ (Detailed implementation plan)
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -355,12 +388,23 @@ Reports: {output_dir}/
   - discovery-aws.json
   - discovery-custom-agents.json
   - faber-cloud.json
-  - MIGRATION.md
+  - MIGRATION.md (overview)
+  - ADOPTION-SPEC.md ⭐ (detailed implementation plan)
 
 {If installed}
 Configuration: .fractary/plugins/faber-cloud/config/faber-cloud.json
 
-Next: Follow migration checklist in MIGRATION.md
+Next Steps:
+1. Review ADOPTION-SPEC.md for detailed implementation plan
+2. Hand ADOPTION-SPEC.md to another session for implementation
+3. Or follow the step-by-step guide in ADOPTION-SPEC.md yourself
+
+The ADOPTION-SPEC.md contains:
+- Complete file contents ready to create
+- Command conversions with before/after code
+- Full skill implementations
+- Complete configuration
+- Step-by-step testing instructions
 ───────────────────────────────────────
 ```
 </WORKFLOW>
@@ -386,7 +430,8 @@ Return adoption summary:
     "aws": ".fractary/adoption/discovery-aws.json",
     "custom_agents": ".fractary/adoption/discovery-custom-agents.json",
     "configuration": ".fractary/adoption/faber-cloud.json",
-    "migration_report": ".fractary/adoption/MIGRATION.md"
+    "migration_report": ".fractary/adoption/MIGRATION.md",
+    "adoption_spec": ".fractary/adoption/ADOPTION-SPEC.md"
   },
   "assessment": {
     "infrastructure_found": true,
@@ -408,9 +453,10 @@ Return adoption summary:
     "installed": true
   },
   "next_steps": [
-    "Review MIGRATION.md",
-    "Test in test environment",
-    "Follow migration checklist"
+    "Review ADOPTION-SPEC.md for detailed implementation plan",
+    "Hand ADOPTION-SPEC.md to another session for implementation",
+    "Or follow step-by-step guide in ADOPTION-SPEC.md",
+    "Test in test environment as spec describes"
   ]
 }
 ```
