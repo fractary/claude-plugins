@@ -23,6 +23,15 @@ if [ ! -d "$PROJECT_ROOT" ]; then
     exit 1
 fi
 
+# Detect OS for stat command compatibility
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    STAT_SIZE="stat -f%z"
+    STAT_MTIME="stat -f%m"
+else
+    STAT_SIZE="stat -c%s"
+    STAT_MTIME="stat -c%Y"
+fi
+
 # Document type detection patterns
 classify_doc_type() {
     local filepath="$1"
@@ -147,9 +156,13 @@ for filepath in "${md_files[@]}"; do
 
     # Get file info
     rel_path="${filepath#$PROJECT_ROOT/}"
-    size=$(stat -f%z "$filepath" 2>/dev/null || stat -c%s "$filepath" 2>/dev/null || echo "0")
-    modified=$(stat -f%m "$filepath" 2>/dev/null || stat -c%Y "$filepath" 2>/dev/null || echo "0")
-    modified_date=$(date -r "$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -d "@$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+    size=$($STAT_SIZE "$filepath" 2>/dev/null || echo "0")
+    modified=$($STAT_MTIME "$filepath" 2>/dev/null || echo "0")
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        modified_date=$(date -r "$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+    else
+        modified_date=$(date -d "@$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+    fi
 
     # Classify document type
     doc_type=$(classify_doc_type "$filepath")

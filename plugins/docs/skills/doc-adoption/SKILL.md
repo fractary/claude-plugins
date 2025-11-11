@@ -167,7 +167,7 @@ This discovers:
 - File sizes and modification dates
 - Total documentation count
 
-## Step 3: Discover Documentation Structure
+## Step 5: Discover Documentation Structure
 
 Execute structure discovery:
 ```bash
@@ -182,7 +182,7 @@ This discovers:
 - Common paths for each doc type
 - Structure complexity (flat, organized, hierarchical)
 
-## Step 4: Analyze Front Matter Patterns
+## Step 6: Analyze Front Matter Patterns
 
 Execute front matter analysis:
 ```bash
@@ -197,7 +197,7 @@ This discovers:
 - Missing metadata patterns
 - Codex integration readiness
 
-## Step 5: Assess Documentation Quality
+## Step 7: Assess Documentation Quality
 
 Execute quality assessment:
 ```bash
@@ -213,7 +213,7 @@ This assesses:
 - Documentation coverage by type
 - Critical gaps
 
-## Step 6: Analyze Discovery Results
+## Step 8: Analyze Discovery Results
 
 Load all four discovery reports:
 - Read discovery-docs.json
@@ -228,8 +228,6 @@ Analyze combined results:
 - Identify which docs need front matter
 - Identify organizational improvements
 - Estimate migration effort and timeline
-
-## Step 7: Present Initial Findings to User
 
 Display comprehensive summary:
 
@@ -278,9 +276,7 @@ Display comprehensive summary:
 ═══════════════════════════════════════════════════════════
 ```
 
-## Step 8: Get User Confirmation for Configuration
-
-Ask user:
+**Ask user for confirmation:**
 1. Does this summary look accurate?
 2. Are there any additional considerations?
 3. Ready to proceed with configuration generation?

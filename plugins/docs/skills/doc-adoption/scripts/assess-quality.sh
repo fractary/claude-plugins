@@ -54,7 +54,7 @@ calculate_quality_score() {
     if [ "$has_frontmatter" = "true" ]; then score=$((score + 2)); fi
 
     # Links and references (0-2 points)
-    local link_count=$(grep -o '\[.*\](.*)'  "$filepath" | wc -l || echo "0")
+    local link_count=$(grep -o '\[.*\](.*)' "$filepath" | wc -l || echo "0")
     if [ $link_count -gt 3 ]; then score=$((score + 2))
     elif [ $link_count -gt 0 ]; then score=$((score + 1))
     fi
