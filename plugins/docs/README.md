@@ -280,6 +280,123 @@ Configuration is stored in `.fractary/plugins/docs/config.json` (project) or `~/
 
 **linking**: Enable auto-index updates and broken link checking
 
+## Hooks
+
+Hooks allow projects to extend fractary-docs with custom logic while using the standard plugin. Hooks are shell scripts that execute at specific points in documentation workflows.
+
+### Hook Types
+
+```json
+{
+  "hooks": {
+    "pre_generate": "./scripts/pre-generate.sh",
+    "post_generate": "./scripts/post-generate.sh",
+    "pre_validate": "./scripts/validate-custom.sh",
+    "post_validate": null,
+    "pre_update": null,
+    "post_update": "./scripts/update-index.sh"
+  },
+  "validation": {
+    "custom_rules_script": "./scripts/validate-custom.sh",
+    "project_standards_doc": "./docs/DOCUMENTATION-STANDARDS.md"
+  }
+}
+```
+
+### When Hooks Execute
+
+- **pre_generate**: Before generating a new document
+- **post_generate**: After successfully generating a document
+- **pre_validate**: Before running validation checks (for custom validation rules)
+- **post_validate**: After validation completes
+- **pre_update**: Before updating an existing document
+- **post_update**: After successfully updating a document
+
+### Hook Script Interface
+
+Hooks receive context via environment variables:
+
+```bash
+#!/usr/bin/env bash
+# Example post_generate hook
+
+# Available variables:
+# - DOC_TYPE: Type of document (adr, design, runbook, etc.)
+# - FILE_PATH: Path to the document
+# - OPERATION: Operation being performed (generate, update, validate)
+
+# Example: Auto-generate table of contents
+if [[ "$DOC_TYPE" == "design" ]]; then
+  markdown-toc -i "$FILE_PATH"
+fi
+```
+
+### Common Hook Use Cases
+
+**1. Auto-generate TOC** (post_generate):
+```bash
+#!/usr/bin/env bash
+# scripts/post-generate.sh
+markdown-toc -i "$FILE_PATH"
+```
+
+**2. Custom validation** (pre_validate):
+```bash
+#!/usr/bin/env bash
+# scripts/validate-custom.sh
+
+# Validate API specs have language examples
+if [[ "$DOC_TYPE" == "api-spec" ]]; then
+  for lang in python typescript go; do
+    if ! grep -q "\`\`\`$lang" "$FILE_PATH"; then
+      echo "ERROR: API spec missing $lang example"
+      exit 1
+    fi
+  done
+fi
+```
+
+**3. Update documentation index** (post_update):
+```bash
+#!/usr/bin/env bash
+# scripts/update-index.sh
+/fractary-docs:link index
+```
+
+**4. Notify team** (post_generate):
+```bash
+#!/usr/bin/env bash
+# scripts/notify-team.sh
+if [[ "$DOC_TYPE" == "adr" ]]; then
+  curl -X POST "$SLACK_WEBHOOK" \
+    -d "{\"text\": \"New ADR created: $FILE_PATH\"}"
+fi
+```
+
+### Project-Specific Standards
+
+The `project_standards_doc` configuration points to a markdown file documenting project-specific documentation requirements:
+
+```markdown
+# Documentation Standards
+
+## API Documentation
+All API specs must include code examples in:
+- Python
+- TypeScript
+- Go
+
+## Naming Conventions
+- Features: `feature-name-YYYYMMDD.md`
+- ADRs: `ADR-NNN-short-title.md`
+
+## Custom Requirements
+- Security-related docs must be reviewed by security team
+- API changes require migration guide section
+```
+
+This document is referenced during validation and adoption workflows.
+
 ## Front Matter Schema
 
 All generated documents include codex-compatible front matter:
