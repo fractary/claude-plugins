@@ -62,10 +62,15 @@ The following commands are explicitly allowed (no prompts):
 - **Issues**: `gh issue create`, `view`, `list`, `comment`, `close`
 - **Repositories**: `gh repo view`, `clone`
 - **Authentication**: `gh auth status`, `login`, `refresh`
-- **Workflows**: `gh workflow list`, `view`, `run`, `enable`, `disable`
-- **Secrets**: `gh secret list`, `set` (delete/remove are denied for safety)
+- **Workflows (read only)**: `gh workflow list`, `view`
+- **Secrets (read only)**: `gh secret list`
 - **Apps**: `gh app list`, `view`
 - **API**: `gh api` (safe API calls)
+
+### Operations Requiring Approval
+- **Workflow write operations**: `gh workflow run`, `enable`, `disable` (could trigger CI/CD or disable critical workflows)
+- **Secrets write operations**: `gh secret set` (could overwrite important secrets)
+- **Protected branch pushes**: `git push origin main/master/production`
 
 ### Safe Utilities
 - `cat`, `head`, `tail`, `grep`, `find`, `ls`, `pwd`
@@ -136,12 +141,12 @@ New Permissions to Add:
      (git add, git checkout, git switch, git fetch, git pull, ...)
   ✅ 7 GitHub read operations
      (gh pr view, gh pr list, gh pr status, gh issue view, gh issue list, ...)
-  ✅ 20 GitHub write operations
-     (gh pr create, gh pr comment, gh pr review, gh workflow list, gh secret set, ...)
+  ✅ 16 GitHub write operations
+     (gh pr create, gh pr comment, gh pr review, gh workflow list/view, gh secret list, ...)
   ✅ 15 safe utility commands
      (cat, head, tail, grep, find, ...)
-  ⚠️  9 protected branch operations (require approval)
-     (git push origin main, git push origin master, git push origin production, ...)
+  ⚠️  13 operations requiring approval
+     (git push origin main/master/production, gh workflow run/enable/disable, gh secret set, ...)
   ❌ 8 destructive file operations
      (rm -rf /, rm -rf *, rm -rf ., rm -rf ~, ...)
   ❌ 15 dangerous git operations
@@ -189,8 +194,8 @@ Applying changes...
   Settings file: .claude/settings.json
   Backup: .claude/settings.json.backup
 
-  Commands auto-allowed: 65
-  Protected branch operations (require approval): 9
+  Commands auto-allowed: 61
+  Operations requiring approval: 13
   Dangerous operations (denied): 40
 
 Fast workflow enabled! Most operations won't prompt.
