@@ -1,0 +1,258 @@
+# {{KB_ARTICLE_TITLE}}
+
+**Issue Type:** {{ISSUE_TYPE}}
+**Category:** {{CATEGORY}}
+**Severity:** {{SEVERITY}}
+**Last Updated:** {{LAST_UPDATED}}
+
+---
+
+## Summary
+
+{{ISSUE_SUMMARY}}
+
+**Common in:** {{COMMON_CONTEXTS}}
+**Frequency:** {{FREQUENCY_RATING}}
+
+---
+
+## Symptoms
+
+**Primary Symptoms:**
+{{#EACH PRIMARY_SYMPTOMS}}
+- {{SYMPTOM_DESCRIPTION}}
+{{/EACH}}
+
+**Secondary Symptoms:**
+{{#EACH SECONDARY_SYMPTOMS}}
+- {{SYMPTOM_DESCRIPTION}}
+{{/EACH}}
+
+**Error Messages:**
+```
+{{#EACH ERROR_MESSAGES}}
+{{ERROR_MESSAGE_TEXT}}
+{{/EACH}}
+```
+
+**Observable Indicators:**
+{{#EACH INDICATORS}}
+- {{INDICATOR_TYPE}}: {{INDICATOR_VALUE}}
+{{/EACH}}
+
+---
+
+## Root Causes
+
+{{#EACH ROOT_CAUSES}}
+### Cause {{CAUSE_NUMBER}}: {{CAUSE_TITLE}}
+
+**Description:**
+{{CAUSE_DESCRIPTION}}
+
+**Why this occurs:**
+{{CAUSE_EXPLANATION}}
+
+**Likelihood:** {{LIKELIHOOD_PERCENTAGE}}%
+
+**Distinguishing factors:**
+{{#EACH DISTINGUISHING_FACTORS}}
+- {{FACTOR}}
+{{/EACH}}
+
+{{/EACH}}
+
+---
+
+## Diagnostic Steps
+
+Follow these steps to confirm the root cause:
+
+{{#EACH DIAGNOSTIC_STEPS}}
+**Step {{STEP_NUMBER}}: {{STEP_TITLE}}**
+
+Action:
+```bash
+{{DIAGNOSTIC_COMMAND}}
+```
+
+Expected result if this is the issue:
+```
+{{EXPECTED_OUTPUT}}
+```
+
+If match: {{MATCH_ACTION}}
+If no match: {{NO_MATCH_ACTION}}
+
+{{/EACH}}
+
+---
+
+## Recommended Fixes
+
+{{#EACH FIXES}}
+### Fix {{FIX_NUMBER}}: {{FIX_TITLE}}
+
+**Addresses:** {{ADDRESSES_CAUSE}}
+**Difficulty:** {{DIFFICULTY_LEVEL}}
+**Estimated Time:** {{ESTIMATED_TIME}}
+**Success Rate:** {{SUCCESS_RATE}}% (based on {{USAGE_COUNT}} applications)
+
+**Implementation:**
+
+{{#EACH IMPLEMENTATION_STEPS}}
+{{STEP_NUMBER}}. {{STEP_DESCRIPTION}}
+   {{#IF STEP_COMMAND}}
+   ```bash
+   {{STEP_COMMAND}}
+   ```
+   {{/IF}}
+   {{#IF STEP_CODE}}
+   ```{{CODE_LANGUAGE}}
+   {{STEP_CODE}}
+   ```
+   {{/IF}}
+{{/EACH}}
+
+**Verification:**
+```bash
+{{VERIFICATION_COMMAND}}
+```
+
+Expected result:
+```
+{{EXPECTED_VERIFICATION_OUTPUT}}
+```
+
+**Rollback (if needed):**
+```bash
+{{ROLLBACK_COMMAND}}
+```
+
+**Side effects:**
+{{#EACH SIDE_EFFECTS}}
+- {{SIDE_EFFECT}}
+{{/EACH}}
+
+**Confidence:** {{CONFIDENCE_SCORE}} ({{CONFIDENCE_REASONING}})
+
+---
+
+{{/EACH}}
+
+## Alternative Solutions
+
+{{#EACH ALTERNATIVES}}
+**Alternative {{ALT_NUMBER}}: {{ALT_TITLE}}**
+
+When to use:
+{{ALT_USE_CASE}}
+
+Pros:
+{{#EACH ALT_PROS}}
+- {{PRO}}
+{{/EACH}}
+
+Cons:
+{{#EACH ALT_CONS}}
+- {{CON}}
+{{/EACH}}
+
+Success rate: {{ALT_SUCCESS_RATE}}%
+
+{{/EACH}}
+
+---
+
+## Prevention
+
+**How to prevent this issue in the future:**
+
+{{#EACH PREVENTION_MEASURES}}
+{{MEASURE_NUMBER}}. **{{MEASURE_TITLE}}**
+   {{MEASURE_DESCRIPTION}}
+
+   {{#IF MEASURE_IMPLEMENTATION}}
+   Implementation:
+   ```{{CODE_LANGUAGE}}
+   {{MEASURE_IMPLEMENTATION}}
+   ```
+   {{/IF}}
+{{/EACH}}
+
+---
+
+## Examples
+
+{{#EACH EXAMPLES}}
+### Example {{EXAMPLE_NUMBER}}: {{EXAMPLE_TITLE}}
+
+**Context:**
+{{EXAMPLE_CONTEXT}}
+
+**Symptoms observed:**
+```
+{{EXAMPLE_SYMPTOMS}}
+```
+
+**Root cause identified:**
+{{EXAMPLE_ROOT_CAUSE}}
+
+**Fix applied:**
+```{{CODE_LANGUAGE}}
+{{EXAMPLE_FIX_CODE}}
+```
+
+**Result:**
+{{EXAMPLE_RESULT}}
+
+**Time to resolve:** {{EXAMPLE_TIME}}
+
+{{/EACH}}
+
+---
+
+## Related Issues
+
+{{#EACH RELATED_ISSUES}}
+- [{{RELATED_ISSUE_TITLE}}]({{RELATED_ISSUE_PATH}}) - {{RELATIONSHIP_DESCRIPTION}}
+{{/EACH}}
+
+---
+
+## Metadata
+
+**Resolution Statistics:**
+- Total applications: {{TOTAL_APPLICATIONS}}
+- Successful: {{SUCCESSFUL_RESOLUTIONS}} ({{SUCCESS_PERCENTAGE}}%)
+- Failed: {{FAILED_RESOLUTIONS}} ({{FAILURE_PERCENTAGE}}%)
+- Average resolution time: {{AVG_RESOLUTION_TIME}}
+
+**Last 10 Applications:**
+{{#EACH RECENT_APPLICATIONS}}
+- {{APPLICATION_DATE}}: {{APPLICATION_RESULT}} ({{APPLICATION_TIME}})
+{{/EACH}}
+
+**Tags:**
+{{#EACH TAGS}}
+- {{TAG}}
+{{/EACH}}
+
+**Related Documentation:**
+{{#EACH RELATED_DOCS}}
+- [{{DOC_TITLE}}]({{DOC_PATH}})
+{{/EACH}}
+
+---
+
+## Notes
+
+{{#EACH NOTES}}
+**{{NOTE_DATE}}:** {{NOTE_TEXT}}
+{{/EACH}}
+
+---
+
+**Confidence Level:** {{OVERALL_CONFIDENCE}}
+**Review Status:** {{REVIEW_STATUS}}
+**Next Review Date:** {{NEXT_REVIEW_DATE}}

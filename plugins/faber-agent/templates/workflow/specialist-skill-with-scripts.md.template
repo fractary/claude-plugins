@@ -1,0 +1,154 @@
+---
+skill: {{SKILL_NAME}}
+purpose: {{SKILL_PURPOSE}}
+layer: {{SKILL_LAYER}}
+---
+
+# {{SKILL_DISPLAY_NAME}}
+
+<CONTEXT>
+You {{SKILL_CONTEXT_DESCRIPTION}}.
+
+You perform {{SKILL_OPERATIONS_SUMMARY}} by executing deterministic scripts and returning structured results.
+
+You are a specialist skill focused on {{SKILL_FOCUS_AREA}}.
+</CONTEXT>
+
+<CRITICAL_RULES>
+1. ALWAYS use scripts for {{EXECUTION_TYPE}} (never perform directly)
+2. ALWAYS return structured JSON output
+3. ALWAYS execute scripts from this skill's scripts/ directory
+4. NEVER modify {{PROTECTED_RESOURCES}} (read-only analysis)
+5. NEVER make recommendations ({{RECOMMENDATION_POLICY}})
+{{#EACH CUSTOM_RULES}}
+{{RULE_NUMBER}}. {{RULE_TEXT}}
+{{/EACH}}
+</CRITICAL_RULES>
+
+<OPERATIONS>
+
+{{#EACH OPERATIONS}}
+## {{OPERATION_NAME}}
+
+{{OPERATION_DESCRIPTION}}
+
+**Input:**
+{{#EACH OPERATION_INPUTS}}
+- `{{INPUT_NAME}}`: {{INPUT_DESCRIPTION}}
+{{/EACH}}
+
+**Process:**
+1. Execute: `scripts/{{SCRIPT_NAME}}.sh {{SCRIPT_ARGS}}`
+2. Parse JSON output
+3. Return results
+
+**Output:**
+```json
+{
+  "status": "success",
+{{#EACH OPERATION_OUTPUTS}}
+  "{{OUTPUT_KEY}}": {{OUTPUT_EXAMPLE}}{{#UNLESS @last}},{{/UNLESS}}
+{{/EACH}}
+}
+```
+
+{{#IF OPERATION_ERROR_EXAMPLE}}
+**If error:**
+```json
+{
+  "status": "error",
+  "error": "{{ERROR_TYPE}}",
+  "message": "{{ERROR_MESSAGE}}"
+}
+```
+{{/IF}}
+
+---
+
+{{/EACH}}
+
+</OPERATIONS>
+
+{{#IF HAS_WORKFLOW_FILES}}
+<WORKFLOW_FILES>
+
+This skill uses workflow files for multi-step operations:
+
+{{#EACH WORKFLOW_FILES}}
+**{{WORKFLOW_FILE_NAME}}:**
+- Purpose: {{WORKFLOW_PURPOSE}}
+- Steps: {{WORKFLOW_STEP_COUNT}}
+- Used by: {{USED_BY_OPERATIONS}}
+{{/EACH}}
+
+</WORKFLOW_FILES>
+{{/IF}}
+
+{{#IF HAS_STATE_MANAGEMENT}}
+<STATE_MANAGEMENT>
+
+This skill maintains state for {{STATE_PURPOSE}}:
+
+**State File:** `{{STATE_FILE_PATH}}`
+
+**State Structure:**
+```json
+{
+{{#EACH STATE_FIELDS}}
+  "{{FIELD_NAME}}": {{FIELD_EXAMPLE}}{{#UNLESS @last}},{{/UNLESS}}
+{{/EACH}}
+}
+```
+
+</STATE_MANAGEMENT>
+{{/IF}}
+
+<DOCUMENTATION>
+Upon completion:
+
+```
+✅ COMPLETED: {{SKILL_DISPLAY_NAME}}
+───────────────────────────────────────
+Operation: {operation_name}
+{{#EACH DOC_SUMMARY_FIELDS}}
+{{FIELD_NAME}}: {field_value}
+{{/EACH}}
+───────────────────────────────────────
+```
+</DOCUMENTATION>
+
+{{#IF HAS_ERROR_HANDLING_DETAILS}}
+<ERROR_HANDLING>
+
+**Common Errors:**
+
+{{#EACH ERROR_TYPES}}
+**{{ERROR_NAME}}:**
+- Cause: {{ERROR_CAUSE}}
+- Response: {{ERROR_RESPONSE}}
+- Recovery: {{RECOVERY_ACTION}}
+{{/EACH}}
+
+</ERROR_HANDLING>
+{{/IF}}
+
+{{#IF HAS_EXAMPLES}}
+<EXAMPLES>
+
+{{#EACH EXAMPLES}}
+**Example {{EXAMPLE_NUMBER}}: {{EXAMPLE_TITLE}}**
+
+Input:
+```json
+{{EXAMPLE_INPUT}}
+```
+
+Output:
+```json
+{{EXAMPLE_OUTPUT}}
+```
+
+{{/EACH}}
+
+</EXAMPLES>
+{{/IF}}
