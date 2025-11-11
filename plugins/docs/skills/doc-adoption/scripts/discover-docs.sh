@@ -122,6 +122,8 @@ cat > "$OUTPUT_JSON" <<'EOF'
 EOF
 
 # Find all markdown files, excluding common non-doc locations
+# Excludes: node_modules (JS), vendor (PHP/Go), venv/virtualenv (Python),
+# target (Rust), out (Java), build/dist (general), .git, .fractary
 mapfile -t md_files < <(find "$PROJECT_ROOT" -type f -name "*.md" \
     ! -path "*/node_modules/*" \
     ! -path "*/.git/*" \
@@ -129,6 +131,13 @@ mapfile -t md_files < <(find "$PROJECT_ROOT" -type f -name "*.md" \
     ! -path "*/build/*" \
     ! -path "*/dist/*" \
     ! -path "*/.fractary/*" \
+    ! -path "*/venv/*" \
+    ! -path "*/.venv/*" \
+    ! -path "*/virtualenv/*" \
+    ! -path "*/target/*" \
+    ! -path "*/out/*" \
+    ! -path "*/__pycache__/*" \
+    ! -path "*/.tox/*" \
     2>/dev/null || true)
 
 # Process each file
@@ -154,25 +163,44 @@ first=true
 for filepath in "${md_files[@]}"; do
     [ -z "$filepath" ] && continue
 
+    # Check file still exists (race condition protection)
+    [ ! -f "$filepath" ] && continue
+
     # Get file info
     rel_path="${filepath#$PROJECT_ROOT/}"
-    size=$($STAT_SIZE "$filepath" 2>/dev/null || echo "0")
-    modified=$($STAT_MTIME "$filepath" 2>/dev/null || echo "0")
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        modified_date=$(date -r "$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+
+    # Get size with existence check
+    if [ -f "$filepath" ]; then
+        size=$($STAT_SIZE "$filepath" 2>/dev/null || echo "0")
     else
-        modified_date=$(date -d "@$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+        continue
     fi
 
-    # Classify document type
-    doc_type=$(classify_doc_type "$filepath")
+    # Get modified time with existence check
+    if [ -f "$filepath" ]; then
+        modified=$($STAT_MTIME "$filepath" 2>/dev/null || echo "0")
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            modified_date=$(date -r "$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+        else
+            modified_date=$(date -d "@$modified" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "unknown")
+        fi
+    else
+        continue
+    fi
+
+    # Classify document type (with existence check)
+    if [ -f "$filepath" ]; then
+        doc_type=$(classify_doc_type "$filepath")
+    else
+        continue
+    fi
 
     # Increment type counter
     ((type_counts[$doc_type]++)) || true
 
-    # Check for front matter
+    # Check for front matter (with existence check)
     has_frontmatter=false
-    if head -n 1 "$filepath" | grep -q "^---$"; then
+    if [ -f "$filepath" ] && head -n 1 "$filepath" 2>/dev/null | grep -q "^---$"; then
         has_frontmatter=true
     fi
 

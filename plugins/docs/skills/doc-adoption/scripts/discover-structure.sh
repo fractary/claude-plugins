@@ -218,31 +218,59 @@ api_path=$(find_common_paths "api" "*api*.md" || echo "")
 # Get directory tree
 directory_tree=$(get_directory_tree "${doc_dirs[@]}")
 
-# Build output JSON
-discovery_date=$(date "+%Y-%m-%d %H:%M:%S")
+# Build output JSON using jq for safe construction
+discovery_date=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
 
-cat > "$OUTPUT_JSON" <<EOF
-{
-  "schema_version": "1.0",
-  "discovery_date": "$discovery_date",
-  "project_root": "$PROJECT_ROOT",
-  "structure_type": "$structure_type",
-  "naming_convention": "$naming_convention",
-  "primary_docs_dir": "$primary_docs_dir",
-  "documentation_directories": ${#doc_dirs[@]},
-  "common_paths": {
-    "adrs": "${adr_path:-not found}",
-    "designs": "${design_path:-not found}",
-    "runbooks": "${runbook_path:-not found}",
-    "api_docs": "${api_path:-not found}"
-  },
-  "directory_tree": $directory_tree,
-  "recommendations": {
-    "structure": "$([ "$structure_type" = "flat" ] && echo "Consider organizing docs into type-based directories" || echo "Current structure is well-organized")",
-    "naming": "$([ "$naming_convention" = "mixed" ] && echo "Standardize on kebab-case for consistency" || echo "Naming convention is consistent")"
-  }
-}
-EOF
+# Generate recommendations
+structure_rec=$([ "$structure_type" = "flat" ] && echo "Consider organizing docs into type-based directories" || echo "Current structure is well-organized")
+naming_rec=$([ "$naming_convention" = "mixed" ] && echo "Standardize on kebab-case for consistency" || echo "Naming convention is consistent")
+
+# Use jq to construct JSON safely, then merge in the directory tree
+jq -n \
+  --arg schema_version "1.0" \
+  --arg discovery_date "$discovery_date" \
+  --arg project_root "$PROJECT_ROOT" \
+  --arg structure_type "$structure_type" \
+  --arg naming_convention "$naming_convention" \
+  --arg primary_docs_dir "$primary_docs_dir" \
+  --argjson doc_dirs_count "${#doc_dirs[@]}" \
+  --arg adr_path "${adr_path:-not found}" \
+  --arg design_path "${design_path:-not found}" \
+  --arg runbook_path "${runbook_path:-not found}" \
+  --arg api_path "${api_path:-not found}" \
+  --arg structure_rec "$structure_rec" \
+  --arg naming_rec "$naming_rec" \
+  '{
+    schema_version: $schema_version,
+    discovery_date: $discovery_date,
+    project_root: $project_root,
+    structure_type: $structure_type,
+    naming_convention: $naming_convention,
+    primary_docs_dir: $primary_docs_dir,
+    documentation_directories: $doc_dirs_count,
+    common_paths: {
+      adrs: $adr_path,
+      designs: $design_path,
+      runbooks: $runbook_path,
+      api_docs: $api_path
+    },
+    directory_tree: [],
+    recommendations: {
+      structure: $structure_rec,
+      naming: $naming_rec
+    }
+  }' > "$OUTPUT_JSON"
+
+# Merge in directory tree (already valid JSON)
+if [ -n "$directory_tree" ]; then
+  jq --argjson tree "$directory_tree" '.directory_tree = $tree' "$OUTPUT_JSON" > "${OUTPUT_JSON}.tmp" && mv "${OUTPUT_JSON}.tmp" "$OUTPUT_JSON"
+fi
+
+# Validate JSON is well-formed
+if ! jq empty "$OUTPUT_JSON" 2>/dev/null; then
+    echo "Error: Generated invalid JSON" >&2
+    exit 1
+fi
 
 echo "Structure analysis complete"
 echo "Structure type: $structure_type"

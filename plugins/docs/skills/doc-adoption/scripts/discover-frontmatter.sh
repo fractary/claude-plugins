@@ -181,40 +181,82 @@ if [ $has_title -gt 0 ] && [ $has_type -gt 0 ]; then
     codex_ready=true
 fi
 
-# Build output JSON
-discovery_date=$(date "+%Y-%m-%d %H:%M:%S")
+# Build output JSON using jq for safe construction
+discovery_date=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
 
-cat > "$OUTPUT_JSON" <<EOF
-{
-  "schema_version": "1.0",
-  "discovery_date": "$discovery_date",
-  "total_files": $TOTAL_FILES,
-  "with_frontmatter": $with_frontmatter,
-  "without_frontmatter": $without_frontmatter,
-  "coverage_percentage": $coverage_pct,
-  "format": {
-    "primary": "$format_primary",
-    "consistency": "$format_consistency",
-    "yaml_count": $format_yaml,
-    "toml_count": $format_toml,
-    "none_count": $format_none
-  },
-  "common_fields": $common_fields_json,
-  "codex_integration": {
-    "ready": $codex_ready,
-    "has_title_field": $((has_title > 0)),
-    "has_type_field": $((has_type > 0)),
-    "has_tags_field": $((has_tags > 0)),
-    "has_codex_sync_field": $((has_codex_sync > 0))
-  },
-  "files": $files_json,
-  "recommendations": {
-    "action": "$([ $without_frontmatter -gt 0 ] && echo "Add front matter to $without_frontmatter files" || echo "Front matter coverage is complete")",
-    "format": "$([ "$format_consistency" = "mixed" ] && echo "Standardize on $format_primary format" || echo "Format is consistent")",
-    "codex": "$([ "$codex_ready" = "false" ] && echo "Add title and type fields for codex integration" || echo "Ready for codex integration")"
-  }
-}
-EOF
+# Generate recommendations
+action_rec=$([ $without_frontmatter -gt 0 ] && echo "Add front matter to $without_frontmatter files" || echo "Front matter coverage is complete")
+format_rec=$([ "$format_consistency" = "mixed" ] && echo "Standardize on $format_primary format" || echo "Format is consistent")
+codex_rec=$([ "$codex_ready" = "false" ] && echo "Add title and type fields for codex integration" || echo "Ready for codex integration")
+
+# Use jq to construct base JSON safely
+jq -n \
+  --arg schema_version "1.0" \
+  --arg discovery_date "$discovery_date" \
+  --argjson total_files "$TOTAL_FILES" \
+  --argjson with_frontmatter "$with_frontmatter" \
+  --argjson without_frontmatter "$without_frontmatter" \
+  --argjson coverage_pct "$coverage_pct" \
+  --arg format_primary "$format_primary" \
+  --arg format_consistency "$format_consistency" \
+  --argjson format_yaml "$format_yaml" \
+  --argjson format_toml "$format_toml" \
+  --argjson format_none "$format_none" \
+  --argjson codex_ready "$codex_ready" \
+  --argjson has_title "$((has_title > 0))" \
+  --argjson has_type "$((has_type > 0))" \
+  --argjson has_tags "$((has_tags > 0))" \
+  --argjson has_codex_sync "$((has_codex_sync > 0))" \
+  --arg action_rec "$action_rec" \
+  --arg format_rec "$format_rec" \
+  --arg codex_rec "$codex_rec" \
+  '{
+    schema_version: $schema_version,
+    discovery_date: $discovery_date,
+    total_files: $total_files,
+    with_frontmatter: $with_frontmatter,
+    without_frontmatter: $without_frontmatter,
+    coverage_percentage: $coverage_pct,
+    format: {
+      primary: $format_primary,
+      consistency: $format_consistency,
+      yaml_count: $format_yaml,
+      toml_count: $format_toml,
+      none_count: $format_none
+    },
+    common_fields: [],
+    codex_integration: {
+      ready: $codex_ready,
+      has_title_field: $has_title,
+      has_type_field: $has_type,
+      has_tags_field: $has_tags,
+      has_codex_sync_field: $has_codex_sync
+    },
+    files: [],
+    recommendations: {
+      action: $action_rec,
+      format: $format_rec,
+      codex: $codex_rec
+    }
+  }' > "$OUTPUT_JSON"
+
+# Merge in common_fields array (already valid JSON)
+if [ -n "$common_fields_json" ] && [ "$common_fields_json" != "[
+  ]" ]; then
+  jq --argjson fields "$common_fields_json" '.common_fields = $fields' "$OUTPUT_JSON" > "${OUTPUT_JSON}.tmp" && mv "${OUTPUT_JSON}.tmp" "$OUTPUT_JSON"
+fi
+
+# Merge in files array (already valid JSON)
+if [ -n "$files_json" ] && [ "$files_json" != "[
+  ]" ]; then
+  jq --argjson files "$files_json" '.files = $files' "$OUTPUT_JSON" > "${OUTPUT_JSON}.tmp" && mv "${OUTPUT_JSON}.tmp" "$OUTPUT_JSON"
+fi
+
+# Validate JSON is well-formed
+if ! jq empty "$OUTPUT_JSON" 2>/dev/null; then
+    echo "Error: Generated invalid JSON" >&2
+    exit 1
+fi
 
 echo "Front matter analysis complete"
 echo "Coverage: $with_frontmatter/$TOTAL_FILES ($coverage_pct%)"

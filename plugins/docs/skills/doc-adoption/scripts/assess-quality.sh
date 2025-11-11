@@ -62,14 +62,14 @@ calculate_quality_score() {
     echo "$score"
 }
 
-# Process all files
+# Process all files using jq for safe JSON construction
 total_score=0
 high_quality=0
 medium_quality=0
 low_quality=0
 
-files_json="["
-first=true
+# Build array of file scores
+scores_array=()
 
 while IFS= read -r file_path; do
     [ -z "$file_path" ] && continue
@@ -84,36 +84,56 @@ while IFS= read -r file_path; do
     else ((low_quality++)) || true
     fi
 
-    if [ "$first" = true ]; then first=false; else files_json+=","; fi
-
-    files_json+="
-    {\"path\": \"$file_path\", \"quality_score\": $score}"
+    # Add to scores array for jq processing
+    scores_array+=("$file_path:$score")
 done < <(jq -r '.files[].path' "$DISCOVERY_DOCS")
 
-files_json+="
-  ]"
-
 avg_score=$((TOTAL_FILES > 0 ? total_score / TOTAL_FILES : 0))
-discovery_date=$(date "+%Y-%m-%d %H:%M:%S")
+discovery_date=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
 
-cat > "$OUTPUT_JSON" <<EOF
-{
-  "schema_version": "1.0",
-  "discovery_date": "$discovery_date",
-  "total_files": $TOTAL_FILES,
-  "average_quality_score": $avg_score,
-  "distribution": {
-    "high_quality": $high_quality,
-    "medium_quality": $medium_quality,
-    "low_quality": $low_quality
-  },
-  "files": $files_json,
-  "recommendations": [
-    "$([ $low_quality -gt 0 ] && echo "Improve $low_quality low-quality documents" || echo "Documentation quality is good")",
-    "$([ $avg_score -lt 7 ] && echo "Add more structure and cross-references" || echo "Maintain current quality standards")"
-  ]
-}
-EOF
+# Generate recommendations
+rec1=$([ $low_quality -gt 0 ] && echo "Improve $low_quality low-quality documents" || echo "Documentation quality is good")
+rec2=$([ $avg_score -lt 7 ] && echo "Add more structure and cross-references" || echo "Maintain current quality standards")
+
+# Use jq to construct JSON safely
+jq -n \
+  --arg schema_version "1.0" \
+  --arg discovery_date "$discovery_date" \
+  --argjson total_files "$TOTAL_FILES" \
+  --argjson avg_score "$avg_score" \
+  --argjson high_quality "$high_quality" \
+  --argjson medium_quality "$medium_quality" \
+  --argjson low_quality "$low_quality" \
+  --arg rec1 "$rec1" \
+  --arg rec2 "$rec2" \
+  '{
+    schema_version: $schema_version,
+    discovery_date: $discovery_date,
+    total_files: $total_files,
+    average_quality_score: $avg_score,
+    distribution: {
+      high_quality: $high_quality,
+      medium_quality: $medium_quality,
+      low_quality: $low_quality
+    },
+    files: [],
+    recommendations: [$rec1, $rec2]
+  }' > "$OUTPUT_JSON"
+
+# Add file scores to JSON using jq
+for item in "${scores_array[@]}"; do
+    file_path="${item%:*}"
+    score="${item##*:}"
+    jq --arg path "$file_path" --argjson score "$score" \
+       '.files += [{path: $path, quality_score: $score}]' \
+       "$OUTPUT_JSON" > "${OUTPUT_JSON}.tmp" && mv "${OUTPUT_JSON}.tmp" "$OUTPUT_JSON"
+done
+
+# Validate JSON is well-formed
+if ! jq empty "$OUTPUT_JSON" 2>/dev/null; then
+    echo "Error: Generated invalid JSON" >&2
+    exit 1
+fi
 
 echo "Quality assessment complete: Average score $avg_score/10"
 echo "Output: $OUTPUT_JSON"

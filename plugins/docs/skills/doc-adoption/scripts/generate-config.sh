@@ -36,53 +36,77 @@ frontmatter_format=$(jq -r '.format.primary' "$DISCOVERY_FRONTMATTER" 2>/dev/nul
 
 codex_ready=$(jq -r '.codex_integration.ready' "$DISCOVERY_FRONTMATTER" 2>/dev/null || echo "false")
 
-# Generate configuration
-cat > "$OUTPUT_JSON" <<EOF
-{
-  "schema_version": "1.0",
-  "output_paths": {
-    "documentation": "$docs_dir",
-    "adrs": "$adr_path",
-    "designs": "$design_path",
-    "runbooks": "$runbook_path",
-    "api_docs": "$api_path",
-    "guides": "$docs_dir/guides",
-    "testing": "$docs_dir/testing",
-    "deployments": "$docs_dir/deployments"
-  },
-  "templates": {
-    "custom_template_dir": null,
-    "use_project_templates": true
-  },
-  "frontmatter": {
-    "always_include": true,
-    "codex_sync": true,
-    "default_fields": {
-      "author": "Claude Code",
-      "generated": true
-    }
-  },
-  "validation": {
-    "lint_on_generate": true,
-    "check_links_on_generate": false,
-    "required_sections": {
-      "adr": ["Status", "Context", "Decision", "Consequences"],
-      "design": ["Overview", "Architecture", "Implementation"],
-      "runbook": ["Purpose", "Prerequisites", "Steps", "Troubleshooting"],
-      "api-spec": ["Overview", "Endpoints", "Authentication"],
-      "test-report": ["Summary", "Test Cases", "Results"],
-      "deployment": ["Overview", "Infrastructure", "Deployment Steps"]
+# Generate configuration using jq for safe JSON construction
+jq -n \
+  --arg schema_version "1.0" \
+  --arg docs_dir "$docs_dir" \
+  --arg adr_path "$adr_path" \
+  --arg design_path "$design_path" \
+  --arg runbook_path "$runbook_path" \
+  --arg api_path "$api_path" \
+  --arg guides_path "$docs_dir/guides" \
+  --arg testing_path "$docs_dir/testing" \
+  --arg deployments_path "$docs_dir/deployments" \
+  '{
+    schema_version: $schema_version,
+    hooks: {
+      pre_generate: null,
+      post_generate: null,
+      pre_validate: null,
+      post_validate: null,
+      pre_update: null,
+      post_update: null
     },
-    "status_values": {
-      "adr": ["proposed", "accepted", "deprecated", "superseded"]
+    output_paths: {
+      documentation: $docs_dir,
+      adrs: $adr_path,
+      designs: $design_path,
+      runbooks: $runbook_path,
+      api_docs: $api_path,
+      guides: $guides_path,
+      testing: $testing_path,
+      deployments: $deployments_path
+    },
+    templates: {
+      custom_template_dir: null,
+      use_project_templates: true
+    },
+    frontmatter: {
+      always_include: true,
+      codex_sync: true,
+      default_fields: {
+        author: "Claude Code",
+        generated: true
+      }
+    },
+    validation: {
+      lint_on_generate: true,
+      check_links_on_generate: false,
+      custom_rules_script: null,
+      project_standards_doc: null,
+      required_sections: {
+        adr: ["Status", "Context", "Decision", "Consequences"],
+        design: ["Overview", "Architecture", "Implementation"],
+        runbook: ["Purpose", "Prerequisites", "Steps", "Troubleshooting"],
+        "api-spec": ["Overview", "Endpoints", "Authentication"],
+        "test-report": ["Summary", "Test Cases", "Results"],
+        deployment: ["Overview", "Infrastructure", "Deployment Steps"]
+      },
+      status_values: {
+        adr: ["proposed", "accepted", "deprecated", "superseded"]
+      }
+    },
+    linking: {
+      auto_update_index: true,
+      check_broken_links: true,
+      generate_graph: true
     }
-  },
-  "linking": {
-    "auto_update_index": true,
-    "check_broken_links": true,
-    "generate_graph": true
-  }
-}
-EOF
+  }' > "$OUTPUT_JSON"
+
+# Validate JSON is well-formed
+if ! jq empty "$OUTPUT_JSON" 2>/dev/null; then
+    echo "Error: Generated invalid JSON" >&2
+    exit 1
+fi
 
 echo "Configuration generated: $OUTPUT_JSON"
