@@ -60,7 +60,11 @@ This command follows the standard space-separated syntax:
 
 ## What This Does
 
-### Documentation Audit Workflow
+### Two-Phase Interactive Audit Workflow
+
+**IMPORTANT**: This command uses a two-phase workflow with mandatory user approval:
+
+#### Phase 1: Analysis & Presentation (Automatic)
 
 1. **Load Configuration & Standards**
    - Load fractary-docs configuration
@@ -78,15 +82,28 @@ This command follows the standard space-separated syntax:
    - **Project standards**: Custom rules from project standards doc
    - Identify compliance gaps and issues
 
-4. **Generate Remediation Specification**
-   - Prioritize issues (high, medium, low)
+4. **Present Findings for Review**
+   - Show detailed findings and proposed actions
+   - Display priority breakdown (high, medium, low)
+   - Estimate effort required
+   - **PAUSE for user approval**
+
+#### Phase 2: Specification Generation (After Approval)
+
+5. **Generate Remediation Specification** (Only if approved)
    - Create actionable remediation plan
    - **Uses fractary-spec plugin** if available for standardized spec
    - Include executable commands and verification steps
+   - Save to `.fractary/audit/REMEDIATION-SPEC.md`
 
-5. **Optional Execution** (if --execute flag)
+6. **Optional Execution** (if --execute flag)
    - Execute high-priority remediations automatically
    - Report results
+
+**User Options After Phase 1:**
+- **Approve**: Generate the spec as proposed
+- **Revise**: Provide feedback to adjust the proposed actions
+- **Cancel**: Stop without generating spec (findings saved for reference)
 
 ## Output
 
@@ -190,6 +207,8 @@ cat .fractary/audit/REMEDIATION-SPEC.md
 
 ## Interactive Workflow
 
+### Phase 1: Analysis & Presentation
+
 ```
 Step 1: Loading Configuration
   📖 Configuration: .fractary/plugins/docs/config/config.json
@@ -209,19 +228,36 @@ Step 3: Analysis
   📊 Prioritizing actions...
   ✅ Analysis complete
 
-Step 4: Spec Generation
-  📝 Generating remediation spec...
-  📝 Using fractary-spec plugin ✓
-  📝 Creating actionable plan...
-  ✅ REMEDIATION-SPEC.md generated
-
-Step 5: Summary
-  📋 Audit Results:
+Step 4: Findings Presentation
+  📋 Audit Findings:
      - Total Documents: 23
      - Issues Found: 12 (5 high, 5 medium, 2 low)
      - Quality Score: 7.2/10
      - Compliance: 68%
 
+  📋 Proposed Remediation Actions:
+     [Detailed list of actions by priority]
+
+  ⏱️ Estimated Effort: 8 hours
+
+  💡 Waiting for User Decision:
+     1. Approve → Generate spec
+     2. Revise → Adjust actions
+     3. Cancel → Stop here
+
+  ⏸️  PAUSED - Awaiting your approval
+```
+
+### Phase 2: Specification Generation (After User Approves)
+
+```
+Step 5: Spec Generation
+  📝 User approved - generating remediation spec...
+  📝 Using fractary-spec plugin ✓
+  📝 Creating actionable plan...
+  ✅ REMEDIATION-SPEC.md generated
+
+Step 6: Final Summary
   📁 Outputs:
      - Spec: .fractary/audit/REMEDIATION-SPEC.md
      - Reports: .fractary/audit/discovery-*.json
@@ -230,6 +266,33 @@ Step 5: Summary
      1. Review remediation spec
      2. Follow implementation plan
      3. Verify with /fractary-docs:validate
+```
+
+## Revision Workflow
+
+If you want to adjust the proposed remediation actions after seeing Phase 1 findings:
+
+1. **Review the findings**: Examine the proposed actions, priorities, and estimated effort
+2. **Provide feedback**: Tell Claude what you'd like to adjust:
+   - Change priority of specific actions
+   - Remove actions that aren't needed
+   - Add additional remediation actions
+   - Adjust scope or approach
+3. **Approve revised plan**: Once you're satisfied with the adjustments
+4. **Generate spec**: Claude will then generate the spec with your revisions
+
+**Example revision conversation:**
+```
+You: I'd like to revise the plan. Can we:
+     1. Move "Add missing ADR sections" from high to medium priority
+     2. Remove the action to reorganize all files (too disruptive right now)
+     3. Add an action to set up automated validation
+
+Claude: [Presents revised plan with your changes]
+
+You: That looks good, please generate the spec
+
+Claude: [Generates spec with revised actions]
 ```
 
 ## Use Cases

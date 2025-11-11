@@ -45,6 +45,27 @@ You generate specifications that can be followed to bring documentation into com
 </INPUTS>
 
 <WORKFLOW>
+
+**IMPORTANT: Two-Phase Interactive Workflow**
+
+This skill executes in TWO phases with a mandatory user approval step:
+
+**Phase 1: Analysis & Presentation** (Steps 1-6)
+- Discover documentation state
+- Analyze against standards
+- Identify issues and remediation actions
+- Present findings to user for review
+- **STOP and wait for approval**
+
+**Phase 2: Specification Generation** (Steps 7-8)
+- **ONLY execute after explicit user approval**
+- Generate formal remediation specification
+- Present final summary
+
+**CRITICAL**: Never skip the approval step in Step 6. Always present findings first and wait for user to approve, revise, or cancel.
+
+---
+
 ## Step 1: Check for Spec Plugin
 
 Check if fractary-spec plugin is available:
@@ -116,7 +137,70 @@ For each issue identified, create remediation action:
 - MEDIUM: Organization, structure, best practices
 - LOW: Nice-to-haves, optimizations
 
-## Step 6: Generate Remediation Specification
+## Step 6: Present Findings to User
+
+**CRITICAL: This is an interactive approval step.**
+
+Present the audit findings and proposed remediation actions to the user for review:
+
+```
+═══════════════════════════════════════════════════════════
+📊 DOCUMENTATION AUDIT FINDINGS
+═══════════════════════════════════════════════════════════
+
+📄 DOCUMENTATION INVENTORY
+  Total Files: {count}
+  By Type: ADRs: {n}, Designs: {n}, Runbooks: {n}, Other: {n}
+
+📊 COMPLIANCE STATUS
+  Front Matter Coverage: {percentage}% ({with}/{total})
+  Quality Score: {score}/10
+  Organization: {status}
+
+⚠️ ISSUES IDENTIFIED
+  High Priority: {count}
+  Medium Priority: {count}
+  Low Priority: {count}
+
+📋 PROPOSED REMEDIATION ACTIONS
+
+### High Priority ({count} actions)
+1. [Action description with affected files]
+2. [Action description with affected files]
+...
+
+### Medium Priority ({count} actions)
+1. [Action description with affected files]
+...
+
+### Low Priority ({count} actions)
+1. [Action description with affected files]
+...
+
+⏱️ ESTIMATED EFFORT
+  High Priority: {hours} hours
+  Medium Priority: {hours} hours
+  Low Priority: {hours} hours
+  Total: {total_hours} hours
+
+═══════════════════════════════════════════════════════════
+
+Would you like me to generate a formal remediation specification with these actions?
+
+You can:
+1. **Approve**: Generate the spec as proposed
+2. **Revise**: Provide feedback to adjust the actions
+3. **Cancel**: Stop without generating spec
+═══════════════════════════════════════════════════════════
+```
+
+**STOP HERE and wait for user response.**
+
+Do NOT proceed to spec generation until user explicitly approves.
+
+## Step 7: Generate Remediation Specification (After Approval)
+
+**ONLY execute this step if user approves the findings in Step 6.**
 
 **If fractary-spec plugin available:**
 
@@ -286,9 +370,9 @@ cat > {output_dir}/REMEDIATION-SPEC.md <<'EOF'
 EOF
 ```
 
-## Step 7: Present Summary to User
+## Step 8: Present Final Summary to User (After Spec Generation)
 
-Display audit summary:
+Display audit completion summary:
 
 ```
 ═══════════════════════════════════════════════════════════
@@ -334,23 +418,65 @@ Next: Review and follow remediation spec
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
-Audit is complete when:
+
+**Phase 1 Complete When:**
 - All discovery scripts have executed
 - Documentation analyzed against standards
 - Remediation actions identified and prioritized
+- Findings presented to user in structured format
+- User prompted for approval/revision/cancellation
+- **Skill pauses and waits for user response**
+
+**Phase 2 Complete When (After User Approval):**
 - Specification generated (via spec-manager or direct)
-- Summary presented to user
+- Final summary presented to user
 - Next steps provided
+- Spec file path confirmed
+
+**If User Cancels:**
+- No spec is generated
+- Findings remain available for reference
+- Discovery reports saved for future use
+
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-Return structured results:
 
-**Success Response:**
+**Phase 1 Output (Findings Presentation):**
 ```json
 {
   "success": true,
   "operation": "audit",
+  "phase": "findings_presentation",
+  "result": {
+    "total_files": 23,
+    "issues": {
+      "high": 5,
+      "medium": 7,
+      "low": 3,
+      "total": 15
+    },
+    "quality_score": 6.2,
+    "compliance_percentage": 45,
+    "estimated_hours": 8,
+    "discovery_reports": [
+      ".fractary/audit/discovery-docs.json",
+      ".fractary/audit/discovery-structure.json",
+      ".fractary/audit/discovery-frontmatter.json",
+      ".fractary/audit/discovery-quality.json"
+    ],
+    "awaiting_user_approval": true
+  },
+  "timestamp": "2025-01-15T12:00:00Z"
+}
+```
+
+**Phase 2 Output (After Spec Generation):**
+```json
+{
+  "success": true,
+  "operation": "audit",
+  "phase": "spec_generation_complete",
   "result": {
     "total_files": 23,
     "issues": {
@@ -379,6 +505,28 @@ Return structured results:
   "timestamp": "2025-01-15T12:00:00Z"
 }
 ```
+
+**User Cancelled Response:**
+```json
+{
+  "success": true,
+  "operation": "audit",
+  "phase": "cancelled_by_user",
+  "result": {
+    "total_files": 23,
+    "issues": {
+      "high": 5,
+      "medium": 7,
+      "low": 3,
+      "total": 15
+    },
+    "discovery_reports_available": true,
+    "note": "Spec generation cancelled by user. Discovery reports available for future reference."
+  },
+  "timestamp": "2025-01-15T12:00:00Z"
+}
+```
+
 </OUTPUTS>
 
 <ERROR_HANDLING>
