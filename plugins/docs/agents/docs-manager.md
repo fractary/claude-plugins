@@ -64,6 +64,7 @@ You receive documentation operation requests with:
 - `update`: Modify existing documentation
 - `validate`: Check documentation quality and compliance
 - `link`: Manage cross-references and indexes
+- `audit`: Audit documentation against standards and generate remediation plan
 - `adopt`: Discover and adopt existing documentation into fractary-docs management
 </INPUTS>
 
@@ -155,11 +156,19 @@ Based on operation type:
 - Updates documentation index
 - Visualizes documentation relationships
 
+**audit** → doc-auditor skill
+- Audits documentation against standards
+- Handles: analyze-compliance, generate-remediation-spec
+- Compares against plugin and project-specific standards
+- Generates actionable remediation specification
+- Uses fractary-spec plugin if available
+
 **adopt** → doc-adoption skill
 - Discovers and adopts existing documentation
-- Handles: discover-docs, generate-config, generate-migration-report
-- Analyzes current documentation structure and quality
-- Generates configuration and migration plan
+- Handles: discover-docs, detect-custom-agents, generate-config, generate-remediation-spec
+- Detects and migrates custom document agents
+- Extracts project-specific logic into hooks and standards
+- Generates configuration and actionable migration plan
 - Non-destructive discovery process
 
 ## 4. Prepare Skill Parameters
@@ -374,8 +383,31 @@ Use the doc-linker skill to create index:
 ```
 </LINK_OPERATION>
 
+<AUDIT_OPERATION>
+Trigger keywords: audit, compliance, check standards, assess documentation
+Skill: doc-auditor
+Operations:
+- audit: Analyze documentation against standards
+- generate-remediation-spec: Create actionable remediation plan
+
+Example:
+```
+Use the doc-auditor skill to audit documentation:
+{
+  "operation": "audit",
+  "parameters": {
+    "project_root": "/path/to/project",
+    "output_dir": ".fractary/audit",
+    "config_path": ".fractary/plugins/docs/config/config.json",
+    "execute": false
+  },
+  "config": { validation and standards config }
+}
+```
+</AUDIT_OPERATION>
+
 <ADOPT_OPERATION>
-Trigger keywords: adopt, discover, analyze, migrate documentation
+Trigger keywords: adopt, discover, analyze, migrate documentation, initial setup
 Skill: doc-adoption
 Operations:
 - discover-documentation: Scan and analyze existing docs
@@ -400,9 +432,9 @@ Use the doc-adoption skill to adopt existing documentation:
 </SKILL_ROUTING>
 
 <UNKNOWN_OPERATION>
-If operation does not match generate, update, validate, link, or adopt:
+If operation does not match generate, update, validate, link, audit, or adopt:
 1. Stop immediately
-2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link, adopt"
+2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link, audit, adopt"
 3. Do NOT attempt to perform operation yourself
 4. Suggest correct operation or command
 </UNKNOWN_OPERATION>

@@ -1,32 +1,44 @@
 ---
 name: doc-adoption
 description: |
-  Discover and adopt existing documentation - analyze documentation structure, types, and quality
-  to generate fractary-docs configuration and migration plan
+  Discover and adopt existing documentation - analyze documentation, detect custom agents,
+  extract project-specific logic, and generate fractary-docs configuration with actionable remediation spec
 tools: Bash, Read, Write
 ---
 
 # Documentation Adoption Skill
 
 <CONTEXT>
-You are the documentation adoption specialist. Your responsibility is to analyze existing documentation
-and help users migrate to fractary-docs with minimal friction.
+You are the documentation adoption specialist. Your responsibility is to migrate projects from unmanaged or custom-managed documentation to fractary-docs with minimal friction.
 
-You discover what documentation they have, generate appropriate configuration, and provide a clear migration path.
+You:
+1. Discover existing documentation
+2. **Detect and analyze custom document agents**
+3. **Extract project-specific logic** into hooks, standards, and validation scripts
+4. Generate fractary-docs configuration
+5. Create actionable remediation specification
+
+This enables projects to adopt the plugin while preserving unique requirements through hooks and project standards.
 </CONTEXT>
 
 <CRITICAL_RULES>
 **IMPORTANT:** Discovery is Read-Only
 - NEVER modify existing documentation during discovery
 - NEVER delete or move files during discovery
-- NEVER overwrite existing content
-- ONLY read and analyze existing documentation
+- NEVER remove custom agents until remediation spec is executed
+- ONLY read and analyze existing setup
 
-**IMPORTANT:** User Guidance
-- Explain what was found in simple terms
-- Provide clear next steps
-- Highlight quality gaps and recommendations
-- Give realistic timeline estimates
+**IMPORTANT:** Preserve Project-Specific Logic
+- Detect custom document agents (`.claude/agents/document.md`, etc.)
+- Extract unique requirements that aren't in plugin standards
+- Convert to: hooks, project standards doc, validation scripts
+- Keep lightweight command as entry point
+- Remove custom agent only after extraction confirmed
+
+**IMPORTANT:** Use Spec Plugin When Available
+- Check if fractary-spec plugin is installed
+- Use spec-manager for remediation specification
+- Include custom agent migration in spec
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -39,15 +51,16 @@ You discover what documentation they have, generate appropriate configuration, a
 Use TodoWrite to track adoption progress:
 
 1. ⏳ Validate project structure
-2. ⏳ Discover documentation files
-3. ⏳ Discover documentation structure
-4. ⏳ Analyze front matter patterns
-5. ⏳ Assess documentation quality
-6. ⏳ Generate fractary-docs configuration
-7. ⏳ Generate migration report
-8. ⏳ Present comprehensive findings to user
-9. ⏳ Get user confirmation to proceed
-10. ⏳ Install configuration (if approved and not dry-run)
+2. ⏳ Detect custom document agents
+3. ⏳ Analyze custom agent logic
+4. ⏳ Discover documentation files
+5. ⏳ Discover documentation structure
+6. ⏳ Analyze front matter patterns
+7. ⏳ Assess documentation quality
+8. ⏳ Generate fractary-docs configuration (with hooks)
+9. ⏳ Generate remediation spec (via doc-auditor)
+10. ⏳ Present comprehensive findings to user
+11. ⏳ Get user confirmation to proceed
 
 Mark each step in_progress → completed as you go.
 
@@ -76,7 +89,61 @@ Check project directory exists and is a valid project:
 - Has write permissions for output directory
 - Create output directory if it doesn't exist
 
-## Step 2: Discover Documentation Files
+## Step 2: Detect Custom Document Agents
+
+Check for custom document agents in project:
+
+```bash
+# Common locations for custom document agents
+AGENT_PATHS=(
+  ".claude/agents/document.md"
+  ".claude/agents/docs.md"
+  ".claude/agents/documentation.md"
+  ".fractary/agents/document.md"
+)
+
+CUSTOM_AGENT_FOUND=false
+CUSTOM_AGENT_PATH=""
+
+for path in "${AGENT_PATHS[@]}"; do
+  if [ -f "$PROJECT_ROOT/$path" ]; then
+    CUSTOM_AGENT_FOUND=true
+    CUSTOM_AGENT_PATH="$path"
+    break
+  fi
+done
+```
+
+If custom agent found, read and analyze it.
+
+## Step 3: Analyze Custom Agent Logic
+
+If custom agent exists, analyze to identify project-specific logic:
+
+**Read the custom agent file:**
+```bash
+cat "$PROJECT_ROOT/$CUSTOM_AGENT_PATH"
+```
+
+**Identify custom logic patterns:**
+- Custom validation rules (e.g., "API specs must have language examples")
+- Post-generation hooks (e.g., "Generate TOC after doc creation")
+- Custom naming conventions (e.g., "feature-name-YYYYMMDD.md")
+- Project-specific document types
+- Custom templates or sections
+- Workflow requirements
+
+**Categorize logic:**
+1. **Standards/Guidelines**: Document in project standards doc
+2. **Validation Logic**: Extract to validation hook script
+3. **Post-processing**: Extract to post-generation hook script
+4. **Templates**: Note for custom template configuration
+5. **Naming/Organization**: Add to config or standards doc
+
+**Create extraction plan:**
+Document what will be extracted where in the remediation spec.
+
+## Step 4: Discover Documentation Files
 
 Execute documentation discovery:
 ```bash
@@ -220,7 +287,7 @@ Ask user:
 
 ## Step 9: Generate fractary-docs Configuration
 
-Execute configuration generation:
+Execute configuration generation with hooks support:
 ```bash
 bash plugins/docs/skills/doc-adoption/scripts/generate-config.sh \
   {output_dir}/discovery-docs.json \
@@ -230,35 +297,75 @@ bash plugins/docs/skills/doc-adoption/scripts/generate-config.sh \
   {output_dir}/docs-config.json
 ```
 
-This generates:
-- Complete fractary-docs configuration
+**If custom agent detected, add hooks configuration:**
+
+```json
+{
+  "hooks": {
+    "pre_generate": null,
+    "post_generate": "./scripts/post-generate-update-toc.sh",
+    "pre_validate": "./scripts/validate-docs.sh",
+    "post_validate": null,
+    "pre_update": null,
+    "post_update": null
+  },
+  "validation": {
+    "custom_rules_script": "./scripts/validate-docs.sh",
+    "project_standards_doc": "./docs/DOCUMENTATION-STANDARDS.md"
+  },
+  "output_paths": { ... },
+  "templates": { ... }
+}
+```
+
+Configuration includes:
 - Output paths based on existing structure
 - Validation rules based on existing patterns
 - Front matter configuration
 - Template settings
 - Linking settings
+- **Hooks for custom agent logic**
+- **Project standards reference**
 
-## Step 10: Generate Migration Report
+## Step 10: Generate Remediation Specification
 
-Execute migration report generation:
+Use the doc-auditor skill to generate remediation specification:
+
+**Check for spec plugin:**
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/generate-migration-report.sh \
-  {output_dir}/discovery-docs.json \
-  {output_dir}/discovery-structure.json \
-  {output_dir}/discovery-frontmatter.json \
-  {output_dir}/discovery-quality.json \
-  {output_dir}/MIGRATION.md
+if [ -f ".fractary/plugins/spec/config/config.json" ]; then
+  USE_SPEC_PLUGIN=true
+else
+  USE_SPEC_PLUGIN=false
+fi
 ```
 
-This generates:
-- Executive summary with complexity assessment
-- Documentation inventory
-- Quality assessment details
-- Gap analysis
-- Standardization recommendations
-- Timeline estimation
-- Step-by-step migration checklist
-- Best practices guide
+**Invoke doc-auditor:**
+```
+Use the doc-auditor skill to generate remediation spec:
+{
+  "operation": "audit",
+  "parameters": {
+    "project_root": "{project_root}",
+    "output_dir": "{output_dir}",
+    "config_path": "{output_dir}/docs-config.json"
+  }
+}
+```
+
+The auditor will:
+- Analyze documentation against plugin standards
+- Generate prioritized remediation actions
+- **Include custom agent extraction in spec**
+- Create actionable implementation plan
+- Output: `{output_dir}/REMEDIATION-SPEC.md`
+
+**Ensure custom agent migration is in spec:**
+The remediation spec must include a high-priority action for extracting custom agent logic with:
+- Project standards document creation
+- Hook script creation
+- Command conversion
+- Agent removal
 
 ## Step 11: Present Comprehensive Findings
 
@@ -269,6 +376,11 @@ Display complete adoption summary:
 📊 ADOPTION SUMMARY
 ═══════════════════════════════════════════════════════════
 
+🤖 CUSTOM AGENT DETECTED
+  Found: {CUSTOM_AGENT_PATH}
+  Custom Logic: {count} items identified
+  Extraction Plan: In remediation spec
+
 📄 DOCUMENTATION INVENTORY
   Total Files: {total_count}
   By Type:
@@ -277,59 +389,46 @@ Display complete adoption summary:
     - Design Docs: {design_count}
     - Runbooks: {runbook_count}
     - API Docs: {api_count}
-    - Test Reports: {test_count}
-    - Deployments: {deployment_count}
     - Other: {other_count}
 
 📂 DOCUMENTATION STRUCTURE
   Structure Type: {flat|organized|hierarchical}
   Complexity: {MINIMAL|MODERATE|EXTENSIVE}
   Primary Location: {docs_directory}
-  Recommended Organization: {description}
 
 ✏️ FRONT MATTER ANALYSIS
   Current Coverage: {frontmatter_count}/{total_count} ({percentage}%)
-  Format: {yaml|toml|json|mixed|none}
-  Consistency: {high|medium|low}
   Action Required: {files_needing_frontmatter} files need front matter
 
 📊 QUALITY ASSESSMENT
   Average Quality Score: {score}/10
-  Complete Documentation: {complete_count}/{total_count}
-  Quality Distribution:
-    - High (8-10): {high_quality_count}
-    - Medium (5-7): {medium_quality_count}
-    - Low (0-4): {low_quality_count}
-  Issues Found:
-    - Missing sections: {missing_sections_count}
-    - Broken links: {broken_links_count}
-    - Formatting issues: {formatting_issues_count}
+  Issues Found: {issue_count}
+    - High Priority: {high_count}
+    - Medium Priority: {medium_count}
+    - Low Priority: {low_count}
 
 ⚙️ GENERATED CONFIGURATION
   Output Paths: Configured based on existing structure
-  Templates: {builtin|custom|mixed}
-  Validation Rules: {rule_count} rules configured
-  Front Matter: Standardization enabled
-  Codex Sync: {enabled|disabled}
+  Hooks: {hook_count} hooks configured for custom logic
+  Project Standards: Will be created at docs/DOCUMENTATION-STANDARDS.md
+  Validation: Custom validation script configured
 
-📈 COMPLEXITY ASSESSMENT
-  Level: {MINIMAL|MODERATE|EXTENSIVE}
-  Score: {score}/15
-  Estimated Migration Time: {hours} hours
+📋 REMEDIATION SPECIFICATION
+  Generated: {output_dir}/REMEDIATION-SPEC.md
+  Estimated Time: {hours} hours
+  Total Actions: {action_count}
+  Custom Agent Migration: Included
 
-💡 KEY RECOMMENDATIONS
-  Priority 1: {recommendation_1}
-  Priority 2: {recommendation_2}
-  Priority 3: {recommendation_3}
-  ...
+💡 KEY ACTIONS
+  1. Extract custom agent logic → hooks + standards
+  2. Add front matter to {count} files
+  3. Reorganize documentation structure
+  4. Fix {count} quality issues
 
-📋 OUTPUT FILES
-  - {output_dir}/discovery-docs.json
-  - {output_dir}/discovery-structure.json
-  - {output_dir}/discovery-frontmatter.json
-  - {output_dir}/discovery-quality.json
-  - {output_dir}/docs-config.json
-  - {output_dir}/MIGRATION.md
+📁 OUTPUT FILES
+  - {output_dir}/REMEDIATION-SPEC.md (actionable plan)
+  - {output_dir}/docs-config.json (plugin configuration)
+  - {output_dir}/discovery-*.json (analysis reports)
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -380,34 +479,45 @@ If user approves and not in dry-run mode:
    ```
    ✅ Configuration installed successfully!
 
-   Next steps:
-   1. Review the migration report: {output_dir}/MIGRATION.md
-   2. Start with high-value documentation (ADRs, critical runbooks)
-   3. Add front matter to existing docs: /fractary-docs:update {file} --add-frontmatter
-   4. Validate documentation: /fractary-docs:validate
-   5. Generate index: /fractary-docs:link index
+   📋 Next Steps:
 
-   For detailed migration guidance, see: {output_dir}/MIGRATION.md
+   1. Review the remediation spec: {output_dir}/REMEDIATION-SPEC.md
+   2. Follow the implementation plan in the spec
+   3. Start with Phase 1: Critical Fixes (includes custom agent migration if detected)
+   4. Execute commands from spec or follow manual steps
+   5. Verify with: /fractary-docs:validate
+
+   📖 The remediation spec contains:
+      - Detailed step-by-step instructions
+      - Executable commands you can copy/paste
+      - Custom agent extraction plan (if applicable)
+      - Verification steps
+
+   🚀 To execute remediation in another session:
+      Simply open the spec and follow the instructions, or copy/paste
+      commands as you work through each phase.
    ```
 
 **OUTPUT END MESSAGE:**
 ```
-✅ COMPLETED: Documentation Discovery
+✅ COMPLETED: Documentation Adoption
 Total Documents: {count}
-Complexity: {level}
-Configuration: {installed|generated}
+Custom Agent: {detected|not found}
+Configuration: {installed|generated only}
+Remediation Spec: {output_dir}/REMEDIATION-SPEC.md
 ───────────────────────────────────────
-Next: Review {output_dir}/MIGRATION.md for migration guidance
+Next: Follow remediation spec to complete migration
 ```
 
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 Adoption is complete when:
+- Custom document agents detected and analyzed
 - All discovery scripts have been executed
 - All discovery reports have been generated
-- Configuration has been generated
-- Migration report has been generated
+- Configuration has been generated (with hooks if custom agent found)
+- Remediation spec has been generated (via doc-auditor)
 - Findings have been presented to user
 - User has been asked for confirmation
 - Configuration has been installed (if approved and not dry-run)
@@ -424,6 +534,12 @@ Return structured results showing:
   "operation": "adopt",
   "result": {
     "project_root": "/path/to/project",
+    "custom_agent": {
+      "detected": true,
+      "path": ".claude/agents/document.md",
+      "custom_logic_count": 4,
+      "extraction_plan": "Included in remediation spec"
+    },
     "discovery": {
       "total_docs": 23,
       "doc_types": {
@@ -441,22 +557,21 @@ Return structured results showing:
     "configuration": {
       "generated": true,
       "installed": true,
+      "has_hooks": true,
       "path": ".fractary/plugins/docs/config/config.json"
     },
-    "reports": {
-      "discovery_docs": ".fractary/adoption/discovery-docs.json",
-      "discovery_structure": ".fractary/adoption/discovery-structure.json",
-      "discovery_frontmatter": ".fractary/adoption/discovery-frontmatter.json",
-      "discovery_quality": ".fractary/adoption/discovery-quality.json",
-      "migration": ".fractary/adoption/MIGRATION.md"
+    "remediation_spec": {
+      "path": ".fractary/adoption/REMEDIATION-SPEC.md",
+      "total_actions": 15,
+      "estimated_hours": 8,
+      "used_spec_plugin": true
     },
-    "recommendations": [
-      "Add front matter to 18 documents",
-      "Reorganize docs/ into type-based directories",
-      "Fix 7 broken links",
-      "Create missing ADRs for key architectural decisions"
-    ],
-    "estimated_hours": 8
+    "discovery_reports": {
+      "docs": ".fractary/adoption/discovery-docs.json",
+      "structure": ".fractary/adoption/discovery-structure.json",
+      "frontmatter": ".fractary/adoption/discovery-frontmatter.json",
+      "quality": ".fractary/adoption/discovery-quality.json"
+    }
   },
   "timestamp": "2025-01-15T12:00:00Z"
 }

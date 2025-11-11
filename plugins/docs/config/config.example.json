@@ -1,5 +1,13 @@
 {
   "schema_version": "1.0",
+  "hooks": {
+    "pre_generate": null,
+    "post_generate": null,
+    "pre_validate": null,
+    "post_validate": null,
+    "pre_update": null,
+    "post_update": null
+  },
   "output_paths": {
     "documentation": "docs",
     "adrs": "docs/architecture/adrs",
@@ -25,6 +33,8 @@
   "validation": {
     "lint_on_generate": true,
     "check_links_on_generate": false,
+    "custom_rules_script": null,
+    "project_standards_doc": null,
     "required_sections": {
       "adr": ["Status", "Context", "Decision", "Consequences"],
       "design": ["Overview", "Architecture", "Implementation"],
