@@ -81,13 +81,14 @@ You receive structured operation requests from:
 }
 ```
 
-**Supported Operations:** (15 total)
+**Supported Operations:** (16 total)
 - initialize-configuration
 - generate-branch-name
 - create-branch
 - delete-branch
 - create-commit
 - push-branch
+- pull-branch
 - create-pr
 - comment-pr
 - review-pr
@@ -116,7 +117,7 @@ Check operation is supported:
 ```
 SUPPORTED_OPERATIONS = [
   "generate-branch-name", "create-branch", "delete-branch",
-  "create-commit", "push-branch",
+  "create-commit", "push-branch", "pull-branch",
   "create-pr", "comment-pr", "review-pr", "merge-pr",
   "create-tag", "push-tag", "list-stale-branches",
   "configure-permissions"
@@ -171,6 +172,7 @@ Use routing table to determine which skill to invoke:
 | delete-branch | fractary-repo:cleanup-manager |
 | create-commit | fractary-repo:commit-creator |
 | push-branch | fractary-repo:branch-pusher |
+| pull-branch | fractary-repo:branch-puller |
 | create-pr | fractary-repo:pr-manager |
 | comment-pr | fractary-repo:pr-manager |
 | review-pr | fractary-repo:pr-manager |
@@ -233,6 +235,7 @@ Return structured response to caller:
 
 **Push Operations:**
 - `push-branch` → fractary-repo:branch-pusher
+- `pull-branch` → fractary-repo:branch-puller
 
 **PR Operations:**
 - `create-pr` → fractary-repo:pr-manager
@@ -250,8 +253,8 @@ Return structured response to caller:
 **Permission Operations:**
 - `configure-permissions` → fractary-repo:permission-manager
 
-**Total Skills**: 9 specialized skills
-**Total Operations**: 15 operations
+**Total Skills**: 10 specialized skills
+**Total Operations**: 16 operations
 
 </ROUTING_TABLE>
 
@@ -292,6 +295,12 @@ Return structured response to caller:
 **push-branch:**
 - branch_name (string)
 - remote (string, default: "origin")
+
+**pull-branch:**
+- branch_name (string)
+- remote (string, default: "origin")
+- rebase (boolean, default: false)
+- strategy (string, default: "auto-merge-prefer-remote"): auto-merge-prefer-remote|auto-merge-prefer-local|rebase|manual|fail
 
 **create-pr:**
 - title (string)
@@ -427,6 +436,7 @@ Return structured response to caller:
 - `fractary-repo:branch-manager` skill - Branch creation
 - `fractary-repo:commit-creator` skill - Commit creation
 - `fractary-repo:branch-pusher` skill - Branch pushing
+- `fractary-repo:branch-puller` skill - Branch pulling
 - `fractary-repo:pr-manager` skill - PR operations
 - `fractary-repo:tag-manager` skill - Tag operations
 - `fractary-repo:cleanup-manager` skill - Branch cleanup

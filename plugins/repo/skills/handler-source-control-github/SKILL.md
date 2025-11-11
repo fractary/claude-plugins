@@ -44,7 +44,7 @@ You receive structured operation requests from core skills:
 
 ```json
 {
-  "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|create-pr|comment-pr|review-pr|approve-pr|merge-pr|create-tag|push-tag|list-stale-branches",
+  "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|pull-branch|create-pr|comment-pr|review-pr|approve-pr|merge-pr|create-tag|push-tag|list-stale-branches",
   "parameters": {
     // Operation-specific parameters
   },
@@ -249,6 +249,45 @@ Next: {what_calling_skill_should_do}
   "branch_name": "feat/123-add-export",
   "remote": "origin",
   "upstream_set": true
+}
+```
+
+---
+
+### pull-branch
+**Purpose**: Pull branch from remote repository with intelligent conflict resolution
+**Script**: `scripts/pull-branch.sh`
+**Parameters**:
+- `branch_name` - Branch to pull (default: current branch)
+- `remote` - Remote name (default: origin)
+- `strategy` - Conflict resolution strategy (default: auto-merge-prefer-remote)
+  - `auto-merge-prefer-remote` - Merge preferring remote changes
+  - `auto-merge-prefer-local` - Merge preferring local changes
+  - `rebase` - Rebase local commits onto remote
+  - `manual` - Fetch and merge without auto-resolution
+  - `fail` - Abort if conflicts detected
+
+**Safety**:
+- Checks for uncommitted changes before pulling
+- Verifies remote branch exists
+- Auto-resolves conflicts based on strategy
+- Provides clear feedback on conflicts resolved
+
+**Example Invocation**:
+```bash
+./scripts/pull-branch.sh "feat/123-add-export" "origin" "auto-merge-prefer-remote"
+```
+
+**Output Format**:
+```json
+{
+  "status": "success",
+  "branch_name": "feat/123-add-export",
+  "remote": "origin",
+  "strategy": "auto-merge-prefer-remote",
+  "commits_pulled": 3,
+  "conflicts_detected": 2,
+  "conflicts_auto_resolved": 2
 }
 ```
 
