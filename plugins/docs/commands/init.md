@@ -197,7 +197,7 @@ Create parent directories if needed:
 
 ## Step 8: Create Initial Documentation Index
 
-Create initial `{docs_root}/INDEX.md`:
+Create initial `{docs_root}/README.md`:
 ```markdown
 # Documentation Index
 

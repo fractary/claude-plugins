@@ -350,11 +350,11 @@ Next: {Suggested next steps}
 ```
 ✅ COMPLETED: Document Linking
 Operation: create-index
-Index: docs/INDEX.md
+Index: docs/README.md
 Documents: 42 documents indexed
 Groups: 5 document types
 ───────────────────────────────────────
-Next: Review index at docs/INDEX.md
+Next: Review index at docs/README.md
 ```
 
 **update-references**:
@@ -399,7 +399,7 @@ Return JSON result to agent:
   "success": true,
   "operation": "create-index",
   "details": {
-    "index_file": "docs/INDEX.md",
+    "index_file": "docs/README.md",
     "documents_indexed": 42,
     "groups": 5
   },

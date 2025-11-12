@@ -248,7 +248,7 @@ Next steps:
   • Edit content: Open {file_path} in your editor
   • Validate: /fractary-docs:validate {file_path}
   • Update: /fractary-docs:update {file_path}
-  • View all docs: cat docs/INDEX.md
+  • View all docs: cat docs/README.md
 
 {if validation issues}
 ⚠️  Validation warnings:

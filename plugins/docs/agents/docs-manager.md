@@ -366,7 +366,7 @@ Use the doc-linker skill to create index:
   "operation": "create-index",
   "parameters": {
     "documentation_root": "docs/",
-    "output_path": "docs/INDEX.md",
+    "output_path": "docs/README.md",
     "include_patterns": ["**/*.md"]
   },
   "config": { linking config }

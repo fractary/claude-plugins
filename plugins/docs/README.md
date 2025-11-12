@@ -57,7 +57,7 @@ The `fractary-docs` plugin provides comprehensive documentation management for p
 This creates:
 - Configuration file: `.fractary/plugins/docs/config.json`
 - Documentation directories: `docs/architecture/`, `docs/operations/`, `docs/api/`, etc.
-- Initial index: `docs/INDEX.md`
+- Initial index: `docs/README.md`
 
 ### 2. Generate Documentation
 
@@ -222,7 +222,7 @@ Manage cross-references and documentation relationships.
 
 **Example**:
 ```bash
-/fractary-docs:link index --output docs/INDEX.md
+/fractary-docs:link index --output docs/README.md
 ```
 
 ## Configuration
@@ -648,7 +648,7 @@ samples/
 /fractary-docs:validate samples/
 
 # Generate index
-/fractary-docs:create-index samples/ --output samples/INDEX.md
+/fractary-docs:create-index samples/ --output samples/README.md
 
 # Check links
 /fractary-docs:link-check samples/

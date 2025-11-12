@@ -157,11 +157,11 @@ Create a browsable index:
 ```bash
 # Generate by document type
 /fractary-docs:create-index docs/ \
-  --output docs/INDEX.md \
+  --output docs/README.md \
   --title "Project Documentation"
 
 # View the index
-cat docs/INDEX.md
+cat docs/README.md
 ```
 
 **Result**:
@@ -457,7 +457,7 @@ Create semantic relationships:
 Regenerate indexes after changes:
 ```bash
 # After adding new docs
-/fractary-docs:create-index docs/ --output docs/INDEX.md
+/fractary-docs:create-index docs/ --output docs/README.md
 
 # Commit with changes
 git add docs/
@@ -570,7 +570,7 @@ vim docs/adrs/ADR-010-rate-limiting.md
 /fractary-docs:validate docs/
 
 # Step 7: Update index
-/fractary-docs:create-index docs/ --output docs/INDEX.md
+/fractary-docs:create-index docs/ --output docs/README.md
 ```
 
 ### Example 2: Maintain Documentation
@@ -583,11 +583,11 @@ vim docs/adrs/ADR-010-rate-limiting.md
 /fractary-docs:validate docs/ --strict
 
 # Quarterly: Update indexes and graphs
-/fractary-docs:create-index docs/ --output docs/INDEX.md
+/fractary-docs:create-index docs/ --output docs/README.md
 /fractary-docs:generate-graph docs/ --output docs/GRAPH.md
 
 # Commit updates
-git add docs/INDEX.md docs/GRAPH.md
+git add docs/README.md docs/GRAPH.md
 git commit -m "Update documentation index and graph"
 ```
 
