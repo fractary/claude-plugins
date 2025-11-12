@@ -25,10 +25,10 @@ You generate specifications that can be followed to bring documentation into com
 - ONLY read and analyze
 - Generate specification for remediation
 
-**IMPORTANT:** Use Spec Plugin When Available
+**IMPORTANT:** Use fractary-spec Plugin When Available
 - Check if fractary-spec plugin is installed
-- If available: Use spec-manager to generate standardized spec
-- If not available: Generate basic markdown spec
+- If available: Use spec-manager agent (fractary-spec:spec-manager) to generate standardized spec
+- If not available: Cannot generate spec (audit presents findings only)
 - Either way, output must be actionable
 
 **IMPORTANT:** Respect Project-Specific Documentation
@@ -39,22 +39,138 @@ You generate specifications that can be followed to bring documentation into com
 
 <INPUTS>
 - **project_root**: Project directory to analyze (default: current directory)
-- **output_dir**: Directory for audit reports (default: ./.fractary/audit)
+- **audit_report_path**: Path for final audit report (default: logs/audits/{timestamp}-audit-report.md)
+- **temp_dir**: Directory for temporary discovery files (default: logs/audits/tmp)
 - **config_path**: Path to fractary-docs config (if exists)
 - **dry_run**: Generate spec without installing config (default: false)
 </INPUTS>
 
 <WORKFLOW>
+
+**IMPORTANT: Two-Phase Interactive Workflow with State Tracking**
+
+This skill executes in TWO phases with a mandatory user approval step:
+
+**Phase 1: Analysis & Presentation** (Steps 1-6)
+- Discover documentation state
+- Analyze against standards
+- Identify issues and remediation actions
+- Present findings to user for review
+- **STOP and wait for approval**
+- **State: AWAITING_USER_DECISION**
+
+**Phase 2: Specification Generation** (Steps 7-8)
+- **ONLY execute after explicit user approval**
+- **State: USER_APPROVED → GENERATING_SPEC**
+- Create GitHub tracking issue
+- Generate formal remediation specification via spec-manager agent
+- Present final summary
+- **State: COMPLETED**
+
+**Phase State Management**:
+- Track current phase state to prevent accidental skipping
+- Never transition from Phase 1 to Phase 2 without user approval
+- Valid state transitions:
+  - ANALYZING → AWAITING_USER_DECISION (end of Step 6)
+  - AWAITING_USER_DECISION → USER_APPROVED (user chooses "Save as Spec")
+  - AWAITING_USER_DECISION → REFINING (user chooses "Refine Plan")
+  - AWAITING_USER_DECISION → CANCELLED (user chooses "Hold Off")
+  - USER_APPROVED → GENERATING_SPEC (Step 7 begins)
+  - GENERATING_SPEC → COMPLETED (Step 8 done)
+
+**CRITICAL**: Never skip the approval step in Step 6. Always present findings first and wait for user to approve, revise, or cancel.
+
+---
+
 ## Step 1: Check for Spec Plugin
 
-Check if fractary-spec plugin is available:
+**CRITICAL**: The fractary-spec plugin is REQUIRED for generating remediation specs.
+
+Execute plugin availability check and store state for later steps:
 ```bash
-if [ -f ".fractary/plugins/spec/config/config.json" ] || [ -d "plugins/spec" ]; then
-  USE_SPEC_PLUGIN=true
+#!/bin/bash
+
+# Set up directories with timestamp
+timestamp=$(date +%Y-%m-%d-%H%M%S)
+
+# Temporary discovery files go in tmp directory
+temp_dir="${temp_dir:-logs/audits/tmp}"
+mkdir -p "$temp_dir"
+
+# Final audit report will be saved in logs/audits with timestamp
+audit_report_path="${audit_report_path:-logs/audits/$timestamp-audit-report.md}"
+mkdir -p "logs/audits"
+
+# State directory for workflow state (separate from logs)
+state_dir=".fractary/state"
+mkdir -p "$state_dir"
+
+echo "Temporary discovery files: $temp_dir"
+echo "Final audit report: $audit_report_path"
+
+# Check for spec plugin in both local project and global plugin directory
+SPEC_PLUGIN_AVAILABLE=false
+
+if [ -f ".fractary/plugins/spec/config/config.json" ]; then
+  echo "✓ Found spec plugin in project config"
+  SPEC_PLUGIN_AVAILABLE=true
+elif [ -d "plugins/spec" ] && [ -f "plugins/spec/.claude-plugin/plugin.json" ]; then
+  echo "✓ Found spec plugin in plugins directory"
+  SPEC_PLUGIN_AVAILABLE=true
 else
-  USE_SPEC_PLUGIN=false
+  echo "⚠️  WARNING: fractary-spec plugin not found"
+  echo "   Searched:"
+  echo "   - .fractary/plugins/spec/config/config.json"
+  echo "   - plugins/spec/.claude-plugin/plugin.json"
+  echo ""
+  echo "The audit will present findings, but cannot generate a formal spec."
+  echo "To enable spec generation, install fractary-spec plugin."
+  echo ""
+  SPEC_PLUGIN_AVAILABLE=false
 fi
+
+# Store plugin availability state in state directory (not in logs)
+# Using file-based state tracking for persistence across LLM turns
+if [ "$SPEC_PLUGIN_AVAILABLE" = "true" ]; then
+  echo "available" > "$state_dir/audit-spec-plugin-status.txt"
+else
+  echo "unavailable" > "$state_dir/audit-spec-plugin-status.txt"
+fi
+
+# Store paths for use in later steps
+echo "$temp_dir" > "$state_dir/audit-temp-dir.txt"
+echo "$audit_report_path" > "$state_dir/audit-report-path.txt"
+echo "$timestamp" > "$state_dir/audit-timestamp.txt"
+
+echo "State saved to: $state_dir/"
 ```
+
+**Directory Structure**:
+- **Temporary discovery files**: `logs/audits/tmp/` (deleted after final report generated)
+- **Final audit reports**: `logs/audits/{timestamp}-audit-report.md` (permanent, tracked by logs-manager)
+- **Workflow state**: `.fractary/state/` (ephemeral workflow state)
+
+**State Tracking**:
+- Plugin availability is stored in `.fractary/state/audit-spec-plugin-status.txt`
+- Paths stored in `.fractary/state/` for access across workflow steps
+- File contains either "available" or "unavailable"
+- This persists across workflow steps and LLM turns
+
+**Behavior based on plugin availability:**
+
+If plugin status is `"available"`:
+- Continue with full workflow (Steps 2-8)
+- User will see "Save as Spec" option in Step 6
+- Can generate formal specification via spec-manager agent (fractary-spec:spec-manager)
+
+If plugin status is `"unavailable"`:
+- Continue with audit and present findings (Steps 2-6 only)
+- User will see modified options in Step 6 (no "Save as Spec")
+- User can still:
+  - Review detailed findings
+  - Refine the remediation plan
+  - Access discovery reports
+- Workflow ends after Step 6 unless plugin is installed
 
 ## Step 2: Load Configuration and Standards
 
@@ -68,13 +184,19 @@ Load project-specific standards (if configured):
 
 ## Step 3: Discover Documentation State
 
-Execute discovery scripts:
+Execute discovery scripts and write results to temporary directory:
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} {output_dir}/discovery-docs.json
-bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} {output_dir}/discovery-structure.json
-bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh {output_dir}/discovery-docs.json {output_dir}/discovery-frontmatter.json
-bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh {output_dir}/discovery-docs.json {output_dir}/discovery-quality.json
+# Read temp directory from state
+temp_dir=$(cat .fractary/state/audit-temp-dir.txt)
+
+# Execute discovery scripts
+bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} $temp_dir/discovery-docs.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} $temp_dir/discovery-structure.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh $temp_dir/discovery-docs.json $temp_dir/discovery-frontmatter.json
+bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh $temp_dir/discovery-docs.json $temp_dir/discovery-quality.json
 ```
+
+**Temporary Files**: These discovery reports are temporary working files in `logs/audits/tmp/` that will be cleaned up after the final audit report is generated.
 
 ## Step 4: Analyze Against Standards
 
@@ -116,179 +238,257 @@ For each issue identified, create remediation action:
 - MEDIUM: Organization, structure, best practices
 - LOW: Nice-to-haves, optimizations
 
-## Step 6: Generate Remediation Specification
+## Step 6: Present Findings to User
 
-**If fractary-spec plugin available:**
+**CRITICAL: This is an interactive approval step.**
 
-Use the @agent-fractary-spec:spec-manager agent to generate specification:
+Check plugin availability state and present the audit findings to the user for review.
+
+**Read plugin status from state file**:
+```bash
+state_dir=".fractary/state"
+if [ -f "$state_dir/audit-spec-plugin-status.txt" ]; then
+  PLUGIN_STATUS=$(cat "$state_dir/audit-spec-plugin-status.txt")
+else
+  PLUGIN_STATUS="unavailable"
+fi
 ```
+
+Present the audit findings and proposed remediation actions:
+
+```
+═══════════════════════════════════════════════════════════
+📊 DOCUMENTATION AUDIT FINDINGS
+═══════════════════════════════════════════════════════════
+
+📄 DOCUMENTATION INVENTORY
+  Total Files: {count}
+  By Type: ADRs: {n}, Designs: {n}, Runbooks: {n}, Other: {n}
+
+📊 COMPLIANCE STATUS
+  Front Matter Coverage: {percentage}% ({with}/{total})
+  Quality Score: {score}/10
+  Organization: {status}
+
+⚠️ ISSUES IDENTIFIED
+  High Priority: {count}
+  Medium Priority: {count}
+  Low Priority: {count}
+
+📋 PROPOSED REMEDIATION ACTIONS
+
+### High Priority ({count} actions)
+1. [Action description with affected files]
+2. [Action description with affected files]
+...
+
+### Medium Priority ({count} actions)
+1. [Action description with affected files]
+...
+
+### Low Priority ({count} actions)
+1. [Action description with affected files]
+...
+
+⏱️ ESTIMATED EFFORT
+  High Priority: {hours} hours
+  Medium Priority: {hours} hours
+  Low Priority: {hours} hours
+  Total: {total_hours} hours
+
+═══════════════════════════════════════════════════════════
+
+📋 What would you like to do next?
+
+{IF $PLUGIN_STATUS == "available":}
+1. **Save as Spec**: Generate a formal remediation specification using
+   fractary-spec:spec-manager (recommended for tracking and execution)
+
+2. **Refine Plan**: Provide feedback to adjust priorities, actions, or scope
+   (I'll revise and present an updated plan for your approval)
+
+3. **Hold Off**: Save these findings for later without generating a spec
+   (Discovery reports remain available for future reference)
+
+{IF $PLUGIN_STATUS == "unavailable":}
+⚠️  Note: fractary-spec plugin not installed - cannot generate formal spec
+
+1. **Refine Plan**: Provide feedback to adjust priorities, actions, or scope
+   (I'll revise and present an updated plan for your approval)
+
+2. **Hold Off**: Save these findings for later
+   (Discovery reports remain available for future reference)
+
+   To enable spec generation, install fractary-spec plugin first.
+
+═══════════════════════════════════════════════════════════
+```
+
+**STOP HERE and wait for user response.**
+
+**User Decision Handling:**
+- **"Save as Spec"** (or similar approval) → Proceed to Step 7
+- **"Refine Plan"** (or requests changes) → Revise actions and re-present Step 6
+- **"Hold Off"** (or cancels) → Skip to completion with discovery reports only
+
+Do NOT proceed to spec generation until user explicitly chooses "Save as Spec".
+
+## Step 7: Generate Remediation Specification (After "Save as Spec")
+
+**ONLY execute this step if user explicitly chooses to save as spec in Step 6.**
+
+**CRITICAL**: The spec-manager agent requires an issue number for tracking. Create a GitHub issue first.
+
+### Step 7.1: Create Tracking Issue
+
+Use the @agent-fractary-work:work-manager agent to create a GitHub issue for tracking the remediation work.
+
+**Natural Language Invocation**:
+```
+Use the @agent-fractary-work:work-manager agent to create a GitHub issue with the following request:
+
 {
-  "operation": "generate",
-  "spec_type": "implementation",
+  "operation": "create-issue",
   "parameters": {
     "title": "Documentation Remediation - {project_name}",
-    "context": "Bring project documentation into alignment with fractary-docs standards",
-    "metadata": {
-      "complexity": "{MINIMAL|MODERATE|EXTENSIVE}",
-      "estimated_hours": {hours},
-      "total_actions": {count},
-      "priority_breakdown": {
-        "high": {high_count},
-        "medium": {medium_count},
-        "low": {low_count}
-      },
-      "discovery_date": "{date}",
-      "plugin_version": "1.0"
-    }
-  },
-  "sections": {
-    "overview": {
-      "summary": "This specification outlines required changes to bring documentation into alignment with fractary-docs standards.",
-      "current_state": {
-        "total_files": {count},
-        "with_frontmatter": {count},
-        "quality_score": {score},
-        "structure": "{flat|organized|hierarchical}"
-      },
-      "target_state": {
-        "organization": "Type-based directory structure per plugin standards",
-        "frontmatter": "100% coverage with codex sync enabled",
-        "quality_score": "8+/10"
-      }
-    },
-    "requirements": [
-      {
-        "id": "REQ-{n}",
-        "priority": "{high|medium|low}",
-        "title": "{Action title}",
-        "description": "{What needs to be done}",
-        "rationale": "{Why this is needed}",
-        "files_affected": ["{list of files}"],
-        "acceptance_criteria": ["{checklist}"]
-      }
-    ],
-    "implementation_plan": {
-      "phases": [
-        {
-          "phase": 1,
-          "name": "Critical Fixes",
-          "estimated_hours": {hours},
-          "objective": "Establish baseline compliance",
-          "tasks": [
-            {
-              "task_id": "1.1",
-              "title": "{Task name}",
-              "commands": ["{executable commands}"],
-              "verification": ["{verification commands}"]
-            }
-          ]
-        }
-      ]
-    },
-    "acceptance_criteria": [
-      "All documentation has valid front matter with codex_sync",
-      "Files organized per plugin standards",
-      "All validation rules pass",
-      "No broken links"
-    ],
-    "verification_steps": [
-      "/fractary-docs:validate",
-      "/fractary-docs:link check"
-    ]
-  },
-  "output_path": "{output_dir}/REMEDIATION-SPEC.md"
+    "body": "Audit identified {total_issues} compliance issues with documentation:\n\n**High Priority**: {high_count} issues\n**Medium Priority**: {medium_count} issues\n**Low Priority**: {low_count} issues\n\n**Quality Score**: {score}/10\n**Compliance**: {percentage}%\n**Estimated Effort**: {hours} hours\n\nA detailed remediation specification will be generated to address these issues.",
+    "labels": ["documentation", "remediation", "automated-audit"],
+    "assignee": null
+  }
 }
 ```
 
-**If fractary-spec NOT available:**
+**Note**: The JSON structure above specifies the request parameters for the agent. The agent is invoked via natural language declaration, and the system routes the request automatically.
 
-Generate markdown specification directly:
-```bash
-cat > {output_dir}/REMEDIATION-SPEC.md <<'EOF'
-# Documentation Remediation Specification
+**Capture the returned issue number** for use in Step 7.2.
 
-**Generated:** {date}
-**Project:** {project_name}
-**Estimated Time:** {hours} hours
+### Step 7.2: Generate Spec via Spec-Manager
 
-## Overview
+Use the @agent-fractary-spec:spec-manager agent to generate a formal specification from the tracking issue.
 
-### Summary
-{Summary of what needs to be done}
+**Natural Language Invocation**:
+```
+Use the @agent-fractary-spec:spec-manager agent to generate specification with the following request:
 
-### Current State
-- Total Files: {count}
-- With Front Matter: {count}/{total} ({percentage}%)
-- Quality Score: {score}/10
-- Structure: {type}
-
-### Target State
-- Organization: Type-based directory structure
-- Front Matter: 100% coverage with codex sync
-- Quality Score: 8+/10
-
-## Requirements
-
-### [REQ-1] {Requirement Title} - {PRIORITY}
-
-**Description:** {What needs to be done}
-
-**Rationale:** {Why this is needed}
-
-**Files Affected:**
-- {file1}
-- {file2}
-
-**Acceptance Criteria:**
-- [ ] {Criterion 1}
-- [ ] {Criterion 2}
-
-## Implementation Plan
-
-### Phase 1: Critical Fixes ({hours} hours)
-
-**Objective:** Establish baseline compliance
-
-#### Task 1.1: {Task Name}
-
-**Commands:**
-```bash
-{Executable commands}
+{
+  "operation": "generate",
+  "issue_number": "{issue_number_from_step_7.1}",
+  "parameters": {
+    "template": "infrastructure",
+    "force": false
+  }
+}
 ```
 
-**Verification:**
-```bash
-{Verification commands}
+**Note**: The JSON structure above specifies the request parameters for the agent. The agent is invoked via natural language declaration, and the system routes the request automatically.
+
+**The spec-manager agent will**:
+1. Fetch the issue created in Step 7.1
+2. Use the issue body and audit findings to populate the spec
+3. Generate spec file: `specs/spec-{issue_number}-documentation-remediation.md` (path configurable via spec plugin)
+4. Link the spec back to the issue via GitHub comment
+5. Return the spec path for verification
+
+### Step 7.3: Register Audit Logs
+
+Use the @agent-fractary-logs:logs-manager agent to register the audit logs for tracking.
+
+**Natural Language Invocation**:
+```
+Use the @agent-fractary-logs:logs-manager agent to register audit logs with the following request:
+
+{
+  "operation": "register-log",
+  "parameters": {
+    "log_type": "audit",
+    "log_directory": "logs/audit/{timestamp}",
+    "metadata": {
+      "project_name": "{project_name}",
+      "total_files": {count},
+      "issues_found": {total_issues},
+      "quality_score": {score},
+      "spec_generated": true,
+      "tracking_issue": "{issue_number}"
+    }
+  }
+}
 ```
 
-### Phase 2: Organization ({hours} hours)
+**Note**: The logs-manager tracks all audit runs over time, allowing you to see compliance trends and history.
 
-{Similar structure...}
+### Step 7.4: Generate Final Audit Report
 
-### Phase 3: Enhancements ({hours} hours)
-
-{Similar structure...}
-
-## Acceptance Criteria
-
-- [ ] All documentation has valid front matter
-- [ ] Files organized per plugin standards
-- [ ] All validation rules pass
-- [ ] No broken links
-
-## Verification Steps
+Create the permanent audit report and clean up temporary files:
 
 ```bash
-/fractary-docs:validate
-/fractary-docs:link check
-/fractary-docs:link index
-```
+# Read paths from state
+audit_report_path=$(cat .fractary/state/audit-report-path.txt)
+temp_dir=$(cat .fractary/state/audit-temp-dir.txt)
+timestamp=$(cat .fractary/state/audit-timestamp.txt)
+
+# Generate final audit report markdown
+cat > "$audit_report_path" <<EOF
+# Documentation Audit Report
+
+**Date**: $(date -Iseconds)
+**Timestamp**: $timestamp
+**Project**: {project_name}
+
+## Summary
+
+- **Total Files**: {count}
+- **Issues Found**: {total_issues} ({high_count} high, {medium_count} medium, {low_count} low)
+- **Quality Score**: {score}/10
+- **Compliance**: {percentage}%
+- **Estimated Effort**: {hours} hours
+
+## Tracking
+
+- **GitHub Issue**: #{issue_number} - {issue_url}
+- **Remediation Spec**: specs/spec-{issue_number}-documentation-remediation.md
+
+## Discovery Reports
+
+See temporary discovery files (will be cleaned up):
+- $temp_dir/discovery-docs.json
+- $temp_dir/discovery-structure.json
+- $temp_dir/discovery-frontmatter.json
+- $temp_dir/discovery-quality.json
+
+## Key Findings
+
+### High Priority Issues ({high_count})
+{list high priority issues}
+
+### Medium Priority Issues ({medium_count})
+{list medium priority issues}
+
+### Low Priority Issues ({low_count})
+{list low priority issues}
+
+## Next Steps
+
+1. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
+2. Follow implementation plan
+3. Verify with: /fractary-docs:validate
+4. Re-audit to confirm compliance
+
+---
+Generated by fractary-docs audit workflow
 EOF
+
+echo "Final audit report: $audit_report_path"
+
+# Clean up temporary discovery files
+echo "Cleaning up temporary files from $temp_dir/"
+rm -f "$temp_dir"/*
 ```
 
-## Step 7: Present Summary to User
+**Final Report**: The permanent audit report is saved to `logs/audits/{timestamp}-audit-report.md` and tracked by logs-manager for historical reference.
 
-Display audit summary:
+## Step 8: Present Final Summary to User (After Spec Generation)
+
+Display audit completion summary:
 
 ```
 ═══════════════════════════════════════════════════════════
@@ -309,15 +509,18 @@ Display audit summary:
   Medium Priority: {count}
   Low Priority: {count}
 
-📋 REMEDIATION SPEC
-  Generated: {output_dir}/REMEDIATION-SPEC.md
-  Estimated Time: {hours} hours
-  Phases: {count}
+📋 OUTPUTS
+  Audit Report: logs/audits/{timestamp}-audit-report.md
+  Remediation Spec: specs/spec-{issue_number}-documentation-remediation.md
+  Tracking Issue: #{issue_number}
+  Estimated Effort: {hours} hours
 
 💡 NEXT STEPS
-  1. Review remediation spec: {path}
-  2. Follow implementation plan
-  3. Verify with: /fractary-docs:validate
+  1. Review audit report: logs/audits/{timestamp}-audit-report.md
+  2. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
+  3. Follow implementation plan
+  4. Verify with: /fractary-docs:validate
+  5. View audit history: logs/audits/
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -334,23 +537,37 @@ Next: Review and follow remediation spec
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
-Audit is complete when:
+
+**Phase 1 Complete When:**
 - All discovery scripts have executed
 - Documentation analyzed against standards
 - Remediation actions identified and prioritized
-- Specification generated (via spec-manager or direct)
-- Summary presented to user
-- Next steps provided
+- Findings presented to user in structured format
+- User prompted for approval/revision/cancellation
+- **Skill pauses and waits for user response**
+
+**Phase 2 Complete When (After User Approval):**
+- GitHub tracking issue created
+- Specification generated via spec-manager agent
+- Spec file created at `specs/spec-{issue_number}-documentation-remediation.md`
+- Final summary presented to user
+- Next steps provided with spec path and tracking issue
+
+**If User Cancels:**
+- No spec is generated
+- Findings remain available for reference
+- Discovery reports saved for future use
+
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-Return structured results:
 
-**Success Response:**
+**Phase 1 Output (Findings Presentation):**
 ```json
 {
   "success": true,
   "operation": "audit",
+  "phase": "findings_presentation",
   "result": {
     "total_files": 23,
     "issues": {
@@ -361,11 +578,46 @@ Return structured results:
     },
     "quality_score": 6.2,
     "compliance_percentage": 45,
-    "spec_path": ".fractary/audit/REMEDIATION-SPEC.md",
     "estimated_hours": 8,
-    "used_spec_plugin": true
+    "temp_discovery_dir": "logs/audits/tmp",
+    "discovery_reports": [
+      "logs/audits/tmp/discovery-docs.json",
+      "logs/audits/tmp/discovery-structure.json",
+      "logs/audits/tmp/discovery-frontmatter.json",
+      "logs/audits/tmp/discovery-quality.json"
+    ],
+    "awaiting_user_approval": true
   },
-  "timestamp": "2025-01-15T12:00:00Z"
+  "timestamp": "2025-01-15T14:30:22Z"
+}
+```
+
+**Phase 2 Output (After Spec Generation via spec-manager):**
+```json
+{
+  "success": true,
+  "operation": "audit",
+  "phase": "spec_generation_complete",
+  "result": {
+    "total_files": 23,
+    "issues": {
+      "high": 5,
+      "medium": 7,
+      "low": 3,
+      "total": 15
+    },
+    "quality_score": 6.2,
+    "compliance_percentage": 45,
+    "audit_report_path": "logs/audits/2025-01-15-143022-audit-report.md",
+    "spec_path": "specs/spec-123-documentation-remediation.md",
+    "tracking_issue_number": "123",
+    "tracking_issue_url": "https://github.com/org/repo/issues/123",
+    "estimated_hours": 8,
+    "spec_manager_used": true,
+    "logs_registered": true,
+    "temp_files_cleaned": true
+  },
+  "timestamp": "2025-01-15T14:35:45Z"
 }
 ```
 
@@ -379,6 +631,28 @@ Return structured results:
   "timestamp": "2025-01-15T12:00:00Z"
 }
 ```
+
+**User Cancelled Response:**
+```json
+{
+  "success": true,
+  "operation": "audit",
+  "phase": "cancelled_by_user",
+  "result": {
+    "total_files": 23,
+    "issues": {
+      "high": 5,
+      "medium": 7,
+      "low": 3,
+      "total": 15
+    },
+    "discovery_reports_available": true,
+    "note": "Spec generation cancelled by user. Discovery reports available for future reference."
+  },
+  "timestamp": "2025-01-15T12:00:00Z"
+}
+```
+
 </OUTPUTS>
 
 <ERROR_HANDLING>
@@ -390,7 +664,8 @@ Handle errors gracefully:
 - Permission denied: Report access issue
 
 **Spec Generation Errors:**
-- Spec plugin unavailable: Fall back to direct generation
+- Spec plugin unavailable: Warn user and explain spec generation requires fractary-spec
+- spec-manager invocation fails: Report error and suggest checking spec plugin installation
 - Invalid discovery data: Report parsing error
 - Cannot write output: Report permission issue
 
@@ -421,7 +696,14 @@ Use the doc-auditor skill to audit documentation:
 
 <DEPENDENCIES>
 - **Discovery scripts**: plugins/docs/skills/doc-adoption/scripts/
-- **Spec plugin** (optional): fractary-spec for standardized spec generation
+- **Spec plugin** (REQUIRED for spec generation): fractary-spec:spec-manager
+  - Audit can run without it (presents findings only)
+  - Spec generation requires fractary-spec plugin installed
+- **Logs manager** (REQUIRED for log tracking): fractary-logs:logs-manager
+  - Tracks audit runs over time in `logs/audit/{timestamp}/`
+  - Enables compliance trend analysis
+- **Work manager** (REQUIRED for tracking issues): fractary-work:work-manager
+  - Creates GitHub tracking issues for remediation
 - **Configuration**: .fractary/plugins/docs/config/config.json
 - **Project standards** (optional): Configured in validation.project_standards_doc
 </DEPENDENCIES>
@@ -430,13 +712,27 @@ Use the doc-auditor skill to audit documentation:
 Document the audit process:
 
 **What to document:**
-- Discovery results
+- Final audit report (saved to logs/audits/{timestamp}-audit-report.md)
+- Discovery results (temporary files in logs/audits/tmp/, cleaned up after report)
 - Issues identified by priority
 - Standards applied (plugin + project)
-- Remediation actions generated
+- Remediation actions presented for review
 - Estimated effort
+- User decision (save as spec, refine, or hold off)
+- Spec generation results (if user approves)
+- Audit log registration via logs-manager
 
 **Format:**
-Audit summary as formatted text
-Remediation spec as structured markdown (via spec-manager or direct)
+- Final audit report: Markdown file in `logs/audits/{timestamp}-audit-report.md`
+- Audit findings: Formatted text presentation for user review
+- Remediation spec: Generated via fractary-spec:spec-manager (if approved)
+- Temporary discovery reports: JSON files in `logs/audits/tmp/` (cleaned up after report)
+- Audit log metadata: Tracked by logs-manager for trend analysis
+
+**Log Management:**
+- All audit runs produce a permanent report in `logs/audits/{timestamp}-audit-report.md`
+- Managed by fractary-logs:logs-manager agent
+- Temporary discovery files in `logs/audits/tmp/` are cleaned up after final report
+- Enables tracking of compliance trends over time
+- Each audit has a unique timestamp for historical reference
 </DOCUMENTATION>
