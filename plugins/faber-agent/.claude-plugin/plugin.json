@@ -22,8 +22,6 @@
   "skills": [
     "./skills/gather-requirements",
     "./skills/generate-from-template",
-    "./skills/validate-artifact",
-    "./skills/document-artifact",
-    "./skills/test-artifact"
+    "./skills/validate-artifact"
   ]
 }
