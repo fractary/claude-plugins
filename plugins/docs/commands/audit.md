@@ -42,16 +42,14 @@ This command follows the standard space-separated syntax:
 ## When to Use This Command
 
 **Use `/fractary-docs:audit` to:**
+- ✅ Initial setup: Analyze existing documentation and generate setup plan
 - ✅ Check documentation compliance with current standards
 - ✅ Identify quality issues and gaps
 - ✅ Generate actionable remediation plan
 - ✅ Audit after standards evolve
 - ✅ Regular documentation health checks
 
-**Use `/fractary-docs:adopt` instead if:**
-- ⚠️ First-time adoption (no fractary-docs config yet)
-- ⚠️ Need to migrate custom document agent
-- ⚠️ Need to generate initial configuration
+**Note**: This command works for both initial setup (analyzing existing docs before fractary-docs config) and ongoing compliance checking.
 
 ## Parameters
 
@@ -400,16 +398,17 @@ Claude: [Creates GitHub tracking issue #789]
 
 ## Use Cases
 
-### Initial Post-Adoption Audit
+### Initial Setup Audit
 
-After adopting fractary-docs, verify everything is compliant:
+When setting up fractary-docs for the first time:
 
 ```bash
-# After following adoption spec
+# Analyze existing documentation
 /fractary-docs:audit
 
-# Should show minimal issues
-# Address any remaining compliance gaps
+# Review generated remediation spec
+# Follow spec to bring docs into compliance
+# Re-run audit to verify completion
 ```
 
 ### Continuous Compliance
@@ -549,23 +548,17 @@ diff logs/audits/2025-01-15-143022-audit-report.md logs/audits/2025-01-22-091530
 - Track remediation progress
 - Generate compliance reports
 
-## Comparison: Audit vs Adopt
-
-| Feature | Audit | Adopt |
-|---------|-------|-------|
-| **Purpose** | Check compliance | Initial migration |
-| **Config Required** | Yes | No (generates config) |
-| **Custom Agent Migration** | No | Yes |
-| **When to Use** | Ongoing compliance | First time setup |
-| **Output** | Remediation spec | Config + remediation spec |
-
 ## Requirements
 
 Before running audit:
 
-- fractary-docs must be configured
-- Configuration at `.fractary/plugins/docs/config/config.json`
 - Documentation files present in project
+- Git repository (recommended for version control)
+- No pending documentation changes (commit first)
+
+**Note**: fractary-docs configuration is optional. Audit works for:
+- **Initial setup**: Analyzing docs before configuration (generates setup plan)
+- **Ongoing compliance**: Checking configured docs against standards
 
 ## Next Steps After Audit
 
