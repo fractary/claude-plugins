@@ -9,7 +9,21 @@ set -euo pipefail
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
-CACHE_FILE="${CACHE_DIR}/status.cache"
+
+# Get repository path for cache key (check if in git repo first)
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    # Use repo-scoped cache based on repository path hash
+    # This ensures each repository has its own cache, shared across all sessions
+    # Work trees share the same .git directory, so they correctly share the cache
+    # Try multiple hash commands for cross-platform compatibility (md5sum=GNU, md5=BSD, shasum=fallback)
+    REPO_ID=$(echo "$REPO_PATH" | (md5sum 2>/dev/null || md5 2>/dev/null || shasum 2>/dev/null) | cut -d' ' -f1 | cut -c1-16 || echo "global")
+else
+    # Not in a git repo - use global cache (fallback)
+    REPO_ID="global"
+fi
+
+CACHE_FILE="${CACHE_DIR}/status-${REPO_ID}.cache"
 MAX_AGE_SECONDS=30  # Normal staleness threshold (not used for auto-refresh)
 
 # Emergency refresh threshold: 300 seconds (5 minutes)
@@ -21,7 +35,7 @@ MAX_AGE_SECONDS=30  # Normal staleness threshold (not used for auto-refresh)
 # 5 minutes chosen as balance between:
 #   - Long enough to avoid false positives during normal multi-minute operations
 #   - Short enough to prevent stale data causing confusion
-#   - Typical session length (most coding sessions have activity within 5 min)
+#   - Typical workflow duration (most work has git activity within 5 min)
 CRITICAL_AGE_SECONDS=300
 
 # Colors for output
@@ -88,6 +102,7 @@ ensure_fresh_cache() {
         fi
     fi
     # Normal staleness (30s-5min): no action, rely on hooks
+    # Note: Repo-scoped cache is shared across all sessions for the same repository
     return 0
 }
 
@@ -138,7 +153,7 @@ main() {
         fi
 
         case "$field" in
-            timestamp|repo_path|branch)
+            timestamp|repo_path|branch|issue_id|pr_number)
                 read_cache_field "$field"
                 ;;
             uncommitted_changes|uncommitted|changes)
@@ -164,7 +179,7 @@ main() {
                 ;;
             *)
                 echo -e "${RED}❌ Unknown field: ${field}${NC}" >&2
-                echo "Valid fields: timestamp, repo_path, branch, uncommitted_changes, untracked_files, commits_ahead, commits_behind, has_conflicts, stash_count, clean" >&2
+                echo "Valid fields: timestamp, repo_path, branch, issue_id, pr_number, uncommitted_changes, untracked_files, commits_ahead, commits_behind, has_conflicts, stash_count, clean" >&2
                 exit 1
                 ;;
         esac

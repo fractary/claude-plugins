@@ -388,6 +388,19 @@ If delete_branch=true and merge successful:
 - Capture PR number/URL
 - Confirm expected state changes
 
+**5A. UPDATE REPO CACHE (for create-pr operation):**
+
+After successful PR creation, update the repo plugin cache to include the PR number:
+
+```bash
+# Update repo cache to include new PR number
+plugins/repo/scripts/update-status-cache.sh --quiet
+```
+
+This proactively updates:
+- PR number (newly created PR)
+- Ensures work plugin and other consumers can access PR info immediately
+
 **6. OUTPUT COMPLETION MESSAGE:**
 
 ```

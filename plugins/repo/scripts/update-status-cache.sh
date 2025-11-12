@@ -9,8 +9,23 @@ set -euo pipefail
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
-CACHE_FILE="${CACHE_DIR}/status.cache"
-LOCK_FILE="${CACHE_DIR}/status.lock"
+
+# Check if we're in a git repository first (needed for repo path)
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo -e "${RED}❌ Not in a git repository${NC}" >&2
+    exit 1
+fi
+
+# Get repository root path for cache key
+REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+
+# Use repo-scoped cache based on repository path hash
+# This ensures each repository has its own cache, shared across all sessions
+# Work trees share the same .git directory, so they correctly share the cache
+# Try multiple hash commands for cross-platform compatibility (md5sum=GNU, md5=BSD, shasum=fallback)
+REPO_ID=$(echo "$REPO_PATH" | (md5sum 2>/dev/null || md5 2>/dev/null || shasum 2>/dev/null) | cut -d' ' -f1 | cut -c1-16 || echo "global")
+CACHE_FILE="${CACHE_DIR}/status-${REPO_ID}.cache"
+LOCK_FILE="${CACHE_DIR}/status-${REPO_ID}.lock"
 TEMP_FILE="${CACHE_FILE}.tmp.$$"
 
 # Colors for output
@@ -25,7 +40,10 @@ mkdir -p "${CACHE_DIR}"
 
 # Clean up old orphaned temp files (older than 1 hour)
 # These can accumulate if processes crash before trap cleanup fires
-find "${CACHE_DIR}" -name "status.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
+find "${CACHE_DIR}" -name "status-*.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
+
+# Note: No time-based cleanup for repo-scoped caches since repositories don't expire
+# Stale caches are handled by emergency refresh in read-status-cache.sh
 
 # Parse arguments
 SKIP_LOCK=false
@@ -69,15 +87,6 @@ else
     # Even when skipping lock, ensure temp file cleanup on interruption
     trap "rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
 fi
-
-# Check if we're in a git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo -e "${RED}❌ Not in a git repository${NC}" >&2
-    exit 1
-fi
-
-# Get repository root path
-REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # Get current branch
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
@@ -127,15 +136,50 @@ if [ "$UNCOMMITTED_CHANGES" -eq 0 ] && [ "$UNTRACKED_FILES" -eq 0 ]; then
     CLEAN=true
 fi
 
+# Extract issue ID from branch name (if present)
+# Supports patterns: feat/123-description, fix/456-bug, hotfix/789-urgent, etc.
+ISSUE_ID=""
+if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
+    ISSUE_ID="${BASH_REMATCH[2]}"
+elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
+    # Fallback pattern: any-prefix/123
+    ISSUE_ID="${BASH_REMATCH[1]}"
+fi
+
+# Get PR number if PR exists for current branch
+# Optimization: Only check PR when branch changes (saves ~100-200ms network call)
+PR_NUMBER=""
+CACHED_BRANCH=""
+CACHED_PR_NUMBER=""
+
+# Read previous cache to check if branch changed
+if [ -f "${CACHE_FILE}" ]; then
+    CACHED_BRANCH=$(grep '"branch"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+    CACHED_PR_NUMBER=$(grep '"pr_number"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+fi
+
+if command -v gh &> /dev/null; then
+    if [ "$BRANCH" != "$CACHED_BRANCH" ]; then
+        # Branch changed - check for PR (network call ~100-200ms)
+        PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+    else
+        # Same branch - reuse cached PR number (fast, no network)
+        PR_NUMBER="$CACHED_PR_NUMBER"
+    fi
+fi
+
 # Get current timestamp in ISO 8601 format
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Build JSON output
+# Note: issue_id and pr_number are strings (may be empty)
 cat > "${TEMP_FILE}" <<EOF
 {
   "timestamp": "${TIMESTAMP}",
   "repo_path": "${REPO_PATH}",
   "branch": "${BRANCH}",
+  "issue_id": "${ISSUE_ID}",
+  "pr_number": "${PR_NUMBER}",
   "uncommitted_changes": ${UNCOMMITTED_CHANGES},
   "untracked_files": ${UNTRACKED_FILES},
   "commits_ahead": ${COMMITS_AHEAD},
