@@ -29,15 +29,15 @@ Supported operations:
 <CONFIGURATION>
 Required configuration in .fractary/plugins/file/config.json:
 
-**With Credentials**:
+**With AWS Profile** (Recommended - uses ~/.aws/config):
 ```json
 {
   "handlers": {
     "s3": {
       "region": "us-east-1",
       "bucket_name": "my-bucket",
-      "access_key_id": "${AWS_ACCESS_KEY_ID}",
-      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
+      "auth_method": "profile",
+      "profile": "test-deploy",
       "endpoint": null,
       "public_url": null
     }
@@ -51,7 +51,25 @@ Required configuration in .fractary/plugins/file/config.json:
   "handlers": {
     "s3": {
       "region": "us-east-1",
-      "bucket_name": "my-bucket"
+      "bucket_name": "my-bucket",
+      "auth_method": "iam"
+    }
+  }
+}
+```
+
+**With Access Keys** (Less secure, use environment variables):
+```json
+{
+  "handlers": {
+    "s3": {
+      "region": "us-east-1",
+      "bucket_name": "my-bucket",
+      "auth_method": "keys",
+      "access_key_id": "${AWS_ACCESS_KEY_ID}",
+      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
+      "endpoint": null,
+      "public_url": null
     }
   }
 }
@@ -60,17 +78,20 @@ Required configuration in .fractary/plugins/file/config.json:
 **Configuration Fields**:
 - `region`: AWS region (required, default: "us-east-1")
 - `bucket_name`: S3 bucket name (required)
-- `access_key_id`: AWS access key (optional if using IAM roles)
-- `secret_access_key`: AWS secret key (optional if using IAM roles)
+- `auth_method`: Authentication method - "profile" | "iam" | "keys" (default: "profile")
+- `profile`: AWS profile name from ~/.aws/config (required if auth_method is "profile")
+- `access_key_id`: AWS access key (required if auth_method is "keys")
+- `secret_access_key`: AWS secret key (required if auth_method is "keys")
 - `endpoint`: Custom endpoint for S3-compatible services (optional)
 - `public_url`: Public URL for bucket (optional)
 
 **Security Best Practices**:
+- **Use AWS profiles** for local development (test-deploy, prod-deploy)
 - **Use IAM roles** when running in AWS (EC2, ECS, EKS, Lambda)
-- Use environment variables for credentials: `${AWS_ACCESS_KEY_ID}`
+- Use environment variables for credentials if using "keys" method: `${AWS_ACCESS_KEY_ID}`
 - Never commit credentials to version control
 - Use minimal required IAM permissions
-- Rotate credentials every 90 days if not using IAM roles
+- Rotate credentials every 90 days if using access keys
 
 See docs/s3-setup-guide.md for detailed setup instructions.
 </CONFIGURATION>
@@ -78,18 +99,26 @@ See docs/s3-setup-guide.md for detailed setup instructions.
 <WORKFLOW>
 1. Load handler configuration from request
 2. Validate operation parameters
-3. Expand environment variables in credentials (if present)
-4. Prepare S3-specific parameters (region, bucket, credentials)
-5. Execute AWS CLI command via script
-6. Parse script output
-7. Return structured result to agent
+3. Determine authentication method (profile, iam, or keys)
+4. Set AWS_PROFILE environment variable if using profile authentication
+5. Expand environment variables in credentials (if using keys)
+6. Prepare S3-specific parameters (region, bucket, credentials)
+7. Execute AWS CLI command via script
+8. Parse script output
+9. Return structured result to agent
 
 **Parameter Flow**:
 - Agent loads configuration and expands env vars
-- Skill receives: operation + region + bucket + credentials + paths
+- Skill receives: operation + region + bucket + auth_method + profile/credentials + paths
+- Skill sets AWS_PROFILE env var if using profile method
 - Skill invokes script with all parameters
-- Script executes AWS CLI with S3
+- Script executes AWS CLI with S3 (uses AWS_PROFILE or credentials)
 - Skill returns structured JSON result
+
+**Authentication Precedence**:
+1. **Profile method**: Set AWS_PROFILE env var, AWS CLI uses profile from ~/.aws/config
+2. **IAM method**: No credentials or profile, AWS CLI uses instance/task role
+3. **Keys method**: Pass access_key_id and secret_access_key to script
 </WORKFLOW>
 
 <OUTPUTS>

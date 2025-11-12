@@ -2,12 +2,33 @@
   "$schema": "https://fractary.com/schemas/file-plugin-config-v1.json",
   "schema_version": "1.0",
   "_comment": "Configure one or more storage handlers. Remove handlers you don't need. Set active_handler to your default choice.",
+  "_comment_default": "Default configuration: local (primary) for development, s3 (secondary) for production archival",
   "active_handler": "local",
   "handlers": {
     "local": {
       "base_path": "./storage",
       "create_directories": true,
       "permissions": "0755"
+    },
+    "s3": {
+      "_comment": "AWS Profile method (recommended for local development)",
+      "region": "us-east-1",
+      "bucket_name": "my-bucket",
+      "auth_method": "profile",
+      "profile": "default",
+      "_comment_profiles": "Common profile names: test-deploy, prod-deploy, default",
+      "endpoint": null,
+      "public_url": null
+    },
+    "s3_keys": {
+      "_comment": "Alternative: Access Keys method (less secure, use environment variables)",
+      "region": "us-east-1",
+      "bucket_name": "my-bucket",
+      "auth_method": "keys",
+      "access_key_id": "${AWS_ACCESS_KEY_ID}",
+      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
+      "endpoint": null,
+      "public_url": null
     },
     "r2": {
       "account_id": "${R2_ACCOUNT_ID}",
@@ -16,14 +37,6 @@
       "bucket_name": "my-bucket",
       "public_url": "https://pub-xxxxx.r2.dev",
       "region": "auto"
-    },
-    "s3": {
-      "region": "us-east-1",
-      "bucket_name": "my-bucket",
-      "access_key_id": "${AWS_ACCESS_KEY_ID}",
-      "secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
-      "endpoint": null,
-      "public_url": null
     },
     "gcs": {
       "project_id": "my-project",

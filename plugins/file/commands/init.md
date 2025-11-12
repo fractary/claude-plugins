@@ -145,7 +145,53 @@ fi
 4. **Whitespace**: Trimmed automatically
 5. **Case sensitivity**: Validated as-is (must be lowercase)
 
-### 2.3 Type Transformation Flow
+### 2.3 Default Handler Selection
+
+**CRITICAL**: When no `--handlers` argument is provided, intelligently detect which handlers to configure:
+
+```bash
+# Default handling
+if [ -z "$HANDLERS" ]; then
+    # Always include local
+    HANDLERS="local"
+
+    # In interactive mode or if AWS profiles exist, add S3
+    if [ "$INTERACTIVE" = "true" ]; then
+        # Interactive: always offer S3 configuration
+        HANDLERS="local,s3"
+        echo "ℹ️  No handler specified, defaulting to 'local,s3' (local for development, S3 for production)"
+        echo "   Use --handlers to override this default"
+    else
+        # Non-interactive: only add S3 if AWS profiles/credentials exist
+        if [ -f "$HOME/.aws/config" ] || [ -f "$HOME/.aws/credentials" ]; then
+            HANDLERS="local,s3"
+            echo "ℹ️  Non-interactive mode: detected AWS configuration, defaulting to 'local,s3'"
+        else
+            HANDLERS="local"
+            echo "ℹ️  Non-interactive mode: no AWS configuration detected, defaulting to 'local' only"
+            echo "   Use --handlers local,s3 to configure S3"
+        fi
+    fi
+fi
+```
+
+**Rationale**:
+- `local`: Always included, no credentials needed, ideal for development and testing
+- `s3`: Added intelligently:
+  - **Interactive mode**: Always offered (user can configure or skip)
+  - **Non-interactive mode**: Only if AWS config exists (avoids forcing S3 setup when not available)
+
+This ensures consistent behavior while respecting the environment:
+- Interactive users get the full experience with guidance
+- Non-interactive environments (CI/CD) only configure what's available
+- Users can always override with explicit `--handlers` argument
+
+**Breaking Change Notice**:
+- **Previous behavior**: Prompted user to select handlers interactively
+- **New behavior**: Defaults to `local,s3` (interactive) or `local` (non-interactive without AWS)
+- **Migration**: Users who prefer different defaults can use `--handlers` flag
+
+### 2.4 Type Transformation Flow
 
 The handlers parameter goes through several transformations:
 
