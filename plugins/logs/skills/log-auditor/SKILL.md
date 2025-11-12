@@ -61,7 +61,7 @@ fi
 ## Step 2: Load Configuration
 
 Load fractary-logs configuration (if exists):
-- Project config: `.fractary/plugins/logs/config/config.json`
+- Project config: `.fractary/plugins/logs/config.json`
 - Plugin defaults: `plugins/logs/config/config.example.json`
 - Load .gitignore patterns
 
@@ -114,7 +114,7 @@ bash plugins/logs/skills/log-auditor/scripts/analyze-storage.sh {output_dir}/dis
 Define what proper fractary-logs management looks like (the target state):
 
 **Standard Configuration:**
-- fractary-logs initialized with config at `.fractary/plugins/logs/config/config.json`
+- fractary-logs initialized with config at `.fractary/plugins/logs/config.json`
 - fractary-file configured for cloud storage (S3/R2)
 - Hybrid retention strategy enabled (30 days local, archived to cloud)
 
@@ -151,7 +151,7 @@ Load discovery results and explicitly compare against the standard:
 
 ### Configuration Gaps
 - **Current**: Check if config exists and is valid
-- **Standard**: Config at `.fractary/plugins/logs/config/config.json` with hybrid retention
+- **Standard**: Config at `.fractary/plugins/logs/config.json` with hybrid retention
 - **Gap**: Missing config? Invalid settings? No cloud storage configured?
 
 ### Directory Structure Gaps
@@ -698,8 +698,8 @@ Use the log-auditor skill to audit logs:
   "operation": "audit",
   "parameters": {
     "project_root": "/path/to/project",
-    "output_dir": ".fractary/audit",
-    "config_path": ".fractary/plugins/logs/config/config.json",
+    "output_dir": "/logs/audits/tmp",
+    "config_path": ".fractary/plugins/logs/config.json",
     "execute": false
   }
 }
@@ -709,7 +709,7 @@ Use the log-auditor skill to audit logs:
 <DEPENDENCIES>
 - **Discovery scripts**: plugins/logs/skills/log-auditor/scripts/
 - **Spec plugin** (optional): fractary-spec for standardized spec generation
-- **Configuration** (optional): .fractary/plugins/logs/config/config.json
+- **Configuration** (optional): .fractary/plugins/logs/config.json
 - **fractary-file** (optional): For cloud storage operations
 </DEPENDENCIES>
 
