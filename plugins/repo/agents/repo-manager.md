@@ -81,7 +81,7 @@ You receive structured operation requests from:
 }
 ```
 
-**Supported Operations:** (18 total)
+**Supported Operations:** (22 total)
 - initialize-configuration
 - generate-branch-name
 - create-branch
@@ -99,6 +99,10 @@ You receive structured operation requests from:
 - push-tag
 - list-stale-branches
 - configure-permissions
+- create-worktree
+- list-worktrees
+- remove-worktree
+- cleanup-worktrees
 
 </INPUTS>
 
@@ -122,7 +126,8 @@ SUPPORTED_OPERATIONS = [
   "create-commit", "push-branch", "pull-branch", "commit-and-push",
   "create-pr", "comment-pr", "analyze-pr", "review-pr", "merge-pr",
   "create-tag", "push-tag", "list-stale-branches",
-  "configure-permissions"
+  "configure-permissions",
+  "create-worktree", "list-worktrees", "remove-worktree", "cleanup-worktrees"
 ]
 
 if operation not in SUPPORTED_OPERATIONS:
@@ -151,6 +156,10 @@ For other operations:
   - If only `description` provided → "simple" mode
 - Validate required parameters for chosen mode
 - Set defaults for optional parameters
+- If `create_worktree` is true:
+  - First invoke branch-manager skill to create the branch
+  - Then invoke worktree-manager skill to create worktree for that branch
+  - Return combined results from both operations
 
 **Special handling for commit-and-push:**
 - This is a composite operation that performs both commit and push
@@ -159,6 +168,17 @@ For other operations:
 - If commit succeeds, invoke branch-pusher skill
 - Return combined results from both operations
 - If commit fails, do not attempt push
+
+**Special handling for merge-pr with worktree cleanup:**
+- After PR is merged successfully
+- Check if `worktree_cleanup` parameter is provided:
+  - If `worktree_cleanup` is true: Automatically invoke worktree-manager to remove worktree
+  - If `worktree_cleanup` is false/not provided: Check if worktree exists for merged branch
+    - If worktree exists: Present proactive cleanup prompt using AskUserQuestion tool
+      - Option 1: "Yes, remove it now" → invoke worktree-manager to remove
+      - Option 2: "No, keep it for now" → skip cleanup
+      - Option 3: "Show me the cleanup command" → display `/repo:worktree-remove <branch>` command
+- This reinforces cleanup best practices without being intrusive
 
 If validation fails:
 ```
@@ -178,7 +198,7 @@ Use routing table to determine which skill to invoke:
 |-----------|-------|
 | initialize-configuration | fractary-repo:config-wizard |
 | generate-branch-name | fractary-repo:branch-namer |
-| create-branch | fractary-repo:branch-manager |
+| create-branch | fractary-repo:branch-manager (+ worktree-manager if create_worktree=true) |
 | delete-branch | fractary-repo:cleanup-manager |
 | create-commit | fractary-repo:commit-creator |
 | push-branch | fractary-repo:branch-pusher |
@@ -188,11 +208,15 @@ Use routing table to determine which skill to invoke:
 | comment-pr | fractary-repo:pr-manager |
 | analyze-pr | fractary-repo:pr-manager |
 | review-pr | fractary-repo:pr-manager |
-| merge-pr | fractary-repo:pr-manager |
+| merge-pr | fractary-repo:pr-manager (+ worktree cleanup if requested) |
 | create-tag | fractary-repo:tag-manager |
 | push-tag | fractary-repo:tag-manager |
 | list-stale-branches | fractary-repo:cleanup-manager |
 | configure-permissions | fractary-repo:permission-manager |
+| create-worktree | fractary-repo:worktree-manager |
+| list-worktrees | fractary-repo:worktree-manager |
+| remove-worktree | fractary-repo:worktree-manager |
+| cleanup-worktrees | fractary-repo:worktree-manager |
 
 **5. INVOKE SKILL:**
 
