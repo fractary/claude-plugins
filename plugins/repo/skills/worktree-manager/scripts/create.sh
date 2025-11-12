@@ -40,6 +40,15 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
   exit 1
 fi
 
+# Validate base branch if provided
+if [ -n "$BASE_BRANCH" ]; then
+  if ! git show-ref --verify --quiet "refs/heads/$BASE_BRANCH" && \
+     ! git show-ref --verify --quiet "refs/remotes/origin/$BASE_BRANCH"; then
+    echo "Error: Base branch does not exist: $BASE_BRANCH" >&2
+    exit 12
+  fi
+fi
+
 # Check if branch exists
 if ! git show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
   echo "Error: Branch does not exist: $BRANCH_NAME" >&2

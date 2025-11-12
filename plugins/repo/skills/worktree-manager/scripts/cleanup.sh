@@ -106,18 +106,15 @@ while IFS='|' read -r WORKTREE_PATH BRANCH_REF; do
     continue
   fi
 
-  # Check for uncommitted changes
+  # Check for uncommitted changes (using git -C to avoid race condition)
   HAS_CHANGES=false
   if [ -d "$WORKTREE_PATH" ]; then
-    cd "$WORKTREE_PATH"
-    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    if [ -n "$(git -C "$WORKTREE_PATH" status --porcelain 2>/dev/null)" ]; then
       HAS_CHANGES=true
       SKIPPED_DIRTY=$((SKIPPED_DIRTY + 1))
       echo "Skipping $BRANCH_NAME (uncommitted changes)" >&2
-      cd - > /dev/null
       continue
     fi
-    cd - > /dev/null
   fi
 
   # Remove worktree
