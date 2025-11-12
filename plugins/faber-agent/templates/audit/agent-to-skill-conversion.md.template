@@ -1,0 +1,598 @@
+# {{ENTITY_NAME}} - Manager-as-Skill → Manager-as-Agent Conversion
+
+**Generated:** {{TIMESTAMP}}
+**Anti-Pattern:** Manager-as-Skill (CRITICAL)
+**Priority:** {{PRIORITY}}
+**Estimated Effort:** {{EFFORT_DAYS}} days
+
+---
+
+## ⚠️ Critical Architecture Issue
+
+This skill contains **orchestration logic** and should be a **Manager Agent** instead.
+
+**Why this matters:**
+- Managers coordinate complex workflows
+- Managers need full tool access (Read, Write, Bash, AskUserQuestion, etc.)
+- Managers maintain state across phases
+- Managers interact with users for approvals
+- Skills should only perform focused execution
+
+**Current Status:** ❌ Implemented as Skill (incorrect)
+**Target Status:** ✅ Implemented as Agent (correct)
+
+---
+
+## Current Implementation Analysis
+
+### File Location
+
+**Current:** `{{CURRENT_FILE_PATH}}`
+**Target:** `{{TARGET_FILE_PATH}}`
+
+### Orchestration Characteristics Detected
+
+{{#EACH ORCHESTRATION_EVIDENCE}}
+**{{EVIDENCE_NUMBER}}. {{CHARACTERISTIC}}**
+
+- **Evidence:** {{EVIDENCE_DESCRIPTION}}
+- **Location:** Lines {{LINE_NUMBERS}}
+- **Why this indicates orchestration:** {{EXPLANATION}}
+
+{{/EACH}}
+
+### Tool Access Analysis
+
+**Current Tool Access (Skill):**
+```yaml
+tools: Skill  # VERY LIMITED
+```
+
+**Required Tool Access (Manager Agent):**
+```yaml
+tools: Bash, Skill, Read, Write, Glob, Grep, AskUserQuestion
+```
+
+**Why Manager needs these tools:**
+
+| Tool | Current | Needed | Reason |
+|------|---------|--------|--------|
+| **Skill** | ✓ | ✓ | Delegate to execution skills |
+| **AskUserQuestion** | ✗ | ✓ | {{ASK_USER_REASON}} |
+| **Read** | ✗ | ✓ | {{READ_REASON}} |
+| **Write** | ✗ | ✓ | {{WRITE_REASON}} |
+| **Bash** | ✗ | ✓ | {{BASH_REASON}} |
+| **Grep** | ✗ | ✓ | {{GREP_REASON}} |
+| **Glob** | ✗ | ✓ | {{GLOB_REASON}} |
+
+### Workflow Structure
+
+**Current workflow (as skill):**
+{{CURRENT_WORKFLOW_DESCRIPTION}}
+
+**Proper workflow (as agent):**
+{{TARGET_WORKFLOW_DESCRIPTION}}
+
+---
+
+## Before/After Architecture
+
+### BEFORE - Manager as Skill (Anti-Pattern)
+
+```
+Command: /{{COMMAND_NAME}}
+  ↓
+❌ WRONG: Skill: {{ENTITY_NAME}}
+  - Limited to Skill tool only
+  - Cannot ask user questions
+  - Cannot manage workflow state
+  - Cannot read/write project files
+  - Awkward workarounds for orchestration
+  - Violates Manager-as-Agent principle
+
+Current File: {{CURRENT_FILE_PATH}}
+Tool Access: Skill (only)
+Pattern: ANTI-PATTERN ⚠️
+```
+
+**Problems:**
+{{#EACH CURRENT_PROBLEMS}}
+- {{PROBLEM}}
+{{/EACH}}
+
+### AFTER - Manager as Agent (Correct)
+
+```
+Command: /{{COMMAND_NAME}}
+  ↓
+✅ CORRECT: Agent: {{ENTITY_NAME}}.md
+  - Full tool access for orchestration
+  - Can ask user for approval/input
+  - Manages workflow state across phases
+  - Reads/writes project files as needed
+  - Invokes execution skills properly
+  - Follows Manager-as-Agent principle
+
+Target File: {{TARGET_FILE_PATH}}
+Tool Access: Bash, Skill, Read, Write, Glob, Grep, AskUserQuestion
+Pattern: CORRECT ✓
+  ↓
+  ├─ Skill: {{EXECUTION_SKILL_1}} (focused execution)
+  ├─ Skill: {{EXECUTION_SKILL_2}} (focused execution)
+  └─ Skill: {{EXECUTION_SKILL_3}} (focused execution)
+```
+
+**Benefits:**
+{{#EACH TARGET_BENEFITS}}
+- {{BENEFIT}}
+{{/EACH}}
+
+---
+
+## Context Impact Analysis
+
+### Current Context Load
+
+**Skill Size:** {{CURRENT_SKILL_SIZE}}K tokens
+
+**Problems:**
+- Skill doing orchestration (wrong layer)
+- Cannot properly coordinate workflow
+- Workarounds add complexity
+
+### Target Context Load
+
+**Manager Agent:** {{MANAGER_AGENT_SIZE}}K tokens (new)
+**Execution Skills:** {{EXECUTION_SKILLS_TOTAL}}K tokens (new)
+**Old Skill:** -{{CURRENT_SKILL_SIZE}}K tokens (removed)
+
+**Net Change:** {{CONTEXT_NET_CHANGE}}K tokens
+
+### Justification for Context Increase
+
+{{CONTEXT_JUSTIFICATION}}
+
+**Key Points:**
+- Proper architecture is worth the context cost
+- Manager pattern enables correct tool usage
+- Execution skills are reusable across agents
+- Better separation of concerns
+- Improved maintainability and testability
+
+**This is an ACCEPTABLE trade-off for CORRECT architecture.**
+
+---
+
+## Detailed Conversion Steps
+
+### Phase 1: Preparation (0.5 days)
+
+**Tasks:**
+- [ ] Create feature branch: `refactor/{{ENTITY_NAME}}-to-agent-pattern`
+- [ ] Back up current skill file to `.backup/{{TIMESTAMP}}/`
+- [ ] Create agent directory: `agents/`
+- [ ] Create skill directories for execution: `skills/{{EXECUTION_SKILL_1}}/`, etc.
+- [ ] Review current skill for orchestration vs execution logic
+
+**Deliverables:**
+- Clean branch for conversion work
+- Backup of original files
+- Directory structure ready
+
+---
+
+### Phase 2: Create Manager Agent (1-2 days)
+
+**2.1 Create Agent File**
+
+Create: `{{TARGET_FILE_PATH}}`
+
+**Frontmatter:**
+```yaml
+---
+name: {{ENTITY_NAME}}
+description: {{ENTITY_DESCRIPTION}}
+tools: Bash, Skill, Read, Write, Glob, Grep, AskUserQuestion
+model: inherit
+---
+```
+
+**Critical:** Note the full tool access list!
+
+**2.2 Extract Orchestration Logic**
+
+From current skill, extract:
+
+{{#EACH ORCHESTRATION_LOGIC_ITEMS}}
+**{{ITEM_TITLE}}:**
+```markdown
+{{ITEM_CODE}}
+```
+
+**Preserve as:** {{PRESERVATION_INSTRUCTION}}
+
+{{/EACH}}
+
+**2.3 Define Workflow Phases**
+
+Structure workflow using one of:
+
+**Option A: 7-Phase Pattern** (if workflow has distinct phases)
+```markdown
+## Phase 1: {{PHASE_1_NAME}}
+## Phase 2: {{PHASE_2_NAME}}
+## Phase 3: {{PHASE_3_NAME}}
+## Phase 4: APPROVE (User Decision)
+## Phase 5: {{PHASE_5_NAME}}
+## Phase 6: {{PHASE_6_NAME}}
+## Phase 7: REPORT
+```
+
+**Option B: Builder/Debugger Pattern** (if iterative workflow)
+```markdown
+## Phase 1: INSPECT (gather information)
+## Phase 2: ANALYZE (identify issues)
+## Phase 3: DEBUG (fix issues)
+## Phase 4: BUILD (implement solution)
+## Phase 5: VERIFY (test)
+```
+
+**2.4 Add State Management**
+
+```markdown
+<CRITICAL_RULES>
+3. **State Management**
+   - ALWAYS maintain workflow state in `.{{PLUGIN}}/{{ENTITY}}/{timestamp}/state.json`
+   - ALWAYS store phase results for later reference
+   - ALWAYS track progress across invocations
+</CRITICAL_RULES>
+```
+
+**2.5 Add User Interaction**
+
+Add approval points using AskUserQuestion:
+```markdown
+## Phase 4: APPROVE
+
+Use AskUserQuestion with:
+```
+Should I proceed with {{ACTION}}?
+```
+
+Options:
+1. Proceed
+2. Review plan first
+3. Cancel
+```
+
+**Deliverables:**
+- Complete Manager agent file
+- Full tool access defined
+- Workflow phases structured
+- State management implemented
+- User interaction points added
+
+---
+
+### Phase 3: Extract Execution to Skills (1-2 days)
+
+**3.1 Identify Execution Logic**
+
+From current skill, identify execution operations:
+
+{{#EACH EXECUTION_OPERATIONS}}
+**Operation: {{OPERATION_NAME}}**
+
+Current location: Lines {{LINE_NUMBERS}} in skill file
+
+What it does:
+{{OPERATION_DESCRIPTION}}
+
+Extraction target:
+- Skill: `skills/{{SKILL_NAME}}/SKILL.md`
+- Script: `skills/{{SKILL_NAME}}/scripts/{{SCRIPT_NAME}}.sh`
+
+{{/EACH}}
+
+**3.2 Create Execution Skills**
+
+For each operation:
+
+1. **Create skill directory:**
+   ```bash
+   mkdir -p skills/{{SKILL_NAME}}/scripts/
+   ```
+
+2. **Create SKILL.md:**
+   ```markdown
+   ---
+   skill: {{SKILL_NAME}}
+   purpose: {{SKILL_PURPOSE}}
+   layer: {{LAYER_TYPE}}
+   ---
+
+   <CONTEXT>
+   {{SKILL_CONTEXT}}
+   </CONTEXT>
+
+   <OPERATIONS>
+   ## {{OPERATION_NAME}}
+
+   Execute: `scripts/{{SCRIPT_NAME}}.sh "{param1}" "{param2}"`
+   </OPERATIONS>
+   ```
+
+3. **Extract logic to scripts:**
+   ```bash
+   # Create script
+   cat > skills/{{SKILL_NAME}}/scripts/{{SCRIPT_NAME}}.sh <<'EOF'
+   #!/bin/bash
+   set -euo pipefail
+
+   # {{SCRIPT_DESCRIPTION}}
+   {{SCRIPT_CODE}}
+   EOF
+
+   # Make executable
+   chmod +x skills/{{SKILL_NAME}}/scripts/{{SCRIPT_NAME}}.sh
+   ```
+
+4. **Test skill:**
+   ```bash
+   ./skills/{{SKILL_NAME}}/scripts/{{SCRIPT_NAME}}.sh "test-input"
+   ```
+
+**Deliverables:**
+- {{EXECUTION_SKILLS_COUNT}} execution skills created
+- All deterministic logic in scripts
+- Each skill tested independently
+
+---
+
+### Phase 4: Update Manager Agent to Use Skills (0.5 days)
+
+**4.1 Replace Execution with Skill Invocations**
+
+In Manager agent, replace execution with:
+
+**BEFORE (in old skill):**
+```markdown
+Execute data processing:
+1. Read input file
+2. Parse JSON
+3. Transform data
+4. Write output
+```
+
+**AFTER (in Manager agent):**
+```markdown
+## Phase 2: Process Data
+
+Use the @skill-{{PLUGIN}}:{{SKILL_NAME}} skill:
+```json
+{
+  "operation": "{{OPERATION}}",
+  "input_file": "{{INPUT}}",
+  "output_file": "{{OUTPUT}}"
+}
+```
+```
+
+**4.2 Update All Phases**
+
+Ensure every phase that needs execution:
+- Invokes appropriate skill
+- Passes parameters correctly
+- Handles skill results
+- Updates state
+
+**Deliverables:**
+- Manager agent uses skills for all execution
+- No direct execution in agent
+- Proper skill invocation syntax
+
+---
+
+### Phase 5: Update Command Routing (0.5 days)
+
+**5.1 Modify Command File**
+
+File: `commands/{{COMMAND_NAME}}.md`
+
+**BEFORE:**
+```markdown
+Use the @skill-{{PLUGIN}}:{{ENTITY_NAME}} skill with:
+```
+
+**AFTER:**
+```markdown
+Use the @agent-{{PLUGIN}}:{{ENTITY_NAME}} agent with the following request:
+```json
+{
+  "operation": "{{OPERATION}}",
+  "parameters": {...}
+}
+```
+```
+
+**5.2 Update Command Documentation**
+
+Update command description to reflect agent usage:
+```yaml
+---
+command: {{COMMAND_NAME}}
+description: {{UPDATED_DESCRIPTION}}  # Mention "agent" not "skill"
+---
+```
+
+**Deliverables:**
+- Command routes to agent (not skill)
+- Documentation updated
+
+---
+
+### Phase 6: Testing & Validation (1 day)
+
+**6.1 Functional Testing**
+
+- [ ] Manager agent starts successfully
+- [ ] All workflow phases execute
+- [ ] User interaction works (AskUserQuestion)
+- [ ] Skills invoked correctly
+- [ ] State management works
+- [ ] Error handling functional
+- [ ] Output matches expected results
+
+**6.2 Tool Access Verification**
+
+Verify agent can:
+- [ ] Invoke skills (Skill tool)
+- [ ] Ask user questions (AskUserQuestion tool)
+- [ ] Read files (Read tool)
+- [ ] Write files (Write tool)
+- [ ] Execute bash (Bash tool)
+- [ ] Search files (Grep, Glob tools)
+
+**6.3 Pattern Compliance**
+
+- [ ] Entity is now Agent (not Skill)
+- [ ] Tool access includes full toolset
+- [ ] Orchestration is in Agent
+- [ ] Execution is in Skills
+- [ ] Follows 7-phase or Builder/Debugger pattern
+- [ ] State management implemented
+- [ ] User interaction points exist
+
+**6.4 Context Measurement**
+
+- [ ] Measure Manager agent context: {{MANAGER_AGENT_SIZE}}K (target)
+- [ ] Measure execution skills total: {{EXECUTION_SKILLS_TOTAL}}K (target)
+- [ ] Calculate net change: {{CONTEXT_NET_CHANGE}}K
+- [ ] Verify proper architecture justifies cost
+
+**Deliverables:**
+- All tests passing
+- Pattern compliance verified
+- Context measured and documented
+
+---
+
+### Phase 7: Cleanup & Documentation (0.5 days)
+
+**7.1 Remove Old Skill File**
+
+```bash
+git rm {{CURRENT_FILE_PATH}}
+```
+
+**7.2 Update Documentation**
+
+- [ ] Update README (if present)
+- [ ] Update architecture docs
+- [ ] Document tool access reasoning
+- [ ] Add comments explaining conversion
+
+**7.3 Commit Changes**
+
+```bash
+git add agents/{{ENTITY_NAME}}.md
+git add skills/{{EXECUTION_SKILL_1}}/
+git add skills/{{EXECUTION_SKILL_2}}/
+git add commands/{{COMMAND_NAME}}.md
+git rm {{CURRENT_FILE_PATH}}
+
+git commit -m "fix: Convert {{ENTITY_NAME}} from Manager-as-Skill to Manager-as-Agent
+
+- Fix critical anti-pattern: Manager was incorrectly implemented as Skill
+- Create {{ENTITY_NAME}}.md Agent with full tool access
+- Extract execution to {{EXECUTION_SKILLS_COUNT}} focused skills
+- Add user interaction and state management
+- Proper orchestration capabilities restored
+
+Anti-pattern: Manager-as-Skill (CRITICAL)
+Pattern: Manager-as-Agent (CORRECT)
+Context change: {{CONTEXT_NET_CHANGE}}K (justified for proper architecture)
+
+Follows SPEC-025 standards and Manager-as-Agent principle"
+```
+
+**Deliverables:**
+- Old skill removed
+- Documentation updated
+- Changes committed with clear message
+
+---
+
+## Total Effort Breakdown
+
+| Phase | Duration | Key Deliverable |
+|-------|----------|-----------------|
+| 1. Preparation | 0.5 days | Branch and directories ready |
+| 2. Create Manager Agent | 1-2 days | Complete Manager agent file |
+| 3. Extract Execution to Skills | 1-2 days | {{EXECUTION_SKILLS_COUNT}} skills with scripts |
+| 4. Update Agent to Use Skills | 0.5 days | Manager invokes skills |
+| 5. Update Command Routing | 0.5 days | Command routes to agent |
+| 6. Testing & Validation | 1 day | All tests passing |
+| 7. Cleanup & Documentation | 0.5 days | Clean commit |
+| **TOTAL** | **{{EFFORT_DAYS}} days** | Complete conversion |
+
+**Recommended Schedule:** {{RECOMMENDED_WEEKS}} weeks with review time
+
+---
+
+## Success Criteria
+
+Conversion is successful when:
+
+- [ ] {{ENTITY_NAME}} is implemented as Agent (not Skill)
+- [ ] Tool access includes full orchestration toolset
+- [ ] Execution properly delegated to skills
+- [ ] User interaction works (AskUserQuestion)
+- [ ] State management functional
+- [ ] All original functionality preserved
+- [ ] Pattern compliance verified
+- [ ] Tests passing
+- [ ] Documentation updated
+
+---
+
+## Why This Conversion is Critical
+
+**Manager-as-Skill is a CRITICAL anti-pattern because:**
+
+1. **Violates Separation of Concerns**
+   - Skills should execute, not orchestrate
+   - Managers should orchestrate, not execute
+
+2. **Limits Capabilities**
+   - Skills have restricted tool access
+   - Cannot ask user questions
+   - Cannot manage state properly
+   - Cannot coordinate complex workflows
+
+3. **Creates Technical Debt**
+   - Workarounds accumulate
+   - Code becomes convoluted
+   - Difficult to extend or maintain
+
+4. **Prevents Best Practices**
+   - Cannot follow 7-phase pattern
+   - Cannot implement approval workflows
+   - Cannot handle errors gracefully
+
+**This conversion restores proper architecture and enables correct orchestration patterns.**
+
+---
+
+## Additional Resources
+
+- [Manager-as-Agent Pattern Guide](../../docs/patterns/manager-as-agent.md)
+- [Agentic Control Plane Standards](../../docs/standards/agentic-control-plane-standards-2.md)
+- [Agent-to-Skill Migration Guide](../../docs/standards/agent-to-skill-migration.md)
+- [SPEC-025 Full Specification](../../docs/specs/SPEC-025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md)
+
+---
+
+**Generated by:** FABER Agent Plugin v{{VERSION}}
+**Specification Version:** {{SPEC_VERSION}}
+**Last Updated:** {{TIMESTAMP}}
