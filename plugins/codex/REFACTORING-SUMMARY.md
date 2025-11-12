@@ -134,7 +134,7 @@ Three-tier configuration with smart fallbacks:
    - Handler settings
    - Sync patterns
 
-2. **Project Config**: `.fractary/plugins/codex/config/codex.json`
+2. **Project Config**: `.fractary/plugins/codex/config.json`
    - Project-specific overrides
    - Custom patterns
    - Direction preferences
@@ -398,7 +398,7 @@ Process multiple projects simultaneously:
 
 4. **Customize Configuration** (optional):
    - Edit `~/.config/fractary/codex/config.json` for global settings
-   - Edit `.fractary/plugins/codex/config/codex.json` for project settings
+   - Edit `.fractary/plugins/codex/config.json` for project settings
 
 ---
 

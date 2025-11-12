@@ -52,7 +52,7 @@
 
    Created:
      - Global config: ~/.config/fractary/codex/config.json
-     - Project config: .fractary/plugins/codex/config/codex.json
+     - Project config: .fractary/plugins/codex/config.json
 
    Configuration:
      Organization: fractary
@@ -239,7 +239,7 @@ Edit `~/.config/fractary/codex/config.json`:
 
 ### Project-Specific Configuration
 
-Create `.fractary/plugins/codex/config/codex.json`:
+Create `.fractary/plugins/codex/config.json`:
 
 ```json
 {
@@ -428,7 +428,7 @@ jobs:
 
 ```
 Global:  ~/.config/fractary/codex/config.json
-Project: .fractary/plugins/codex/config/codex.json
+Project: .fractary/plugins/codex/config.json
 Schema:  .claude-plugin/config.schema.json
 ```
 
