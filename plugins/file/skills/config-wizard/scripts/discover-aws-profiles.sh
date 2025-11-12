@@ -7,6 +7,12 @@
 
 set -euo pipefail
 
+# Dependency check
+if ! command -v jq &> /dev/null; then
+    echo '{"error": "jq is required but not installed. Install with: apt-get install jq or brew install jq"}' >&2
+    exit 1
+fi
+
 # Function: Auto-detect project/system name from git
 detect_project_name() {
   local project_name=""
@@ -16,6 +22,9 @@ detect_project_name() {
     local remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
     if [ -n "$remote_url" ]; then
       # Extract project name from URL
+      # NOTE: This works for GitHub (org/repo) but may extract incorrectly for GitLab subgroups (group/subgroup/repo)
+      # For GitLab subgroups, this extracts "subgroup" instead of "repo"
+      # Limitation accepted as most profiles follow the pattern anyway
       project_name=$(echo "$remote_url" | sed -E 's/.*[/:]([-a-zA-Z0-9_]+)(\.git)?$/\1/')
     fi
   fi
@@ -86,8 +95,19 @@ get_credential_profiles() {
     return
   fi
 
-  # Extract profile names from [profile_name] headers
-  local profiles=$(grep -E '^\[.+\]' "$cred_file" | sed 's/^\[\(.*\)\]$/\1/' | jq -R . | jq -s . || echo "[]")
+  # Extract profile names from [profile_name] headers using safe iteration
+  local profiles="[]"
+  local line
+
+  while IFS= read -r line; do
+    # Match [profile_name] pattern with regex
+    if [[ "$line" =~ ^\[([^]]+)\]$ ]]; then
+      local profile_name="${BASH_REMATCH[1]}"
+      # Use jq to safely escape and add to array
+      profiles=$(echo "$profiles" | jq --arg name "$profile_name" '. + [$name]')
+    fi
+  done < "$cred_file"
+
   echo "$profiles"
 }
 
@@ -135,9 +155,9 @@ is_project_related() {
   local profile_name="$1"
   local project_name="$2"
 
-  # Normalize names
-  local lower_profile=$(echo "$profile_name" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
-  local lower_project=$(echo "$project_name" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
+  # Normalize names to lowercase only (preserve hyphens to avoid false positives)
+  local lower_profile=$(echo "$profile_name" | tr '[:upper:]' '[:lower:]')
+  local lower_project=$(echo "$project_name" | tr '[:upper:]' '[:lower:]')
 
   # Check if profile contains project name
   if [[ "$lower_profile" == *"$lower_project"* ]]; then
