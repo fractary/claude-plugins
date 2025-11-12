@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:validate
 description: Validate implementation against specification
+argument-hint: <issue_number> [--phase <n>]
 ---
 
 Validate that implementation matches specification by checking requirements coverage, acceptance criteria, file modifications, tests, and documentation.

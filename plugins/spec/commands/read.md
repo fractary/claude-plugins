@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:read
 description: Read archived specification from cloud storage
+argument-hint: <issue_number> [--phase <n>]
 ---
 
 Read an archived specification from cloud storage without downloading it locally.
