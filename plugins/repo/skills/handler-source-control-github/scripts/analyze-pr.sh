@@ -96,25 +96,38 @@ if [ "$MERGEABLE" = "CONFLICTING" ]; then
     # Note: This requires the branches to be available locally or we fetch them
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
-    # Fetch latest changes (silently)
-    git fetch origin "$BASE_BRANCH" 2>/dev/null || true
-    git fetch origin "$HEAD_BRANCH" 2>/dev/null || true
+    # Fetch latest changes and track success
+    FETCH_SUCCESS=true
+    if ! git fetch origin "$BASE_BRANCH" 2>/dev/null; then
+        FETCH_SUCCESS=false
+    fi
+    if ! git fetch origin "$HEAD_BRANCH" 2>/dev/null; then
+        FETCH_SUCCESS=false
+    fi
 
-    # Try to get a list of files that would conflict
-    # We do a test merge in a safe way to identify conflicts
-    CONFLICT_CHECK=$(git merge-tree "origin/$BASE_BRANCH" "origin/$HEAD_BRANCH" 2>&1 || true)
+    # Only proceed with merge-tree if fetches succeeded and branches exist
+    if [ "$FETCH_SUCCESS" = "true" ] && git rev-parse "origin/$BASE_BRANCH" >/dev/null 2>&1 && git rev-parse "origin/$HEAD_BRANCH" >/dev/null 2>&1; then
+        # Try to get a list of files that would conflict
+        # We do a test merge in a safe way to identify conflicts
+        CONFLICT_CHECK=$(git merge-tree "origin/$BASE_BRANCH" "origin/$HEAD_BRANCH" 2>&1 || true)
 
-    if echo "$CONFLICT_CHECK" | grep -q "changed in both"; then
-        # Extract conflicting files from merge-tree output
-        CONFLICTING_FILES_LIST=$(echo "$CONFLICT_CHECK" | grep "changed in both" | sed 's/.*changed in both$//' | sed 's/^[[:space:]]*//' || echo "")
+        if echo "$CONFLICT_CHECK" | grep -q "changed in both"; then
+            # Extract conflicting files from merge-tree output
+            # The format is typically:
+            #   changed in both
+            #     base   <mode> <hash> <filename>
+            #     our    <mode> <hash> <filename>
+            #     their  <mode> <hash> <filename>
+            CONFLICTING_FILES_LIST=$(echo "$CONFLICT_CHECK" | grep -A 3 "changed in both" | grep -E "^\s+(base|our|their)\s+" | awk '{print $4}' | sort -u || echo "")
 
-        if [ -n "$CONFLICTING_FILES_LIST" ]; then
-            # Convert to JSON array
-            CONFLICTING_FILES=$(echo "$CONFLICTING_FILES_LIST" | jq -R -s 'split("\n") | map(select(length > 0))')
-            CONFLICT_DETAILS="Files modified in both branches require manual resolution"
+            if [ -n "$CONFLICTING_FILES_LIST" ]; then
+                # Convert to JSON array
+                CONFLICTING_FILES=$(echo "$CONFLICTING_FILES_LIST" | jq -R -s 'split("\n") | map(select(length > 0))')
+                CONFLICT_DETAILS="Files modified in both branches require manual resolution"
+            fi
         fi
     else
-        # If we can't determine specific files, just note that conflicts exist
+        # If we can't fetch or branches don't exist locally, note that we can't determine specific files
         CONFLICT_DETAILS="Merge conflicts detected. Fetch branches locally to see specific files."
     fi
 fi
