@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-review
 description: Analyze or review a pull request (default: analyze if no action provided)
-argument-hint: '<pr_number> [action] [--comment "<text>"]'
+argument-hint: '<pr_number> [--action "analyze|approve|request_changes|comment" (default: analyze)] [--comment "<text>"]'
 ---
 
 <CONTEXT>
@@ -34,10 +34,10 @@ Your role is to parse user input and invoke the repo-manager agent to review a p
 
 <WORKFLOW>
 1. **Parse user input**
-   - Extract pr_number (required)
-   - Extract action (optional): analyze (default), approve, request_changes, or comment
-   - Parse optional argument: --comment
-   - If no action provided, default to "analyze" mode
+   - Extract pr_number (required, positional)
+   - Parse optional flag: --action (one of: analyze, approve, request_changes, comment)
+   - Parse optional flag: --comment
+   - If --action not provided, default to "analyze"
 
 2. **Determine operation mode**
    - If action is "analyze" (or not provided): Map to "analyze-pr" operation
@@ -66,12 +66,12 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 ### Quote Usage
 
-**Always use quotes for multi-word comments:**
+**Always use quotes for multi-word values:**
 ```bash
-✅ /repo:pr-review 456 approve --comment "Great work on this feature!"
-✅ /repo:pr-review 456 request_changes --comment "Please add tests"
+✅ /repo:pr-review 456 --action approve --comment "Great work on this feature!"
+✅ /repo:pr-review 456 --action request_changes --comment "Please add tests"
 
-❌ /repo:pr-review 456 approve --comment Great work on this feature!
+❌ /repo:pr-review 456 --action approve --comment Great work on this feature!
 ```
 
 **Review actions are exact keywords:**
@@ -81,10 +81,10 @@ This command follows the **space-separated** argument syntax (consistent with wo
 **Examples:**
 ```bash
 ✅ /repo:pr-review 456
-✅ /repo:pr-review 456 analyze
-✅ /repo:pr-review 456 approve
-✅ /repo:pr-review 456 request_changes --comment "Add tests"
-✅ /repo:pr-review 456 comment --comment "Nice refactoring"
+✅ /repo:pr-review 456 --action analyze
+✅ /repo:pr-review 456 --action approve
+✅ /repo:pr-review 456 --action request_changes --comment "Add tests"
+✅ /repo:pr-review 456 --action comment --comment "Nice refactoring"
 ```
 </ARGUMENT_SYNTAX>
 
@@ -92,10 +92,11 @@ This command follows the **space-separated** argument syntax (consistent with wo
 ## Arguments
 
 **Required Arguments**:
-- `pr_number` (number): PR number (e.g., 456, not "#456")
+- `pr_number` (number): PR number (e.g., 456, not "#456") - positional argument
 
 **Optional Arguments**:
-- `action` (enum): Action to perform. One of: `analyze` (default), `approve`, `request_changes`, `comment`
+- `--action` (enum): Action to perform. One of: `analyze` (default), `approve`, `request_changes`, `comment`
+  - If not specified, defaults to `analyze`
 - `--comment` (string): Review comment/feedback, use quotes if multi-word (e.g., "Please add tests for edge cases")
 
 **Maps to**: analyze-pr (when action is analyze or not provided) or review-pr (when action is approve/request_changes/comment)
@@ -105,10 +106,10 @@ This command follows the **space-separated** argument syntax (consistent with wo
 /repo:pr-review 456
 → Invoke agent with {"operation": "analyze-pr", "parameters": {"pr_number": "456"}}
 
-/repo:pr-review 456 analyze
+/repo:pr-review 456 --action analyze
 → Invoke agent with {"operation": "analyze-pr", "parameters": {"pr_number": "456"}}
 
-/repo:pr-review 456 approve --comment "Great work!"
+/repo:pr-review 456 --action approve --comment "Great work!"
 → Invoke agent with {"operation": "review-pr", "parameters": {"pr_number": "456", "action": "approve", "comment": "Great work!"}}
 ```
 </ARGUMENT_PARSING>
@@ -121,19 +122,19 @@ This command follows the **space-separated** argument syntax (consistent with wo
 /repo:pr-review 456
 
 # Explicitly analyze PR
-/repo:pr-review 456 analyze
+/repo:pr-review 456 --action analyze
 
 # Approve PR
-/repo:pr-review 456 approve --comment "LGTM!"
+/repo:pr-review 456 --action approve --comment "LGTM!"
 
 # Approve without comment
-/repo:pr-review 456 approve
+/repo:pr-review 456 --action approve
 
 # Request changes
-/repo:pr-review 456 request_changes --comment "Please add tests"
+/repo:pr-review 456 --action request_changes --comment "Please add tests"
 
 # Add review comment
-/repo:pr-review 456 comment --comment "Nice refactoring here"
+/repo:pr-review 456 --action comment --comment "Nice refactoring here"
 ```
 </EXAMPLES>
 
@@ -169,13 +170,14 @@ Common errors to handle:
 **Missing PR number**:
 ```
 Error: pr_number is required
-Usage: /repo:pr-review <pr_number> [action]
+Usage: /repo:pr-review <pr_number> [--action "analyze|approve|request_changes|comment"] [--comment "<text>"]
 ```
 
 **Invalid action**:
 ```
 Error: Invalid action: approved
 Valid actions: analyze (default), approve, request_changes, comment
+Usage: --action "analyze|approve|request_changes|comment"
 ```
 
 **PR not found**:
