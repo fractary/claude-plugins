@@ -130,6 +130,22 @@ log_message "INFO" "Posting comment to issue #$ISSUE_ID"
 if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
     echo -e "${GREEN}✅ Session summary posted to issue #${ISSUE_ID}${NC}"
     log_message "INFO" "Comment posted successfully to issue #$ISSUE_ID"
+
+    # Save current HEAD as reference for next time
+    # This allows us to show "work since last comment" on the next stop
+    LAST_STOP_FILE="${CACHE_DIR}/last_stop_ref"
+    CURRENT_HEAD=$(git rev-parse HEAD 2>/dev/null)
+
+    # Store as "branch:ref" format (one line per branch)
+    # Remove old entry for this branch and append new one
+    if [ -f "$LAST_STOP_FILE" ]; then
+        grep -v "^${CURRENT_BRANCH}:" "$LAST_STOP_FILE" > "${LAST_STOP_FILE}.tmp" 2>/dev/null || true
+        mv "${LAST_STOP_FILE}.tmp" "$LAST_STOP_FILE"
+    fi
+    echo "${CURRENT_BRANCH}:${CURRENT_HEAD}" >> "$LAST_STOP_FILE"
+
+    echo -e "${BLUE}📌 Saved reference for next comment: ${CURRENT_HEAD:0:7}${NC}"
+    log_message "INFO" "Saved stop reference: $CURRENT_HEAD"
 else
     EXIT_CODE=$?
     echo -e "${YELLOW}⚠️  Could not post comment (exit code: ${EXIT_CODE})${NC}"
