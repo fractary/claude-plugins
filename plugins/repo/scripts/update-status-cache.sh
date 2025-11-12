@@ -10,11 +10,21 @@ set -euo pipefail
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
 
-# Use session-scoped cache if CLAUDE_CODE_SESSION_ID is available
-# This prevents cache interference between concurrent sessions
-SESSION_ID="${CLAUDE_CODE_SESSION_ID:-global}"
-CACHE_FILE="${CACHE_DIR}/status-${SESSION_ID}.cache"
-LOCK_FILE="${CACHE_DIR}/status-${SESSION_ID}.lock"
+# Check if we're in a git repository first (needed for repo path)
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo -e "${RED}❌ Not in a git repository${NC}" >&2
+    exit 1
+fi
+
+# Get repository root path for cache key
+REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+
+# Use repo-scoped cache based on repository path hash
+# This ensures each repository has its own cache, shared across all sessions
+# Work trees share the same .git directory, so they correctly share the cache
+REPO_ID=$(echo "$REPO_PATH" | md5sum 2>/dev/null | cut -d' ' -f1 | cut -c1-16 || echo "global")
+CACHE_FILE="${CACHE_DIR}/status-${REPO_ID}.cache"
+LOCK_FILE="${CACHE_DIR}/status-${REPO_ID}.lock"
 TEMP_FILE="${CACHE_FILE}.tmp.$$"
 
 # Colors for output
@@ -31,11 +41,8 @@ mkdir -p "${CACHE_DIR}"
 # These can accumulate if processes crash before trap cleanup fires
 find "${CACHE_DIR}" -name "status-*.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
 
-# Clean up old session caches (older than 7 days)
-# 7-day window accommodates multi-day breaks (weekends, vacations)
-# Sessions are typically short-lived, but being conservative to avoid data loss
-find "${CACHE_DIR}" -name "status-session_*.cache" -type f -mmin +10080 -delete 2>/dev/null || true
-find "${CACHE_DIR}" -name "status-session_*.lock" -type f -mmin +10080 -delete 2>/dev/null || true
+# Note: No time-based cleanup for repo-scoped caches since repositories don't expire
+# Stale caches are handled by emergency refresh in read-status-cache.sh
 
 # Parse arguments
 SKIP_LOCK=false
@@ -79,15 +86,6 @@ else
     # Even when skipping lock, ensure temp file cleanup on interruption
     trap "rm -f '${TEMP_FILE}' 2>/dev/null || true" EXIT
 fi
-
-# Check if we're in a git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo -e "${RED}❌ Not in a git repository${NC}" >&2
-    exit 1
-fi
-
-# Get repository root path
-REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # Get current branch
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
