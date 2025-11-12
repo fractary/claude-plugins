@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
-argument-hint: '"<branch-name-or-description>" [--base <branch>] [--prefix <prefix>] [--work-id <id>]'
+argument-hint: '"<branch-name-or-description>" [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree]'
 ---
 
 <CONTEXT>
@@ -156,6 +156,7 @@ work_id is always optional via --work-id flag
 - `--base <branch>` (string): Base branch name to create from (default: main/master)
 - `--prefix <type>` (string): Branch prefix - `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf` (default: `feat`)
 - `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional.
+- `--worktree` (boolean flag): Create a git worktree for parallel development. No value needed, just include the flag
 
 ### Maps to Operation
 All modes map to: `create-branch` operation in repo-manager agent
@@ -192,6 +193,10 @@ All modes map to: `create-branch` operation in repo-manager agent
 
 # Full example with all options (auto-generates: feat/456-new-dashboard)
 /repo:branch-create "new dashboard" --prefix feat --work-id 456 --base develop
+
+# Create branch with worktree for parallel development
+/repo:branch-create "add CSV export" --work-id 123 --worktree
+# Result: feat/123-add-csv-export + worktree at ../repo-wt-feat-123-add-csv-export
 ```
 
 ### Work Tracking Integration Example
@@ -229,7 +234,8 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
     "mode": "direct",
     "branch_name": "feature/my-new-feature",
     "base_branch": "main",
-    "work_id": "123"  // optional
+    "work_id": "123",  // optional
+    "create_worktree": false  // optional
   }
 }
 ```
@@ -243,7 +249,22 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
     "description": "my experimental feature",
     "prefix": "feat",
     "base_branch": "main",
-    "work_id": "123"  // optional
+    "work_id": "123",  // optional
+    "create_worktree": false  // optional
+  }
+}
+```
+
+### With Worktree
+```json
+{
+  "operation": "create-branch",
+  "parameters": {
+    "mode": "description",
+    "description": "add CSV export",
+    "prefix": "feat",
+    "work_id": "123",
+    "create_worktree": true
   }
 }
 ```
