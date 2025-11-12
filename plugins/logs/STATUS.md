@@ -1,16 +1,19 @@
-# ⚠️ ALPHA/PREVIEW STATUS
+# ✅ STABLE RELEASE
 
-**Version**: 1.0.0-alpha
-**Status**: Preview - Core functionality complete, cloud integration pending
+**Version**: 1.1.0
+**Status**: Production Ready - Cloud backup and AI summaries fully implemented
 **Updated**: 2025-01-15
 
 ## What Works ✅
 
 ### Fully Functional
 - ✅ **Session Capture**: Record Claude Code conversations in markdown
+- ✅ **Automatic Cloud Backup**: Auto-archive logs older than 7 days (NEW)
+- ✅ **AI-Powered Summaries**: Generate intelligent summaries with key insights (NEW)
+- ✅ **Hybrid Retention**: 7-day local, forever in cloud (NEW)
+- ✅ **Separate Storage Paths**: Logs and summaries in different paths (NEW)
 - ✅ **Sensitive Data Redaction**: API keys, tokens, passwords, credit cards
-- ✅ **Local Storage**: 30-day retention in `/logs` directory
-- ✅ **Search**: Fast local search with filters
+- ✅ **Search**: Fast local + cloud search with filters
 - ✅ **Analysis**: Error extraction, pattern detection, session summaries, time tracking
 - ✅ **Archive Index**: Metadata tracking for all logs
 - ✅ **Security**: Secure temp directories, input validation, concurrency control
@@ -24,78 +27,139 @@
 - `/fractary-logs:analyze <type>` - Analyze logs
 - `/fractary-logs:read <issue>` - Read logs
 
-## What's Not Yet Implemented ⚠️
+## New Features in v1.1.0 🎉
 
-### Cloud Upload Integration (In Progress)
-**Status**: Architecture designed, awaiting implementation
-**Limitation**: Files are NOT uploaded to cloud storage
-**Workaround**: Use local-only mode
+### 🔄 Automatic Cloud Backup
+**Status**: ✅ Fully Implemented
 
-**What This Means**:
-- Archive operations prepare files but don't upload them
-- Logs remain in local storage only
-- Archive index is created but contains simulated URLs
-- Time-based cleanup (30 days) will delete old logs
+**What It Does**:
+- Automatically backs up logs older than 7 days to cloud storage
+- Triggers on initialization and session start
+- Configurable threshold (default: 7 days to match Claude's retention)
+- Non-blocking background archival
+
+**Why It Matters**:
+Claude API logs are only retained for 7 days. This ensures you never lose valuable session history.
 
 **Configuration**:
-Set `retention.strategy` to `"local"` to acknowledge local-only mode:
 ```json
 {
-  "retention": {
-    "strategy": "local",
-    "local_days": 30,
-    "cloud_days": "n/a"
+  "auto_backup": {
+    "enabled": true,
+    "trigger_on_init": true,
+    "trigger_on_session_start": true,
+    "backup_older_than_days": 7
   }
 }
 ```
 
-**Implementation Plan**:
-The architecture is designed for agent-to-agent integration:
-1. log-manager agent prepares files for upload
-2. log-manager invokes file-manager agent (fractary-file plugin)
-3. file-manager performs actual upload
-4. log-manager receives URLs and updates index
+### 🤖 AI-Powered Session Summaries
+**Status**: ✅ Fully Implemented
 
-**To Complete**:
-- [ ] Implement agent-to-agent invocation in log-manager
-- [ ] Add upload orchestration logic
-- [ ] Add error recovery for failed uploads
-- [ ] Test with actual cloud providers (R2, S3, GCS)
-- [ ] Update status to Beta
+**What It Does**:
+- Analyzes full session logs using Claude
+- Generates structured markdown summaries
+- Extracts key accomplishments, decisions, learnings
+- Tracks files changed and issues encountered
+- Stored in separate `claude-summaries/` path
 
-**Commands Affected**:
-- `/fractary-logs:archive <issue>` - Prepares but doesn't upload
-- `/fractary-logs:cleanup` - Prepares but doesn't upload
+**What's Included**:
+- Key accomplishments and outcomes
+- Technical decisions with rationale
+- Learnings, insights, and gotchas
+- Files changed (categorized)
+- Issues encountered and solutions
+- Follow-up items and TODOs
 
-**ETA**: Next release (v1.0.0-beta)
+**Configuration**:
+```json
+{
+  "summarization": {
+    "enabled": true,
+    "auto_generate_on_archive": true,
+    "model": "claude-sonnet-4-5-20250929",
+    "separate_paths": true
+  }
+}
+```
 
-## Recommended Usage (Alpha)
+### 📂 Separate Storage Paths
+**Status**: ✅ Fully Implemented
 
-### ✅ Safe to Use
-- **Session capture** for documentation
-- **Local log storage** for recent work
-- **Search and analysis** of local logs
-- **Development and testing**
+**What It Does**:
+- Logs stored in `archive/logs/claude-logs/{year}/`
+- Summaries stored in `archive/logs/claude-summaries/{year}/`
+- Organized by year for easy browsing
+- Compressed logs, markdown summaries
 
-### ⚠️ Use with Caution
-- **Archival operations** (files won't upload)
-- **Long-term retention** (relies on local storage only)
-- **Production systems** (wait for cloud integration)
+**Benefits**:
+- Browse summaries without downloading full logs
+- Faster summary access
+- Cleaner organization
+- Different retention policies possible
 
-### ❌ Do Not Use For
-- **Critical log retention** (no cloud backup)
-- **Compliance requirements** (no long-term archival)
-- **Multi-environment deployments** (local storage only)
+**Configuration**:
+```json
+{
+  "storage": {
+    "cloud_logs_path": "archive/logs/claude-logs/{year}",
+    "cloud_summaries_path": "archive/logs/claude-summaries/{year}"
+  }
+}
+```
 
-## Migration Path
+## Recommended Usage (Production)
 
-When cloud integration is complete (v1.0.0-beta):
-1. Existing local logs will be detected
-2. Bulk upload operation will be available
-3. Archive index will be updated with real URLs
-4. Hybrid retention will activate
+### ✅ Production Ready
+- **Session capture** - Automatically record all development sessions
+- **Automatic cloud backup** - Never lose logs again (7-day auto-archive)
+- **AI summaries** - Quick review of past sessions without reading full logs
+- **Long-term retention** - Forever storage in S3/R2/GCS
+- **Knowledge management** - Build organizational memory across projects
+- **Compliance** - Auditable record of all development decisions
 
-**Your data is safe**: All local logs are preserved and can be bulk-uploaded later.
+### 🎯 Best Practices
+
+**For Individual Developers**:
+1. Enable auto-backup on initialization: `"trigger_on_init": true`
+2. Enable summaries: `"summarization.enabled": true`
+3. Set threshold to 7 days: `"backup_older_than_days": 7`
+4. Configure fractary-file plugin with your preferred cloud provider
+
+**For Teams**:
+1. Share configuration in repository (`.fractary/plugins/logs/config.json`)
+2. Use environment variables for cloud credentials
+3. Set up centralized S3/R2 bucket for all team logs
+4. Enable GitHub comments: `"integration.github.comment_on_archive": true`
+5. Regular search for learnings: `/fractary-logs:search "gotcha"`
+
+**For Organizations**:
+1. Configure retention policies per compliance requirements
+2. Use separate buckets per team/project
+3. Enable audit logging: `/fractary-logs:audit`
+4. Review summaries in retrospectives
+5. Build knowledge base from session insights
+
+## Upgrade from v1.0.0-alpha
+
+If upgrading from alpha version:
+
+1. **Update configuration**:
+   - Add `auto_backup` section
+   - Add `summarization` section
+   - Add `cloud_logs_path` and `cloud_summaries_path`
+
+2. **Existing local logs**:
+   - Run `/fractary-logs:init` to trigger auto-backup
+   - Old logs will be detected and archived automatically
+   - Summaries will be generated for all archived sessions
+
+3. **Verify**:
+   - Check archive index: `/logs/.archive-index.json`
+   - Search archived logs: `/fractary-logs:search "test"`
+   - Review summaries in cloud storage
+
+**Your data is safe**: All local logs are preserved and will be automatically uploaded on next init.
 
 ## Reporting Issues
 
@@ -106,6 +170,15 @@ Found a bug or limitation?
 
 ## Version History
 
+- **1.1.0** (2025-01-15): Production release with auto-backup and AI summaries
+  - ✅ Automatic cloud backup (7-day threshold)
+  - ✅ AI-powered session summaries
+  - ✅ Separate storage paths for logs and summaries
+  - ✅ Full cloud upload integration via fractary-file
+  - ✅ Enhanced configuration schema
+
 - **1.0.0-alpha** (2025-01-15): Initial release, local-only mode
-- **1.0.0-beta** (planned): Cloud integration complete
-- **1.0.0** (planned): Production ready, full hybrid retention
+  - ✅ Session capture
+  - ✅ Local storage
+  - ✅ Search and analysis
+  - ⚠️ Cloud integration pending

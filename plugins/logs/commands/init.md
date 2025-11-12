@@ -44,4 +44,9 @@ Initialize plugin configuration:
 - Create log directories (`/logs/sessions`, `/logs/builds`, `/logs/deployments`, `/logs/debug`)
 - Initialize archive index at `/logs/.archive-index.json`
 - Verify fractary-file plugin is available and configured
-- Report configuration status
+- **Check for old logs and trigger auto-backup** (if `auto_backup.trigger_on_init` enabled):
+  - Find logs older than `auto_backup.backup_older_than_days` (default 7 days)
+  - Archive to cloud with AI-generated summaries
+  - Update archive index
+  - Clean local storage
+- Report configuration status and auto-backup results

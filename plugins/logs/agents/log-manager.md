@@ -82,7 +82,7 @@ When archiving logs (lifecycle-based or time-based):
 
 1. **Determine archive trigger**:
    - Lifecycle: Issue closed, PR merged, manual trigger
-   - Time-based: Logs older than retention period (30 days default)
+   - Time-based: Logs older than retention period (7 days default for auto-backup)
 
 2. **Invoke log-archiver skill** with:
    - issue_number: Issue to archive (or "cleanup" for time-based)
@@ -94,33 +94,101 @@ When archiving logs (lifecycle-based or time-based):
    - Generates upload metadata (paths, checksums)
    - **Returns list of files ready for upload**
 
-4. **Upload files to cloud** (agent responsibility):
-   For each file from log-archiver:
+4. **Generate AI summaries** (if enabled in config):
+   For each session log in the upload list:
+   - Invoke log-summarizer skill with:
+     ```json
+     {
+       "operation": "generate-summary",
+       "parameters": {
+         "session_file": "/logs/sessions/session-123-2025-01-15.md",
+         "issue_number": "123",
+         "output_path": null
+       }
+     }
+     ```
+   - Receive summary content and metadata
+   - Add summary to upload list with separate cloud path
+   - Summary goes to: `cloud_summaries_path/{year}/session-{issue}-{date}-summary.md`
+
+5. **Upload files to cloud** (agent responsibility):
+   For each file from log-archiver (+ summaries):
+   - Determine cloud path based on file type:
+     - Session logs: `cloud_logs_path/{year}/session-{issue}-{date}.md.gz`
+     - Summaries: `cloud_summaries_path/{year}/session-{issue}-{date}-summary.md`
+     - Other logs: Original `cloud_archive_path` pattern
    - Use @agent-fractary-file:file-manager to upload:
      ```json
      {
        "operation": "upload",
        "parameters": {
          "local_path": "/logs/sessions/session-123-2025-01-15.md.gz",
-         "remote_path": "archive/logs/2025/01/123/session-123-2025-01-15.md.gz",
+         "remote_path": "archive/logs/claude-logs/2025/session-123-2025-01-15.md.gz",
          "public": false
        }
      }
      ```
    - Receive cloud URL from file-manager
    - Add URL to file metadata
-   - If any upload fails: STOP, keep local files, report error
+   - Track upload status for each file
+   - If any upload fails: Mark as partial archive, keep local files, continue with others
 
-5. **Update archive index**:
+6. **Update archive index**:
    - Invoke log-archiver skill (or script) to update index
-   - Pass complete metadata including cloud URLs
+   - Pass complete metadata including:
+     - Cloud URLs for logs and summaries
+     - Upload status for each file
+     - Partial archive flag if any uploads failed
+     - Summary metadata (if generated)
 
-6. **Finalize archive**:
-   - Comment on GitHub issue with archive links
-   - Remove local log files
+7. **Finalize archive**:
+   - Comment on GitHub issue with archive links (logs + summaries)
+   - Remove local log files (only if upload succeeded)
    - Git commit index update
 
-7. **Return archive summary**
+8. **Return archive summary** with:
+   - Files uploaded vs failed
+   - Summary generation status
+   - Cloud URLs for logs and summaries
+   - Storage saved locally
+
+## Auto-Backup on Initialization
+
+When plugin initializes (if `auto_backup.trigger_on_init` enabled):
+
+1. **Check for old logs**:
+   - Find logs older than `auto_backup.backup_older_than_days` (default 7)
+   - Group by issue number
+   - Filter out already-archived logs (check index)
+
+2. **Trigger automatic archival**:
+   - For each group of old logs:
+     - Invoke archive workflow with trigger="age_threshold"
+     - Generate summaries if enabled
+     - Upload to cloud storage
+     - Update index
+
+3. **Report auto-backup results**:
+   - Number of sessions archived
+   - Storage freed locally
+   - Any failures requiring attention
+
+## Auto-Backup on Session Start
+
+When session capture starts (if `auto_backup.trigger_on_session_start` enabled):
+
+1. **Background check for old logs**:
+   - Non-blocking check for logs older than threshold
+   - If found, add to background queue
+
+2. **After session starts**:
+   - Report if auto-backup will run
+   - Logs: "Found X sessions older than 7 days, will auto-backup in background"
+
+3. **Background archival**:
+   - Same workflow as initialization auto-backup
+   - Does not block current session
+   - Results logged to archive index
 
 ## Search Logs
 
@@ -215,8 +283,14 @@ When auditing logs for adoption or health check:
 **Purpose**: Archive logs to cloud with hybrid retention
 **Workflows**:
 - archive-issue-logs.md: Archive all logs for completed issue
-- time-based-cleanup.md: Archive old logs (30+ days)
-**Use for**: Lifecycle-based archival, time-based cleanup
+- time-based-cleanup.md: Archive old logs (7+ days for auto-backup)
+**Use for**: Lifecycle-based archival, time-based cleanup, auto-backup
+
+## log-summarizer
+**Purpose**: Generate AI-powered summaries of session logs
+**Workflows**: None (direct LLM-based analysis)
+**Use for**: Creating concise, actionable summaries of sessions with key decisions, learnings, and outcomes
+**When to invoke**: During archive operations if summarization.enabled=true
 
 ## log-searcher
 **Purpose**: Search across local and archived logs

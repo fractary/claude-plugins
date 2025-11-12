@@ -1,8 +1,10 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "storage": {
     "local_path": "/logs",
     "cloud_archive_path": "archive/logs/{year}/{month}/{issue_number}",
+    "cloud_logs_path": "archive/logs/claude-logs/{year}",
+    "cloud_summaries_path": "archive/logs/claude-summaries/{year}",
     "archive_index_file": ".archive-index.json",
     "provider": "s3",
     "bucket": "fractary-logs",
@@ -17,7 +19,23 @@
     "strategy": "hybrid",
     "local_days": 30,
     "cloud_days": "forever",
-    "auto_archive_on_age": true
+    "auto_archive_on_age": true,
+    "auto_archive_threshold_days": 7
+  },
+  "auto_backup": {
+    "enabled": true,
+    "trigger_on_init": true,
+    "trigger_on_session_start": true,
+    "backup_older_than_days": 7,
+    "generate_summaries": true
+  },
+  "summarization": {
+    "enabled": true,
+    "auto_generate_on_archive": true,
+    "model": "claude-sonnet-4-5-20250929",
+    "store_with_logs": false,
+    "separate_paths": true,
+    "format": "markdown"
   },
   "archive": {
     "auto_archive_on": {
