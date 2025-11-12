@@ -44,7 +44,7 @@ You receive structured operation requests from core skills:
 
 ```json
 {
-  "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|pull-branch|create-pr|comment-pr|review-pr|approve-pr|merge-pr|create-tag|push-tag|list-stale-branches",
+  "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|pull-branch|create-pr|comment-pr|analyze-pr|review-pr|merge-pr|create-tag|push-tag|list-stale-branches",
   "parameters": {
     // Operation-specific parameters
   },
@@ -350,6 +350,64 @@ Next: {what_calling_skill_should_do}
   "pr_number": 456,
   "comment_id": 789,
   "comment_url": "https://github.com/owner/repo/pull/456#issuecomment-789"
+}
+```
+
+---
+
+### analyze-pr
+**Purpose**: Fetch comprehensive PR data for analysis (details, comments, reviews, CI status)
+**Script**: `scripts/analyze-pr.sh`
+**Parameters**:
+- `pr_number` - PR number
+
+**Features**:
+- Fetches PR metadata (title, description, status, branches, author)
+- Retrieves all issue comments
+- Retrieves all review comments (line-level code review comments)
+- Retrieves all reviews (approve/request changes/comment)
+- Fetches CI status checks
+- Detects merge conflicts and identifies conflicting files
+- Returns comprehensive JSON for analysis
+
+**Example Invocation**:
+```bash
+./scripts/analyze-pr.sh "456"
+```
+
+**Output Format**:
+```json
+{
+  "status": "success",
+  "pr": {
+    "number": 456,
+    "title": "Add user export feature",
+    "body": "Implements CSV export...",
+    "state": "OPEN",
+    "isDraft": false,
+    "url": "https://github.com/owner/repo/pull/456",
+    "headRefName": "feat/123-add-export",
+    "baseRefName": "main",
+    "author": "username",
+    "createdAt": "2025-11-01T10:00:00Z",
+    "updatedAt": "2025-11-12T14:30:00Z",
+    "mergeable": "MERGEABLE",
+    "reviewDecision": "REVIEW_REQUIRED",
+    "statusCheckRollup": [...],
+    "stats": {
+      "additions": 150,
+      "deletions": 20,
+      "changedFiles": 5
+    }
+  },
+  "comments": [...],
+  "reviews": [...],
+  "review_comments": [...],
+  "conflicts": {
+    "detected": false,
+    "files": [],
+    "details": ""
+  }
 }
 ```
 
@@ -684,9 +742,9 @@ This handler focuses solely on executing GitHub operations reliably.
 <HANDLER_METADATA>
 
 **Platform**: GitHub
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Protocol Version**: source-control-handler-v1
-**Supported Operations**: 13 operations (6 existing + 7 new)
+**Supported Operations**: 14 operations
 
 **CLI Dependencies**:
 - Git CLI - Core version control

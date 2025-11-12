@@ -59,6 +59,16 @@ You delegate to the active source control handler to perform platform-specific P
 <INPUTS>
 You receive structured operation requests:
 
+**Analyze PR:**
+```json
+{
+  "operation": "analyze-pr",
+  "parameters": {
+    "pr_number": 456
+  }
+}
+```
+
 **Create PR:**
 ```json
 {
@@ -136,12 +146,115 @@ Use repo-common skill to load configuration.
 **3. ROUTE BY OPERATION:**
 
 Based on operation type:
+- `analyze-pr` → ANALYZE PR WORKFLOW
 - `create-pr` → CREATE PR WORKFLOW
 - `comment-pr` → COMMENT WORKFLOW
 - `review-pr` → REVIEW WORKFLOW
 - `merge-pr` → MERGE WORKFLOW
 
-**4A. CREATE PR WORKFLOW:**
+**4A. ANALYZE PR WORKFLOW:**
+
+**Validate Inputs:**
+- Check pr_number is valid
+- Verify PR exists
+
+**Invoke Handler to Fetch PR Data:**
+```
+USE SKILL handler-source-control-{platform}
+OPERATION: analyze-pr
+PARAMETERS: {pr_number}
+```
+
+**Analyze Response:**
+- Extract PR details (title, description, status, branch names)
+- Extract CI status from statusCheckRollup
+- Extract merge conflict information
+- Parse all comments for code review bot results
+- Parse all reviews for approval status
+- Identify outstanding issues from most recent code review
+
+**Determine Recommendation:**
+
+If merge conflicts detected:
+- Recommendation: CANNOT MERGE - Resolve conflicts first
+- List conflicting files (if available)
+- Propose conflict resolution strategy:
+  - Pull latest from base branch into head branch
+  - Resolve conflicts manually
+  - Re-run tests and code review
+
+Else if CI checks are failing:
+- Recommendation: DO NOT APPROVE - Fix CI failures first
+
+Else if code review comments indicate critical issues:
+- Recommendation: DO NOT APPROVE - Address critical issues first
+- List outstanding issues from most recent review
+
+Else if code review has approved or no critical issues:
+- Recommendation: READY TO APPROVE
+
+**Present Analysis to User:**
+
+Show structured analysis:
+```
+📋 PR ANALYSIS: #{pr_number}
+Title: {title}
+Branch: {head_branch} → {base_branch}
+Author: {author}
+Status: {state}
+───────────────────────────────────────
+
+🔀 MERGE STATUS:
+{Mergeable status - MERGEABLE, CONFLICTING, or UNKNOWN}
+{If conflicts: list conflicting files}
+
+🔍 CI STATUS:
+{CI check results}
+
+📝 REVIEW STATUS:
+{Review decision and approval count}
+
+💬 CODE REVIEW FINDINGS:
+{Summary of code review bot comments, focusing on most recent}
+
+⚠️  OUTSTANDING ISSUES:
+{List of unresolved issues, if any}
+
+✅ RECOMMENDATION:
+{APPROVE, FIX ISSUES FIRST, or RESOLVE CONFLICTS FIRST}
+
+───────────────────────────────────────
+📍 SUGGESTED NEXT STEPS:
+
+{If merge conflicts exist:}
+1. [RESOLVE CONFLICTS] Fix merge conflicts on branch {head_branch}
+   Steps:
+   a. Switch to branch: git checkout {head_branch}
+   b. Pull latest changes: git pull origin {head_branch}
+   c. Merge base branch: git merge origin/{base_branch}
+   d. Resolve conflicts in: {list conflicting files}
+   e. Commit resolution: git commit
+   f. Push changes: git push origin {head_branch}
+   g. Wait for CI to pass and re-analyze: /repo:pr-review {pr_number}
+
+{Else if CI or code review issues exist:}
+1. [FIX ISSUES] Address outstanding issues
+   Use: Continue work to fix issues on branch {head_branch}
+
+2. [APPROVE ANYWAY] Approve and merge PR (override issues)
+   Use: /repo:pr-review {pr_number} approve
+   Then: /repo:pr-merge {pr_number}
+
+{Else if ready to approve:}
+1. [APPROVE & MERGE] Approve and merge this PR
+   Use: /repo:pr-review {pr_number} approve
+   Then: /repo:pr-merge {pr_number}
+
+2. [REQUEST CHANGES] Request additional changes
+   Use: /repo:pr-review {pr_number} request_changes --comment "Your feedback"
+```
+
+**4B. CREATE PR WORKFLOW:**
 
 **Validate Inputs:**
 - Check title is non-empty
@@ -189,7 +302,7 @@ OPERATION: create-pr
 PARAMETERS: {title, formatted_body, head_branch, base_branch, draft}
 ```
 
-**4B. COMMENT PR WORKFLOW:**
+**4C. COMMENT PR WORKFLOW:**
 
 **Validate Inputs:**
 - Check pr_number is valid
@@ -203,7 +316,7 @@ OPERATION: comment-pr
 PARAMETERS: {pr_number, comment}
 ```
 
-**4C. REVIEW PR WORKFLOW:**
+**4D. REVIEW PR WORKFLOW:**
 
 **Validate Inputs:**
 - Check pr_number is valid
@@ -217,7 +330,7 @@ OPERATION: review-pr
 PARAMETERS: {pr_number, action, comment}
 ```
 
-**4D. MERGE PR WORKFLOW:**
+**4E. MERGE PR WORKFLOW:**
 
 **Validate Inputs:**
 - Check pr_number is valid
@@ -272,6 +385,15 @@ Next: {next_action}
 
 <COMPLETION_CRITERIA>
 
+**For Analyze PR:**
+✅ PR details fetched successfully
+✅ Comments and reviews retrieved
+✅ Merge conflict status checked
+✅ CI status analyzed
+✅ Code review findings summarized
+✅ Recommendation generated (with conflict resolution if needed)
+✅ Next steps presented to user
+
 **For Create PR:**
 ✅ PR created successfully
 ✅ Work item linked
@@ -296,6 +418,42 @@ Next: {next_action}
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
+
+**Analyze PR Response:**
+```json
+{
+  "status": "success",
+  "operation": "analyze-pr",
+  "pr_number": 456,
+  "analysis": {
+    "title": "Add CSV export feature",
+    "head_branch": "feat/123-add-export",
+    "base_branch": "main",
+    "author": "username",
+    "state": "OPEN",
+    "mergeable": "MERGEABLE",
+    "conflicts": {
+      "detected": false,
+      "files": []
+    },
+    "reviewDecision": "APPROVED",
+    "ci_status": "passing",
+    "code_review_summary": "All checks passed",
+    "outstanding_issues": [],
+    "recommendation": "READY_TO_APPROVE"
+  },
+  "suggested_actions": [
+    {
+      "action": "approve_and_merge",
+      "description": "Approve and merge this PR",
+      "commands": [
+        "/repo:pr-review 456 approve",
+        "/repo:pr-merge 456"
+      ]
+    }
+  ]
+}
+```
 
 **Create PR Response:**
 ```json
@@ -405,7 +563,69 @@ The active handler is determined by configuration: `config.handlers.source_contr
 
 <USAGE_EXAMPLES>
 
-**Example 1: Create PR from FABER Release**
+**Example 1a: Analyze PR (with conflicts)**
+```
+INPUT:
+{
+  "operation": "analyze-pr",
+  "parameters": {
+    "pr_number": 456
+  }
+}
+
+OUTPUT:
+{
+  "status": "success",
+  "pr_number": 456,
+  "analysis": {
+    "title": "Add CSV export functionality",
+    "state": "OPEN",
+    "mergeable": "CONFLICTING",
+    "conflicts": {
+      "detected": true,
+      "files": ["src/export.js", "src/utils.js"]
+    },
+    "ci_status": "pending",
+    "reviewDecision": "REVIEW_REQUIRED",
+    "recommendation": "RESOLVE_CONFLICTS_FIRST"
+  }
+}
+```
+
+**Example 1b: Analyze PR (with code review issues)**
+```
+INPUT:
+{
+  "operation": "analyze-pr",
+  "parameters": {
+    "pr_number": 456
+  }
+}
+
+OUTPUT:
+{
+  "status": "success",
+  "pr_number": 456,
+  "analysis": {
+    "title": "Add CSV export functionality",
+    "state": "OPEN",
+    "mergeable": "MERGEABLE",
+    "conflicts": {
+      "detected": false,
+      "files": []
+    },
+    "ci_status": "passing",
+    "reviewDecision": "REVIEW_REQUIRED",
+    "outstanding_issues": [
+      "Add error handling for large files",
+      "Add unit tests for edge cases"
+    ],
+    "recommendation": "FIX_ISSUES_FIRST"
+  }
+}
+```
+
+**Example 2: Create PR from FABER Release**
 ```
 INPUT:
 {
@@ -427,7 +647,7 @@ OUTPUT:
 }
 ```
 
-**Example 2: Add Comment to PR**
+**Example 3: Add Comment to PR**
 ```
 INPUT:
 {
@@ -446,7 +666,7 @@ OUTPUT:
 }
 ```
 
-**Example 3: Approve PR**
+**Example 4: Approve PR**
 ```
 INPUT:
 {
@@ -466,7 +686,7 @@ OUTPUT:
 }
 ```
 
-**Example 4: Merge PR with No-FF Strategy**
+**Example 5: Merge PR with No-FF Strategy**
 ```
 INPUT:
 {
@@ -486,7 +706,7 @@ OUTPUT:
 }
 ```
 
-**Example 5: Merge PR with Squash**
+**Example 6: Merge PR with Squash**
 ```
 INPUT:
 {
