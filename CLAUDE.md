@@ -19,7 +19,7 @@ The repository is organized around a **modular plugin architecture** with two ty
 
 2. **Primitive Managers** - Handle specific infrastructure concerns
    - `work/` - Work item management (GitHub Issues, Jira, Linear)
-   - `repo/` - Source control operations (GitHub, GitLab, Bitbucket)
+   - `repo/` - Source control operations (GitHub, GitLab, Bitbucket) + Git worktree management
    - `file/` - File storage operations (R2, S3, local filesystem)
    - `codex/` - Memory and knowledge management across projects
 
@@ -74,9 +74,9 @@ plugins/
 ├── work/               # Work tracking primitive (GitHub, Jira, Linear)
 │   ├── agents/         # work-manager agent
 │   └── skills/         # Platform-specific scripts (github/, jira/, linear/)
-├── repo/               # Source control primitive (GitHub, GitLab, Bitbucket)
+├── repo/               # Source control primitive (GitHub, GitLab, Bitbucket) + worktrees
 │   ├── agents/         # repo-manager agent
-│   └── skills/         # Platform-specific scripts (github/, gitlab/)
+│   └── skills/         # Platform-specific scripts (github/, gitlab/) + worktree-manager
 ├── file/               # File storage primitive (R2, S3, local)
 │   ├── agents/         # file-manager agent
 │   └── skills/         # Storage-specific scripts (r2/, s3/)
@@ -262,6 +262,96 @@ Next: [What to do next]
 - `plugins/faber/presets/*.toml` - Quick-start presets for different autonomy levels
 
 ## Common Development Tasks
+
+### Working with Git Worktrees
+
+Git worktrees enable parallel development on multiple branches simultaneously. The repo plugin provides seamless worktree management.
+
+**Create branch with worktree:**
+```bash
+# Single command creates both branch and worktree
+/repo:branch-create "implement auth" --work-id 123 --worktree
+
+# Result:
+# - Branch: feat/123-implement-auth (created)
+# - Worktree: ../repo-wt-feat-123-implement-auth (created)
+# - Ready for parallel Claude Code instance
+```
+
+**Naming Convention:**
+- Pattern: `{repo-name}-wt-{branch-slug}`
+- Location: Sibling directory to main repository
+- Example: `claude-plugins-wt-feat-92-add-git-worktree-support`
+
+**List active worktrees:**
+```bash
+/repo:worktree-list
+
+# Output:
+# 1. feat/123-implement-auth
+#    Path: ../repo-wt-feat-123-implement-auth
+#    Work Item: #123
+#    Created: 2025-11-12
+#    Status: Active
+```
+
+**Remove specific worktree:**
+```bash
+/repo:worktree-remove feat/123-implement-auth
+
+# Safety checks:
+# - Warns if uncommitted changes exist
+# - Requires --force to override
+# - Prevents removal from within worktree directory
+```
+
+**Cleanup merged/stale worktrees:**
+```bash
+# Clean up merged branches
+/repo:worktree-cleanup --merged
+
+# Clean up stale worktrees (30+ days inactive)
+/repo:worktree-cleanup --stale --days 30
+
+# Dry run to preview
+/repo:worktree-cleanup --merged --stale --dry-run
+```
+
+**Automatic cleanup on PR merge:**
+```bash
+# Explicit cleanup
+/repo:pr-merge 123 --worktree-cleanup
+
+# Without flag - prompts if worktree exists:
+/repo:pr-merge 123
+# Displays:
+#   🧹 Worktree Cleanup Reminder
+#   Would you like to clean up this worktree?
+#   1. Yes, remove it now
+#   2. No, keep it for now
+#   3. Show me the cleanup command
+```
+
+**Parallel development workflow:**
+```bash
+# Terminal 1: Work on feature A
+/repo:branch-create "feature A" --work-id 100 --worktree
+cd ../repo-wt-feat-100-feature-a
+claude
+
+# Terminal 2: Work on feature B (simultaneously)
+/repo:branch-create "feature B" --work-id 101 --worktree
+cd ../repo-wt-feat-101-feature-b
+claude
+
+# Both Claude instances work independently in separate worktrees
+```
+
+**Best Practices:**
+- Use `--worktree` flag for parallel work on multiple features
+- Clean up worktrees after PR merge to free disk space
+- Use `/repo:worktree-cleanup --merged` regularly to prevent accumulation
+- Worktree metadata tracked in `.fractary/plugins/repo/worktrees.json`
 
 ### Adding a New Platform Adapter
 
