@@ -294,16 +294,16 @@ Indexes provide:
 
 ```bash
 # By document type (default)
-/fractary-docs:create-index docs/ --output INDEX.md
+/fractary-docs:create-index docs/ --output README.md
 
 # By tags
-/fractary-docs:create-index docs/ --output INDEX.md --group-by tag
+/fractary-docs:create-index docs/ --output README.md --group-by tag
 
 # By date
-/fractary-docs:create-index docs/ --output INDEX.md --group-by date
+/fractary-docs:create-index docs/ --output README.md --group-by date
 
 # Flat alphabetical
-/fractary-docs:create-index docs/ --output INDEX.md --group-by flat
+/fractary-docs:create-index docs/ --output README.md --group-by flat
 ```
 
 ### Index Structure
@@ -522,9 +522,9 @@ Update indexes after significant changes:
 
 ```bash
 # After adding new docs
-/fractary-docs:create-index docs/ --output INDEX.md
+/fractary-docs:create-index docs/ --output README.md
 
-git add INDEX.md
+git add README.md
 git commit -m "Update documentation index"
 ```
 
@@ -727,7 +727,7 @@ related: ["../adrs/ADR-003-jwt.md"]
 ```bash
 /fractary-docs:create-index \
   docs/ \
-  --output docs/INDEX.md \
+  --output docs/README.md \
   --title "Architecture Documentation" \
   --group-by type
 ```

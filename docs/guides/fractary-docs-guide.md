@@ -37,7 +37,7 @@ template  precisely checks                 base
 Creates:
 - `.fractary/plugins/docs/config.json` - Configuration
 - `/docs` directory structure
-- Initial `INDEX.md` for navigation
+- Initial `README.md` for navigation
 
 ### 2. Generate Your First Doc
 
@@ -422,7 +422,7 @@ Summary: 3 passed, 2 warnings, 0 errors
 /fractary-docs:link index
 ```
 
-Generates `docs/INDEX.md`:
+Generates `docs/README.md`:
 ```markdown
 # Documentation Index
 

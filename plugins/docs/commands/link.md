@@ -31,7 +31,7 @@ Command syntax:
 - `graph`: Generate visualization of documentation relationships
 
 **Optional Arguments** (operation-specific):
-- `--output <path>`: Output path for index or graph (default: docs/INDEX.md)
+- `--output <path>`: Output path for index or graph (default: docs/README.md)
 - `--format <format>`: Output format for graph (markdown|mermaid|dot)
 - `--target <path>`: Target directory to process (default: docs/)
 - `--fix`: Automatically fix broken links where possible
@@ -100,7 +100,7 @@ Validation:
 Map operation to specific parameters:
 
 **index**: Create documentation index
-- Default output: docs/INDEX.md
+- Default output: docs/README.md
 - Scans all documentation
 - Groups by category (architecture, operations, api, etc.)
 - Includes document metadata from front matter
@@ -141,7 +141,7 @@ Build parameters for operation:
   "operation": "create-index",
   "parameters": {
     "documentation_root": "docs/",
-    "output_path": "docs/INDEX.md",
+    "output_path": "docs/README.md",
     "include_patterns": ["**/*.md"],
     "exclude_patterns": ["*.backup.*", "*.draft.*"],
     "grouping": "by_category",
@@ -189,7 +189,7 @@ Build parameters for operation:
     "output_path": "docs/DOC-GRAPH.md",
     "format": "mermaid",
     "include_patterns": ["**/*.md"],
-    "exclude_patterns": ["INDEX.md"],
+    "exclude_patterns": ["README.md"],
     "show_relationships": ["related", "references"],
     "layout": "hierarchical"
   }
@@ -223,7 +223,7 @@ Receive result:
   "operation": "link",
   "sub_operation": "create-index",
   "result": {
-    "output_path": "docs/INDEX.md",
+    "output_path": "docs/README.md",
     "documents_indexed": 42,
     "categories": {
       "architecture": 15,

@@ -504,7 +504,7 @@ done
 
 **Symptoms**:
 ```bash
-/fractary-docs:create-index docs/ --output INDEX.md
+/fractary-docs:create-index docs/ --output README.md
 # Hangs indefinitely
 ```
 
@@ -526,7 +526,7 @@ find docs -name "*.md" -size 0 -delete
 find docs -type l -delete
 
 # Retry index generation
-/fractary-docs:create-index docs/ --output INDEX.md
+/fractary-docs:create-index docs/ --output README.md
 ```
 
 ### Issue: Graph generation fails with large dataset

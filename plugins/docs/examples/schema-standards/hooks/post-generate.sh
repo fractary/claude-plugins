@@ -81,7 +81,7 @@ esac
 # 2. Update Schema Registry/Index
 # ============================================================================
 
-SCHEMA_INDEX="docs/api/schemas/INDEX.md"
+SCHEMA_INDEX="docs/api/schemas/README.md"
 
 if [[ -f "$SCHEMA_INDEX" ]]; then
   echo "Updating schema index..."

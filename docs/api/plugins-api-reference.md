@@ -488,7 +488,7 @@ Use @agent-fractary-docs:docs-manager to create index:
 {
   "operation": "link",
   "action": "index",
-  "output": "docs/INDEX.md"
+  "output": "docs/README.md"
 }
 ```
 

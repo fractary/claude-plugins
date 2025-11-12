@@ -54,7 +54,7 @@ Implement doc-validator and doc-linker skills to ensure documentation quality an
 
 ### Implementation
 
-**scripts/create-index.sh**: Generate `/docs/INDEX.md`
+**scripts/create-index.sh**: Generate `/docs/README.md`
 **scripts/update-references.sh**: Update links when docs move
 **scripts/find-broken-links.sh**: Scan all docs for dead links
 **scripts/generate-graph.sh**: Create mermaid diagram of doc relationships

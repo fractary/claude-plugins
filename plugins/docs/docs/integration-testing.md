@@ -222,12 +222,12 @@ grep -A 5 "related:" samples/designs/database-architecture.md
 1. Create type-based index:
 ```bash
 /fractary-docs:create-index samples/ \
-  --output samples/INDEX.md \
+  --output samples/README.md \
   --title "Sample Documentation" \
   --group-by type
 
 # View result
-cat samples/INDEX.md
+cat samples/README.md
 
 # Expected:
 # ## Architecture Decision Records
@@ -385,11 +385,11 @@ diff samples/GRAPH.md samples/GRAPH-TAGS.md
 ```bash
 # Regenerate index
 /fractary-docs:create-index samples/ \
-  --output samples/INDEX.md \
+  --output samples/README.md \
   --group-by type
 
 # Verify new docs appear
-grep "Circuit Breaker" samples/INDEX.md
+grep "Circuit Breaker" samples/README.md
 ```
 
 6. **Update Graph**:
@@ -446,7 +446,7 @@ fi
 
 # Test 3: Generate index
 echo "Test 3: Generating index..."
-if /fractary-docs:create-index $TEST_DIR --output $TEST_DIR/INDEX.md > /dev/null 2>&1; then
+if /fractary-docs:create-index $TEST_DIR --output $TEST_DIR/README.md > /dev/null 2>&1; then
   echo "✅ Index generated"
 else
   echo "❌ Index generation failed"
@@ -490,7 +490,7 @@ done
 time /fractary-docs:validate test/
 
 # Measure index generation time
-time /fractary-docs:create-index test/ --output test/INDEX.md
+time /fractary-docs:create-index test/ --output test/README.md
 
 # Measure graph generation time
 time /fractary-docs:generate-graph test/ --output test/GRAPH.md
@@ -514,7 +514,7 @@ Before releases, run complete regression suite:
 /fractary-docs:link-check samples/ --check-external
 
 # 3. Generate all output formats
-/fractary-docs:create-index samples/ --output samples/INDEX.md --group-by type
+/fractary-docs:create-index samples/ --output samples/README.md --group-by type
 /fractary-docs:create-index samples/ --output samples/INDEX-TAG.md --group-by tag
 /fractary-docs:generate-graph samples/ --output samples/GRAPH.md --format mermaid
 /fractary-docs:generate-graph samples/ --output samples/graph.dot --format dot
@@ -590,12 +590,12 @@ jobs:
 
       - name: Generate artifacts
         run: |
-          /fractary-docs:create-index docs/ --output docs/INDEX.md
+          /fractary-docs:create-index docs/ --output docs/README.md
           /fractary-docs:generate-graph docs/ --output docs/GRAPH.md
 
       - name: Commit updates
         run: |
-          git add docs/INDEX.md docs/GRAPH.md
+          git add docs/README.md docs/GRAPH.md
           git commit -m "Update documentation index and graph" || true
 ```
 
