@@ -21,10 +21,12 @@ Initialize the fractary-logs plugin configuration.
 ## What It Does
 
 1. Creates configuration directory: `.fractary/plugins/logs/`
-2. Copies example configuration if none exists
+2. Copies **only** `config.json` from plugin example (no other files)
 3. Creates log storage directories
 4. Initializes archive index
 5. Verifies fractary-file integration
+
+**⚠️ IMPORTANT:** Only `config.json` is copied to `.fractary/plugins/logs/`. Do not manually copy scripts, schemas, or documentation files from the plugin source.
 
 ## Prompt
 

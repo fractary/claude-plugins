@@ -56,11 +56,13 @@ Each request includes:
 ## Initialize Configuration
 
 When initializing:
-1. Load config from .fractary/plugins/logs/config.json or create from example
-2. Verify storage paths exist (create if needed)
-3. Verify fractary-file is configured for cloud storage
-4. Initialize archive index if not exists
-5. Report configuration status
+1. Create directory: `.fractary/plugins/logs/` (if it doesn't exist)
+2. Copy ONLY config.json from example to `.fractary/plugins/logs/config.json` (flat structure, no config/ subdirectory)
+3. **CRITICAL**: Do NOT copy any other files (scripts, schemas, documentation) to `.fractary/plugins/logs/`
+4. Verify storage paths exist (create if needed)
+5. Verify fractary-file is configured for cloud storage
+6. Initialize archive index if not exists
+7. Report configuration status and location
 
 ## Capture Session
 
