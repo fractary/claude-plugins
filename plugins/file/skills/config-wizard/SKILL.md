@@ -297,26 +297,49 @@ AWS Region:
 
 S3 Bucket name: _____
 
-🔐 Credentials
+🔐 Authentication Method
 ───────────────────────────────────────
-Options:
-  1. Use IAM roles (recommended in AWS environments)
-  2. Use access keys (via environment variables)
+Choose authentication method:
+  1. AWS Profile (recommended - uses profiles from ~/.aws/config)
+  2. IAM roles (recommended in AWS environments like EC2/ECS)
+  3. Access keys (via environment variables)
 
-If using IAM roles, leave credentials empty.
-If using access keys, we recommend environment variables:
+Selection [1-3] (default: 1): _____
+```
+
+**If option 1 (AWS Profile) selected:**
+```
+AWS Profile name:
+  Examples: test-deploy, prod-deploy, default
+  Profile: _____
+
+Available profiles:
+  [List profiles from ~/.aws/config if possible]
+```
+
+**If option 2 (IAM roles) selected:**
+```
+IAM roles will be used automatically. No credentials needed.
+```
+
+**If option 3 (Access keys) selected:**
+```
+We recommend using environment variables for credentials:
 
   export AWS_ACCESS_KEY_ID="your-access-key"
   export AWS_SECRET_ACCESS_KEY="your-secret-key"
 
-AWS Access Key ID (or ${VAR_NAME}, or leave empty for IAM):
+AWS Access Key ID (or ${VAR_NAME}):
   Default: ${AWS_ACCESS_KEY_ID}
   Access Key: _____
 
-AWS Secret Access Key (or ${VAR_NAME}, or leave empty for IAM):
+AWS Secret Access Key (or ${VAR_NAME}):
   Default: ${AWS_SECRET_ACCESS_KEY}
   Secret Key: _____
+```
 
+**Common fields (all options):**
+```
 Custom endpoint (for S3-compatible services like MinIO):
   Leave empty for AWS S3
   Example: https://s3.us-west-1.amazonaws.com
@@ -330,19 +353,23 @@ Public URL template (optional):
 **Required fields:**
 - `region`: string
 - `bucket_name`: string
-- `access_key_id`: string or ${VAR} or empty (for IAM)
-- `secret_access_key`: string or ${VAR} or empty (for IAM)
+- `auth_method`: "profile" | "iam" | "keys"
+- `profile`: string (required if auth_method is "profile")
+- `access_key_id`: string or ${VAR} or empty (required if auth_method is "keys")
+- `secret_access_key`: string or ${VAR} or empty (required if auth_method is "keys")
 - `endpoint`: string or null (optional)
 - `public_url`: string or null (optional)
 
 **Non-interactive behavior:**
-Default to IAM roles (empty credentials):
+Default to AWS Profile with "default" profile:
 ```json
 {
   "region": "${AWS_REGION:-us-east-1}",
   "bucket_name": "${AWS_S3_BUCKET}",
-  "access_key_id": "${AWS_ACCESS_KEY_ID:-}",
-  "secret_access_key": "${AWS_SECRET_ACCESS_KEY:-}",
+  "auth_method": "profile",
+  "profile": "${AWS_PROFILE:-default}",
+  "access_key_id": "",
+  "secret_access_key": "",
   "endpoint": "${AWS_S3_ENDPOINT:-}",
   "public_url": "${AWS_S3_PUBLIC_URL:-}"
 }

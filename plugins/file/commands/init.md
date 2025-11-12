@@ -145,7 +145,31 @@ fi
 4. **Whitespace**: Trimmed automatically
 5. **Case sensitivity**: Validated as-is (must be lowercase)
 
-### 2.3 Type Transformation Flow
+### 2.3 Default Handler Selection
+
+**CRITICAL**: When no `--handlers` argument is provided, default to configuring BOTH local and S3:
+
+```bash
+# Default handling
+if [ -z "$HANDLERS" ]; then
+    if [ "$INTERACTIVE" = "false" ]; then
+        HANDLERS="local,s3"
+        echo "ℹ️  Non-interactive mode with no handler specified, defaulting to 'local,s3'"
+    else
+        HANDLERS="local,s3"
+        echo "ℹ️  No handler specified, defaulting to 'local,s3' (local for development, S3 for production)"
+        echo "   Use --handlers to override this default"
+    fi
+fi
+```
+
+**Rationale**:
+- `local`: Always available, no credentials needed, ideal for development and testing
+- `s3`: Secondary default for production archival, uses AWS profile-based authentication
+
+This ensures consistent behavior across all projects. Users can override with `--handlers` if needed.
+
+### 2.4 Type Transformation Flow
 
 The handlers parameter goes through several transformations:
 
