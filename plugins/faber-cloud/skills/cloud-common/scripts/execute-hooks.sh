@@ -3,6 +3,7 @@
 #
 # Executes pre/post hooks at key lifecycle points (plan, deploy, destroy)
 # Supports critical vs optional hooks, timeouts, environment filtering
+# Hook types: script, skill, prompt (with context injection)
 
 set -euo pipefail
 
@@ -89,7 +90,7 @@ get_operation_type() {
   esac
 }
 
-# Function: Get hook type (legacy string, script object, or skill object)
+# Function: Get hook type (legacy string, script object, skill object, or prompt object)
 get_hook_type() {
   local config_file="$1"
   local hook_type_key="$2"
@@ -110,6 +111,8 @@ get_hook_type() {
     echo "skill"
   elif [ "$hook_object_type" = "script" ]; then
     echo "script"
+  elif [ "$hook_object_type" = "prompt" ]; then
+    echo "prompt"
   else
     echo "unknown"
   fi
@@ -244,6 +247,72 @@ execute_skill_hook() {
       return 0
     fi
   fi
+}
+
+# Function: Execute a prompt hook
+execute_prompt_hook() {
+  local hook_index="$1"
+  local hook_name="$2"
+  local prompt_text="$3"
+  local hook_envs="$4"
+  local current_env="$5"
+
+  # Check if hook applies to this environment
+  if [ -n "$hook_envs" ]; then
+    if ! echo "$hook_envs" | grep -qw "$current_env"; then
+      log_info "Skipping hook '$hook_name' (not configured for $current_env)"
+      return 0
+    fi
+  fi
+
+  echo ""
+  echo "═══════════════════════════════════════════════════════════"
+  log_info "Processing PROMPT hook [$hook_index]: $hook_name"
+  echo "═══════════════════════════════════════════════════════════"
+
+  # Detect file references in prompt (simple pattern matching for .md, .txt, docs/ paths)
+  # Matches patterns like: docs/FILE.md, path/to/file.txt, ./docs/guide.md
+  local file_refs=$(echo "$prompt_text" | grep -oE '([./a-zA-Z0-9_-]+/)?[a-zA-Z0-9_-]+\.(md|txt|json|yaml|yml|toml)' | sort -u)
+
+  # Build context output
+  local context_output=""
+  context_output+="──────────────────────────────────────────────────────────\n"
+  context_output+="📋 INJECTED CONTEXT: $hook_name\n"
+  context_output+="──────────────────────────────────────────────────────────\n\n"
+  context_output+="$prompt_text\n\n"
+
+  # Load referenced files
+  local files_loaded=0
+  if [ -n "$file_refs" ]; then
+    for file_ref in $file_refs; do
+      if [ -f "$file_ref" ]; then
+        log_info "Loading referenced file: $file_ref"
+        context_output+="## Referenced: $file_ref\n\n"
+        context_output+="$(cat "$file_ref")\n\n"
+        ((files_loaded++))
+      elif [ -f "./$file_ref" ]; then
+        log_info "Loading referenced file: ./$file_ref"
+        context_output+="## Referenced: $file_ref\n\n"
+        context_output+="$(cat "./$file_ref")\n\n"
+        ((files_loaded++))
+      else
+        log_warning "Referenced file not found: $file_ref"
+      fi
+    done
+  fi
+
+  context_output+="──────────────────────────────────────────────────────────\n"
+
+  # Save context to temporary file for skills to consume
+  local context_file="/tmp/faber-cloud-hook-context-${hook_name}.txt"
+  echo -e "$context_output" > "$context_file"
+
+  log_success "Prompt hook '$hook_name' processed (loaded $files_loaded file(s))"
+  log_info "Context saved to: $context_file"
+
+  echo "───────────────────────────────────────────────────────────"
+
+  return 0
 }
 
 # Main execution
@@ -411,9 +480,26 @@ main() {
         fi
         ;;
 
+      "prompt")
+        # Prompt object format: {"type": "prompt", "name": "...", "prompt": "..."}
+        hook_name=$(jq -r ".hooks[\"$hook_type\"][$hook_index].name // \"prompt-hook-$hook_index\"" "$config_file")
+        local prompt_text=$(jq -r ".hooks[\"$hook_type\"][$hook_index].prompt" "$config_file")
+        hook_envs=$(jq -r ".hooks[\"$hook_type\"][$hook_index].environments[]? // empty" "$config_file" | tr '\n' ' ')
+
+        # Validate hook has prompt text
+        if [ -z "$prompt_text" ] || [ "$prompt_text" = "null" ]; then
+          log_error "Prompt hook '$hook_name' has no prompt configured"
+          ((hook_index++))
+          continue
+        fi
+
+        # Execute as prompt hook (always succeeds - just builds context)
+        execute_prompt_hook "$((hook_index + 1))" "$hook_name" "$prompt_text" "$hook_envs" "$environment"
+        ;;
+
       "unknown"|*)
         log_error "Unknown hook type at index $hook_index"
-        log_error "Hook must be a string (legacy) or object with type='script' or type='skill'"
+        log_error "Hook must be a string (legacy) or object with type='script', type='skill', or type='prompt'"
         ((failed_hooks++))
         ;;
     esac

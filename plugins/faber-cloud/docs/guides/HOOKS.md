@@ -124,9 +124,9 @@ Hooks are custom scripts that execute at specific lifecycle stages:
 - Notify team
 - Archive logs
 
-## Hook Types: Scripts vs Skills
+## Hook Types: Scripts, Skills, and Prompts
 
-The faber-cloud hook system supports **two types of hooks**:
+The faber-cloud hook system supports **three types of hooks**:
 
 ### 1. Script Hooks (Traditional)
 
@@ -182,9 +182,58 @@ Invoke Claude Code skills as hook handlers with structured interfaces.
 | Reusability | Copy files | Install skill package |
 | Type Safety | None | Structured interfaces |
 
+### 3. Prompt Hooks (Flexible Context Injection)
+
+Provide flexible text-based guidance that can reference documentation, suggest scripts, or invoke skills.
+
+**Best for:**
+- Injecting project-specific context and standards
+- Referencing documentation during workflow execution
+- Providing environment-specific guidance
+- Combining multiple instructions in natural language
+
+**Format:**
+```json
+{
+  "type": "prompt",
+  "name": "deployment-guidance",
+  "prompt": "Review the deployment checklist in docs/DEPLOYMENT.md before proceeding. Run ./scripts/pre-deploy-checks.sh to validate readiness. Use the security-scanner skill to check for vulnerabilities."
+}
+```
+
+**Key Features:**
+- **File Reference Detection**: Automatically detects and loads referenced files (*.md, *.txt, etc.)
+- **Natural Language**: Write instructions in plain English
+- **Flexible**: Can suggest scripts, reference docs, invoke skills - all in one prompt
+- **Context Injection**: Loaded content is injected into the agent's context
+- **No Failures**: Prompt hooks always succeed (they provide context, not validation)
+
+**Example with File References:**
+```json
+{
+  "type": "prompt",
+  "name": "architecture-context",
+  "prompt": "Apply the architecture standards from docs/architecture/STANDARDS.md when reviewing infrastructure changes. Pay attention to resource naming in docs/NAMING_CONVENTIONS.md."
+}
+```
+
+When this hook executes:
+1. Detects file references: `docs/architecture/STANDARDS.md`, `docs/NAMING_CONVENTIONS.md`
+2. Loads these files from the project
+3. Builds a context block with the prompt text + file contents
+4. Saves to `/tmp/faber-cloud-hook-context-{name}.txt`
+5. Skills can read this context and apply it
+
+**When to use prompt hooks:**
+- **Injecting standards**: Reference coding standards, architecture guides, API patterns
+- **Environment-specific warnings**: Critical reminders for production deployments
+- **Combining actions**: "Do X, then Y, then check Z" in natural language
+- **Project documentation**: Make project-specific docs available during workflow
+
 **When to use each:**
-- **Script hooks:** For simple, one-time operations specific to your project
-- **Skill hooks:** For complex, reusable logic you want to test and share
+- **Script hooks:** For deterministic operations (build, deploy, test)
+- **Skill hooks:** For complex validation requiring AI reasoning
+- **Prompt hooks:** For context injection and flexible guidance
 
 ### Backward Compatibility
 
