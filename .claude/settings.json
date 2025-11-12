@@ -136,5 +136,17 @@
     }
   },
   "_comment": "Managed by fractary-repo plugin. Protected branches: main, master, production",
-  "_note": "Most operations auto-allowed. Approval required only for protected branch operations."
+  "_note": "Most operations auto-allowed. Approval required only for protected branch operations.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/claude/install-fractary-marketplace.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
