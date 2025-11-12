@@ -31,10 +31,11 @@ mkdir -p "${CACHE_DIR}"
 # These can accumulate if processes crash before trap cleanup fires
 find "${CACHE_DIR}" -name "status-*.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
 
-# Clean up old session caches (older than 24 hours)
-# Sessions are typically short-lived, so caches older than 1 day are stale
-find "${CACHE_DIR}" -name "status-session_*.cache" -type f -mmin +1440 -delete 2>/dev/null || true
-find "${CACHE_DIR}" -name "status-session_*.lock" -type f -mmin +1440 -delete 2>/dev/null || true
+# Clean up old session caches (older than 7 days)
+# 7-day window accommodates multi-day breaks (weekends, vacations)
+# Sessions are typically short-lived, but being conservative to avoid data loss
+find "${CACHE_DIR}" -name "status-session_*.cache" -type f -mmin +10080 -delete 2>/dev/null || true
+find "${CACHE_DIR}" -name "status-session_*.lock" -type f -mmin +10080 -delete 2>/dev/null || true
 
 # Parse arguments
 SKIP_LOCK=false
