@@ -6,11 +6,9 @@ A collection of interconnected plugins that implement the FABER (Frame → Archi
 
 ### Automatic Installation (Recommended)
 
-When you clone this repository and start a Claude Code session, the Fractary marketplace is **automatically installed** via a SessionStart hook. No manual installation required!
+When you clone this repository and trust the folder in Claude Code, the Fractary marketplace is **automatically installed** via the `extraKnownMarketplaces` configuration in `.claude/settings.json`. No manual steps required!
 
-The first session will install the marketplace (~5-15 seconds), and subsequent sessions will detect it's already installed (<1 second).
-
-See [Auto-Install Documentation](docs/AUTO-INSTALL.md) for details.
+Additionally, a SessionStart hook keeps the marketplace up-to-date by running `claude plugin marketplace update fractary` at the start of each session.
 
 ### Manual Installation
 
@@ -141,7 +139,6 @@ See [Version Control Guide](docs/VERSION-CONTROL-GUIDE.md) for best practices.
 
 ### Getting Started
 
-- [Auto-Install Documentation](docs/AUTO-INSTALL.md) - How automatic marketplace installation works
 - [Plugin Standards](docs/standards/FRACTARY-PLUGIN-STANDARDS.md) - Development patterns and guidelines
 - [FABER Architecture](docs/specs/SPEC-0002-faber-architecture.md) - Workflow framework specification
 - [Version Control Guide](docs/VERSION-CONTROL-GUIDE.md) - Configuration best practices
