@@ -1,42 +1,29 @@
 #!/bin/bash
-# Acquire advisory lock for auto-backup operations
+# Acquire advisory lock for auto-backup operations using flock
 # Prevents race conditions between concurrent archive operations
 set -euo pipefail
 
 LOCK_FILE="${1:-/logs/.auto-backup.lock}"
-TIMEOUT="${2:-300}"  # 5 minutes default timeout
+TIMEOUT="${2:-5}"  # 5 seconds default timeout (non-blocking)
 
-# Function to check if process is running
-is_process_running() {
-    local pid=$1
-    kill -0 "$pid" 2>/dev/null
+# Ensure lock file exists (touch is safe if it already exists)
+touch "$LOCK_FILE" 2>/dev/null || {
+    echo "Error: Cannot create lock file: $LOCK_FILE" >&2
+    exit 1
 }
 
-# Check if lock exists
-if [[ -f "$LOCK_FILE" ]]; then
-    # Read PID from lock file
-    LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null || echo "")
-
-    if [[ -n "$LOCK_PID" ]] && is_process_running "$LOCK_PID"; then
-        # Lock is held by running process
-        echo "Auto-backup already running (PID: $LOCK_PID)" >&2
-        exit 1
-    else
-        # Stale lock (process died)
-        echo "Removing stale lock file (PID: $LOCK_PID)" >&2
-        rm -f "$LOCK_FILE"
-    fi
-fi
-
-# Create lock file with current PID
-echo "$$" > "$LOCK_FILE"
-
-# Verify lock was acquired (check for race condition)
-ACQUIRED_PID=$(cat "$LOCK_FILE" 2>/dev/null || echo "")
-if [[ "$ACQUIRED_PID" != "$$" ]]; then
-    echo "Failed to acquire lock (race condition detected)" >&2
+# Try to acquire exclusive lock with timeout
+# -x: exclusive lock
+# -n: non-blocking (fail immediately if locked)
+# -w: wait timeout in seconds
+if flock -x -w "$TIMEOUT" 200; then
+    # Lock acquired successfully
+    # Write PID to lock file for monitoring/debugging
+    echo "$$" >&200
+    echo "Lock acquired (PID: $$)"
+    exit 0
+else
+    # Lock is held by another process
+    echo "Auto-backup already running (lock held)" >&2
     exit 1
-fi
-
-echo "Lock acquired (PID: $$)"
-exit 0
+fi 200>"$LOCK_FILE"

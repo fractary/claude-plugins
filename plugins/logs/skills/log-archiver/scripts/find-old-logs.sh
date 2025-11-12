@@ -11,6 +11,13 @@ LOGS_DIR="${1:-/logs}"
 THRESHOLD_DAYS="${2:-7}"
 INDEX_FILE="${3:-/logs/.archive-index.json}"
 
+# Check for jq dependency
+if ! command -v jq &> /dev/null; then
+    echo "Error: jq is required but not installed" >&2
+    echo "Install with: apt-get install jq (Ubuntu/Debian) or brew install jq (macOS)" >&2
+    exit 1
+fi
+
 # Convert threshold to seconds
 THRESHOLD_SECONDS=$((THRESHOLD_DAYS * 24 * 60 * 60))
 CURRENT_TIME=$(date +%s)

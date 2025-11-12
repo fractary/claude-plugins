@@ -111,6 +111,15 @@ When archiving logs (lifecycle-based or time-based):
    - Add summary to upload list with separate cloud path
    - Summary goes to: `cloud_summaries_path/{year}/session-{issue}-{date}-summary.md`
 
+   **Summary Generation Error Handling**:
+   - **If summary generation fails**: Log error, continue with archive
+   - **Result**: Session log is archived, summary is skipped
+   - **Index entry**: `summary_status: "failed"`, `summary_error: "<error message>"`
+   - **User action**: Can manually generate summary later with `/fractary-logs:analyze session <issue>`
+   - **API errors**: Rate limits, timeouts, model errors → Fail gracefully
+   - **File errors**: Corrupted log, unreadable → Fail gracefully
+   - **Never block**: Archive always proceeds even if all summaries fail
+
 5. **Upload files to cloud** (agent responsibility):
    For each file from log-archiver (+ summaries):
    - Determine cloud path based on file type:
@@ -151,6 +160,92 @@ When archiving logs (lifecycle-based or time-based):
    - Summary generation status
    - Cloud URLs for logs and summaries
    - Storage saved locally
+
+## Partial Archive Recovery
+
+When upload failures occur during archival, users have several recovery options:
+
+### Check Partial Archive Status
+
+```bash
+/fractary-logs:archive-status <issue>
+```
+
+Returns:
+- List of successfully uploaded files
+- List of failed uploads with error messages
+- Retry recommendations
+
+### Retry Failed Uploads
+
+**Automatic retry** (recommended):
+```bash
+/fractary-logs:archive <issue> --retry
+```
+
+This will:
+1. Read archive index for the issue
+2. Identify files with status "failed" or "pending"
+3. Verify local files still exist
+4. Re-attempt upload with exponential backoff
+5. Update status as uploads succeed
+6. Mark archive as complete when all succeed
+
+**Manual retry** (advanced):
+```bash
+# Check what needs retry
+./skills/log-archiver/scripts/retry-failed-uploads.sh <issue>
+
+# Review output and re-run archive
+/fractary-logs:archive <issue> --retry --verbose
+```
+
+### Clean Up Partial Archives
+
+**If uploads succeed but cleanup failed**:
+```bash
+/fractary-logs:cleanup-local <issue>
+```
+
+This will:
+- Verify all files are uploaded (check index)
+- Remove local copies of archived files
+- Preserve files that failed upload
+- Update storage metrics
+
+**If archive should be abandoned**:
+```bash
+/fractary-logs:archive-cancel <issue>
+```
+
+This will:
+- Remove partial index entry
+- Keep all local files
+- Allow fresh archive attempt later
+
+### Recovery Scenarios
+
+**Scenario 1: Network timeout during upload**
+- Status: Partial archive (some files uploaded)
+- Action: `/fractary-logs:archive <issue> --retry`
+- Result: Resume from where it left off
+
+**Scenario 2: Cloud storage quota exceeded**
+- Status: Partial archive (uploads failed mid-way)
+- Action: Increase quota, then `--retry`
+- Result: Complete remaining uploads
+
+**Scenario 3: Corrupted compressed file**
+- Status: Upload failed for specific file
+- Action: Re-compress manually or skip that file
+- Command: `/fractary-logs:archive <issue> --retry --skip-failed`
+- Result: Archive without the corrupted file
+
+**Scenario 4: Long-term partial archive (months old)**
+- Status: Local files may be deleted
+- Action: Mark as permanently incomplete
+- Command: `/fractary-logs:archive-mark-incomplete <issue> "Local files lost"`
+- Result: Archive index updated, no further action needed
 
 ## Auto-Backup on Initialization
 

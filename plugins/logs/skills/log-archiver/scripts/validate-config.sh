@@ -3,7 +3,10 @@
 set -euo pipefail
 
 CONFIG_FILE="${1:?Configuration file path required}"
-SCHEMA_FILE="${2:-/home/user/claude-plugins/plugins/logs/config/config.schema.json}"
+
+# Determine schema file path relative to script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCHEMA_FILE="${2:-$SCRIPT_DIR/../../../config/config.schema.json}"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
     echo "Error: Configuration file not found: $CONFIG_FILE" >&2
