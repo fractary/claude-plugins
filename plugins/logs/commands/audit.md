@@ -135,7 +135,7 @@ The audit produces **two separate documents** plus discovery data:
 - `discovery-patterns.json` - Log patterns identified
 - `discovery-storage.json` - Storage analysis
 
-**Storage**: `/logs/audit/` (temporary working directory, stored with logs)
+**Storage**: `/logs/audits/tmp/` (temporary working directory)
 
 **Timestamp Format**: `YYYYMMDD-HHMMSS` (e.g., `20250115-143022`)
 
@@ -278,7 +278,7 @@ Step 7: Summary
   📁 Outputs:
      - Audit Report (ephemeral): /logs/audits/audit-20250115-143022.md
      - Remediation Spec (persistent): /specs/logs-remediation-20250115-143022.md
-     - Discovery Data (temp): /logs/audit/discovery-*.json
+     - Discovery Data (temp): /logs/audits/tmp/discovery-*.json
 
   💡 Next Steps:
      1. Review audit report (assessment)
@@ -337,13 +337,14 @@ Ensure logs properly managed:
 ```
 project/
 ├── /logs/
-│   ├── audits/
-│   │   └── audit-20250115-143022.md         # Ephemeral assessment (subject to retention)
-│   └── audit/                               # Discovery data (temporary, with logs)
-│       ├── discovery-logs.json
-│       ├── discovery-vcs-logs.json
-│       ├── discovery-patterns.json
-│       └── discovery-storage.json
+│   └── audits/
+│       ├── audit-20250115-143022.md         # Audit reports (ephemeral)
+│       ├── audit-20250110-092030.md         # Previous audits preserved
+│       └── tmp/                             # Temporary discovery data
+│           ├── discovery-logs.json
+│           ├── discovery-vcs-logs.json
+│           ├── discovery-patterns.json
+│           └── discovery-storage.json
 ├── /specs/
 │   └── logs-remediation-20250115-143022.md  # Persistent spec (committed to VCS)
 └── .fractary/

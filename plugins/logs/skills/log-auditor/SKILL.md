@@ -41,7 +41,7 @@ You generate specifications that can be followed to bring log management into al
 
 <INPUTS>
 - **project_root**: Project directory to analyze (default: current directory)
-- **output_dir**: Directory for discovery data (default: /logs/audit)
+- **output_dir**: Directory for discovery data (default: /logs/audits/tmp)
 - **config_path**: Path to fractary-logs config (if exists)
 - **execute**: Execute high-priority actions (default: false)
 </INPUTS>
@@ -569,7 +569,7 @@ Gaps Identified: {count}
 Outputs:
   • Audit Report (ephemeral): /logs/audits/audit-{timestamp}.md
   • Remediation Spec (persistent): /specs/logs-remediation-{timestamp}.md
-  • Discovery Data: /logs/audit/discovery-*.json
+  • Discovery Data: /logs/audits/tmp/discovery-*.json
 ───────────────────────────────────────────────────────────
 Next: Review both documents and follow implementation plan
 ```
@@ -641,10 +641,10 @@ Return structured results:
       "audit_report": "/logs/audits/audit-20250115-143022.md",
       "remediation_spec": "/specs/logs-remediation-20250115-143022.md",
       "discovery_files": [
-        "/logs/audit/discovery-logs.json",
-        "/logs/audit/discovery-vcs-logs.json",
-        "/logs/audit/discovery-patterns.json",
-        "/logs/audit/discovery-storage.json"
+        "/logs/audits/tmp/discovery-logs.json",
+        "/logs/audits/tmp/discovery-vcs-logs.json",
+        "/logs/audits/tmp/discovery-patterns.json",
+        "/logs/audits/tmp/discovery-storage.json"
       ],
       "timestamp": "20250115-143022"
     },
