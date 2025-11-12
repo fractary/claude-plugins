@@ -52,20 +52,23 @@ Add seamless git worktree support to the Fractary plugins ecosystem, enabling us
 **So that** I don't accumulate stale worktree directories
 
 **Acceptance Criteria**:
-- [ ] PR merge operations detect and clean up associated worktrees
-- [ ] Branch deletion operations clean up associated worktrees
+- [ ] PR merge operations detect and clean up associated worktrees when `--worktree-cleanup` flag is provided
+- [ ] Branch deletion operations clean up associated worktrees when `--worktree-cleanup` flag is provided
+- [ ] When flag is not provided but worktree exists, user is prompted with 3 options (clean now, keep, show command)
 - [ ] User is notified when cleanup occurs
 - [ ] Cleanup is safe (warns if uncommitted changes exist)
+- [ ] Prompting behavior reinforces cleanup best practices
 
 ## Functional Requirements
 
 - **FR1**: Add worktree support flag to branch creation commands (`/repo:branch-create`, `/work:issue-create`)
 - **FR2**: Implement worktree creation with automatic directory switching
-- **FR3**: Integrate worktree cleanup into PR merge/close operations
-- **FR4**: Provide worktree listing and status commands
-- **FR5**: Handle edge cases (existing worktrees, uncommitted changes, locked worktrees)
-- **FR6**: Support worktree-specific Claude Code instance launching
-- **FR7**: Maintain proper git repository state across worktrees
+- **FR3**: Integrate worktree cleanup into PR merge/close operations with `--worktree-cleanup` flag
+- **FR4**: Provide proactive cleanup prompting when operations complete without `--worktree-cleanup` flag but worktree exists
+- **FR5**: Provide worktree listing and status commands
+- **FR6**: Handle edge cases (existing worktrees, uncommitted changes, locked worktrees)
+- **FR7**: Support worktree-specific Claude Code instance launching
+- **FR8**: Maintain proper git repository state across worktrees
 
 ## Non-Functional Requirements
 
@@ -125,8 +128,8 @@ The feature will be implemented in the **`fractary-repo` plugin** as it deals wi
 - `/repo:worktree-cleanup`: Clean up merged/stale worktrees
 
 **Enhanced Commands**:
-- `/repo:pr-merge <number> [--cleanup-worktree]`: Add worktree cleanup option
-- `/repo:branch-delete <name> [--cleanup-worktree]`: Add worktree cleanup option
+- `/repo:pr-merge <number> [--worktree-cleanup]`: Add worktree cleanup option (prompts if not provided)
+- `/repo:branch-delete <name> [--worktree-cleanup]`: Add worktree cleanup option (prompts if not provided)
 
 **Skill Operations**:
 - `create-worktree`: Create worktree for branch
@@ -149,6 +152,25 @@ Next steps:
 2. claude (to start Claude Code in worktree)
 
 Or use: /repo:worktree-switch feat/92
+```
+
+**Proactive Cleanup Prompting**:
+When a PR is merged or branch is deleted without the `--worktree-cleanup` flag, and a worktree exists for that branch:
+```
+✅ Pull request #92 merged successfully!
+
+🧹 Worktree Cleanup Reminder
+A worktree exists for branch feat/92-add-git-worktree-support:
+  Path: ../claude-plugins-wt-feat-92-add-git-worktree-support
+  Status: Safe to remove (no uncommitted changes)
+
+Would you like to clean up this worktree?
+  1. Yes, remove it now
+  2. No, keep it for now
+  3. Show me the cleanup command
+
+[Selecting 1 runs: /repo:worktree-remove feat/92]
+[Selecting 3 displays: /repo:worktree-remove feat/92-add-git-worktree-support]
 ```
 
 **Error Messages**:
@@ -180,14 +202,16 @@ Integrate worktree support into existing commands
 - [ ] Update command documentation with worktree examples
 
 ### Phase 3: Cleanup Integration
-Add automatic cleanup to PR and branch operations
+Add automatic cleanup to PR and branch operations with proactive prompting
 
 **Tasks**:
 - [ ] Enhance `pr-manager` skill with worktree detection
-- [ ] Add worktree cleanup to PR merge operations
-- [ ] Add worktree cleanup to branch deletion operations
+- [ ] Add `--worktree-cleanup` flag to PR merge operations
+- [ ] Add `--worktree-cleanup` flag to branch deletion operations
+- [ ] Implement proactive cleanup prompting (3-option workflow) when flag not provided
 - [ ] Implement safety checks (uncommitted changes, active sessions)
 - [ ] Add `/repo:worktree-cleanup` command for manual cleanup
+- [ ] Test prompting UX and option handling
 
 ### Phase 4: Claude Code Integration
 Enable seamless Claude Code instance launching in worktrees
@@ -225,11 +249,11 @@ Complete documentation and comprehensive testing
 
 ### Modified Files
 - `plugins/repo/commands/branch-create.md`: Add `--worktree` flag documentation
-- `plugins/repo/commands/pr-merge.md`: Add `--cleanup-worktree` flag documentation
-- `plugins/repo/commands/branch-delete.md`: Add `--cleanup-worktree` flag documentation
+- `plugins/repo/commands/pr-merge.md`: Add `--worktree-cleanup` flag documentation and prompting behavior
+- `plugins/repo/commands/branch-delete.md`: Add `--worktree-cleanup` flag documentation and prompting behavior
 - `plugins/repo/skills/branch-manager/SKILL.md`: Add worktree integration logic
-- `plugins/repo/skills/pr-manager/SKILL.md`: Add worktree cleanup integration
-- `plugins/repo/agents/repo-manager.md`: Add worktree operation routing
+- `plugins/repo/skills/pr-manager/SKILL.md`: Add worktree cleanup integration and proactive prompting
+- `plugins/repo/agents/repo-manager.md`: Add worktree operation routing and cleanup prompting logic
 - `CLAUDE.md`: Add worktree workflow examples and patterns
 - `README.md`: Mention worktree support in features list
 
@@ -301,9 +325,10 @@ Complete documentation and comprehensive testing
 ## Documentation Updates
 
 - `docs/commands/repo-branch-create.md`: Add worktree flag documentation and examples
-- `docs/commands/repo-pr-merge.md`: Document automatic worktree cleanup behavior
+- `docs/commands/repo-pr-merge.md`: Document `--worktree-cleanup` flag and proactive prompting behavior
+- `docs/commands/repo-branch-delete.md`: Document `--worktree-cleanup` flag and proactive prompting behavior
 - `docs/guides/parallel-workflows.md`: New guide for multi-worktree development patterns
-- `CLAUDE.md`: Add worktree best practices and common patterns
+- `CLAUDE.md`: Add worktree best practices and common patterns, including cleanup prompting
 - `README.md`: Feature list and quick start example with worktrees
 - `plugins/repo/README.md`: Worktree management capabilities overview
 
@@ -360,3 +385,18 @@ The `/work:issue-create` command can pass through to `/repo:branch-create --work
 - Scripts should use platform-agnostic path handling
 - Test on WSL (Windows Subsystem for Linux) specifically
 - CI/CD should test all supported platforms
+
+**Proactive Cleanup Prompting Design**:
+The `--worktree-cleanup` flag naming follows the pattern of action-then-scope (`--worktree-cleanup` not `--cleanup-worktree`), consistent with common CLI conventions where the target comes before the action modifier.
+
+When operations complete (PR merge, branch delete) without the `--worktree-cleanup` flag:
+1. **Detection**: Check if worktree exists for the affected branch
+2. **Safety Check**: Verify worktree status (uncommitted changes, active sessions)
+3. **Prompting**: Present 3-option interactive prompt using AskUserQuestion tool
+   - Option 1: Execute cleanup immediately
+   - Option 2: Skip cleanup, continue
+   - Option 3: Show the command for manual execution later
+4. **Execution**: If Option 1 selected, invoke worktree-remove skill
+5. **Education**: Prompt reinforces cleanup best practice without being intrusive
+
+This design balances convenience (easy to clean up) with user control (can defer) while teaching best practices through gentle prompting rather than automatic behavior that might surprise users.
