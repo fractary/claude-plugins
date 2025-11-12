@@ -53,6 +53,14 @@ LOG_PATTERNS=(
   "build*.log"
 )
 
+# Precompute regex patterns (optimize by converting once outside the loop)
+declare -a LOG_REGEXES=()
+for pattern in "${LOG_PATTERNS[@]}"; do
+  # Convert glob pattern to regex
+  pattern_regex=$(echo "$pattern" | sed 's/\./\\./g' | sed 's/\*/.*/g')
+  LOG_REGEXES+=("$pattern_regex")
+done
+
 declare -a vcs_logs=()
 declare -a should_ignore=()
 total_vcs_logs=0
@@ -62,11 +70,9 @@ repo_impact=0
 # Find all tracked files
 echo "  Scanning tracked files..." >&2
 while IFS= read -r file; do
-  # Check if file matches log patterns
+  # Check if file matches log patterns (using precomputed regexes)
   is_log=false
-  for pattern in "${LOG_PATTERNS[@]}"; do
-    # Convert glob pattern to regex
-    pattern_regex=$(echo "$pattern" | sed 's/\./\\./g' | sed 's/\*/.*/g')
+  for pattern_regex in "${LOG_REGEXES[@]}"; do
     if [[ "$file" =~ $pattern_regex ]]; then
       is_log=true
       break

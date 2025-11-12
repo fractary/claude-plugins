@@ -36,8 +36,8 @@ declare -A directory_counts
 # Parse each log entry and analyze patterns
 # Using jq if available, otherwise basic parsing
 if command -v jq &>/dev/null; then
-  # Extract logs array and iterate
-  echo "$logs_json" | jq -r '.logs[] | @json' | while IFS= read -r log_entry; do
+  # Extract logs array and iterate using process substitution to avoid subshell
+  while IFS= read -r log_entry; do
     path=$(echo "$log_entry" | jq -r '.path')
     type=$(echo "$log_entry" | jq -r '.type')
 
@@ -74,7 +74,7 @@ if command -v jq &>/dev/null; then
     else
       pattern_counts["other"]=$((${pattern_counts["other"]:-0} + 1))
     fi
-  done
+  done < <(echo "$logs_json" | jq -r '.logs[] | @json')
 else
   # Fallback: basic parsing without jq
   echo "  (jq not found, using basic parsing)" >&2
