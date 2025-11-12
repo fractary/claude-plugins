@@ -145,7 +145,21 @@ The handler will:
 - Capture commit SHA of branch creation point
 - Confirm branch is in expected state
 
-**7. OUTPUT COMPLETION MESSAGE:**
+**7. UPDATE REPO CACHE:**
+
+After successful branch creation/checkout, update the repo plugin cache to reflect the new branch:
+
+```bash
+# Update repo cache to reflect branch change (triggers issue_id extraction)
+plugins/repo/scripts/update-status-cache.sh --quiet
+```
+
+This proactively updates:
+- Current branch name
+- Issue ID (extracted from new branch name)
+- PR number (will be empty for newly created branch)
+
+**8. OUTPUT COMPLETION MESSAGE:**
 
 ```
 ✅ COMPLETED: Branch Manager

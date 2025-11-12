@@ -20,13 +20,30 @@ NC='\033[0m' # No Color
 # Configuration
 CACHE_DIR="${HOME}/.fractary/work"
 LOG_FILE="${CACHE_DIR}/auto-comment.log"
+LOG_MAX_SIZE=1048576  # 1MB in bytes
+LOG_KEEP_SIZE=102400  # 100KB to keep after truncation
 
 mkdir -p "${CACHE_DIR}"
+
+# Log rotation function
+# Truncates log if it exceeds LOG_MAX_SIZE, keeping last LOG_KEEP_SIZE bytes
+rotate_log_if_needed() {
+    if [ -f "${LOG_FILE}" ]; then
+        local log_size=$(stat -f%z "${LOG_FILE}" 2>/dev/null || stat -c%s "${LOG_FILE}" 2>/dev/null || echo "0")
+        if [ "$log_size" -gt "$LOG_MAX_SIZE" ]; then
+            # Keep last 100KB
+            tail -c "$LOG_KEEP_SIZE" "${LOG_FILE}" > "${LOG_FILE}.tmp"
+            mv "${LOG_FILE}.tmp" "${LOG_FILE}"
+            echo "[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] [INFO] Log rotated (was ${log_size} bytes)" >> "${LOG_FILE}"
+        fi
+    fi
+}
 
 # Logging function
 log_message() {
     local level="$1"
     local message="$2"
+    rotate_log_if_needed
     echo "[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] [$level] $message" >> "${LOG_FILE}"
 }
 

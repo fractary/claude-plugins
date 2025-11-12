@@ -9,8 +9,12 @@ set -euo pipefail
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
-CACHE_FILE="${CACHE_DIR}/status.cache"
-LOCK_FILE="${CACHE_DIR}/status.lock"
+
+# Use session-scoped cache if CLAUDE_CODE_SESSION_ID is available
+# This prevents cache interference between concurrent sessions
+SESSION_ID="${CLAUDE_CODE_SESSION_ID:-global}"
+CACHE_FILE="${CACHE_DIR}/status-${SESSION_ID}.cache"
+LOCK_FILE="${CACHE_DIR}/status-${SESSION_ID}.lock"
 TEMP_FILE="${CACHE_FILE}.tmp.$$"
 
 # Colors for output
@@ -25,7 +29,12 @@ mkdir -p "${CACHE_DIR}"
 
 # Clean up old orphaned temp files (older than 1 hour)
 # These can accumulate if processes crash before trap cleanup fires
-find "${CACHE_DIR}" -name "status.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
+find "${CACHE_DIR}" -name "status-*.cache.tmp.*" -type f -mmin +60 -delete 2>/dev/null || true
+
+# Clean up old session caches (older than 24 hours)
+# Sessions are typically short-lived, so caches older than 1 day are stale
+find "${CACHE_DIR}" -name "status-session_*.cache" -type f -mmin +1440 -delete 2>/dev/null || true
+find "${CACHE_DIR}" -name "status-session_*.lock" -type f -mmin +1440 -delete 2>/dev/null || true
 
 # Parse arguments
 SKIP_LOCK=false
@@ -138,10 +147,25 @@ elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
 fi
 
 # Get PR number if PR exists for current branch
-# Use gh CLI if available (fast, ~100-200ms)
+# Optimization: Only check PR when branch changes (saves ~100-200ms network call)
 PR_NUMBER=""
+CACHED_BRANCH=""
+CACHED_PR_NUMBER=""
+
+# Read previous cache to check if branch changed
+if [ -f "${CACHE_FILE}" ]; then
+    CACHED_BRANCH=$(grep '"branch"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+    CACHED_PR_NUMBER=$(grep '"pr_number"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+fi
+
 if command -v gh &> /dev/null; then
-    PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+    if [ "$BRANCH" != "$CACHED_BRANCH" ]; then
+        # Branch changed - check for PR (network call ~100-200ms)
+        PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+    else
+        # Same branch - reuse cached PR number (fast, no network)
+        PR_NUMBER="$CACHED_PR_NUMBER"
+    fi
 fi
 
 # Get current timestamp in ISO 8601 format

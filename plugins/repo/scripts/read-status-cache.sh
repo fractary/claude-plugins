@@ -9,7 +9,10 @@ set -euo pipefail
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
-CACHE_FILE="${CACHE_DIR}/status.cache"
+
+# Use session-scoped cache if CLAUDE_CODE_SESSION_ID is available
+SESSION_ID="${CLAUDE_CODE_SESSION_ID:-global}"
+CACHE_FILE="${CACHE_DIR}/status-${SESSION_ID}.cache"
 MAX_AGE_SECONDS=30  # Normal staleness threshold (not used for auto-refresh)
 
 # Emergency refresh threshold: 300 seconds (5 minutes)
