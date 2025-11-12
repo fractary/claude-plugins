@@ -1,5 +1,10 @@
 #!/bin/bash
 # Find logs older than threshold for auto-backup
+#
+# PERFORMANCE NOTE: This script builds a bash array then pipes to jq.
+# For large numbers of logs (100+), this can be memory-intensive.
+# Current approach prioritizes correctness and safety over performance.
+# If performance becomes an issue, consider streaming JSON directly.
 set -euo pipefail
 
 LOGS_DIR="${1:-/logs}"
@@ -10,6 +15,10 @@ INDEX_FILE="${3:-/logs/.archive-index.json}"
 THRESHOLD_SECONDS=$((THRESHOLD_DAYS * 24 * 60 * 60))
 CURRENT_TIME=$(date +%s)
 CUTOFF_TIME=$((CURRENT_TIME - THRESHOLD_SECONDS))
+
+# Recent file threshold (60 seconds) - skip files being actively written
+RECENT_THRESHOLD=60
+RECENT_CUTOFF=$((CURRENT_TIME - RECENT_THRESHOLD))
 
 # Find all session log files
 SESSION_LOGS=$(find "$LOGS_DIR/sessions" -type f -name "*.md" 2>/dev/null || echo "")
@@ -32,6 +41,11 @@ while IFS= read -r log_file; do
         : # BSD/macOS stat succeeded
     else
         echo "Warning: Failed to get modification time for: $log_file" >&2
+        continue
+    fi
+
+    # Skip recently modified files (being actively written)
+    if [[ $FILE_TIME -gt $RECENT_CUTOFF ]]; then
         continue
     fi
 

@@ -53,8 +53,9 @@ if [[ $MESSAGE_COUNT -gt 100 ]] || [[ $CODE_BLOCK_COUNT -gt 20 ]] || [[ $FILE_CO
     COMPLEXITY="high"
 fi
 
-# Handle empty DURATION (set to 0 if empty for JSON)
+# Handle empty DURATION (set to 0 if empty or unset for JSON)
 DURATION_NUM="${DURATION:-0}"
+[[ -z "$DURATION_NUM" ]] && DURATION_NUM="0"
 
 # Output as JSON using jq for safe construction (prevents injection/escaping issues)
 jq -n \

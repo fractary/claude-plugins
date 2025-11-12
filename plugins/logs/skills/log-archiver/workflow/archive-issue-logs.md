@@ -242,16 +242,54 @@ Archive complete!
 
 ## Error Recovery
 
+### Retry Strategy
+
+**Automatic Retries** for transient failures:
+- **Network errors**: Retry up to 3 times with exponential backoff (2s, 4s, 8s)
+- **Rate limits**: Retry with backoff (10s, 30s, 60s)
+- **Timeouts**: Retry up to 2 times with increased timeout
+
+**No Retry** for permanent failures:
+- Authentication errors (invalid credentials)
+- Permission errors (access denied)
+- File not found errors
+
+**Retry Limits**:
+- Maximum 3 retries per file per archive operation
+- Maximum 10 minutes total retry time per file
+- Exponential backoff between retries
+
 ### Partial Upload Tracking
 
 Each file in the archive index tracks its upload status:
-- `upload_status`: "pending" | "uploaded" | "failed"
+- `upload_status`: "pending" | "uploaded" | "failed" | "retrying"
 - `upload_timestamp`: When status was last updated
+- `upload_attempt`: Number of upload attempts
+- `last_error`: Error message from last failure
 - `cloud_url`: Set when upload succeeds
 
 The archive entry has flags:
-- `partial_archive`: true if any file is failed/pending
+- `partial_archive`: true if any file is failed/pending/retrying
 - `upload_complete`: true if all files are uploaded
+- `retry_count`: Total number of retries performed
+
+### Cleanup Procedures
+
+**On Upload Failure**:
+1. Keep compressed files locally (don't delete)
+2. Mark file status as "failed" in index
+3. Log error details for troubleshooting
+4. Clean up temporary files (*.tmp, *.part)
+
+**On Partial Success**:
+1. Keep all local files until all uploads succeed
+2. Clean up successfully uploaded compressed files
+3. Preserve failed files for manual intervention
+
+**Orphaned File Cleanup**:
+- Compressed files (*.gz) older than 7 days with no index entry
+- Temporary files (*.tmp) older than 24 hours
+- Lock files (*.lock) older than 1 hour with no active process
 
 ### Partial Upload Workflow
 
@@ -312,6 +350,27 @@ If uploads succeeded but index update failed:
 2. Local files remain (can rebuild index)
 3. Alert user to manual recovery
 4. User can re-run archive with --force to rebuild index
+
+**Transaction-Like Index Updates**:
+1. Create backup: `cp .archive-index.json .archive-index.json.backup`
+2. Write new index to temporary file: `.archive-index.json.tmp`
+3. Validate JSON structure of temporary file
+4. Atomic rename: `mv .archive-index.json.tmp .archive-index.json`
+5. Remove backup on success
+6. On failure: Restore from backup
+
+**Rollback Procedure**:
+If index update fails after successful uploads:
+```bash
+# Restore previous index
+cp .archive-index.json.backup .archive-index.json
+
+# Mark archive as partial in restored index
+./scripts/mark-partial-archive.sh <issue> "Index update failed"
+
+# Files are in cloud but not indexed
+# User can manually re-run: /fractary-logs:archive <issue> --reindex-only
+```
 
 Do NOT write to /tmp - index is the source of truth.
 

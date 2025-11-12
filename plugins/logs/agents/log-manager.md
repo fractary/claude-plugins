@@ -177,18 +177,27 @@ When plugin initializes (if `auto_backup.trigger_on_init` enabled):
 
 When session capture starts (if `auto_backup.trigger_on_session_start` enabled):
 
-1. **Background check for old logs**:
+1. **Acquire advisory lock** (prevent race conditions):
+   - Create lock file: `/logs/.auto-backup.lock`
+   - If lock exists and process is running: Skip auto-backup
+   - If lock exists but process is dead: Remove stale lock and proceed
+   - Lock includes PID for process verification
+
+2. **Background check for old logs**:
    - Non-blocking check for logs older than threshold
+   - **Exclude currently active sessions** (check for ongoing captures)
    - If found, add to background queue
 
-2. **After session starts**:
+3. **After session starts**:
    - Report if auto-backup will run
    - Logs: "Found X sessions older than 7 days, will auto-backup in background"
+   - Note: Active sessions are excluded from backup
 
-3. **Background archival**:
+4. **Background archival**:
    - Same workflow as initialization auto-backup
-   - Does not block current session
+   - **Skip files being actively written** (modified in last 60 seconds)
    - Results logged to archive index
+   - Release lock file when complete
 
 ## Search Logs
 
