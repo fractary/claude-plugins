@@ -16,7 +16,8 @@ if git rev-parse --git-dir > /dev/null 2>&1; then
     # Use repo-scoped cache based on repository path hash
     # This ensures each repository has its own cache, shared across all sessions
     # Work trees share the same .git directory, so they correctly share the cache
-    REPO_ID=$(echo "$REPO_PATH" | md5sum 2>/dev/null | cut -d' ' -f1 | cut -c1-16 || echo "global")
+    # Try multiple hash commands for cross-platform compatibility (md5sum=GNU, md5=BSD, shasum=fallback)
+    REPO_ID=$(echo "$REPO_PATH" | (md5sum 2>/dev/null || md5 2>/dev/null || shasum 2>/dev/null) | cut -d' ' -f1 | cut -c1-16 || echo "global")
 else
     # Not in a git repo - use global cache (fallback)
     REPO_ID="global"

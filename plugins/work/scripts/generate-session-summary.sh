@@ -51,7 +51,11 @@ fi
 UNCOMMITTED_CHANGES=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 
 # Analyze file changes in this session
-FILES_CHANGED=$(git diff --name-status HEAD~${COMMIT_COUNT}..HEAD 2>/dev/null | wc -l | tr -d ' ') || FILES_CHANGED=0
+if [ "$COMMIT_COUNT" -gt 0 ]; then
+    FILES_CHANGED=$(git diff --name-status HEAD~${COMMIT_COUNT}..HEAD 2>/dev/null | wc -l | tr -d ' ')
+else
+    FILES_CHANGED=0
+fi
 
 # Analyze commit types to understand what was done
 FEAT_COUNT=0

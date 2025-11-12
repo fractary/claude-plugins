@@ -30,7 +30,8 @@ mkdir -p "${CACHE_DIR}"
 # Note: Does NOT append rotation message to avoid potential loop
 rotate_log_if_needed() {
     if [ -f "${LOG_FILE}" ]; then
-        local log_size=$(stat -f%z "${LOG_FILE}" 2>/dev/null || stat -c%s "${LOG_FILE}" 2>/dev/null || echo "0")
+        # Use wc -c for cross-platform compatibility (works on BSD and GNU)
+        local log_size=$(wc -c < "${LOG_FILE}" 2>/dev/null || echo "0")
         if [ "$log_size" -gt "$LOG_MAX_SIZE" ]; then
             # Keep last 100KB (silent rotation to avoid loop)
             tail -c "$LOG_KEEP_SIZE" "${LOG_FILE}" > "${LOG_FILE}.tmp"
@@ -70,7 +71,8 @@ log_message "INFO" "Current branch: $CURRENT_BRANCH"
 
 # Try to get issue ID from repo plugin cache first (fast path)
 ISSUE_ID=""
-REPO_CACHE_SCRIPT="/home/user/claude-plugins/plugins/repo/scripts/read-status-cache.sh"
+# Use relative path from work plugin to repo plugin (avoids hardcoded paths)
+REPO_CACHE_SCRIPT="${SCRIPT_DIR}/../../repo/scripts/read-status-cache.sh"
 
 if [ -f "$REPO_CACHE_SCRIPT" ]; then
     ISSUE_ID=$("$REPO_CACHE_SCRIPT" issue_id 2>/dev/null | tr -d ' \n' || echo "")
@@ -172,8 +174,15 @@ HANDLER_SCRIPT=""
 CONFIG_FILE="${HOME}/.fractary/plugins/work/config.json"
 
 if [ -f "$CONFIG_FILE" ]; then
-    # Extract active handler (default to github if not specified)
-    ACTIVE_HANDLER=$(jq -r '.handlers["work-tracker"].active // "github"' "$CONFIG_FILE" 2>/dev/null || echo "github")
+    # Check if jq is available for JSON parsing
+    if ! command -v jq &> /dev/null; then
+        echo -e "${YELLOW}⚠️  jq not found, using default GitHub handler${NC}"
+        log_message "WARN" "jq not found, defaulting to github handler"
+        ACTIVE_HANDLER="github"
+    else
+        # Extract active handler (default to github if not specified)
+        ACTIVE_HANDLER=$(jq -r '.handlers["work-tracker"].active // "github"' "$CONFIG_FILE" 2>/dev/null || echo "github")
+    fi
     echo -e "${BLUE}📋 Active work tracker: ${ACTIVE_HANDLER}${NC}"
     log_message "INFO" "Active handler: $ACTIVE_HANDLER"
 
