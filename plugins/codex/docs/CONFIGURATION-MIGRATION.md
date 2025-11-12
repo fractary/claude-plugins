@@ -194,8 +194,12 @@ To verify your configuration is correct:
 
 ### Wrong configuration location
 
-**Cause**: Config in wrong directory (e.g., `.fractary/plugins/codex/config/codex.json`)
-**Solution**: Move to correct location `.fractary/plugins/codex/config.json`
+**Cause**: Config in wrong directory (e.g., `.fractary/plugins/codex/config/codex.json`, `~/.codex/config.json`, `docs/codex-sync.yaml`)
+**Solution**:
+1. Check for config in non-standard locations
+2. If found, extract any useful settings
+3. Run `/fractary-codex:init` to create config in correct location
+4. Remove old configuration files
 
 ---
 

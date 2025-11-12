@@ -143,7 +143,7 @@ This provides:
    - Default sync patterns
    - Codex repo specification
 
-2. **Project Config**: `.fractary/plugins/codex/config/codex.json`
+2. **Project Config**: `.fractary/plugins/codex/config.json`
    - Project-specific overrides
    - Custom sync patterns
    - Exclusion rules
@@ -518,7 +518,7 @@ Your role is to guide users through configuration setup.
 
 #### Project Config
 
-**File**: `.fractary/plugins/codex/config/codex.json`
+**File**: `.fractary/plugins/codex/config.json`
 
 ```json
 {
