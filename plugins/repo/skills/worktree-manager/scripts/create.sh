@@ -53,8 +53,8 @@ if [ -d "$WORKTREE_PATH" ]; then
 fi
 
 # Check if worktree already exists for this branch
-if git worktree list | grep -q "\\[$BRANCH_NAME\\]"; then
-  EXISTING_PATH=$(git worktree list | grep "\\[$BRANCH_NAME\\]" | awk '{print $1}')
+if git worktree list | grep -qF "[$BRANCH_NAME]"; then
+  EXISTING_PATH=$(git worktree list | grep -F "[$BRANCH_NAME]" | awk '{print $1}')
   echo "Error: Worktree already exists for branch $BRANCH_NAME at $EXISTING_PATH" >&2
   exit 10
 fi

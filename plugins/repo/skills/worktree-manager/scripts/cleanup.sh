@@ -79,7 +79,8 @@ while IFS='|' read -r WORKTREE_PATH BRANCH_REF; do
   # Check if branch is merged
   IS_MERGED=false
   if [ "$REMOVE_MERGED" = true ]; then
-    if git branch --merged "$MAIN_BRANCH" | grep -q "^[* ]*$BRANCH_NAME$"; then
+    # Use grep -F for fixed-string matching to handle special characters in branch names
+    if git branch --merged "$MAIN_BRANCH" | sed 's/^[* ]*//' | grep -qFx "$BRANCH_NAME"; then
       IS_MERGED=true
     fi
   fi
@@ -87,7 +88,12 @@ while IFS='|' read -r WORKTREE_PATH BRANCH_REF; do
   # Check if worktree is stale
   IS_STALE=false
   if [ "$REMOVE_STALE" = true ] && [ -d "$WORKTREE_PATH" ]; then
-    LAST_MODIFIED=$(find "$WORKTREE_PATH" -type f -exec stat -c %Y {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+    # Cross-platform stat command (GNU vs BSD/macOS)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      LAST_MODIFIED=$(find "$WORKTREE_PATH" -type f -exec stat -f %m {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+    else
+      LAST_MODIFIED=$(find "$WORKTREE_PATH" -type f -exec stat -c %Y {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+    fi
     CURRENT_TIME=$(date +%s)
     DAYS_OLD=$(( (CURRENT_TIME - LAST_MODIFIED) / 86400 ))
     if [ "$DAYS_OLD" -gt "$STALE_DAYS" ]; then
@@ -143,7 +149,11 @@ while IFS='|' read -r WORKTREE_PATH BRANCH_REF; do
 done <<< "$WORKTREES"
 
 # Output results as JSON
-BRANCHES_JSON=$(printf '%s\n' "${REMOVED_BRANCHES[@]}" | jq -R . | jq -s . 2>/dev/null || echo "[]")
+if [ ${#REMOVED_BRANCHES[@]} -eq 0 ]; then
+  BRANCHES_JSON="[]"
+else
+  BRANCHES_JSON=$(printf '%s\n' "${REMOVED_BRANCHES[@]}" | jq -R . | jq -s . 2>/dev/null || echo "[]")
+fi
 
 cat <<EOF
 {

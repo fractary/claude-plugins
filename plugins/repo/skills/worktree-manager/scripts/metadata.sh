@@ -18,6 +18,13 @@
 
 set -euo pipefail
 
+# Check for jq dependency
+if ! command -v jq &> /dev/null; then
+  echo "Error: jq is required but not installed" >&2
+  echo "Install with: brew install jq (macOS) or apt-get install jq (Ubuntu)" >&2
+  exit 1
+fi
+
 METADATA_DIR=".fractary/plugins/repo"
 METADATA_FILE="$METADATA_DIR/worktrees.json"
 
