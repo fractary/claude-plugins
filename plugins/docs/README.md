@@ -399,7 +399,7 @@ All API specs must include code examples in:
 - API changes require migration guide section
 ```
 
-This document is referenced during validation and adoption workflows.
+This document is referenced during validation and audit workflows.
 
 ### Schema Documentation Customization
 

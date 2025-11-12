@@ -11,7 +11,7 @@ tools: Bash, Read, Write
 You are the documentation auditor. Your responsibility is to analyze existing documentation against fractary-docs standards (both plugin standards and project-specific standards) and generate an actionable remediation specification.
 
 This skill is used for:
-- **Initial adoption**: Analyzing unmanaged documentation
+- **Initial audit**: Analyzing existing documentation for fractary-docs setup
 - **Ongoing compliance**: Checking managed docs against evolving standards
 - **Quality assurance**: Regular documentation health checks
 
@@ -190,10 +190,10 @@ Execute discovery scripts and write results to temporary directory:
 temp_dir=$(cat .fractary/state/audit-temp-dir.txt)
 
 # Execute discovery scripts
-bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} $temp_dir/discovery-docs.json
-bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} $temp_dir/discovery-structure.json
-bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh $temp_dir/discovery-docs.json $temp_dir/discovery-frontmatter.json
-bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh $temp_dir/discovery-docs.json $temp_dir/discovery-quality.json
+bash plugins/docs/skills/doc-auditor/scripts/discover-docs.sh {project_root} $temp_dir/discovery-docs.json
+bash plugins/docs/skills/doc-auditor/scripts/discover-structure.sh {project_root} $temp_dir/discovery-structure.json
+bash plugins/docs/skills/doc-auditor/scripts/discover-frontmatter.sh $temp_dir/discovery-docs.json $temp_dir/discovery-frontmatter.json
+bash plugins/docs/skills/doc-auditor/scripts/assess-quality.sh $temp_dir/discovery-docs.json $temp_dir/discovery-quality.json
 ```
 
 **Temporary Files**: These discovery reports are temporary working files in `logs/audits/tmp/` that will be cleaned up after the final audit report is generated.
@@ -695,7 +695,11 @@ Use the doc-auditor skill to audit documentation:
 </INTEGRATION>
 
 <DEPENDENCIES>
-- **Discovery scripts**: plugins/docs/skills/doc-adoption/scripts/
+- **Discovery scripts**: plugins/docs/skills/doc-auditor/scripts/
+  - discover-docs.sh
+  - discover-structure.sh
+  - discover-frontmatter.sh
+  - assess-quality.sh
 - **Spec plugin** (REQUIRED for spec generation): fractary-spec:spec-manager
   - Audit can run without it (presents findings only)
   - Spec generation requires fractary-spec plugin installed
