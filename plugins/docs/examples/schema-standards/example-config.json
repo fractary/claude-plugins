@@ -2,11 +2,11 @@
   "schema_version": "1.0",
   "hooks": {
     "pre_generate": null,
-    "post_generate": null,
-    "pre_validate": null,
+    "post_generate": "./.fractary/plugins/docs/hooks/post-generate.sh",
+    "pre_validate": "./.fractary/plugins/docs/hooks/pre-validate.sh",
     "post_validate": null,
     "pre_update": null,
-    "post_update": null
+    "post_update": "./.fractary/plugins/docs/hooks/post-update.sh"
   },
   "output_paths": {
     "documentation": "docs",
@@ -34,14 +34,22 @@
   "validation": {
     "lint_on_generate": true,
     "check_links_on_generate": false,
-    "custom_rules_script": null,
-    "project_standards_doc": null,
+    "custom_rules_script": "./.fractary/plugins/docs/scripts/validate-schema-docs.sh",
+    "project_standards_doc": "./docs/standards/PROJECT-SCHEMA-STANDARDS.md",
     "required_sections": {
       "adr": ["Status", "Context", "Decision", "Consequences"],
       "design": ["Overview", "Architecture", "Implementation"],
       "runbook": ["Purpose", "Prerequisites", "Steps", "Troubleshooting"],
       "api-spec": ["Overview", "Endpoints", "Authentication"],
-      "schema": ["Overview", "Schema Format", "Fields", "Examples", "Validation Rules"],
+      "schema": [
+        "Overview",
+        "Schema Format",
+        "Fields",
+        "Examples",
+        "Validation Rules",
+        "Versioning",
+        "Code Generation"
+      ],
       "test-report": ["Summary", "Test Cases", "Results"],
       "deployment": ["Overview", "Infrastructure", "Deployment Steps"]
     },

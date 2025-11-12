@@ -96,6 +96,7 @@ If `markdownlint` CLI is installed, uses full rule set:
 - `design` - System/feature design
 - `runbook` - Operational procedure
 - `api-spec` - API documentation
+- `schema` - Data schema / Data dictionary
 - `test-report` - Test execution results
 - `deployment` - Deployment record
 - `changelog` - Version changes
@@ -200,6 +201,33 @@ Use `--strict` flag to enable warnings for missing recommended fields:
 | Endpoints | error | API endpoints |
 | Models | info | Data models |
 | Errors | info | Error responses |
+
+#### Schema
+| Section | Severity | Description |
+|---------|----------|-------------|
+| Overview | error | Schema purpose and scope |
+| Schema Format | error | Format specification (JSON Schema, OpenAPI, etc.) |
+| Fields | error | Field definitions with types and constraints |
+| Examples | error | Usage examples |
+| Validation Rules | error | Data validation requirements |
+| Entities | info | Entity/model definitions |
+| Relationships | info | Entity relationships |
+| Constraints | info | Schema-level constraints |
+| Versioning | info | Schema versioning strategy |
+
+**Schema-Specific Validation**:
+- **Format consistency**: All schema definitions use declared format consistently
+- **Field completeness**: Each field has type, description, and constraints documented
+- **Example validity**: Examples conform to schema rules
+- **Reference integrity**: All entity references point to documented entities
+
+**Project-Specific Extensions**:
+Projects can extend schema validation via `custom_rules_script`:
+- Validate naming conventions (e.g., snake_case, camelCase)
+- Enforce required field annotations
+- Check schema format-specific rules (JSON Schema draft compliance, OpenAPI spec version)
+- Verify code generation compatibility
+- Validate business rule documentation
 
 #### Test Report
 | Section | Severity | Description |
