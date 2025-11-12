@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
-argument-hint: '"<branch-name-or-description>" [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree]'
+argument-hint: '[<branch-name-or-description>] [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree]'
 ---
 
 <CONTEXT>
@@ -11,7 +11,8 @@ Your role is to parse user input and invoke the repo-manager agent to create a n
 This command supports:
 - **Direct branch names**: Provide the full branch name (e.g., "feature/my-branch")
 - **Description-based naming**: Provide description + optional prefix (auto-generates branch name)
-- **Optional work tracking**: Add --work-id flag to link branch to work item (optional)
+- **Work-id-only mode**: Provide only --work-id (auto-fetches work item title as description)
+- **Optional work tracking**: Add --work-id flag to link branch to work item
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -133,29 +134,54 @@ This command intelligently determines the invocation mode based on the arguments
 - `work_id` = --work-id value (optional)
 - Generate branch name: `{prefix}/{work_id-}{description-slug}` if work_id provided, otherwise `{prefix}/{description-slug}`
 
+### Mode 3: Work-ID-Only (Auto-fetch)
+**Pattern**: No first arg, but --work-id provided
+```bash
+/repo:branch-create --work-id 123
+/repo:branch-create --work-id 99 --worktree
+/repo:branch-create --work-id 456 --prefix fix --base develop
+```
+
+**Parsing**:
+- `work_id` = --work-id value (required)
+- `prefix` = --prefix value or "feat"
+- `base_branch` = --base value or "main"
+- Fetch work item title from work plugin
+- Use title as description
+- Generate branch name: `{prefix}/{work_id-}{description-slug-from-title}`
+
 ### Detection Logic
 
 ```
-IF arg contains "/" THEN
+IF first arg contains "/" THEN
   Mode 1: Direct branch name
-ELSE
+ELSE IF first arg provided THEN
   Mode 2: Description-based naming
+ELSE IF --work-id provided THEN
+  Mode 3: Work-ID-only (auto-fetch)
+ELSE
+  ERROR: Missing required argument
 END
 
-work_id is always optional via --work-id flag
+work_id is always optional via --work-id flag in Modes 1 and 2
+work_id is required in Mode 3
 ```
 </PARSING_LOGIC>
 
 <ARGUMENT_PARSING>
 ## Arguments
 
-### Required Argument:
+### Positional Argument (Optional):
 - `<branch-name-or-description>` (string): Either a full branch name (e.g., "feature/my-branch") or a description (e.g., "add CSV export")
+  - **Required** for Modes 1 and 2
+  - **Optional** for Mode 3 (when --work-id is provided, description will be auto-fetched)
 
 ### Optional Arguments (all modes):
 - `--base <branch>` (string): Base branch name to create from (default: main/master)
 - `--prefix <type>` (string): Branch prefix - `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf` (default: `feat`)
-- `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional.
+- `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456")
+  - Optional in Modes 1 and 2
+  - Required in Mode 3 (work-id-only invocation)
 - `--worktree` (boolean flag): Create a git worktree for parallel development. No value needed, just include the flag
 
 ### Maps to Operation
@@ -197,6 +223,26 @@ All modes map to: `create-branch` operation in repo-manager agent
 # Create branch with worktree for parallel development
 /repo:branch-create "add CSV export" --work-id 123 --worktree
 # Result: feat/123-add-csv-export + worktree at ../repo-wt-feat-123-add-csv-export
+```
+
+### Mode 3: Work-ID-Only (Auto-fetch)
+```bash
+# Create branch from work item (fetches title from issue #99)
+/repo:branch-create --work-id 99
+# Result: Fetches issue #99 title "Add user authentication"
+# Creates: feat/99-add-user-authentication
+
+# With worktree for parallel development
+/repo:branch-create --work-id 99 --worktree
+# Result: feat/99-{slug-from-title} + worktree at ../repo-wt-feat-99-{slug-from-title}
+
+# Specify branch type (fetches title from issue #123)
+/repo:branch-create --work-id 123 --prefix fix
+# Result: fix/123-{slug-from-title}
+
+# Full example with all options
+/repo:branch-create --work-id 456 --prefix feat --base develop --worktree
+# Result: Fetches issue title, creates branch + worktree
 ```
 
 ### Work Tracking Integration Example
@@ -255,6 +301,20 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
 }
 ```
 
+### Mode 3: Work-ID-Only (Auto-fetch)
+```json
+{
+  "operation": "create-branch",
+  "parameters": {
+    "mode": "work-id-only",
+    "work_id": "99",  // required
+    "prefix": "feat",
+    "base_branch": "main",
+    "create_worktree": true  // optional
+  }
+}
+```
+
 ### With Worktree
 ```json
 {
@@ -274,6 +334,7 @@ The repo-manager agent will:
 2. Route to appropriate skill(s) based on mode:
    - **Direct**: branch-manager only
    - **Description**: branch-namer → branch-manager (if work_id provided, includes in branch name)
+   - **Work-ID-Only**: work:issue-fetch → branch-namer → branch-manager
 3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
 4. Return structured response
 </AGENT_INVOCATION>
@@ -281,28 +342,35 @@ The repo-manager agent will:
 <ERROR_HANDLING>
 Common errors to handle at the **command level** (argument parsing):
 
-**Missing branch name or description**:
+**Missing branch name/description AND work_id**:
 ```
-Error: Branch name or description is required
-Usage: /repo:branch-create <branch-name-or-description> [options]
+Error: Branch name, description, or work ID is required
+
+You must provide either:
+1. A branch name (e.g., feature/my-branch)
+2. A description (e.g., "add CSV export")
+3. A work ID with --work-id flag (auto-fetches description)
+
 Examples:
   /repo:branch-create feature/my-branch
   /repo:branch-create "my feature description"
-  /repo:branch-create "add CSV export" --work-id 123
+  /repo:branch-create --work-id 123
+  /repo:branch-create --work-id 99 --worktree
 ```
 
 **Invalid argument format**:
 ```
 Error: Invalid argument format
-Expected: /repo:branch-create <branch-name-or-description> [options]
+Expected: /repo:branch-create [<branch-name-or-description>] [options]
 ```
 
 All other errors are handled by the repo-manager agent, including:
 - Branch already exists
 - Invalid branch name format
+- Work item not found (Mode 3)
+- Work plugin not configured (Mode 3)
 - Invalid option selection (in work tracking prompt)
 - Issue creation failures
-- Work plugin configuration issues
 - Network errors
 - Permission errors
 </ERROR_HANDLING>
