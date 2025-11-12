@@ -51,28 +51,89 @@ fi
 echo -e "${BLUE}📍 Current branch: ${CURRENT_BRANCH}${NC}"
 log_message "INFO" "Current branch: $CURRENT_BRANCH"
 
-# Extract issue ID from branch name
-# Expected patterns: feat/123-description, fix/456-bug, hotfix/789-urgent
+# Try to get issue ID from repo plugin cache first (fast path)
 ISSUE_ID=""
+REPO_CACHE_SCRIPT="/home/user/claude-plugins/plugins/repo/scripts/read-status-cache.sh"
 
-if [[ "$CURRENT_BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
-    ISSUE_ID="${BASH_REMATCH[2]}"
-    echo -e "${GREEN}✅ Found issue ID: #${ISSUE_ID}${NC}"
-    log_message "INFO" "Extracted issue ID: $ISSUE_ID"
-elif [[ "$CURRENT_BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
-    # Fallback pattern: any-prefix/123
-    ISSUE_ID="${BASH_REMATCH[1]}"
-    echo -e "${GREEN}✅ Found issue ID: #${ISSUE_ID}${NC}"
-    log_message "INFO" "Extracted issue ID (fallback): $ISSUE_ID"
-else
-    echo -e "${YELLOW}ℹ️  Branch not linked to an issue (no issue ID in branch name)${NC}"
-    echo -e "${YELLOW}ℹ️  Expected format: feat/123-description or fix/456-bug${NC}"
-    log_message "INFO" "No issue ID in branch name, skipping"
-    exit 0
+if [ -f "$REPO_CACHE_SCRIPT" ]; then
+    ISSUE_ID=$("$REPO_CACHE_SCRIPT" issue_id 2>/dev/null | tr -d ' \n' || echo "")
+    # Filter out "0" which read script returns for empty fields
+    if [ "$ISSUE_ID" = "0" ]; then
+        ISSUE_ID=""
+    fi
+    if [ -n "$ISSUE_ID" ]; then
+        echo -e "${GREEN}✅ Found issue ID from cache: #${ISSUE_ID}${NC}"
+        log_message "INFO" "Retrieved issue ID from repo cache: $ISSUE_ID"
+    fi
+fi
+
+# Fallback: Extract issue ID from branch name if cache unavailable or empty
+if [ -z "$ISSUE_ID" ]; then
+    echo -e "${YELLOW}⚙️  Repo cache unavailable, parsing branch name...${NC}"
+    log_message "INFO" "Falling back to branch name parsing"
+
+    if [[ "$CURRENT_BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
+        ISSUE_ID="${BASH_REMATCH[2]}"
+        echo -e "${GREEN}✅ Found issue ID: #${ISSUE_ID}${NC}"
+        log_message "INFO" "Extracted issue ID from branch: $ISSUE_ID"
+    elif [[ "$CURRENT_BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
+        # Fallback pattern: any-prefix/123
+        ISSUE_ID="${BASH_REMATCH[1]}"
+        echo -e "${GREEN}✅ Found issue ID: #${ISSUE_ID}${NC}"
+        log_message "INFO" "Extracted issue ID from branch (fallback): $ISSUE_ID"
+    else
+        echo -e "${YELLOW}ℹ️  Branch not linked to an issue (no issue ID in branch name)${NC}"
+        echo -e "${YELLOW}ℹ️  Expected format: feat/123-description or fix/456-bug${NC}"
+        log_message "INFO" "No issue ID in branch name, skipping"
+        exit 0
+    fi
 fi
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if there's meaningful work to report (early exit optimization)
+# Load last stop reference to check for changes
+LAST_STOP_FILE="${CACHE_DIR}/last_stop_ref"
+LAST_STOP_REF=""
+if [ -f "$LAST_STOP_FILE" ]; then
+    LAST_STOP_REF=$(grep "^${CURRENT_BRANCH}:" "$LAST_STOP_FILE" 2>/dev/null | cut -d: -f2 || echo "")
+fi
+
+# Check for commits or uncommitted changes
+HAS_WORK=false
+
+if [ -n "$LAST_STOP_REF" ] && git rev-parse "$LAST_STOP_REF" &>/dev/null; then
+    # We have a last reference - check if there are new commits
+    if ! git diff --quiet "$LAST_STOP_REF..HEAD" 2>/dev/null; then
+        HAS_WORK=true
+        echo -e "${BLUE}📝 Found new commits since last update${NC}"
+        log_message "INFO" "New commits detected"
+    fi
+else
+    # No reference - check for recent commits (last 15 minutes)
+    RECENT_COMMITS=$(git log --since="15 minutes ago" --oneline 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$RECENT_COMMITS" -gt 0 ]; then
+        HAS_WORK=true
+        echo -e "${BLUE}📝 Found recent commits${NC}"
+        log_message "INFO" "Recent commits detected"
+    fi
+fi
+
+# Also check for uncommitted changes
+UNCOMMITTED=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+if [ "$UNCOMMITTED" -gt 0 ]; then
+    HAS_WORK=true
+    echo -e "${BLUE}📝 Found uncommitted changes${NC}"
+    log_message "INFO" "Uncommitted changes detected"
+fi
+
+# Early exit if no work to report
+if [ "$HAS_WORK" = false ]; then
+    echo -e "${GREEN}✅ No changes to report - skipping comment${NC}"
+    log_message "INFO" "No changes detected, skipping comment"
+    exit 0
+fi
 
 # Generate session summary
 echo -e "${BLUE}📊 Generating session summary...${NC}"
@@ -146,6 +207,48 @@ if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
 
     echo -e "${BLUE}📌 Saved reference for next comment: ${CURRENT_HEAD:0:7}${NC}"
     log_message "INFO" "Saved stop reference: $CURRENT_HEAD"
+
+    # Periodic cache cleanup (run every 20th execution)
+    # Remove references for branches that no longer exist
+    CLEANUP_COUNTER_FILE="${CACHE_DIR}/cleanup_counter"
+    CLEANUP_INTERVAL=20
+
+    if [ ! -f "$CLEANUP_COUNTER_FILE" ]; then
+        echo "0" > "$CLEANUP_COUNTER_FILE"
+    fi
+
+    COUNTER=$(cat "$CLEANUP_COUNTER_FILE" 2>/dev/null || echo "0")
+    COUNTER=$((COUNTER + 1))
+
+    if [ "$COUNTER" -ge "$CLEANUP_INTERVAL" ]; then
+        echo -e "${BLUE}🧹 Running cache cleanup...${NC}"
+        log_message "INFO" "Running periodic cache cleanup"
+
+        # Create temp file for valid references
+        TEMP_REF_FILE="${LAST_STOP_FILE}.cleanup.tmp"
+        > "$TEMP_REF_FILE"
+
+        # Read through last_stop_ref and keep only valid branches
+        if [ -f "$LAST_STOP_FILE" ]; then
+            while IFS=: read -r branch ref; do
+                if git rev-parse --verify "$branch" &>/dev/null; then
+                    echo "${branch}:${ref}" >> "$TEMP_REF_FILE"
+                else
+                    log_message "INFO" "Cleaned up stale reference for branch: $branch"
+                fi
+            done < "$LAST_STOP_FILE"
+
+            # Replace old file with cleaned version
+            mv "$TEMP_REF_FILE" "$LAST_STOP_FILE"
+        fi
+
+        # Reset counter
+        echo "0" > "$CLEANUP_COUNTER_FILE"
+        echo -e "${GREEN}✅ Cache cleanup completed${NC}"
+        log_message "INFO" "Cache cleanup completed"
+    else
+        echo "$COUNTER" > "$CLEANUP_COUNTER_FILE"
+    fi
 else
     EXIT_CODE=$?
     echo -e "${YELLOW}⚠️  Could not post comment (exit code: ${EXIT_CODE})${NC}"

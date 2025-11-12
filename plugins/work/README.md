@@ -208,6 +208,100 @@ The work plugin provides user-facing commands for common operations:
 
 **Command Documentation:** See `commands/*.md` for detailed command documentation and examples.
 
+## Session Tracking
+
+The work plugin automatically posts progress updates to issues when working on issue-linked branches.
+
+### How It Works
+
+- **Automatic Detection**: When you work on a branch named with an issue ID (e.g., `feat/123-add-auth`), the plugin tracks your progress
+- **Incremental Updates**: Only posts comments when meaningful work occurs (commits or changes detected)
+- **Smart Summaries**: Generates summaries showing:
+  - Commits made since last update
+  - Commit type breakdown (feat, fix, docs, etc.)
+  - Outstanding work (uncommitted changes, test validation)
+  - Recommended next steps
+- **Performance Optimized**: Reads issue_id from repo plugin cache (fast), falls back to branch parsing if unavailable
+
+### Branch Naming Requirements
+
+Session tracking requires branches to follow this pattern:
+
+```
+<type>/<issue_id>-<description>
+```
+
+**Examples:**
+```bash
+feat/123-add-authentication    # Feature work on issue #123
+fix/456-login-bug             # Bug fix for issue #456
+hotfix/789-security-patch     # Urgent fix for issue #789
+chore/111-update-deps         # Maintenance for issue #111
+```
+
+**Supported types:** `feat`, `fix`, `chore`, `hotfix`, `patch`
+
+### Configuration
+
+The session tracking hook is installed automatically and runs on Stop events. No additional configuration required.
+
+**To disable:**
+- Remove or modify `plugins/work/hooks/hooks.json`
+
+### Example Output
+
+When you stop a Claude Code session after making commits, the plugin posts a comment like:
+
+```markdown
+## 🔄 Work Update
+
+_Changes since last update (from `abc1234`)_
+
+### What Was Done
+
+**2 commit(s) made:**
+
+- `def5678` feat: Add user authentication
+- `ghi9012` test: Add auth tests
+
+- ✨ **1** feature(s) added
+- ✅ **1** test(s) added/updated
+- 📁 **8** file(s) modified
+
+### Outstanding Work
+
+- 🧪 **Test validation** - ensure tests pass before merging
+
+### Recommended Next Steps
+
+1. **Run final tests** to validate changes
+2. **Create pull request** for review
+3. **Address any review feedback**
+
+---
+_🤖 Auto-generated work update • Branch: `feat/123-add-auth` • 2025-11-12 16:49 UTC_
+```
+
+### Performance Notes
+
+- **Fast Path**: Reads issue_id from repo plugin cache (~10ms)
+- **Fallback**: Parses branch name if cache unavailable (~50ms)
+- **Early Exit**: Skips comment if no changes detected (no network call)
+- **Cache Cleanup**: Automatically removes stale branch references every 20 executions
+
+### Troubleshooting
+
+**Comment not posted:**
+- Verify branch name matches pattern: `<type>/<issue_id>-<description>`
+- Check GitHub authentication: `gh auth login`
+- Ensure issue exists in repository
+- Verify network connectivity
+
+**Issue ID not detected:**
+- Repo plugin may not be installed (falls back to branch parsing)
+- Update repo cache: Issue ID is cached on UserPromptSubmit hook
+- Branch name doesn't match expected pattern
+
 ## Agent Usage
 
 ### Protocol: JSON Request/Response

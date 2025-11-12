@@ -127,15 +127,35 @@ if [ "$UNCOMMITTED_CHANGES" -eq 0 ] && [ "$UNTRACKED_FILES" -eq 0 ]; then
     CLEAN=true
 fi
 
+# Extract issue ID from branch name (if present)
+# Supports patterns: feat/123-description, fix/456-bug, hotfix/789-urgent, etc.
+ISSUE_ID=""
+if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
+    ISSUE_ID="${BASH_REMATCH[2]}"
+elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
+    # Fallback pattern: any-prefix/123
+    ISSUE_ID="${BASH_REMATCH[1]}"
+fi
+
+# Get PR number if PR exists for current branch
+# Use gh CLI if available (fast, ~100-200ms)
+PR_NUMBER=""
+if command -v gh &> /dev/null; then
+    PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+fi
+
 # Get current timestamp in ISO 8601 format
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Build JSON output
+# Note: issue_id and pr_number are strings (may be empty)
 cat > "${TEMP_FILE}" <<EOF
 {
   "timestamp": "${TIMESTAMP}",
   "repo_path": "${REPO_PATH}",
   "branch": "${BRANCH}",
+  "issue_id": "${ISSUE_ID}",
+  "pr_number": "${PR_NUMBER}",
   "uncommitted_changes": ${UNCOMMITTED_CHANGES},
   "untracked_files": ${UNTRACKED_FILES},
   "commits_ahead": ${COMMITS_AHEAD},

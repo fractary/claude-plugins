@@ -53,9 +53,6 @@ UNCOMMITTED_CHANGES=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 # Analyze file changes in this session
 FILES_CHANGED=$(git diff --name-status HEAD~${COMMIT_COUNT}..HEAD 2>/dev/null | wc -l | tr -d ' ') || FILES_CHANGED=0
 
-# Check for common indicators of outstanding work
-TODO_COUNT=$(git grep -i "TODO\|FIXME\|XXX\|HACK" 2>/dev/null | wc -l | tr -d ' ') || TODO_COUNT=0
-
 # Analyze commit types to understand what was done
 FEAT_COUNT=0
 FIX_COUNT=0
@@ -152,17 +149,13 @@ if [ "$UNCOMMITTED_CHANGES" -gt 0 ]; then
     echo "- ⚠️ **$UNCOMMITTED_CHANGES uncommitted change(s)** - work in progress"
 fi
 
-if [ "$TODO_COUNT" -gt 0 ]; then
-    echo "- 📋 **$TODO_COUNT TODO/FIXME comment(s)** found in codebase"
-fi
-
 # Check if tests exist and suggest running them
 if git ls-files | grep -qE "test|spec" 2>/dev/null; then
     echo "- 🧪 **Test validation** - ensure tests pass before merging"
 fi
 
 # If no specific outstanding work found
-if [ "$UNCOMMITTED_CHANGES" -eq 0 ] && [ "$TODO_COUNT" -eq 0 ]; then
+if [ "$UNCOMMITTED_CHANGES" -eq 0 ]; then
     echo "No obvious outstanding work detected."
 fi
 
