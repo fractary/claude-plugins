@@ -1,0 +1,15 @@
+{
+  "description": "Fractary Work Plugin Hooks - Auto-comment on session end with session summary",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-comment-on-stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
