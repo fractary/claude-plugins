@@ -40,7 +40,7 @@ The codex repository follows the naming pattern: `codex.{organization}.{tld}` (e
 
 **IMPORTANT: CONFIGURATION IS REQUIRED**
 - Global config: `~/.config/fractary/codex/config.json` OR
-- Project config: `.fractary/plugins/codex/config/codex.json`
+- Project config: `.fractary/plugins/codex/config.json`
 - At least one must exist before sync operations
 - Use **init** operation to create configuration if missing
 - NEVER hardcode organization names or repository names
@@ -98,7 +98,7 @@ Parse the operation and delegate to the appropriate skill:
 
 4. Create configuration file(s):
    - Global: `~/.config/fractary/codex/config.json`
-   - Project: `.fractary/plugins/codex/config/codex.json`
+   - Project: `.fractary/plugins/codex/config.json`
    - Use schema from `.claude-plugin/config.schema.json`
    - Copy from example files in `config/` directory
 
