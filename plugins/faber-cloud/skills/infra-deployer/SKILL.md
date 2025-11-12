@@ -79,8 +79,21 @@ AWS Profile: {profile}
    bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh pre-deploy {environment} {terraform_dir}
    ```
    - If hooks fail (exit code 1): STOP deployment, show error
-   - If hooks pass (exit code 0): Continue to step 7
-7. Execute Terraform apply (via handler-iac-terraform)
+   - If hooks pass (exit code 0): Check for hook context and continue to step 7
+6a. **Load hook context (if available):**
+   - Check for hook context files in /tmp/faber-cloud-hook-context-*.txt
+   - If found, read and apply the context for this deployment
+   - Prompt hooks may reference documentation, provide guidance, or include project-specific requirements
+   - Example:
+     ```bash
+     for context_file in /tmp/faber-cloud-hook-context-*.txt; do
+       if [ -f "$context_file" ]; then
+         echo "📋 Applying hook context from $context_file"
+         cat "$context_file"
+       fi
+     done
+     ```
+7. Execute Terraform apply (via handler-iac-terraform), applying any context from step 6a
 8. If permission error: Present error delegation options
 9. **Execute post-deploy hooks:**
    ```bash

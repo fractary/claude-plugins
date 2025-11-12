@@ -1,0 +1,73 @@
+{
+  "schema_version": "2.0",
+  "project": {
+    "name": "example-project",
+    "subsystem": "core",
+    "organization": "example-org"
+  },
+  "environments": {
+    "test": {
+      "aws_profile": "example-test",
+      "region": "us-west-2"
+    },
+    "prod": {
+      "aws_profile": "example-prod",
+      "region": "us-east-1"
+    }
+  },
+  "hooks": {
+    "pre-deploy": [
+      {
+        "type": "prompt",
+        "name": "deployment-guidance",
+        "prompt": "Review the deployment checklist in docs/DEPLOYMENT.md before proceeding. Ensure all pre-deployment validations pass.",
+        "environments": ["test", "prod"]
+      },
+      {
+        "type": "prompt",
+        "name": "architecture-context",
+        "prompt": "Apply the architecture standards from docs/architecture/STANDARDS.md when reviewing the infrastructure changes. Pay special attention to:\n- Resource naming conventions\n- Tagging requirements\n- Security group rules\n- IAM policies"
+      },
+      {
+        "type": "script",
+        "name": "build-lambdas",
+        "path": "./scripts/build-lambdas.sh",
+        "required": true,
+        "failureMode": "stop",
+        "timeout": 600,
+        "description": "Build Lambda function packages"
+      }
+    ],
+    "post-deploy": [
+      {
+        "type": "prompt",
+        "name": "post-deploy-validation",
+        "prompt": "After deployment completes, verify the following:\n1. All health checks pass\n2. CloudWatch alarms are configured correctly\n3. Run smoke tests using ./scripts/smoke-tests.sh\n4. Update the deployment log in docs/DEPLOYMENTS.md"
+      },
+      {
+        "type": "skill",
+        "name": "smoke-test-runner",
+        "required": false,
+        "failureMode": "warn",
+        "timeout": 300,
+        "description": "Run smoke tests against deployed infrastructure"
+      }
+    ],
+    "pre-destroy": [
+      {
+        "type": "prompt",
+        "name": "production-destroy-warning",
+        "prompt": "⚠️  PRODUCTION DESTRUCTION WARNING ⚠️\n\nYou are about to destroy production infrastructure!\n\nBEFORE PROCEEDING:\n1. Verify data backup is complete\n2. Confirm with team lead\n3. Document reason in docs/INCIDENTS.md\n4. Have rollback plan ready\n\nDO NOT PROCEED unless absolutely necessary!",
+        "environments": ["prod"]
+      }
+    ]
+  },
+  "handlers": {
+    "iac": {
+      "active": "terraform"
+    },
+    "hosting": {
+      "active": "aws"
+    }
+  }
+}

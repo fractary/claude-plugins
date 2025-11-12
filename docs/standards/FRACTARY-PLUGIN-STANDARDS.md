@@ -15,12 +15,13 @@
 5. [Handler Pattern](#handler-pattern)
 6. [Command Pattern](#command-pattern)
 7. [Configuration Pattern](#configuration-pattern)
-8. [Documentation Standards](#documentation-standards)
-9. [XML Markup Standards](#xml-markup-standards)
-10. [Example: DevOps Plugin](#example-devops-plugin)
-11. [Checklist for New Plugins](#checklist-for-new-plugins)
-12. [Development Tools](#development-tools)
-13. [Best Practices Summary](#best-practices-summary)
+8. [Hook Pattern](#hook-pattern)
+9. [Documentation Standards](#documentation-standards)
+10. [XML Markup Standards](#xml-markup-standards)
+11. [Example: DevOps Plugin](#example-devops-plugin)
+12. [Checklist for New Plugins](#checklist-for-new-plugins)
+13. [Development Tools](#development-tools)
+14. [Best Practices Summary](#best-practices-summary)
 
 ---
 
@@ -789,6 +790,133 @@ Commands invoke agents using **declarative statements** in markdown. Claude Code
 
 **Example:** `{project}-{subsystem}-{environment}-{resource}`
 → `myproject-core-test-database`
+
+---
+
+## Hook Pattern
+
+### When to Use Hooks
+
+Hooks enable **project-specific customization** without requiring code changes or wrapper commands.
+
+Use hooks when:
+- Projects need to inject project-specific context (standards, patterns, documentation)
+- Different environments require different behavior (dev vs prod)
+- Custom validation or setup scripts are needed before/after operations
+- External systems need notifications at lifecycle points
+
+### Hook Types
+
+The hook system supports **three types of hooks**:
+
+1. **Prompt Hooks**: Flexible text-based guidance that can reference documentation, suggest scripts, or invoke skills
+2. **Script Hooks**: Execute shell scripts at lifecycle points
+3. **Skill Hooks**: Invoke Claude Code skills for complex operations
+
+### Implementation
+
+**Primary Implementation**: faber-cloud plugin
+- File: `plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh`
+- Lifecycle points: pre-plan, post-plan, pre-deploy, post-deploy, pre-destroy, post-destroy
+
+**Documentation**: See `plugins/faber-cloud/docs/guides/HOOKS.md` for complete guide
+
+### Configuration
+
+**Location**: `.fractary/plugins/{plugin}/config.json` → `hooks` object
+
+**Basic Format**:
+```json
+{
+  "hooks": {
+    "pre-deploy": [
+      {
+        "type": "prompt",
+        "name": "deployment-guidance",
+        "prompt": "Review docs/DEPLOYMENT.md before proceeding. Run ./scripts/validate.sh to check readiness."
+      },
+      {
+        "type": "script",
+        "path": "./scripts/build.sh",
+        "required": true,
+        "timeout": 300
+      },
+      {
+        "type": "skill",
+        "name": "security-scanner",
+        "required": true,
+        "timeout": 600
+      }
+    ]
+  }
+}
+```
+
+### Prompt Hooks (Flexible Context Injection)
+
+**Purpose**: Provide natural language guidance that can reference documentation
+
+**Key Features**:
+- Automatic file reference detection (*.md, *.txt, *.json, etc.)
+- Context injection into agent workflows
+- Natural language instructions
+- Can combine docs, scripts, skills in one prompt
+
+**Example**:
+```json
+{
+  "type": "prompt",
+  "name": "architecture-context",
+  "prompt": "Apply the standards from docs/ARCHITECTURE.md when reviewing changes. Pay attention to naming conventions in docs/NAMING.md.",
+  "environments": ["prod"]
+}
+```
+
+**How it works**:
+1. Hook executor detects file references in prompt text
+2. Loads referenced files from project
+3. Builds context block with prompt + file contents
+4. Saves to temp file for skills to consume
+5. Skills read context and apply guidance
+
+### Extension to FABER
+
+FABER workflows can use hooks in `.faber.config.toml`:
+
+```toml
+[[hooks.architect.pre]]
+type = "prompt"
+name = "design-standards"
+prompt = "Follow architecture patterns in docs/ARCHITECTURE.md"
+
+[[hooks.build.post]]
+type = "script"
+path = "./scripts/test-all.sh"
+required = true
+```
+
+Hook points: frame, architect, build, evaluate, release (pre/post)
+
+### Benefits
+
+**For Users**:
+- No wrapper commands needed
+- Configuration-driven customization
+- Environment-specific behavior
+- Project documentation available in workflows
+
+**For Plugin Authors**:
+- Consistent pattern across plugins
+- Separation of concerns (core vs project-specific)
+- Reusable implementation (`execute-hooks.sh`)
+- Well-documented pattern
+
+### See Also
+
+- Complete hook guide: `plugins/faber-cloud/docs/guides/HOOKS.md`
+- Example configurations:
+  - `plugins/faber-cloud/templates/config/hooks-with-prompts-example.json`
+  - `plugins/faber/config/faber-with-hooks.example.toml`
 
 ---
 
