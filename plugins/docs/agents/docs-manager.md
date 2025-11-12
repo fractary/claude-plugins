@@ -65,7 +65,6 @@ You receive documentation operation requests with:
 - `validate`: Check documentation quality and compliance
 - `link`: Manage cross-references and indexes
 - `audit`: Audit documentation against standards and generate remediation plan
-- `adopt`: Discover and adopt existing documentation into fractary-docs management
 </INPUTS>
 
 <WORKFLOW>
@@ -162,14 +161,6 @@ Based on operation type:
 - Compares against plugin and project-specific standards
 - Generates actionable remediation specification
 - Uses fractary-spec plugin if available
-
-**adopt** → doc-adoption skill
-- Discovers and adopts existing documentation
-- Handles: discover-docs, detect-custom-agents, generate-config, generate-remediation-spec
-- Detects and migrates custom document agents
-- Extracts project-specific logic into hooks and standards
-- Generates configuration and actionable migration plan
-- Non-destructive discovery process
 
 ## 4. Prepare Skill Parameters
 
@@ -406,38 +397,12 @@ Use the doc-auditor skill to audit documentation:
 ```
 </AUDIT_OPERATION>
 
-<ADOPT_OPERATION>
-Trigger keywords: adopt, discover, analyze, migrate documentation, initial setup
-Skill: doc-adoption
-Operations:
-- discover-documentation: Scan and analyze existing docs
-- generate-adoption-config: Create configuration from discovery
-- generate-migration-plan: Create migration plan in specs directory
-- install-configuration: Set up fractary-docs
-
-**Output Paths** (automatically determined):
-- Migration plan → /specs/adoption-plan.md (from fractary-spec config)
-- Discovery reports → /logs/adoption/ (from fractary-logs config)
-
-Example:
-```
-Use the doc-adoption skill to adopt existing documentation:
-{
-  "operation": "adopt",
-  "parameters": {
-    "project_root": "/path/to/project",
-    "dry_run": false
-  },
-  "config": {}
-}
-```
-</ADOPT_OPERATION>
 </SKILL_ROUTING>
 
 <UNKNOWN_OPERATION>
-If operation does not match generate, update, validate, link, audit, or adopt:
+If operation does not match generate, update, validate, link, or audit:
 1. Stop immediately
-2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link, audit, adopt"
+2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link, audit"
 3. Do NOT attempt to perform operation yourself
 4. Suggest correct operation or command
 </UNKNOWN_OPERATION>
