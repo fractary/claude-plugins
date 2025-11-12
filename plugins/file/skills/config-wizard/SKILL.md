@@ -285,17 +285,20 @@ Use environment variables with ${VAR} syntax:
 
 ### 3.3 S3 Handler Configuration
 
-**Interactive prompts:**
+**Step 1: Discover AWS Profiles**
+
+Before prompting, discover available AWS profiles:
+```bash
+DISCOVERY=$(bash plugins/file/skills/config-wizard/scripts/discover-aws-profiles.sh)
+PROJECT_NAME=$(echo "$DISCOVERY" | jq -r '.project_name')
+DEPLOY_PROFILES=$(echo "$DISCOVERY" | jq -r '.deploy_profiles')
+PROJECT_DEPLOY_PROFILES=$(echo "$DISCOVERY" | jq -r '.project_deploy_profiles')
+```
+
+**Step 2: Interactive prompts**
 ```
 ☁️  AWS S3 Configuration
 ───────────────────────────────────────
-
-AWS Region:
-  Examples: us-east-1, eu-west-1, ap-southeast-1
-  Default: us-east-1
-  Region: _____
-
-S3 Bucket name: _____
 
 🔐 Authentication Method
 ───────────────────────────────────────
@@ -308,26 +311,122 @@ Selection [1-3] (default: 1): _____
 ```
 
 **If option 1 (AWS Profile) selected:**
-```
-AWS Profile name:
-  Examples: test-deploy, prod-deploy, default
-  Profile: _____
 
-Available profiles:
-  [List profiles from ~/.aws/config if possible]
+First, show discovered deployment profiles:
+```bash
+# Show project-related deploy profiles first (if any)
+PROJECT_COUNT=$(echo "$PROJECT_DEPLOY_PROFILES" | jq 'length')
+
+if [ "$PROJECT_COUNT" -gt 0 ]; then
+  echo ""
+  echo "📋 Discovered deployment profiles for '$PROJECT_NAME':"
+  echo "───────────────────────────────────────"
+
+  # Group by environment
+  TEST_PROFILES=$(echo "$PROJECT_DEPLOY_PROFILES" | jq -r '.[] | select(.environment == "test") | .name')
+  PROD_PROFILES=$(echo "$PROJECT_DEPLOY_PROFILES" | jq -r '.[] | select(.environment == "prod") | .name')
+
+  if [ -n "$TEST_PROFILES" ]; then
+    echo "  Test:"
+    echo "$TEST_PROFILES" | while read profile; do
+      echo "    • $profile"
+    done
+  fi
+
+  if [ -n "$PROD_PROFILES" ]; then
+    echo "  Production:"
+    echo "$PROD_PROFILES" | while read profile; do
+      echo "    • $profile"
+    done
+  fi
+
+  echo ""
+fi
+
+# Show all deploy profiles (if more available)
+TOTAL_DEPLOY=$(echo "$DEPLOY_PROFILES" | jq 'length')
+
+if [ "$TOTAL_DEPLOY" -gt "$PROJECT_COUNT" ]; then
+  echo "Other deployment profiles available:"
+  echo "$DEPLOY_PROFILES" | jq -r '.[] | select(.project_related == false) | .name' | while read profile; do
+    echo "  • $profile"
+  done
+  echo ""
+fi
+```
+
+Then prompt for profile selection:
+```
+AWS Profile Selection
+───────────────────────────────────────
+Pattern: {system}-{subsystem}-{env}-deploy
+
+Enter profile name (or press Enter to use 'default'): _____
+
+Examples:
+  • {project}-{component}-test-deploy
+  • {project}-{component}-prod-deploy
+  • default
+```
+
+**Suggested default based on discovery:**
+- If project-related test-deploy profile found: suggest that
+- Otherwise: suggest "default"
+
+```bash
+# Auto-suggest profile
+SUGGESTED_PROFILE="default"
+
+# Try to find project-related test-deploy profile
+TEST_PROFILE=$(echo "$PROJECT_DEPLOY_PROFILES" | jq -r '.[] | select(.environment == "test") | .name' | head -n 1)
+
+if [ -n "$TEST_PROFILE" ]; then
+  SUGGESTED_PROFILE="$TEST_PROFILE"
+fi
+
+read -p "AWS Profile [$SUGGESTED_PROFILE]: " USER_PROFILE
+PROFILE="${USER_PROFILE:-$SUGGESTED_PROFILE}"
+```
+
+**Get region from selected profile:**
+```bash
+# Look up region for selected profile
+PROFILE_REGION=$(echo "$DEPLOY_PROFILES" | jq -r --arg profile "$PROFILE" '.[] | select(.name == $profile) | .region')
+
+if [ -z "$PROFILE_REGION" ]; then
+  PROFILE_REGION="us-east-1"
+fi
+
+read -p "AWS Region [$PROFILE_REGION]: " USER_REGION
+REGION="${USER_REGION:-$PROFILE_REGION}"
+```
+
+**Prompt for bucket:**
+```
+S3 Bucket name: _____
 ```
 
 **If option 2 (IAM roles) selected:**
 ```
 IAM roles will be used automatically. No credentials needed.
+
+AWS Region:
+  Default: us-east-1
+  Region: _____
+
+S3 Bucket name: _____
 ```
 
 **If option 3 (Access keys) selected:**
 ```
-We recommend using environment variables for credentials:
+⚠️  Security Notice: AWS profiles (option 1) are more secure and easier to manage.
+
+We STRONGLY recommend using environment variables for credentials:
 
   export AWS_ACCESS_KEY_ID="your-access-key"
   export AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+Then reference them as ${AWS_ACCESS_KEY_ID} in the config.
 
 AWS Access Key ID (or ${VAR_NAME}):
   Default: ${AWS_ACCESS_KEY_ID}
@@ -336,18 +435,24 @@ AWS Access Key ID (or ${VAR_NAME}):
 AWS Secret Access Key (or ${VAR_NAME}):
   Default: ${AWS_SECRET_ACCESS_KEY}
   Secret Key: _____
+
+AWS Region:
+  Default: us-east-1
+  Region: _____
+
+S3 Bucket name: _____
 ```
 
-**Common fields (all options):**
+**Common optional fields (all options):**
 ```
 Custom endpoint (for S3-compatible services like MinIO):
-  Leave empty for AWS S3
+  Leave empty for standard AWS S3
   Example: https://s3.us-west-1.amazonaws.com
-  Endpoint: _____
+  Endpoint [press Enter to skip]: _____
 
-Public URL template (optional):
+Public URL template (optional, for public file access):
   Example: https://my-bucket.s3.amazonaws.com
-  Public URL: _____
+  Public URL [press Enter to skip]: _____
 ```
 
 **Required fields:**
@@ -361,19 +466,46 @@ Public URL template (optional):
 - `public_url`: string or null (optional)
 
 **Non-interactive behavior:**
-Default to AWS Profile with "default" profile:
+
+In non-interactive mode, discover profiles and auto-select:
+```bash
+# Discover profiles
+DISCOVERY=$(bash plugins/file/skills/config-wizard/scripts/discover-aws-profiles.sh)
+PROJECT_DEPLOY_PROFILES=$(echo "$DISCOVERY" | jq -r '.project_deploy_profiles')
+
+# Try to auto-select test-deploy profile
+SELECTED_PROFILE=$(echo "$PROJECT_DEPLOY_PROFILES" | jq -r '.[] | select(.environment == "test") | .name' | head -n 1)
+
+# Fallback to environment variable or "default"
+if [ -z "$SELECTED_PROFILE" ]; then
+  SELECTED_PROFILE="${AWS_PROFILE:-default}"
+fi
+
+# Get region from selected profile, or use env var/default
+SELECTED_REGION=$(echo "$DEPLOY_PROFILES" | jq -r --arg profile "$SELECTED_PROFILE" '.[] | select(.name == $profile) | .region')
+if [ -z "$SELECTED_REGION" ]; then
+  SELECTED_REGION="${AWS_REGION:-us-east-1}"
+fi
+```
+
+Generated config (profile method):
 ```json
 {
-  "region": "${AWS_REGION:-us-east-1}",
+  "region": "<discovered-region or ${AWS_REGION:-us-east-1}>",
   "bucket_name": "${AWS_S3_BUCKET}",
   "auth_method": "profile",
-  "profile": "${AWS_PROFILE:-default}",
+  "profile": "<discovered-profile or ${AWS_PROFILE:-default}>",
   "access_key_id": "",
   "secret_access_key": "",
   "endpoint": "${AWS_S3_ENDPOINT:-}",
   "public_url": "${AWS_S3_PUBLIC_URL:-}"
 }
 ```
+
+**Profile Discovery Priority (non-interactive):**
+1. Project-related test-deploy profile (auto-discovered)
+2. AWS_PROFILE environment variable
+3. "default" profile (fallback)
 
 ### 3.4 GCS Handler Configuration
 
