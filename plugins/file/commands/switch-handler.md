@@ -1,6 +1,7 @@
 ---
 name: fractary-file:switch-handler
 description: Switch active storage handler
+argument-hint: <handler> [--no-test] [--force]
 ---
 
 # Switch Storage Handler
