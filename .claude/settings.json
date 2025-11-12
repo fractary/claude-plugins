@@ -136,17 +136,5 @@
     }
   },
   "_comment": "Managed by fractary-repo plugin. Protected branches: main, master, production",
-  "_note": "Most operations auto-allowed. Approval required only for protected branch operations.",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claude plugin marketplace update fractary"
-          }
-        ]
-      }
-    ]
-  }
+  "_note": "Most operations auto-allowed. Approval required only for protected branch operations."
 }

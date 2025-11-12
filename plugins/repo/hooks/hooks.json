@@ -1,6 +1,16 @@
 {
-    "description": "Fractary Repo Plugin Hooks - Auto-commit on session end and update status cache on command submission",
+    "description": "Fractary Repo Plugin Hooks - Auto-commit on session end, update status cache on command submission, and keep marketplace up-to-date",
     "hooks": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "claude plugin marketplace update fractary"
+            }
+          ]
+        }
+      ],
       "Stop": [
         {
           "hooks": [

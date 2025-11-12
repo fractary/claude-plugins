@@ -8,7 +8,7 @@ A collection of interconnected plugins that implement the FABER (Frame → Archi
 
 When you clone this repository and trust the folder in Claude Code, the Fractary marketplace is **automatically installed** via the `extraKnownMarketplaces` configuration in `.claude/settings.json`. No manual steps required!
 
-Additionally, a SessionStart hook keeps the marketplace up-to-date by running `claude plugin marketplace update fractary` at the start of each session.
+Additionally, the `fractary-repo` plugin provides a SessionStart hook that keeps the marketplace up-to-date in all projects. This means any project using the repo plugin automatically gets marketplace updates.
 
 ### Manual Installation
 
