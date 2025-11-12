@@ -8,7 +8,7 @@ The `fractary-docs` plugin provides comprehensive documentation management for p
 
 ### Key Features
 
-- **10+ Document Templates**: ADRs, design docs, runbooks, API specs, test reports, deployments, changelogs, and more
+- **11+ Document Templates**: ADRs, design docs, runbooks, API specs, schemas, test reports, deployments, changelogs, and more
 - **Document Updating**: Modify existing docs while preserving structure and formatting
 - **Validation**: Markdown linting, front matter validation, required sections checking, link verification
 - **Cross-Reference Management**: Auto-generate indexes, update links, visualize relationships
@@ -25,6 +25,7 @@ The `fractary-docs` plugin provides comprehensive documentation management for p
 | **Design** | design.md.template | Overview, Architecture, Implementation | System/feature design |
 | **Runbook** | runbook.md.template | Purpose, Prerequisites, Steps, Troubleshooting | Operational procedures |
 | **API Spec** | api-spec.md.template | Overview, Endpoints, Authentication | API documentation |
+| **Schema** | schema.md.template | Overview, Schema Format, Fields, Validation Rules | Data schemas & dictionaries |
 | **Test Report** | test-report.md.template | Summary, Test Cases, Results, Coverage | Test execution results |
 | **Deployment** | deployment.md.template | Overview, Infrastructure, Steps | Deployment records |
 | **Changelog** | changelog.md.template | Version, Changes, Breaking Changes | Version history |
@@ -72,6 +73,9 @@ This creates:
 
 # Generate API documentation
 /fractary-docs:generate api-spec "User Service API v2"
+
+# Generate schema documentation
+/fractary-docs:generate schema "User API Schema" --version "1.0.0" --schema-format "json-schema"
 ```
 
 ### 3. Update Existing Documentation
@@ -279,6 +283,199 @@ Configuration is stored in `.fractary/plugins/docs/config.json` (project) or `~/
 **validation**: Configure validation rules per document type
 
 **linking**: Enable auto-index updates and broken link checking
+
+## Hooks
+
+Hooks allow projects to extend fractary-docs with custom logic while using the standard plugin. Hooks are shell scripts that execute at specific points in documentation workflows.
+
+### Hook Types
+
+```json
+{
+  "hooks": {
+    "pre_generate": "./scripts/pre-generate.sh",
+    "post_generate": "./scripts/post-generate.sh",
+    "pre_validate": "./scripts/validate-custom.sh",
+    "post_validate": null,
+    "pre_update": null,
+    "post_update": "./scripts/update-index.sh"
+  },
+  "validation": {
+    "custom_rules_script": "./scripts/validate-custom.sh",
+    "project_standards_doc": "./docs/DOCUMENTATION-STANDARDS.md"
+  }
+}
+```
+
+### When Hooks Execute
+
+- **pre_generate**: Before generating a new document
+- **post_generate**: After successfully generating a document
+- **pre_validate**: Before running validation checks (for custom validation rules)
+- **post_validate**: After validation completes
+- **pre_update**: Before updating an existing document
+- **post_update**: After successfully updating a document
+
+### Hook Script Interface
+
+Hooks receive context via environment variables:
+
+```bash
+#!/usr/bin/env bash
+# Example post_generate hook
+
+# Available variables:
+# - DOC_TYPE: Type of document (adr, design, runbook, etc.)
+# - FILE_PATH: Path to the document
+# - OPERATION: Operation being performed (generate, update, validate)
+
+# Example: Auto-generate table of contents
+if [[ "$DOC_TYPE" == "design" ]]; then
+  markdown-toc -i "$FILE_PATH"
+fi
+```
+
+### Common Hook Use Cases
+
+**1. Auto-generate TOC** (post_generate):
+```bash
+#!/usr/bin/env bash
+# scripts/post-generate.sh
+markdown-toc -i "$FILE_PATH"
+```
+
+**2. Custom validation** (pre_validate):
+```bash
+#!/usr/bin/env bash
+# scripts/validate-custom.sh
+
+# Validate API specs have language examples
+if [[ "$DOC_TYPE" == "api-spec" ]]; then
+  for lang in python typescript go; do
+    if ! grep -q "\`\`\`$lang" "$FILE_PATH"; then
+      echo "ERROR: API spec missing $lang example"
+      exit 1
+    fi
+  done
+fi
+```
+
+**3. Update documentation index** (post_update):
+```bash
+#!/usr/bin/env bash
+# scripts/update-index.sh
+/fractary-docs:link index
+```
+
+**4. Notify team** (post_generate):
+```bash
+#!/usr/bin/env bash
+# scripts/notify-team.sh
+if [[ "$DOC_TYPE" == "adr" ]]; then
+  curl -X POST "$SLACK_WEBHOOK" \
+    -d "{\"text\": \"New ADR created: $FILE_PATH\"}"
+fi
+```
+
+### Project-Specific Standards
+
+The `project_standards_doc` configuration points to a markdown file documenting project-specific documentation requirements:
+
+```markdown
+# Documentation Standards
+
+## API Documentation
+All API specs must include code examples in:
+- Python
+- TypeScript
+- Go
+
+## Naming Conventions
+- Features: `feature-name-YYYYMMDD.md`
+- ADRs: `ADR-NNN-short-title.md`
+
+## Custom Requirements
+- Security-related docs must be reviewed by security team
+- API changes require migration guide section
+```
+
+This document is referenced during validation and audit workflows.
+
+### Schema Documentation Customization
+
+Schema documentation supports extensive customization via project-specific standards and validation scripts. See the complete reference implementation in `examples/schema-standards/`.
+
+**Example: Custom Schema Validation**
+
+Create a custom validation script to enforce project-specific requirements:
+
+```bash
+# .fractary/plugins/docs/scripts/validate-schema-docs.sh
+#!/usr/bin/env bash
+
+# Check naming conventions
+# Check field documentation completeness
+# Validate semantic versioning
+# Verify code generation sections
+# Check PII security annotations
+
+# Return structured JSON with errors/warnings
+```
+
+**Example: Schema-Specific Hooks**
+
+```bash
+# .fractary/plugins/docs/hooks/post-generate.sh
+#!/usr/bin/env bash
+
+if [[ "$DOC_TYPE" == "schema" ]]; then
+  # Auto-generate code from schema
+  case "$SCHEMA_FORMAT" in
+    json-schema)
+      npx quicktype "$FILE_PATH" -o "src/types/$(basename "$FILE_PATH" .md).ts"
+      ;;
+    openapi)
+      openapi-generator generate -i "$FILE_PATH" -g typescript-axios -o ./generated/api
+      ;;
+  esac
+
+  # Update schema registry
+  echo "Updating schema index..."
+fi
+```
+
+**Example Configuration**:
+
+```json
+{
+  "validation": {
+    "custom_rules_script": "./.fractary/plugins/docs/scripts/validate-schema-docs.sh",
+    "project_standards_doc": "./docs/standards/PROJECT-SCHEMA-STANDARDS.md",
+    "required_sections": {
+      "schema": [
+        "Overview",
+        "Schema Format",
+        "Fields",
+        "Examples",
+        "Validation Rules",
+        "Versioning",
+        "Code Generation"
+      ]
+    }
+  },
+  "hooks": {
+    "pre_validate": "./.fractary/plugins/docs/hooks/pre-validate.sh",
+    "post_generate": "./.fractary/plugins/docs/hooks/post-generate.sh"
+  }
+}
+```
+
+**Complete Example**: See `examples/schema-standards/` for:
+- Project-specific schema standards document
+- Custom validation script with 10+ checks
+- Pre-validate and post-generate hooks
+- Example configuration
+- Setup instructions and best practices
 
 ## Front Matter Schema
 

@@ -3,7 +3,7 @@ name: docs-manager
 description: Manages living documentation operations including generation, updating, validation, and linking across project documentation
 tools: Skill
 model: inherit
-color: blue
+color: orange
 ---
 
 <CONTEXT>
@@ -64,6 +64,7 @@ You receive documentation operation requests with:
 - `update`: Modify existing documentation
 - `validate`: Check documentation quality and compliance
 - `link`: Manage cross-references and indexes
+- `audit`: Audit documentation against standards and generate remediation plan
 </INPUTS>
 
 <WORKFLOW>
@@ -153,6 +154,13 @@ Based on operation type:
 - Handles: create-index, update-references, find-broken-links, generate-graph
 - Updates documentation index
 - Visualizes documentation relationships
+
+**audit** → doc-auditor skill
+- Audits documentation against standards
+- Handles: analyze-compliance, generate-remediation-spec
+- Compares against plugin and project-specific standards
+- Generates actionable remediation specification
+- Uses fractary-spec plugin if available
 
 ## 4. Prepare Skill Parameters
 
@@ -365,12 +373,36 @@ Use the doc-linker skill to create index:
 }
 ```
 </LINK_OPERATION>
+
+<AUDIT_OPERATION>
+Trigger keywords: audit, compliance, check standards, assess documentation
+Skill: doc-auditor
+Operations:
+- audit: Analyze documentation against standards
+- generate-remediation-spec: Create actionable remediation plan
+
+Example:
+```
+Use the doc-auditor skill to audit documentation:
+{
+  "operation": "audit",
+  "parameters": {
+    "project_root": "/path/to/project",
+    "output_dir": ".fractary/audit",
+    "config_path": ".fractary/plugins/docs/config/config.json",
+    "execute": false
+  },
+  "config": { validation and standards config }
+}
+```
+</AUDIT_OPERATION>
+
 </SKILL_ROUTING>
 
 <UNKNOWN_OPERATION>
-If operation does not match generate, update, validate, or link:
+If operation does not match generate, update, validate, link, or audit:
 1. Stop immediately
-2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link"
+2. Inform user: "Unknown operation: {operation}. Available operations: generate, update, validate, link, audit"
 3. Do NOT attempt to perform operation yourself
 4. Suggest correct operation or command
 </UNKNOWN_OPERATION>

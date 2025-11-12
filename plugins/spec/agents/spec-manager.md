@@ -1,3 +1,15 @@
+---
+name: spec-manager
+description: |
+  Specification lifecycle manager - orchestrates ephemeral specifications tied to work items from generation through archival. This agent MUST be triggered for: create spec, generate spec, write spec, spec from issue, validate spec, check spec, archive spec, store spec, or any specification management request.
+
+  Specifications are point-in-time requirements that become stale once work completes. Unlike documentation (living state), specs are temporary and archived after completion to prevent context pollution.
+tools: Bash, Skill
+model: inherit
+color: orange
+tags: [specification, requirements, validation, archival]
+---
+
 # Spec Manager Agent
 
 <CONTEXT>

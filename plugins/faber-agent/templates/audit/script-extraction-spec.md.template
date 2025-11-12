@@ -1,0 +1,618 @@
+# {{ENTITY_NAME}} - Script Extraction Specification
+
+**Generated:** {{TIMESTAMP}}
+**Anti-Pattern:** Inline Logic
+**File:** `{{FILE_PATH}}`
+**Priority:** {{PRIORITY}}
+**Estimated Effort:** {{EFFORT_DAYS}} days
+
+---
+
+## Executive Summary
+
+**Problem:** {{INLINE_LOGIC_COUNT}} instances of deterministic logic found in prompt text, consuming ~{{INLINE_LOGIC_TOKENS}}K tokens per invocation.
+
+**Solution:** Extract deterministic operations to {{SCRIPTS_COUNT}} bash scripts, reducing context by {{CONTEXT_SAVINGS}}K tokens ({{REDUCTION_PERCENTAGE}}% reduction).
+
+**ROI:** {{ROI}} tokens saved per day of effort
+
+---
+
+## Inline Logic Analysis
+
+### Instances Detected
+
+**Total Inline Logic: {{INLINE_LOGIC_COUNT}} instances**
+
+{{#EACH INLINE_LOGIC_PATTERNS}}
+### Pattern {{PATTERN_NUMBER}}: {{PATTERN_TYPE}}
+
+**Instances:** {{INSTANCE_COUNT}}
+**Lines:** {{LINE_NUMBERS}}
+**Token Cost:** ~{{TOKEN_COST}}K tokens
+
+**Example:**
+```{{LANGUAGE}}
+{{EXAMPLE_CODE}}
+```
+
+**Why this should be in a script:**
+{{SCRIPT_JUSTIFICATION}}
+
+{{/EACH}}
+
+### Pattern Type Breakdown
+
+| Pattern Type | Instances | Token Cost | Extraction Priority |
+|--------------|-----------|------------|---------------------|
+{{#EACH PATTERN_TYPES}}
+| {{TYPE_NAME}} | {{COUNT}} | {{TOKENS}}K | {{PRIORITY}} |
+{{/EACH}}
+| **Total** | **{{TOTAL_INSTANCES}}** | **{{TOTAL_TOKENS}}K** | - |
+
+---
+
+## Context Impact Analysis
+
+### Current State (With Inline Logic)
+
+**File Size:** {{CURRENT_FILE_SIZE}} lines (~{{CURRENT_TOKENS}}K tokens)
+
+**Inline Logic Breakdown:**
+{{#EACH INLINE_LOGIC_BREAKDOWN}}
+- **{{LOGIC_TYPE}}:** {{LOGIC_TOKEN_COUNT}}K tokens
+  - Lines: {{LINE_NUMBERS}}
+  - Description: {{DESCRIPTION}}
+{{/EACH}}
+
+**Total Inline Logic:** {{INLINE_LOGIC_TOKENS}}K tokens
+
+**Problem:**
+- Every invocation loads {{INLINE_LOGIC_TOKENS}}K tokens of deterministic logic
+- Logic executed in LLM context (slow, expensive, unreliable)
+- Procedural descriptions are verbose
+- Difficult to test and maintain
+
+### Target State (With Script Extraction)
+
+**File Size:** {{TARGET_FILE_SIZE}} lines (~{{TARGET_TOKENS}}K tokens)
+
+**Script References:** ~{{SCRIPT_REFERENCE_TOKENS}}K tokens
+**Script Execution:** 0K tokens (executed outside LLM context)
+
+**Savings:**
+- Context reduction: {{CONTEXT_SAVINGS}}K tokens ({{REDUCTION_PERCENTAGE}}%)
+- Performance improvement: Scripts execute faster than LLM
+- Reliability: Deterministic, tested scripts
+- Maintainability: Logic in one place (script file)
+
+---
+
+## Before/After Comparison
+
+### Example 1: {{EXAMPLE_1_TITLE}}
+
+**BEFORE (Inline Logic):**
+
+Current file lines {{EXAMPLE_1_LINES}}:
+```markdown
+{{EXAMPLE_1_BEFORE}}
+```
+
+**Token Cost:** ~{{EXAMPLE_1_BEFORE_TOKENS}} tokens
+
+**Problems:**
+- Procedural description is verbose
+- Logic mixed with orchestration
+- Cannot test independently
+- Executed in LLM context (slow)
+
+**AFTER (Script Extraction):**
+
+```markdown
+{{EXAMPLE_1_AFTER}}
+```
+
+**Token Cost:** ~{{EXAMPLE_1_AFTER_TOKENS}} tokens
+
+**Script:** `scripts/{{EXAMPLE_1_SCRIPT}}.sh`
+```bash
+{{EXAMPLE_1_SCRIPT_CODE}}
+```
+
+**Benefits:**
+- {{EXAMPLE_1_SAVINGS}}K token reduction ({{EXAMPLE_1_PERCENTAGE}}%)
+- Script executes outside LLM (0 context)
+- Testable independently
+- Deterministic and reliable
+
+---
+
+### Example 2: {{EXAMPLE_2_TITLE}}
+
+**BEFORE (Inline Logic):**
+
+Current file lines {{EXAMPLE_2_LINES}}:
+```markdown
+{{EXAMPLE_2_BEFORE}}
+```
+
+**Token Cost:** ~{{EXAMPLE_2_BEFORE_TOKENS}} tokens
+
+**Problems:**
+{{#EACH EXAMPLE_2_PROBLEMS}}
+- {{PROBLEM}}
+{{/EACH}}
+
+**AFTER (Script Extraction):**
+
+```markdown
+{{EXAMPLE_2_AFTER}}
+```
+
+**Token Cost:** ~{{EXAMPLE_2_AFTER_TOKENS}} tokens
+
+**Script:** `scripts/{{EXAMPLE_2_SCRIPT}}.sh`
+```bash
+{{EXAMPLE_2_SCRIPT_CODE}}
+```
+
+**Benefits:**
+- {{EXAMPLE_2_SAVINGS}}K token reduction ({{EXAMPLE_2_PERCENTAGE}}%)
+- Faster execution
+- Better error handling
+- Reusable across invocations
+
+---
+
+## Scripts to Create
+
+{{#EACH SCRIPTS}}
+### Script {{SCRIPT_NUMBER}}: {{SCRIPT_NAME}}.sh
+
+**Purpose:** {{SCRIPT_PURPOSE}}
+
+**Extracts:** {{EXTRACTS_FROM_LINES}}
+
+**Input Parameters:**
+{{#EACH SCRIPT_INPUTS}}
+- `{{PARAM_NAME}}`: {{PARAM_DESCRIPTION}}
+{{/EACH}}
+
+**Output Format:**
+```json
+{{SCRIPT_OUTPUT_FORMAT}}
+```
+
+**Script Template:**
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# {{SCRIPT_NAME}}.sh
+# {{SCRIPT_DESCRIPTION}}
+
+{{SCRIPT_CODE_TEMPLATE}}
+```
+
+**Testing:**
+```bash
+./scripts/{{SCRIPT_NAME}}.sh {{TEST_ARGS}}
+# Expected output:
+{{EXPECTED_OUTPUT}}
+```
+
+{{/EACH}}
+
+---
+
+## Detailed Conversion Steps
+
+### Phase 1: Preparation (0.5 days)
+
+**Tasks:**
+- [ ] Create feature branch: `refactor/{{ENTITY_NAME}}-extract-scripts`
+- [ ] Back up current file: `.backup/{{TIMESTAMP}}/{{FILE_NAME}}`
+- [ ] Create scripts directory: `{{SCRIPTS_DIR}}/scripts/`
+- [ ] Review all inline logic for extraction candidates
+
+**Deliverables:**
+- Clean branch for extraction work
+- Backup of original file
+- Scripts directory ready
+
+---
+
+### Phase 2: Extract Logic to Scripts ({{PHASE_2_DAYS}} days)
+
+{{#EACH EXTRACTION_TASKS}}
+**Task {{TASK_NUMBER}}: Extract {{TASK_NAME}}**
+
+**2.{{TASK_NUMBER}}.1 Create Script File**
+
+```bash
+touch {{SCRIPTS_DIR}}/scripts/{{SCRIPT_NAME}}.sh
+chmod +x {{SCRIPTS_DIR}}/scripts/{{SCRIPT_NAME}}.sh
+```
+
+**2.{{TASK_NUMBER}}.2 Write Script Content**
+
+Lines {{SOURCE_LINES}} contain:
+```markdown
+{{SOURCE_CODE}}
+```
+
+Extract to `scripts/{{SCRIPT_NAME}}.sh`:
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# {{SCRIPT_DESCRIPTION}}
+
+{{EXTRACTED_SCRIPT_CODE}}
+```
+
+**2.{{TASK_NUMBER}}.3 Test Script**
+
+```bash
+# Test case 1: Normal input
+./scripts/{{SCRIPT_NAME}}.sh {{TEST_INPUT_1}}
+# Expected: {{EXPECTED_OUTPUT_1}}
+
+# Test case 2: Edge case
+./scripts/{{SCRIPT_NAME}}.sh {{TEST_INPUT_2}}
+# Expected: {{EXPECTED_OUTPUT_2}}
+
+# Test case 3: Error case
+./scripts/{{SCRIPT_NAME}}.sh {{TEST_INPUT_3}}
+# Expected: Error with code {{ERROR_CODE}}
+```
+
+**2.{{TASK_NUMBER}}.4 Update SKILL.md/Agent File**
+
+Replace inline logic with script invocation:
+
+**BEFORE:**
+```markdown
+{{BEFORE_TEXT}}
+```
+
+**AFTER:**
+```markdown
+Execute: `scripts/{{SCRIPT_NAME}}.sh "{{PARAM_1}}" "{{PARAM_2}}"`
+
+Returns:
+```json
+{{RETURN_FORMAT}}
+```
+```
+
+**Deliverables:**
+- Script created and tested
+- File updated with script reference
+- Inline logic removed
+
+{{/EACH}}
+
+---
+
+### Phase 3: Validate All Extractions ({{PHASE_3_DAYS}} days)
+
+**3.1 Script Testing**
+
+For each script:
+- [ ] Test with normal inputs
+- [ ] Test with edge cases
+- [ ] Test error handling
+- [ ] Verify output format
+- [ ] Check exit codes
+
+**3.2 Integration Testing**
+
+- [ ] Run skill/agent with new scripts
+- [ ] Verify all operations work
+- [ ] Compare output to previous implementation
+- [ ] Test error scenarios
+- [ ] Measure context reduction
+
+**3.3 Context Measurement**
+
+Before extraction:
+```bash
+# Count tokens in original file (estimate: 4 tokens per word)
+wc -w {{FILE_PATH}}  # {{BEFORE_WORD_COUNT}} words
+# Estimate: {{BEFORE_TOKEN_COUNT}}K tokens
+```
+
+After extraction:
+```bash
+# Count tokens in updated file
+wc -w {{FILE_PATH}}  # {{AFTER_WORD_COUNT}} words
+# Estimate: {{AFTER_TOKEN_COUNT}}K tokens
+# Scripts: 0K (executed outside LLM)
+```
+
+**Savings:** {{CONTEXT_SAVINGS}}K tokens ({{REDUCTION_PERCENTAGE}}%)
+
+**Deliverables:**
+- All scripts tested and validated
+- Integration tests passing
+- Context reduction measured
+
+---
+
+### Phase 4: Documentation & Cleanup ({{PHASE_4_DAYS}} days)
+
+**4.1 Script Documentation**
+
+For each script, add header comments:
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# {{SCRIPT_NAME}}.sh
+# {{SCRIPT_PURPOSE}}
+#
+# Usage: ./{{SCRIPT_NAME}}.sh <param1> <param2>
+#
+# Parameters:
+#   param1 - {{PARAM_1_DESCRIPTION}}
+#   param2 - {{PARAM_2_DESCRIPTION}}
+#
+# Output: JSON with status and result
+#
+# Exit codes:
+#   0 - Success
+#   1 - Invalid input
+#   2 - Processing error
+```
+
+**4.2 Update Skill/Agent Documentation**
+
+Update `<OPERATIONS>` or `<WORKFLOW>` section to document scripts:
+
+```markdown
+## {{OPERATION_NAME}}
+
+**Purpose:** {{OPERATION_PURPOSE}}
+
+**Input:**
+- `{{INPUT_1}}`: {{INPUT_1_DESCRIPTION}}
+- `{{INPUT_2}}`: {{INPUT_2_DESCRIPTION}}
+
+**Process:**
+Execute: `scripts/{{SCRIPT_NAME}}.sh "{{INPUT_1}}" "{{INPUT_2}}"`
+
+**Output:**
+```json
+{
+  "status": "success|error",
+  "result": "..."
+}
+```
+```
+
+**4.3 Commit Changes**
+
+```bash
+git add {{FILE_PATH}}
+git add {{SCRIPTS_DIR}}/scripts/
+
+git commit -m "perf: Extract inline logic to scripts in {{ENTITY_NAME}}
+
+- Extract {{SCRIPTS_COUNT}} deterministic operations to bash scripts
+- Reduce context by {{CONTEXT_SAVINGS}}K tokens ({{REDUCTION_PERCENTAGE}}%)
+- Improve performance (scripts execute outside LLM)
+- Improve testability (scripts tested independently)
+
+Scripts created:
+{{#EACH SCRIPTS}}
+- scripts/{{SCRIPT_NAME}}.sh ({{SCRIPT_PURPOSE}})
+{{/EACH}}
+
+Context: {{BEFORE_TOKEN_COUNT}}K → {{AFTER_TOKEN_COUNT}}K
+Savings: {{CONTEXT_SAVINGS}}K tokens per invocation"
+```
+
+**Deliverables:**
+- Scripts documented
+- File documentation updated
+- Changes committed
+
+---
+
+## Total Effort Breakdown
+
+| Phase | Duration | Key Deliverable |
+|-------|----------|-----------------|
+| 1. Preparation | 0.5 days | Branch and directory ready |
+| 2. Extract to Scripts | {{PHASE_2_DAYS}} days | {{SCRIPTS_COUNT}} scripts created |
+| 3. Validate Extractions | {{PHASE_3_DAYS}} days | All tests passing |
+| 4. Documentation & Cleanup | {{PHASE_4_DAYS}} days | Clean commit |
+| **TOTAL** | **{{EFFORT_DAYS}} days** | Complete extraction |
+
+**Per Script Average:** {{PER_SCRIPT_EFFORT}} days
+**Recommended Schedule:** {{RECOMMENDED_WEEKS}} weeks with review
+
+---
+
+## Testing & Validation Criteria
+
+### Script Testing
+
+{{#EACH SCRIPTS}}
+**{{SCRIPT_NAME}}.sh:**
+- [ ] Executes successfully with valid input
+- [ ] Handles invalid input gracefully
+- [ ] Returns proper JSON format
+- [ ] Exit codes correct (0=success, 1+=error)
+- [ ] Idempotent (safe to re-run)
+- [ ] Documented with usage comments
+
+{{/EACH}}
+
+### Context Testing
+
+- [ ] Measure file before extraction: {{BEFORE_TOKEN_COUNT}}K tokens
+- [ ] Measure file after extraction: {{AFTER_TOKEN_COUNT}}K tokens
+- [ ] Verify reduction: {{CONTEXT_SAVINGS}}K tokens (±10% acceptable)
+- [ ] Confirm scripts execute outside LLM (0 context)
+- [ ] Document actual measurements
+
+### Functional Testing
+
+- [ ] All operations produce same results
+- [ ] Output format matches previous implementation
+- [ ] Error handling equivalent or better
+- [ ] No functionality regressions
+- [ ] Performance improved (faster execution)
+
+### Code Quality
+
+- [ ] Scripts follow bash best practices
+- [ ] All scripts start with `#!/bin/bash` and `set -euo pipefail`
+- [ ] Input validation in all scripts
+- [ ] Proper error messages to stderr
+- [ ] JSON output to stdout
+- [ ] Clear variable names
+- [ ] Comments explain complex logic
+
+---
+
+## Common Patterns to Extract
+
+### File Operations
+
+**Examples:**
+- `grep`, `find`, `ls`, `wc`
+- `cp`, `mv`, `rm`, `mkdir`
+- `chmod`, `chown`, `touch`
+
+**Extraction:**
+```bash
+# Before (in prompt):
+"Use grep to find all JSON files"
+
+# After (in script):
+#!/bin/bash
+find . -name "*.json" -type f
+```
+
+### Data Processing
+
+**Examples:**
+- `jq` (JSON manipulation)
+- `awk`, `sed`, `cut` (text processing)
+- `sort`, `uniq` (data organization)
+
+**Extraction:**
+```bash
+# Before (in prompt):
+"Parse JSON and extract field values"
+
+# After (in script):
+#!/bin/bash
+jq -r '.data[] | select(.id != null) | .id' "$1"
+```
+
+### Calculations
+
+**Examples:**
+- Sum, average, count
+- Percentage calculations
+- Statistical operations
+
+**Extraction:**
+```bash
+# Before (in prompt):
+"Calculate average of all values"
+
+# After (in script):
+#!/bin/bash
+awk '{sum+=$1; count++} END {print sum/count}' "$1"
+```
+
+### API Calls
+
+**Examples:**
+- `curl`, `wget`
+- `gh api`, `aws cli`
+
+**Extraction:**
+```bash
+# Before (in prompt):
+"Make API call to endpoint"
+
+# After (in script):
+#!/bin/bash
+curl -s -H "Authorization: Bearer $TOKEN" "$API_URL"
+```
+
+---
+
+## Extraction Guidelines
+
+### DO Extract to Scripts
+
+✅ Deterministic operations (always same output for same input)
+✅ Bash commands and system operations
+✅ Data transformations and calculations
+✅ File operations and manipulations
+✅ API calls and network operations
+✅ Validation checks and rules
+✅ Algorithms and procedural logic
+✅ Any operation described step-by-step
+
+### DON'T Extract to Scripts
+
+❌ High-level orchestration descriptions
+❌ Decision logic (non-deterministic)
+❌ User interaction flow (AskUserQuestion)
+❌ Workflow structure and phases
+❌ Error handling strategy (description, not implementation)
+❌ Skill invocation patterns
+❌ State management patterns
+
+### Compression Factor
+
+Typical compression from inline logic to script reference:
+
+| Type | Inline Tokens | Script Tokens | Reduction |
+|------|---------------|---------------|-----------|
+| File operations | 500-1000 | 50-100 | 85-90% |
+| Data processing | 800-2000 | 100-200 | 85-90% |
+| API calls | 400-800 | 50-100 | 85-90% |
+| Calculations | 600-1500 | 75-150 | 85-90% |
+| Validation | 700-1800 | 80-180 | 85-90% |
+
+**Average:** 85-90% reduction per extraction
+
+---
+
+## Success Criteria
+
+Extraction is successful when:
+
+- [ ] All inline logic extracted to {{SCRIPTS_COUNT}} scripts
+- [ ] All scripts tested and validated
+- [ ] File context reduced by {{CONTEXT_SAVINGS}}K tokens
+- [ ] All operations produce same results
+- [ ] Performance improved (faster execution)
+- [ ] Scripts are maintainable and documented
+- [ ] Code quality standards met
+- [ ] Integration tests passing
+- [ ] No functionality regressions
+
+---
+
+## Additional Resources
+
+- [Agent-to-Skill Migration Guide](../../docs/standards/agent-to-skill-migration.md) - Section on Script Extraction
+- [Script Best Practices](../../docs/standards/script-best-practices.md)
+- [Context Optimization Strategies](../../docs/guides/context-optimization.md)
+
+---
+
+**Generated by:** FABER Agent Plugin v{{VERSION}}
+**Specification Version:** {{SPEC_VERSION}}
+**Last Updated:** {{TIMESTAMP}}

@@ -11,7 +11,7 @@ Your role is to guide users through configuration setup for the codex plugin. Yo
 
 Configuration can be:
 - **Global**: `~/.config/fractary/codex/config.json` (organization-wide defaults)
-- **Project**: `.fractary/plugins/codex/config/codex.json` (project-specific settings)
+- **Project**: `.fractary/plugins/codex/config.json` (project-specific settings)
 - **Both**: Create both configurations (default)
 
 You provide a streamlined setup experience with auto-detection and sensible defaults.
@@ -117,7 +117,7 @@ Output:
 ```
 Will create:
   ✓ Global config: ~/.config/fractary/codex/config.json
-  ✓ Project config: .fractary/plugins/codex/config/codex.json
+  ✓ Project config: .fractary/plugins/codex/config.json
 
 Continue? (Y/n)
 ```
@@ -159,7 +159,7 @@ Example output:
 
 Created:
   - Global config: ~/.config/fractary/codex/config.json
-  - Project config: .fractary/plugins/codex/config/codex.json
+  - Project config: .fractary/plugins/codex/config.json
 
 Configuration:
   Organization: fractary
@@ -267,7 +267,7 @@ After successful initialization, guide the user:
      - `handlers.sync.options.github.deletion_threshold`: Safety limits
      - `handlers.sync.options.github.parallel_repos`: Concurrent sync count
 
-   - **Project config**: `.fractary/plugins/codex/config/codex.json`
+   - **Project config**: `.fractary/plugins/codex/config.json`
      - `sync_patterns`: Project-specific overrides for patterns to include
      - `exclude_patterns`: Project-specific overrides for patterns to exclude
      - `sync_direction`: "to-codex" | "from-codex" | "bidirectional"

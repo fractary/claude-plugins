@@ -1,0 +1,213 @@
+# FABER Configuration with Hooks Example
+# This example shows how to use hooks for context injection and workflow customization
+
+[project]
+name = "my-application"
+issue_system = "github"
+source_control = "github"
+
+[defaults]
+preset = "software-guarded"
+autonomy = "guarded"
+
+[workflow]
+max_evaluate_retries = 3
+auto_merge = false
+
+[workflow.skills]
+frame = "basic"
+architect = "basic"
+build = "basic"
+evaluate = "basic"
+release = "basic"
+
+# ============================================================================
+# HOOKS CONFIGURATION
+# ============================================================================
+# Hooks enable project-specific customization without creating wrapper commands
+#
+# Hook types:
+# - prompt: Flexible text that can reference docs, execute scripts, invoke skills
+# - script: Execute shell scripts (legacy, still supported)
+# - skill: Invoke Claude Code skills (legacy, still supported)
+#
+# Timing:
+# - pre: Before phase execution
+# - post: After phase execution
+#
+# ============================================================================
+
+# ────────────────────────────────────────────────────────────────────────────
+# FRAME PHASE HOOKS
+# ────────────────────────────────────────────────────────────────────────────
+
+[[hooks.frame.pre]]
+type = "prompt"
+name = "work-classification"
+prompt = """
+Review our work classification system in docs/process/WORK_CLASSIFICATION.md
+when categorizing this issue. Ensure proper type assignment and priority.
+"""
+
+# ────────────────────────────────────────────────────────────────────────────
+# ARCHITECT PHASE HOOKS
+# ────────────────────────────────────────────────────────────────────────────
+
+[[hooks.architect.pre]]
+type = "prompt"
+name = "architecture-standards"
+prompt = """
+Apply the architecture standards from docs/architecture/STANDARDS.md when
+designing the solution. Key areas to review:
+
+1. **Microservices Patterns** - Service boundaries and communication
+2. **API Design** - REST conventions, versioning, error handling
+3. **Database Patterns** - Schema design, migrations, access patterns
+4. **Security** - Authentication, authorization, data protection
+
+Ensure the design follows these established patterns.
+"""
+
+[[hooks.architect.pre]]
+type = "prompt"
+name = "technology-stack"
+prompt = """
+Technology Stack Constraints:
+- Backend: Node.js (TypeScript) with Express
+- Database: PostgreSQL 15+ with Prisma ORM
+- Cache: Redis for sessions and data
+- API: REST with OpenAPI 3.0 specs
+- Auth: JWT with refresh token rotation
+
+Design must use these technologies.
+"""
+
+# ────────────────────────────────────────────────────────────────────────────
+# BUILD PHASE HOOKS
+# ────────────────────────────────────────────────────────────────────────────
+
+[[hooks.build.pre]]
+type = "prompt"
+name = "coding-standards"
+prompt = """
+Follow the coding standards in docs/development/CODING_STANDARDS.md and
+docs/development/TESTING_GUIDE.md when implementing changes.
+
+Before proceeding:
+1. Run ./scripts/lint.sh to check code style
+2. Ensure proper test coverage (80% minimum)
+3. Follow the code organization patterns
+"""
+
+[[hooks.build.post]]
+type = "prompt"
+name = "build-validation"
+prompt = """
+After building, validate the implementation:
+1. Execute ./scripts/build.sh to compile the project
+2. Run ./scripts/test-all.sh to verify all tests pass
+3. Use the security-scanner skill to check for vulnerabilities
+4. Verify no linting errors remain
+"""
+
+# ────────────────────────────────────────────────────────────────────────────
+# EVALUATE PHASE HOOKS
+# ────────────────────────────────────────────────────────────────────────────
+
+[[hooks.evaluate.pre]]
+type = "prompt"
+name = "quality-gates"
+prompt = """
+Quality Gate Requirements (from docs/development/QUALITY_GATES.md):
+
+- Unit test coverage: minimum 80%
+- Integration test coverage: minimum 60%
+- All tests must pass
+- No critical or high security vulnerabilities
+- Linting must pass with zero errors
+- Build must succeed
+
+Do not proceed to release unless all gates pass.
+"""
+
+# ────────────────────────────────────────────────────────────────────────────
+# RELEASE PHASE HOOKS
+# ────────────────────────────────────────────────────────────────────────────
+
+[[hooks.release.pre]]
+type = "prompt"
+name = "release-checklist"
+prompt = """
+Review the release checklist from docs/process/RELEASE_CHECKLIST.md:
+
+✓ All tests pass
+✓ Documentation updated
+✓ CHANGELOG.md entry added
+✓ Database migrations reviewed (if applicable)
+✓ API changes documented (if applicable)
+✓ Deployment plan ready
+
+Ensure all items complete before creating PR.
+"""
+
+# Environment-specific: Production releases only
+[[hooks.release.pre]]
+type = "prompt"
+name = "production-release-warning"
+prompt = """
+⚠️  PRODUCTION RELEASE ⚠️
+
+This will create a PR for production deployment.
+
+CRITICAL CHECKS:
+1. All changes are backward compatible
+2. Database migrations are reversible
+3. Feature flags configured correctly
+4. Rollback plan documented in docs/DEPLOYMENTS.md
+5. Team notified in #deployments channel
+
+DO NOT PROCEED unless all checks complete!
+"""
+environments = ["prod", "production"]
+
+# ============================================================================
+# ADVANCED: Mixed Hook Types
+# ============================================================================
+# You can mix prompt hooks with traditional script/skill hooks
+
+[[hooks.build.post]]
+type = "script"
+name = "custom-build-validation"
+path = "./scripts/validate-build.sh"
+required = true
+failureMode = "stop"
+timeout = 300
+description = "Run custom build validation checks"
+
+[[hooks.evaluate.post]]
+type = "skill"
+name = "code-quality-analyzer"
+required = false
+failureMode = "warn"
+timeout = 600
+description = "Deep code quality analysis"
+
+# ============================================================================
+# PHASE-SPECIFIC CONFIGURATION
+# ============================================================================
+
+[workflow.architect]
+generate_spec = true
+spec_template = "auto"
+
+[workflow.build]
+capture_build_logs = true
+
+[workflow.evaluate]
+validate_spec = true
+parallel_testing = false
+
+[workflow.release]
+update_documentation = "prompt"
+archive_specs = true
+cleanup_branch = false

@@ -272,7 +272,7 @@ Before committing `.fractary/` configs:
 - ⚠️ Google Drive: Never commit OAuth tokens (plugin should handle via OAuth flow)
 
 ### Codex Plugin
-- ✅ Commit: `.fractary/plugins/codex/config/codex.json`
+- ✅ Commit: `.fractary/plugins/codex/config.json`
 - 🔐 Env var: `$GITHUB_TOKEN` (for syncing to codex repo)
 
 ### FABER Plugin

@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:archive
 description: Archive specifications for completed work
+argument-hint: <issue_number> [--force] [--skip-warnings]
 ---
 
 Archive specifications to cloud storage when work is complete. Specs are uploaded, indexed, linked from GitHub, and removed from local storage to prevent stale context.

@@ -154,7 +154,7 @@ Ensure direction is valid:
 
 Check that configuration exists:
 - Global: `~/.config/fractary/codex/config.json` OR
-- Project: `.fractary/plugins/codex/config/codex.json`
+- Project: `.fractary/plugins/codex/config.json`
 
 If neither exists:
 ```

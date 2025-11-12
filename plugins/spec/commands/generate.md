@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:generate
 description: Generate specification from GitHub issue
+argument-hint: <issue_number> [--phase <n>] [--title "<title>"] [--template <type>]
 ---
 
 Generate a specification from a GitHub issue.

@@ -118,31 +118,42 @@ An **agentic control plane** is a structured system of commands, agents, and ski
 └─────────────────────────────────────────────┘
 ```
 
-**Optional Layer: Director Agents**
-- Multi-entity orchestration
-- Parallel execution
-- Cross-domain workflows
-- Coordinate multiple managers
+**Batch Operations Layer: Director Skills + Core Agent Parallelism**
+- Pattern expansion (wildcards, comma-separated lists)
+- Core Claude Agent handles parallel Manager invocations
+- Results aggregation
+- Used for 31% of operations (69% are single-entity)
 
 ### Key Terminology
 
-**Command** - Slash command that routes user requests to agents
-- Example: `/myproject-resource-manager create my-resource`
+**Command** - Slash command that routes user requests to Manager agents or Director skills
+- Example: `/myproject-resource-manager create my-resource` (single entity)
+- Example: `/myproject-resource-manager create dataset/*` (batch via Director skill)
 
-**Manager Agent** - Orchestrates workflows for a single entity
-- Maintains context throughout workflow
-- Invokes skills sequentially
-- Handles errors and proposes next steps
+**Manager Agent** - Orchestrates workflows for a single entity (PRIMARY PATTERN)
+- Location: `.claude/agents/project/{name}-manager.md`
+- **MUST be an AGENT** (not a skill) for full capabilities
+- Full tool access: Read, Write, Skill, AskUserQuestion, Bash, Edit, Grep, Glob
+- Maintains state throughout 7-phase workflow
+- Natural user interaction and approval workflows
+- Invokes specialist skills for execution
+- Handles errors gracefully with retry logic
+- Single responsibility: orchestrate workflow for ONE entity
 
-**Director Agent** - Orchestrates workflows across multiple entities
-- Coordinates multiple managers
-- Handles parallel execution
-- Aggregates results
+**Director Skill** - Expands patterns for batch operations (SECONDARY PATTERN)
+- Location: `.claude/skills/{name}-director/`
+- **MUST be a SKILL** (not an agent) - lightweight pattern expansion only
+- Parses batch patterns: `*`, `dataset/*`, `a,b,c`
+- Expands wildcards to entity lists
+- Returns dataset list + parallelism recommendation to Core Claude Agent
+- Does NOT orchestrate - Core Agent invokes Manager agents in parallel (max 5 concurrent)
+- No workflow logic - pure pattern expansion
 
 **Skill** - Performs a specific task, abstracts scripts
 - Accepts structured input
 - Returns structured output
 - Minimal context usage
+- Script-backed for deterministic operations
 
 ---
 
@@ -192,7 +203,55 @@ Don't use this pattern when:
 - Skills never make workflow decisions
 - Scripts are abstracted into skills
 
-### 2. Context Preservation
+### 2. Manager-as-Agent Principle
+
+⭐ **CRITICAL ARCHITECTURAL PATTERN**
+
+**Manager MUST be an Agent. Director MUST be a Skill.**
+
+**Why Manager Must Be an Agent:**
+- **Complex Orchestration**: 7-phase workflow requires persistent state across multiple skill invocations
+- **User Interaction**: Natural approval workflows, error handling, and decision points require agent capabilities
+- **Full Tool Access**: Needs Read, Write, Skill, AskUserQuestion, Bash, Edit, Grep, Glob
+- **State Management**: Must maintain workflow state, track issues, coordinate recovery
+- **Error Handling**: Graceful failures with retry logic and user consultation
+- **Single Entity Focus**: Manages complete lifecycle for ONE entity with full context
+
+**Why Director Must Be a Skill (Not Agent):**
+- **Simple Responsibility**: Only parses patterns and expands wildcards
+- **No Orchestration**: Returns dataset list to Core Claude Agent (which handles parallelism)
+- **Minimal Context**: No workflow logic, no state management
+- **Batch Support**: Used for 31% of operations (vs. 69% single-entity via Manager directly)
+- **Performance**: Lightweight pattern expansion enables Core Agent to invoke Managers in parallel (max 5 concurrent)
+
+**Implementation:**
+```
+Single Entity (69% of operations):
+User → Command → Manager Agent → Skills → Results
+Context Loads: 2 (optimal, no change from any architecture)
+
+Batch Operations (31% of operations):
+User → Command → Director Skill → Core Claude Agent
+                                   ↓ (parallel, max 5)
+                                   ├─ Manager Agent #1 → Skills
+                                   ├─ Manager Agent #2 → Skills
+                                   ├─ Manager Agent #3 → Skills
+                                   └─ ... → Aggregate Results
+Context Loads: 20-112 (depends on parallelism factor)
+Wall-Clock Time: 5x faster due to parallelism
+```
+
+**Context Load Trade-offs:**
+- Single operations: NO CHANGE (2 context loads)
+- Batch operations: Higher context load BUT 5x faster wall-clock time
+- Trade-off justified: Primary use case (single entity) optimized, batch operations rare but get parallelism
+
+**Anti-Patterns to Avoid:**
+- ❌ Manager as Skill: Loses agent capabilities, unnatural user interaction
+- ❌ Director as Agent: Over-engineered, prevents Core Agent parallelism
+- ❌ Agent chains (pre-skills pattern): Heavy context, no script abstraction
+
+### 3. Context Preservation
 
 **Managers maintain state throughout workflows.**
 
@@ -203,7 +262,7 @@ Don't use this pattern when:
 
 **Why:** Prevents context loss when moving between steps, enables intelligent next-step suggestions.
 
-### 3. Scope Discipline
+### 4. Scope Discipline
 
 **Agents only use defined tools. When capabilities are missing, they stop.**
 
@@ -214,7 +273,7 @@ Don't use this pattern when:
 
 **Why:** Surfaces workflow gaps, encourages permanent fixes, maintains consistency.
 
-### 4. Documentation First
+### 5. Documentation First
 
 **Documentation is built into workflows, not a separate phase.**
 
@@ -225,7 +284,7 @@ Don't use this pattern when:
 
 **Why:** Ensures docs never outdated, captures context, no separate doc phase needed.
 
-### 5. Fail-Fast
+### 6. Fail-Fast
 
 **Stop immediately on errors, never guess or proceed.**
 
@@ -236,7 +295,7 @@ Don't use this pattern when:
 
 **Why:** Prevents cascading failures, gives user control, surfaces issues early.
 
-### 6. Single Responsibility
+### 7. Single Responsibility
 
 **Each component does one thing well.**
 
@@ -247,7 +306,7 @@ Don't use this pattern when:
 
 **Why:** Easy to understand, test, and maintain. Clear ownership of functionality.
 
-### 7. State-Based Decision Making
+### 8. State-Based Decision Making
 
 ⭐ **Key Innovation from Lake.Corthonomy.AI**
 
@@ -286,7 +345,7 @@ def check_resource_status(resource):
 - If state.json >5 minutes old and operation requires fresh data
 - If state inconsistency detected
 
-### 8. Mandatory Workflow Order
+### 9. Mandatory Workflow Order
 
 ⭐ **Key Innovation from Lake.Corthonomy.AI**
 
@@ -359,7 +418,7 @@ def execute_workflow(resource, operations):
 - State refresh can run anytime
 - Dashboard generation reads state only (no workflow)
 
-### 9. Historical Learning
+### 10. Historical Learning
 
 ⭐ **Key Innovation from Lake.Corthonomy.AI**
 
@@ -479,7 +538,7 @@ def calculate_confidence(issue_type, recommended_fix):
 - ✅ MTTR trending downward over time
 - ✅ New developer onboarding 4x faster with historical context
 
-### 10. Performance by Design
+### 11. Performance by Design
 
 ⭐ **Key Innovation from Lake.Corthonomy.AI**
 
@@ -1144,20 +1203,26 @@ For each domain, identify:
 - Document actions
 - Propose next steps
 
-### Step 5: Determine Need for Directors
+### Step 5: Determine Need for Director Skills
 
-**Use directors when:**
-- Operating on multiple entities simultaneously
-- Need parallel execution
-- Cross-domain workflows (multiple managers)
-- Complex orchestration beyond single manager
+**Use Director Skills when:**
+- Users need to operate on multiple entities with patterns (wildcards, comma-separated lists)
+- Batch operations: `*`, `dataset/*`, `a,b,c`
+- Need parallel execution for faster wall-clock time (Core Claude Agent handles parallelism)
 
-**Director responsibilities:**
-- Parse complex requests
-- Identify which managers to invoke
-- Execute managers in parallel (when appropriate)
-- Aggregate results
-- Handle partial failures
+**Director Skill responsibilities (LIGHTWEIGHT):**
+- Parse batch patterns (`*`, `dataset/*`, `a,b,c`)
+- Expand wildcards to entity lists
+- Return dataset list + parallelism recommendation to Core Claude Agent
+- **Does NOT orchestrate** - Core Agent invokes Manager agents in parallel (max 5 concurrent)
+
+**What Director Skills DON'T do:**
+- ❌ No workflow orchestration (that's Manager's job)
+- ❌ No direct Manager invocation (Core Agent does this)
+- ❌ No complex decision logic (pure pattern expansion)
+- ❌ No error aggregation (Managers handle their own errors)
+
+**Note:** 69% of operations are single-entity (skip Director entirely), only 31% use batch patterns.
 
 ### Step 6: Identify Required Skills
 
@@ -3635,13 +3700,15 @@ WORKFLOW STOPPED.
 - [ ] Test each manager independently
 - [ ] Test cross-manager workflows
 
-### Phase 5: Directors (if needed)
+### Phase 5: Director Skills (if needed for batch operations)
 
-- [ ] Implement parallel-executor skill
-- [ ] Create director agent(s)
-- [ ] Test multi-entity workflows
-- [ ] Test parallel execution
-- [ ] Test result aggregation
+- [ ] Create Director Skill for pattern expansion
+  - [ ] Implement pattern parsing (`*`, `dataset/*`, `a,b,c`)
+  - [ ] Implement wildcard expansion
+  - [ ] Return dataset list + parallelism recommendation
+- [ ] Test batch workflows (Core Agent invoking Managers in parallel)
+- [ ] Verify pattern matching accuracy
+- [ ] Test parallelism (max 5 concurrent Managers)
 
 ### Phase 6: Documentation & Polish
 
@@ -5919,6 +5986,73 @@ with atomic_state_update(resource) as state:
 
 ## Anti-Patterns
 
+### ❌ Anti-Pattern: Manager as Skill (CRITICAL)
+
+⭐ **Most Common Architectural Error**
+
+**DON'T:**
+```
+Location: .claude/skills/myproject-manager/
+- Manager implemented as skill
+- Limited tool access
+- No natural user interaction
+- Poor state management across workflow
+```
+
+**Problem:**
+- **Loses agent capabilities**: Can't use AskUserQuestion, limited Read/Write/Bash access
+- **Unnatural workflows**: Approval steps feel forced, error handling is awkward
+- **State management broken**: Can't maintain context across 7-phase workflow
+- **User experience suffers**: No natural interaction, no graceful error recovery
+
+**DO:**
+```
+Location: .claude/agents/project/myproject-manager.md
+---
+allowed_tools: [Read, Write, Skill, AskUserQuestion, Bash, Edit, Grep, Glob]
+---
+- Manager implemented as AGENT
+- Full tool access for state management
+- Natural user interaction and approvals
+- Orchestrates 7-phase workflow with persistent context
+```
+
+**Why This Matters:**
+- 69% of operations use Manager directly (single-entity)
+- Manager is PRIMARY pattern, must be optimal
+- Agent capabilities essential for complex workflows
+
+### ❌ Anti-Pattern: Director as Agent (OVER-ENGINEERED)
+
+**DON'T:**
+```
+Location: .claude/agents/project/director.md
+- Director as agent doing orchestration
+- Loops over datasets sequentially
+- Invokes Managers via Task tool
+- Prevents parallelism
+```
+
+**Problem:**
+- **Over-engineered**: Director should be simple pattern expansion
+- **No parallelism**: Agent can't spawn parallel Manager invocations
+- **Underutilized**: Only 31% of operations need batch support
+- **Wrong layer**: Orchestration should be Core Agent's job
+
+**DO:**
+```
+Location: .claude/skills/myproject-director/
+- Director as SKILL for pattern expansion only
+- Parses patterns: *, dataset/*, a,b,c
+- Returns dataset list to Core Claude Agent
+- Core Agent invokes Managers in parallel (max 5)
+```
+
+**Why This Matters:**
+- Core Claude Agent better at parallelism than custom code
+- Keeps Director simple and lightweight
+- Enables 5x faster batch operations
+
 ### ❌ Anti-Pattern: Agent-to-Agent Calls
 
 **DON'T:**
@@ -5934,9 +6068,15 @@ Manager A → Calls Manager B → Calls Manager C
 
 **DO:**
 ```
-Director → Manager A (parallel) → Skills
-           Manager B (parallel) → Skills
-           Manager C (parallel) → Skills
+Single Entity:
+Command → Manager Agent → Skills
+
+Batch Operation:
+Command → Director Skill → Core Claude Agent
+                            ↓ (parallel, max 5)
+                            ├─ Manager Agent → Skills
+                            ├─ Manager Agent → Skills
+                            └─ Manager Agent → Skills
 ```
 
 ### ❌ Anti-Pattern: Solving Problems Outside Scope
@@ -6914,6 +7054,137 @@ This pattern provides:
 4. Migrate remaining domains one at a time
 
 **Lake.Corthonomy.AI:** Piloted with IPEDS dataset (smallest, 14 tables), then expanded
+
+#### Strategy 4: Pre-Skills Migration (Agent Chains)
+
+⭐ **CRITICAL FOR LEGACY PROJECTS** - Convert pre-skills agent chains to Manager-as-Agent + Skills architecture
+
+**When:** Project built before skills abstraction existed (Agent → Agent → Agent chains)
+
+**Symptoms:**
+- ❌ Workflow implemented as sequential agent invocations (Agent1 → Agent2 → Agent3)
+- ❌ No `.claude/skills/` directory
+- ❌ All logic embedded in agent prompts (no script abstraction)
+- ❌ Heavy context usage (each agent loads full context)
+- ❌ No state management between workflow steps
+
+**Pre-Skills Architecture:**
+```
+Command: /myproject-process
+  ↓
+Agent: step1-agent.md → Task tool → step2-agent.md
+  ↓
+Agent: step2-agent.md → Task tool → step3-agent.md
+  ↓
+Agent: step3-agent.md → Task tool → step4-agent.md
+  ↓
+Results
+
+Context Loads: 4+ agents × 45K tokens = 180K+ tokens
+No parallelism, no script abstraction, poor maintainability
+```
+
+**Target Architecture (Manager-as-Agent + Skills):**
+```
+Command: /myproject-process
+  ↓
+Manager Agent: myproject-process-manager.md
+  - Orchestrates 7-phase workflow
+  - Maintains state across phases
+  - Natural user interaction
+  ↓
+  ├─ Skill: myproject-step1 (scripts/step1-logic.sh)
+  ├─ Skill: myproject-step2 (scripts/step2-logic.sh)
+  ├─ Skill: myproject-step3 (scripts/step3-logic.sh)
+  └─ Skill: myproject-step4 (scripts/step4-logic.sh)
+
+Context Loads: 1 Manager + 4 Skills = ~85K tokens (53% reduction)
+Script abstraction, proper state management, maintainable
+```
+
+**Migration Timeline:** 2-3 weeks
+
+**Phase 1: Analysis (Days 1-3)**
+- [ ] Map agent chain workflow (identify all agents in chain)
+- [ ] Classify agent roles (orchestration vs. execution vs. hybrid)
+- [ ] Identify deterministic logic for script extraction
+- [ ] Document workflow state requirements
+
+**Phase 2: Create Manager Agent (Days 4-6)**
+- [ ] Create Manager as AGENT in `.claude/agents/project/{name}-manager.md`
+- [ ] Add full tool access: `allowed_tools: [Read, Write, Skill, AskUserQuestion, Bash, Edit, Grep, Glob]`
+- [ ] Implement 7-phase workflow structure
+- [ ] Add state management (track workflow progress)
+- [ ] Add user interaction points (approvals, error handling)
+
+**Phase 3: Convert Agents to Skills (Days 7-12)**
+- [ ] Create skill directory for each execution agent
+- [ ] Extract deterministic logic to `scripts/` (file ops, API calls, transforms)
+- [ ] Create SKILL.md that invokes scripts
+- [ ] Remove orchestration logic (Manager handles this now)
+- [ ] Test each skill in isolation
+
+**Phase 4: Update Command Routing (Day 13)**
+- [ ] Update command to route to Manager Agent (not first agent in chain)
+- [ ] Remove old agent invocations
+- [ ] Test end-to-end workflow
+
+**Phase 5: Cleanup & Validation (Days 14-15)**
+- [ ] Archive old agent files (don't delete immediately)
+- [ ] Run parallel testing (old vs. new) for 1 week
+- [ ] Measure performance improvements (context reduction, speed)
+- [ ] Verify state management working correctly
+- [ ] Confirm full cutover
+
+**Conversion Example:**
+
+Before (Agent Chain):
+```
+.claude/agents/
+├── validate-input-agent.md    # 450 lines, orchestration + execution
+├── transform-data-agent.md    # 680 lines, orchestration + execution
+├── save-results-agent.md      # 320 lines, orchestration + execution
+└── notify-completion-agent.md # 210 lines, orchestration + execution
+Total: 1660 lines, 4 context loads, no scripts
+```
+
+After (Manager + Skills):
+```
+.claude/agents/project/
+└── myproject-process-manager.md  # 280 lines, orchestration only
+
+.claude/skills/
+├── myproject-input-validator/
+│   ├── SKILL.md                  # 80 lines
+│   └── scripts/validate-input-files.sh  # 120 lines, outside LLM context
+├── myproject-data-transformer/
+│   ├── SKILL.md                  # 90 lines
+│   └── scripts/transform-data.sh        # 200 lines, outside LLM context
+├── myproject-result-saver/
+│   ├── SKILL.md                  # 70 lines
+│   └── scripts/save-results.sh          # 90 lines, outside LLM context
+└── myproject-notifier/
+    ├── SKILL.md                  # 60 lines
+    └── scripts/notify.sh                # 50 lines, outside LLM context
+
+Total: 1040 lines in LLM context (37% reduction)
+       + 460 lines in scripts (outside context)
+Context loads: 1 Manager + 4 Skills = 5 loads, but much lighter
+Maintainability: Significantly improved, proper separation of concerns
+```
+
+**Success Criteria:**
+- ✅ Context usage reduced by 40-60%
+- ✅ Workflow state properly maintained
+- ✅ User interaction natural (AskUserQuestion works)
+- ✅ Scripts handle deterministic operations
+- ✅ Manager has full agent capabilities
+
+**Common Pitfalls:**
+1. ❌ **Keeping Manager as Skill**: Must be AGENT for full capabilities
+2. ❌ **Not extracting scripts**: Leaves deterministic logic in prompts
+3. ❌ **Incomplete state management**: Workflow loses context between phases
+4. ❌ **Skipping parallel testing**: Cutover too fast, issues not caught
 
 ### Migration Checklist
 

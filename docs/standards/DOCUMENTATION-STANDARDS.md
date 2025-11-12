@@ -712,8 +712,26 @@ Before publishing documentation:
 
 ## Further Reading
 
+### Related Standards
+
 - [FRACTARY-PLUGIN-STANDARDS.md](./FRACTARY-PLUGIN-STANDARDS.md) - Plugin development standards
 - [COMMAND-TEMPLATE.md](./COMMAND-TEMPLATE.md) - Command documentation template
+- [CHANGELOG-STANDARDS.md](./CHANGELOG-STANDARDS.md) - Changelog maintenance and versioning
+- [LOG-STANDARDS.md](./LOG-STANDARDS.md) - Log types, retention, and management
+
+### Domain-Specific Documentation
+
+- **Changelogs**: See [CHANGELOG-STANDARDS.md](./CHANGELOG-STANDARDS.md) for:
+  - Keep a Changelog format
+  - Semantic versioning guidelines
+  - Breaking change documentation
+  - Update timing and automation
+
+- **Logs**: See [LOG-STANDARDS.md](./LOG-STANDARDS.md) for:
+  - Log type categories (session, build, test, deployment, audit, etc.)
+  - Retention policies and archival
+  - Cloud storage integration
+  - Audit report standards
 
 ---
 

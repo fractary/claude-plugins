@@ -1,0 +1,457 @@
+# {{ENTITY_NAME}} - Conversion Specification
+
+**Generated:** {{TIMESTAMP}}
+**Conversion Type:** {{CONVERSION_TYPE}}
+**Priority:** {{PRIORITY}}
+**Estimated Effort:** {{EFFORT_DAYS}} days
+
+---
+
+## Executive Summary
+
+{{SUMMARY_TEXT}}
+
+**Key Metrics:**
+| Metric | Current | Target | Change |
+|--------|---------|--------|--------|
+| **Context Load** | {{CURRENT_CONTEXT}}K tokens | {{TARGET_CONTEXT}}K tokens | {{CONTEXT_CHANGE}}K ({{REDUCTION_PERCENTAGE}}%) |
+| **Components** | {{CURRENT_COMPONENTS}} | {{TARGET_COMPONENTS}} | {{COMPONENTS_CHANGE}} |
+| **Architecture Pattern** | {{CURRENT_PATTERN}} | {{TARGET_PATTERN}} | {{PATTERN_CHANGE}} |
+
+**ROI Analysis:**
+- Context Savings: {{CONTEXT_SAVINGS}} tokens
+- Implementation Effort: {{EFFORT_DAYS}} days
+- Return on Investment: {{ROI}} tokens/day
+
+---
+
+## Current Architecture
+
+### Overview
+
+{{CURRENT_ARCHITECTURE_DESCRIPTION}}
+
+### Component Structure
+
+```
+{{CURRENT_ARCHITECTURE_DIAGRAM}}
+```
+
+### File Inventory
+
+**Agents:**
+{{#EACH CURRENT_AGENTS}}
+- `{{FILE_PATH}}` - {{DESCRIPTION}}
+{{/EACH}}
+
+**Skills:**
+{{#EACH CURRENT_SKILLS}}
+- `{{FILE_PATH}}` - {{DESCRIPTION}}
+{{/EACH}}
+
+**Commands:**
+{{#EACH CURRENT_COMMANDS}}
+- `{{FILE_PATH}}` - {{DESCRIPTION}}
+{{/EACH}}
+
+### Context Analysis
+
+**Current Context Load:**
+{{#EACH CONTEXT_BREAKDOWN}}
+- {{COMPONENT_TYPE}}: {{TOKEN_COUNT}}K tokens
+{{/EACH}}
+
+**Total:** {{CURRENT_CONTEXT}}K tokens
+
+### Problems Identified
+
+{{#EACH PROBLEMS}}
+**{{PROBLEM_NUMBER}}. {{PROBLEM_TITLE}}**
+
+{{PROBLEM_DESCRIPTION}}
+
+- **Severity:** {{SEVERITY}}
+- **Impact:** {{IMPACT}}
+- **Anti-pattern:** {{ANTI_PATTERN_NAME}}
+
+{{/EACH}}
+
+---
+
+## Target Architecture
+
+### Overview
+
+{{TARGET_ARCHITECTURE_DESCRIPTION}}
+
+### Component Structure
+
+```
+{{TARGET_ARCHITECTURE_DIAGRAM}}
+```
+
+### File Inventory
+
+**Files to Create:**
+{{#EACH FILES_TO_CREATE}}
+- `{{FILE_PATH}}` - {{DESCRIPTION}}
+  - Type: {{FILE_TYPE}}
+  - Size estimate: {{SIZE_ESTIMATE}}K tokens
+{{/EACH}}
+
+**Files to Modify:**
+{{#EACH FILES_TO_MODIFY}}
+- `{{FILE_PATH}}` - {{MODIFICATION_DESCRIPTION}}
+{{/EACH}}
+
+**Files to Delete:**
+{{#EACH FILES_TO_DELETE}}
+- `{{FILE_PATH}}` - {{REASON}}
+{{/EACH}}
+
+### Context Analysis
+
+**Target Context Load:**
+{{#EACH TARGET_CONTEXT_BREAKDOWN}}
+- {{COMPONENT_TYPE}}: {{TOKEN_COUNT}}K tokens
+{{/EACH}}
+
+**Total:** {{TARGET_CONTEXT}}K tokens
+
+**Savings:** {{CONTEXT_SAVINGS}}K tokens ({{REDUCTION_PERCENTAGE}}% reduction)
+
+### Benefits
+
+{{#EACH BENEFITS}}
+**{{BENEFIT_NUMBER}}. {{BENEFIT_TITLE}}**
+
+{{BENEFIT_DESCRIPTION}}
+
+{{/EACH}}
+
+---
+
+## Before/After Comparison
+
+### Code Example: {{EXAMPLE_TITLE}}
+
+**BEFORE (Current Implementation):**
+
+```{{EXAMPLE_LANGUAGE}}
+{{BEFORE_CODE}}
+```
+
+**Problems with this approach:**
+{{#EACH BEFORE_PROBLEMS}}
+- {{PROBLEM}}
+{{/EACH}}
+
+**AFTER (Target Implementation):**
+
+```{{EXAMPLE_LANGUAGE}}
+{{AFTER_CODE}}
+```
+
+**Improvements:**
+{{#EACH AFTER_IMPROVEMENTS}}
+- {{IMPROVEMENT}}
+{{/EACH}}
+
+---
+
+## Conversion Steps
+
+### Phase 1: Preparation
+
+**Duration:** {{PHASE1_DAYS}} days
+
+**Tasks:**
+{{#EACH PHASE1_TASKS}}
+- [ ] {{TASK_DESCRIPTION}}
+  {{#IF TASK_COMMAND}}
+  ```bash
+  {{TASK_COMMAND}}
+  ```
+  {{/IF}}
+{{/EACH}}
+
+**Deliverables:**
+{{#EACH PHASE1_DELIVERABLES}}
+- {{DELIVERABLE}}
+{{/EACH}}
+
+---
+
+### Phase 2: {{PHASE2_NAME}}
+
+**Duration:** {{PHASE2_DAYS}} days
+
+**Tasks:**
+{{#EACH PHASE2_TASKS}}
+- [ ] {{TASK_DESCRIPTION}}
+  {{#IF TASK_DETAILS}}
+
+  {{TASK_DETAILS}}
+  {{/IF}}
+  {{#IF TASK_COMMAND}}
+  ```bash
+  {{TASK_COMMAND}}
+  ```
+  {{/IF}}
+{{/EACH}}
+
+**Deliverables:**
+{{#EACH PHASE2_DELIVERABLES}}
+- {{DELIVERABLE}}
+{{/EACH}}
+
+---
+
+### Phase 3: {{PHASE3_NAME}}
+
+**Duration:** {{PHASE3_DAYS}} days
+
+**Tasks:**
+{{#EACH PHASE3_TASKS}}
+- [ ] {{TASK_DESCRIPTION}}
+  {{#IF TASK_DETAILS}}
+
+  {{TASK_DETAILS}}
+  {{/IF}}
+  {{#IF TASK_COMMAND}}
+  ```bash
+  {{TASK_COMMAND}}
+  ```
+  {{/IF}}
+{{/EACH}}
+
+**Deliverables:**
+{{#EACH PHASE3_DELIVERABLES}}
+- {{DELIVERABLE}}
+{{/EACH}}
+
+---
+
+### Phase 4: {{PHASE4_NAME}}
+
+**Duration:** {{PHASE4_DAYS}} days
+
+**Tasks:**
+{{#EACH PHASE4_TASKS}}
+- [ ] {{TASK_DESCRIPTION}}
+  {{#IF TASK_DETAILS}}
+
+  {{TASK_DETAILS}}
+  {{/IF}}
+  {{#IF TASK_COMMAND}}
+  ```bash
+  {{TASK_COMMAND}}
+  ```
+  {{/IF}}
+{{/EACH}}
+
+**Deliverables:**
+{{#EACH PHASE4_DELIVERABLES}}
+- {{DELIVERABLE}}
+{{/EACH}}
+
+---
+
+### Phase 5: Testing & Validation
+
+**Duration:** {{PHASE5_DAYS}} days
+
+**Testing Strategy:**
+
+{{#EACH TEST_CATEGORIES}}
+**{{CATEGORY_NAME}}:**
+{{#EACH TESTS}}
+- [ ] {{TEST_DESCRIPTION}}
+  {{#IF TEST_COMMAND}}
+  ```bash
+  {{TEST_COMMAND}}
+  ```
+  {{/IF}}
+  {{#IF EXPECTED_RESULT}}
+  - Expected: {{EXPECTED_RESULT}}
+  {{/IF}}
+{{/EACH}}
+
+{{/EACH}}
+
+**Validation Checklist:**
+{{#EACH VALIDATION_ITEMS}}
+- [ ] {{VALIDATION_ITEM}}
+{{/EACH}}
+
+---
+
+### Phase 6: Cleanup & Documentation
+
+**Duration:** {{PHASE6_DAYS}} days
+
+**Tasks:**
+{{#EACH PHASE6_TASKS}}
+- [ ] {{TASK_DESCRIPTION}}
+  {{#IF TASK_COMMAND}}
+  ```bash
+  {{TASK_COMMAND}}
+  ```
+  {{/IF}}
+{{/EACH}}
+
+**Documentation Updates:**
+{{#EACH DOC_UPDATES}}
+- [ ] {{DOC_UPDATE}}
+{{/EACH}}
+
+---
+
+## Migration Roadmap
+
+### Week-by-Week Plan
+
+{{#EACH WEEKS}}
+**Week {{WEEK_NUMBER}}: {{WEEK_TITLE}}**
+
+**Effort:** {{WEEK_EFFORT}} days
+
+**Tasks:**
+{{#EACH WEEK_TASKS}}
+- {{TASK}} ({{TASK_DAYS}} days)
+{{/EACH}}
+
+**Milestones:**
+{{#EACH WEEK_MILESTONES}}
+- {{MILESTONE}}
+{{/EACH}}
+
+{{/EACH}}
+
+### Total Timeline
+
+- **Total Effort:** {{TOTAL_EFFORT_DAYS}} days
+- **Recommended Duration:** {{RECOMMENDED_DURATION_WEEKS}} weeks (accounting for review, testing, contingency)
+- **Target Completion:** {{TARGET_DATE}}
+
+---
+
+## Testing & Validation Criteria
+
+### Functional Testing
+
+{{#EACH FUNCTIONAL_TESTS}}
+**{{TEST_CATEGORY}}:**
+{{#EACH TESTS}}
+- [ ] {{TEST_DESCRIPTION}}
+{{/EACH}}
+{{/EACH}}
+
+### Context Testing
+
+- [ ] Measure context before conversion: Target = {{CURRENT_CONTEXT}}K tokens
+- [ ] Measure context after conversion: Target = {{TARGET_CONTEXT}}K tokens
+- [ ] Verify reduction: Target = {{CONTEXT_SAVINGS}}K tokens (±10% acceptable)
+- [ ] Document actual measurements
+
+### Pattern Compliance
+
+{{#EACH COMPLIANCE_CHECKS}}
+- [ ] {{COMPLIANCE_CHECK}}
+{{/EACH}}
+
+### Regression Testing
+
+- [ ] All existing functionality preserved
+- [ ] No new bugs introduced
+- [ ] Performance equivalent or improved
+- [ ] Error handling equivalent or better
+- [ ] User experience unchanged or improved
+
+---
+
+## Risk Assessment
+
+### Potential Issues
+
+{{#EACH RISKS}}
+**Risk {{RISK_NUMBER}}: {{RISK_TITLE}}**
+
+- **Probability:** {{PROBABILITY}}
+- **Impact:** {{IMPACT}}
+- **Mitigation:** {{MITIGATION}}
+
+{{/EACH}}
+
+### Dependencies
+
+{{#EACH DEPENDENCIES}}
+- **{{DEPENDENCY_NAME}}:** {{DEPENDENCY_DESCRIPTION}}
+{{/EACH}}
+
+### Rollback Plan
+
+If conversion fails or causes issues:
+
+{{#EACH ROLLBACK_STEPS}}
+{{STEP_NUMBER}}. {{ROLLBACK_STEP}}
+{{/EACH}}
+
+---
+
+## Success Criteria
+
+The conversion is considered successful when:
+
+{{#EACH SUCCESS_CRITERIA}}
+- [ ] {{CRITERION}}
+{{/EACH}}
+
+---
+
+## Additional Resources
+
+### Documentation References
+
+{{#EACH DOC_REFERENCES}}
+- [{{DOC_TITLE}}]({{DOC_PATH}})
+{{/EACH}}
+
+### Related Specifications
+
+{{#EACH RELATED_SPECS}}
+- [{{SPEC_TITLE}}]({{SPEC_PATH}}) - {{SPEC_DESCRIPTION}}
+{{/EACH}}
+
+### Pattern Guides
+
+- [Manager-as-Agent Pattern](../docs/patterns/manager-as-agent.md)
+- [Director-as-Skill Pattern](../docs/patterns/director-skill.md)
+- [Agent-to-Skill Migration Guide](../docs/standards/agent-to-skill-migration.md)
+
+---
+
+## Questions or Issues?
+
+If you encounter problems during conversion:
+
+1. **Check standards documentation**
+   - `docs/standards/agentic-control-plane-standards-2.md`
+   - `docs/standards/manager-as-agent-pattern.md`
+
+2. **Review pattern guides**
+   - `docs/patterns/manager-as-agent.md`
+   - `docs/patterns/pre-skills-migration.md`
+
+3. **Run audit after changes**
+   ```bash
+   /fractary-faber-agent:audit-project
+   ```
+
+4. **Consult SPEC-025** for architectural guidance
+
+---
+
+**Generated by:** FABER Agent Plugin v{{VERSION}}
+**Specification Version:** {{SPEC_VERSION}}
+**Last Updated:** {{TIMESTAMP}}

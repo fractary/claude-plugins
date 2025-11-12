@@ -3,6 +3,7 @@
 #
 # Executes pre/post hooks at key lifecycle points (plan, deploy, destroy)
 # Supports critical vs optional hooks, timeouts, environment filtering
+# Hook types: script, skill, prompt (with context injection)
 
 set -euo pipefail
 
@@ -18,6 +19,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Array to track temp files for cleanup
+declare -a TEMP_FILES_TO_CLEANUP
+
+# Function: Cleanup temp files
+cleanup_temp_files() {
+  if [ ${#TEMP_FILES_TO_CLEANUP[@]} -gt 0 ]; then
+    for temp_file in "${TEMP_FILES_TO_CLEANUP[@]}"; do
+      if [ -f "$temp_file" ]; then
+        rm -f "$temp_file"
+      fi
+    done
+  fi
+}
 
 # Function: Display usage
 usage() {
@@ -89,7 +104,7 @@ get_operation_type() {
   esac
 }
 
-# Function: Get hook type (legacy string, script object, or skill object)
+# Function: Get hook type (legacy string, script object, skill object, or prompt object)
 get_hook_type() {
   local config_file="$1"
   local hook_type_key="$2"
@@ -110,6 +125,8 @@ get_hook_type() {
     echo "skill"
   elif [ "$hook_object_type" = "script" ]; then
     echo "script"
+  elif [ "$hook_object_type" = "prompt" ]; then
+    echo "prompt"
   else
     echo "unknown"
   fi
@@ -246,8 +263,107 @@ execute_skill_hook() {
   fi
 }
 
+# Function: Execute a prompt hook
+execute_prompt_hook() {
+  local hook_index="$1"
+  local hook_name="$2"
+  local prompt_text="$3"
+  local hook_envs="$4"
+  local current_env="$5"
+
+  # Check if hook applies to this environment
+  if [ -n "$hook_envs" ]; then
+    if ! echo "$hook_envs" | grep -qw "$current_env"; then
+      log_info "Skipping hook '$hook_name' (not configured for $current_env)"
+      return 0
+    fi
+  fi
+
+  echo ""
+  echo "═══════════════════════════════════════════════════════════"
+  log_info "Processing PROMPT hook [$hook_index]: $hook_name"
+  echo "═══════════════════════════════════════════════════════════"
+
+  # Validate prompt text size (warn if > 10KB)
+  local prompt_size=${#prompt_text}
+  if [ $prompt_size -gt 10240 ]; then
+    log_warning "Prompt text is large (${prompt_size} bytes). Consider moving to external file."
+  fi
+
+  # Detect file references in prompt, excluding URLs
+  # Matches: docs/FILE.md, path/to/file.txt, ./docs/guide.md
+  # Excludes: http://example.com/file.md, https://example.com/file.md, consecutive slashes
+  # Improved regex: require at least one path component, no consecutive slashes
+  local file_refs=$(echo "$prompt_text" | grep -oE '(\.\/|[a-zA-Z0-9_-]+\/)[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*\.(md|txt|json|yaml|yml|toml)' | grep -v '^http' | grep -v '//' | sort -u)
+
+  # Build context output
+  local context_output=""
+  context_output+="──────────────────────────────────────────────────────────\n"
+  context_output+="📋 INJECTED CONTEXT: $hook_name\n"
+  context_output+="──────────────────────────────────────────────────────────\n\n"
+  context_output+="$prompt_text\n\n"
+
+  # Load referenced files with size tracking
+  local files_loaded=0
+  local total_context_size=$prompt_size
+  local max_context_size=102400  # 100KB warning threshold
+
+  if [ -n "$file_refs" ]; then
+    for file_ref in $file_refs; do
+      local file_path=""
+
+      # Try to find the file
+      if [ -f "$file_ref" ]; then
+        file_path="$file_ref"
+      elif [ -f "./$file_ref" ]; then
+        file_path="./$file_ref"
+      else
+        log_warning "Referenced file not found: $file_ref"
+        continue
+      fi
+
+      # Check file size before loading (using wc -c for portability)
+      local file_size=$(wc -c < "$file_path" | tr -d ' ')
+      if [ $file_size -gt 51200 ]; then  # Warn if file > 50KB
+        log_warning "Large file referenced: $file_ref (${file_size} bytes)"
+      fi
+
+      log_info "Loading referenced file: $file_ref (${file_size} bytes)"
+      context_output+="## Referenced: $file_ref\n\n"
+      context_output+="$(cat "$file_path")\n\n"
+      ((files_loaded++))
+      ((total_context_size+=file_size))
+
+      # Check total context size
+      if [ $total_context_size -gt $max_context_size ]; then
+        log_warning "Total context size (${total_context_size} bytes) exceeds recommended limit (${max_context_size} bytes)"
+      fi
+    done
+  fi
+
+  context_output+="──────────────────────────────────────────────────────────\n"
+
+  # Create secure temporary file
+  local context_file=$(mktemp "/tmp/faber-cloud-hook-context-${hook_name}.XXXXXX")
+
+  # Add to cleanup array (trap will be set once in main)
+  TEMP_FILES_TO_CLEANUP+=("$context_file")
+
+  echo -e "$context_output" > "$context_file"
+
+  log_success "Prompt hook '$hook_name' processed (loaded $files_loaded file(s), ${total_context_size} bytes total)"
+  log_info "Context saved to: $context_file"
+
+  echo "───────────────────────────────────────────────────────────"
+
+  return 0
+}
+
 # Main execution
 main() {
+  # Set cleanup trap for temp files
+  trap cleanup_temp_files EXIT
+
   # Check dependencies
   if ! command -v jq &> /dev/null; then
     log_error "Required dependency 'jq' not found"
@@ -411,9 +527,26 @@ main() {
         fi
         ;;
 
+      "prompt")
+        # Prompt object format: {"type": "prompt", "name": "...", "prompt": "..."}
+        hook_name=$(jq -r ".hooks[\"$hook_type\"][$hook_index].name // \"prompt-hook-$hook_index\"" "$config_file")
+        local prompt_text=$(jq -r ".hooks[\"$hook_type\"][$hook_index].prompt" "$config_file")
+        hook_envs=$(jq -r ".hooks[\"$hook_type\"][$hook_index].environments[]? // empty" "$config_file" | tr '\n' ' ')
+
+        # Validate hook has prompt text
+        if [ -z "$prompt_text" ] || [ "$prompt_text" = "null" ]; then
+          log_error "Prompt hook '$hook_name' has no prompt configured"
+          ((hook_index++))
+          continue
+        fi
+
+        # Execute as prompt hook (always succeeds - just builds context)
+        execute_prompt_hook "$((hook_index + 1))" "$hook_name" "$prompt_text" "$hook_envs" "$environment"
+        ;;
+
       "unknown"|*)
         log_error "Unknown hook type at index $hook_index"
-        log_error "Hook must be a string (legacy) or object with type='script' or type='skill'"
+        log_error "Hook must be a string (legacy) or object with type='script', type='skill', or type='prompt'"
         ((failed_hooks++))
         ;;
     esac

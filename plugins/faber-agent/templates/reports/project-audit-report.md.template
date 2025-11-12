@@ -1,0 +1,328 @@
+# Project Architecture Audit Report
+
+**Project**: {{PROJECT_PATH}}
+**Audit Date**: {{AUDIT_DATE}}
+**Auditor**: project-auditor v{{AUDITOR_VERSION}}
+**Audit ID**: {{AUDIT_ID}}
+
+---
+
+## Executive Summary
+
+| Metric | Value |
+|--------|-------|
+| **Architecture Compliance** | {{COMPLIANCE_SCORE}}% ({{COMPLIANCE_GRADE}}) |
+| **Context Optimization** | {{CONTEXT_REDUCTION_PERCENTAGE}}% reduction possible |
+| **Anti-Patterns Detected** | {{ANTI_PATTERNS_COUNT}} |
+| **Migration Effort** | {{MIGRATION_EFFORT_DAYS}} days |
+| **Project Type** | {{PROJECT_TYPE}} |
+
+### Quick Stats
+
+- **Components**: {{AGENT_COUNT}} agents, {{SKILL_COUNT}} skills, {{COMMAND_COUNT}} commands
+- **Current Context Load**: {{CURRENT_LOAD_TOKENS}} tokens
+- **Projected Context Load**: {{PROJECTED_LOAD_TOKENS}} tokens
+- **Tokens Saved**: {{REDUCTION_TOKENS}} tokens
+
+---
+
+## Table of Contents
+
+1. [Findings Overview](#findings-overview)
+2. [Anti-Patterns Detected](#anti-patterns-detected)
+3. [Correct Patterns](#correct-patterns)
+4. [Context Analysis](#context-analysis)
+5. [Recommendations](#recommendations)
+6. [Migration Roadmap](#migration-roadmap)
+7. [Detailed Findings](#detailed-findings)
+8. [Next Steps](#next-steps)
+
+---
+
+## Findings Overview
+
+### Architecture Compliance: {{COMPLIANCE_SCORE}}%
+
+{{COMPLIANCE_DESCRIPTION}}
+
+### Severity Breakdown
+
+| Severity | Count | Details |
+|----------|-------|---------|
+| 🔴 Critical | {{CRITICAL_COUNT}} | {{CRITICAL_DETAILS}} |
+| 🟡 Warning | {{WARNING_COUNT}} | {{WARNING_DETAILS}} |
+| 🟢 Info | {{INFO_COUNT}} | {{INFO_DETAILS}} |
+
+---
+
+## Anti-Patterns Detected
+
+{{#EACH ANTI_PATTERN}}
+### 🔴 {{SEVERITY_ICON}} {{ANTI_PATTERN_TYPE_DISPLAY}} ({{INSTANCE_COUNT}} instances)
+
+**Severity**: {{SEVERITY}}
+**Impact**: {{IMPACT_DESCRIPTION}}
+**Migration Effort**: {{TOTAL_MIGRATION_DAYS}} days
+
+{{#EACH INSTANCE}}
+#### Instance {{INSTANCE_NUMBER}}: {{INSTANCE_NAME}}
+
+- **Location**: `{{LOCATION}}`
+- **Evidence**: {{EVIDENCE}}
+- **Confidence**: {{CONFIDENCE}}%
+- **Migration**: {{MIGRATION_DAYS}} days
+- **Priority**: {{PRIORITY}}
+
+{{#IF VERBOSE}}
+**Evidence Details**:
+- Keywords found: {{EVIDENCE_KEYWORDS_LIST}}
+- Lines: {{EVIDENCE_LINES_LIST}}
+
+**Code Snippet**:
+```{{LANGUAGE}}
+{{CODE_SNIPPET}}
+```
+{{/IF}}
+
+**Fix**:
+{{FIX_DESCRIPTION}}
+
+**Migration Guide**: [{{MIGRATION_GUIDE_NAME}}]({{MIGRATION_GUIDE_PATH}})
+
+---
+{{/EACH}}
+{{/EACH}}
+
+---
+
+## Correct Patterns
+
+{{#EACH CORRECT_PATTERN}}
+### ✅ {{PATTERN_TYPE_DISPLAY}} ({{INSTANCE_COUNT}} instances)
+
+**Description**: {{PATTERN_DESCRIPTION}}
+
+**Instances**:
+{{#EACH INSTANCE}}
+- `{{INSTANCE_NAME}}` - {{INSTANCE_LOCATION}}
+{{/EACH}}
+
+---
+{{/EACH}}
+
+---
+
+## Context Analysis
+
+### Current Architecture
+
+| Component | Count | Est. Tokens | % of Total |
+|-----------|-------|-------------|------------|
+| Agents | {{AGENT_COUNT}} | {{AGENTS_TOKENS}} | {{AGENTS_PERCENTAGE}}% |
+| Skills | {{SKILL_COUNT}} | {{SKILLS_TOKENS}} | {{SKILLS_PERCENTAGE}}% |
+| Commands | {{COMMAND_COUNT}} | {{COMMANDS_TOKENS}} | {{COMMANDS_PERCENTAGE}}% |
+| Overhead | - | {{OVERHEAD_TOKENS}} | {{OVERHEAD_PERCENTAGE}}% |
+| **Total** | **{{TOTAL_COMPONENTS}}** | **{{CURRENT_LOAD_TOKENS}}** | **100%** |
+
+### Projected Architecture (After Optimizations)
+
+| Component | Count | Est. Tokens | % of Total | Change |
+|-----------|-------|-------------|------------|--------|
+| Agents | {{PROJECTED_AGENT_COUNT}} | {{PROJECTED_AGENTS_TOKENS}} | {{PROJECTED_AGENTS_PERCENTAGE}}% | {{AGENTS_CHANGE}} |
+| Skills | {{PROJECTED_SKILL_COUNT}} | {{PROJECTED_SKILLS_TOKENS}} | {{PROJECTED_SKILLS_PERCENTAGE}}% | {{SKILLS_CHANGE}} |
+| Commands | {{PROJECTED_COMMAND_COUNT}} | {{PROJECTED_COMMANDS_TOKENS}} | {{PROJECTED_COMMANDS_PERCENTAGE}}% | {{COMMANDS_CHANGE}} |
+| Overhead | - | {{PROJECTED_OVERHEAD_TOKENS}} | {{PROJECTED_OVERHEAD_PERCENTAGE}}% | {{OVERHEAD_CHANGE}} |
+| **Total** | **{{PROJECTED_TOTAL_COMPONENTS}}** | **{{PROJECTED_LOAD_TOKENS}}** | **100%** | **{{TOTAL_REDUCTION}}** |
+
+### Optimization Factors
+
+{{#EACH OPTIMIZATION_FACTOR}}
+- **{{FACTOR_NAME}}**: {{FACTOR_DESCRIPTION}} ({{FACTOR_IMPACT}})
+{{/EACH}}
+
+---
+
+## Recommendations
+
+### 🔴 HIGH PRIORITY (Weeks 1-2)
+
+{{#EACH HIGH_PRIORITY_RECOMMENDATION}}
+{{RECOMMENDATION_NUMBER}}. **{{RECOMMENDATION_TITLE}}**
+   - **Location**: `{{LOCATION}}`
+   - **Effort**: {{EFFORT_DAYS}} days
+   - **Impact**: {{IMPACT_DESCRIPTION}}
+   - **Pattern**: [{{PATTERN_NAME}}]({{PATTERN_GUIDE_PATH}})
+   - **Action**: {{ACTION_DESCRIPTION}}
+
+{{/EACH}}
+
+### 🟡 MEDIUM PRIORITY (Weeks 3-4)
+
+{{#EACH MEDIUM_PRIORITY_RECOMMENDATION}}
+{{RECOMMENDATION_NUMBER}}. **{{RECOMMENDATION_TITLE}}**
+   - **Location**: `{{LOCATION}}`
+   - **Effort**: {{EFFORT_DAYS}} days
+   - **Impact**: {{IMPACT_DESCRIPTION}}
+   - **Action**: {{ACTION_DESCRIPTION}}
+
+{{/EACH}}
+
+### 🟢 LOW PRIORITY (Week 5+)
+
+{{#EACH LOW_PRIORITY_RECOMMENDATION}}
+{{RECOMMENDATION_NUMBER}}. **{{RECOMMENDATION_TITLE}}**
+   - **Effort**: {{EFFORT_DAYS}} days
+   - **Impact**: {{IMPACT_DESCRIPTION}}
+   - **Action**: {{ACTION_DESCRIPTION}}
+
+{{/EACH}}
+
+---
+
+## Migration Roadmap
+
+### Timeline: {{TOTAL_WEEKS}} weeks ({{MIGRATION_EFFORT_DAYS}} days)
+
+{{#EACH WEEK}}
+#### Week {{WEEK_NUMBER}}: {{WEEK_TITLE}}
+
+**Goals**:
+{{#EACH GOAL}}
+- {{GOAL_DESCRIPTION}}
+{{/EACH}}
+
+**Tasks**:
+{{#EACH TASK}}
+- [ ] {{TASK_DESCRIPTION}} ({{TASK_DAYS}} days)
+  - Priority: {{TASK_PRIORITY}}
+  - Dependencies: {{TASK_DEPENDENCIES}}
+{{/EACH}}
+
+**Deliverables**:
+{{#EACH DELIVERABLE}}
+- {{DELIVERABLE_DESCRIPTION}}
+{{/EACH}}
+
+---
+{{/EACH}}
+
+### Dependencies Graph
+
+```
+{{DEPENDENCY_GRAPH}}
+```
+
+---
+
+## Detailed Findings
+
+{{#IF VERBOSE}}
+{{#EACH DETAILED_FINDING}}
+### {{FINDING_TITLE}}
+
+**Category**: {{CATEGORY}}
+**Severity**: {{SEVERITY}}
+
+**Description**:
+{{DESCRIPTION}}
+
+**Evidence**:
+{{#EACH EVIDENCE}}
+- {{EVIDENCE_ITEM}}
+{{/EACH}}
+
+**Analysis**:
+{{ANALYSIS}}
+
+**Recommendation**:
+{{RECOMMENDATION}}
+
+**Code Examples**:
+
+**Before** (Current):
+```{{LANGUAGE}}
+{{CODE_BEFORE}}
+```
+
+**After** (Recommended):
+```{{LANGUAGE}}
+{{CODE_AFTER}}
+```
+
+---
+{{/EACH}}
+{{/IF}}
+
+{{#UNLESS VERBOSE}}
+_Detailed findings available in verbose mode. Run audit with `--verbose` flag._
+{{/UNLESS}}
+
+---
+
+## Next Steps
+
+### Immediate Actions
+
+1. **Review this report** - Understand all findings and priorities
+2. **Plan migrations** - Allocate time based on roadmap above
+3. **Start with high priority** - Begin with critical anti-patterns
+
+### Tools Available
+
+Use these `faber-agent` commands to assist with migrations:
+
+```bash
+# Generate detailed conversion specifications
+/fractary-faber-agent:generate-conversion-spec {{HIGH_PRIORITY_INSTANCE}}
+
+# Create new Manager agent workflows
+/fractary-faber-agent:create-workflow {{MANAGER_NAME}} --type manager
+
+# Validate migrations as you go
+/fractary-faber-agent:audit-project --output progress-check.md
+```
+
+### Migration Guides
+
+- **Manager-as-Skill → Agent**: [Migration Guide 1]({{MIGRATION_GUIDE_1_PATH}})
+- **Director-as-Agent → Skill**: [Migration Guide 2]({{MIGRATION_GUIDE_2_PATH}})
+- **Agent Chains → Manager + Skills**: [Migration Guide 3]({{MIGRATION_GUIDE_3_PATH}})
+- **Script Extraction**: [Migration Guide 5]({{MIGRATION_GUIDE_5_PATH}})
+
+### Pattern References
+
+- [Manager-as-Agent Pattern]({{PATTERN_MANAGER_AS_AGENT_PATH}})
+- [Director-as-Skill Pattern]({{PATTERN_DIRECTOR_SKILL_PATH}})
+- [Builder/Debugger Pattern]({{PATTERN_BUILDER_DEBUGGER_PATH}})
+- [Pre-Skills Migration]({{PATTERN_PRE_SKILLS_MIGRATION_PATH}})
+
+---
+
+## Appendix
+
+### Audit Configuration
+
+- **Project Path**: `{{PROJECT_PATH}}`
+- **Output Format**: {{OUTPUT_FORMAT}}
+- **Verbose Mode**: {{VERBOSE_MODE}}
+- **Standards Version**: {{STANDARDS_VERSION}}
+
+### Standards Checked
+
+{{#EACH STANDARD}}
+- [{{STANDARD_NAME}}]({{STANDARD_PATH}}) - Version {{STANDARD_VERSION}}
+{{/EACH}}
+
+### Audit Metadata
+
+```json
+{{AUDIT_METADATA_JSON}}
+```
+
+---
+
+**Generated by**: `fractary-faber-agent:audit-project`
+**Report Version**: {{REPORT_VERSION}}
+**State File**: `{{STATE_FILE_PATH}}`
+
+_For questions or issues, see [SPEC-025]({{SPEC_025_PATH}})_

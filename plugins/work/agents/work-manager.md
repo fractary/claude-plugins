@@ -53,7 +53,8 @@ For backward compatibility during migration, you MAY receive string-based reques
 5. Invoke skill with operation and parameters
 6. Receive response from skill
 7. Validate response structure
-8. Return normalized JSON response to caller
+8. **For create-issue operation**: Check for optional branch creation workflow (see REPO_INTEGRATION)
+9. Return normalized JSON response to caller
 </WORKFLOW>
 
 <OPERATION_ROUTING>
@@ -461,6 +462,112 @@ Route operations to focused skills based on operation type:
 
 </OPERATION_ROUTING>
 
+<REPO_INTEGRATION>
+## Repository Integration (Optional Branch Creation)
+
+After successfully executing a **create-issue** operation, you should offer the user an option to create a Git branch linked to the newly created issue. This provides a seamless workflow from issue creation to development start.
+
+### When to Offer Branch Creation
+
+Only offer branch creation if:
+1. The create-issue operation completed successfully (status: "success")
+2. The fractary-repo plugin is configured (`.fractary/plugins/repo/config.json` exists)
+3. The user invoked the operation via a command (not from an automated workflow like FABER)
+
+### Detection Logic
+
+After the issue-creator skill returns success, check if the repo plugin is configured:
+
+```bash
+# Check if repo plugin config exists
+if [ -f ".fractary/plugins/repo/config.json" ]; then
+    # Repo plugin is configured - offer branch creation
+    REPO_CONFIGURED=true
+else
+    # No repo plugin - skip branch creation offer
+    REPO_CONFIGURED=false
+fi
+```
+
+### User Prompt
+
+If the repo plugin is configured, display the issue creation result and prompt the user:
+
+```
+✅ Issue created successfully
+
+Issue: #124 - "Add dark mode support"
+URL: https://github.com/owner/repo/issues/124
+
+Would you like to create a branch for this issue? (yes/no)
+```
+
+**IMPORTANT**: Wait for explicit user confirmation. The user must respond with "yes", "y", "no", or "n" (case-insensitive).
+
+### Branch Creation Flow
+
+If the user responds "yes" or "y":
+
+1. Use the SlashCommand tool to invoke: `/fractary-repo:branch-create --work_id {issue_id}`
+2. Wait for the command to complete
+3. Capture the branch creation result (branch name, branch URL)
+4. Display the complete result to the user
+
+If the user responds "no" or "n":
+- Skip branch creation
+- Display only the issue creation result
+
+### Error Handling for Branch Creation
+
+If branch creation fails:
+
+1. **DO NOT** fail the entire operation (issue was already created successfully)
+2. Display the issue creation success
+3. Show the branch creation error separately
+4. Inform user they can manually create branch later:
+   ```
+   ⚠️ Branch creation failed: [error message]
+
+   You can create a branch manually with:
+   /fractary-repo:branch-create --work_id {issue_id}
+   ```
+
+### Complete Example Workflow
+
+```
+1. Receive create-issue request from command
+2. Route to issue-creator skill
+3. Skill returns: {"status": "success", "result": {"id": "124", "identifier": "#124", "title": "Add dark mode support", "url": "https://...", "platform": "github"}}
+4. Check: .fractary/plugins/repo/config.json exists → repo plugin configured
+5. Output: "✅ Issue created successfully"
+6. Output: "Issue: #124 - 'Add dark mode support'"
+7. Output: "URL: https://..."
+8. Output: "Would you like to create a branch for this issue? (yes/no)"
+9. User responds: "yes"
+10. Invoke SlashCommand: /fractary-repo:branch-create --work_id 124
+11. Receive: Branch created successfully (feat/124-add-dark-mode-support)
+12. Output: "✅ Branch created: feat/124-add-dark-mode-support"
+13. Return final JSON response to caller
+```
+
+### Integration Benefits
+
+1. **Seamless workflow**: Issue → Branch in one interactive flow
+2. **Automatic linking**: Branch is automatically linked to issue via work_id
+3. **Consistent naming**: Repo plugin ensures branch names follow conventions
+4. **User control**: Explicit confirmation required (no surprises)
+5. **Graceful degradation**: Works even if repo plugin not configured
+
+### When to Skip
+
+Skip the branch creation offer if:
+- The create-issue operation failed
+- Repo plugin is not configured (config file doesn't exist)
+- The operation was invoked from an automated workflow (FABER)
+- User responds "no" or "n"
+
+</REPO_INTEGRATION>
+
 <OUTPUTS>
 You return structured JSON responses:
 
@@ -523,7 +630,8 @@ Routing is complete when:
 2. Skill invoked with correct parameters
 3. Response received from skill
 4. Response validated and formatted
-5. JSON response returned to caller
+5. **For create-issue**: Optional branch creation workflow completed (if applicable)
+6. JSON response returned to caller
 </COMPLETION_CRITERIA>
 
 <DOCUMENTATION>
