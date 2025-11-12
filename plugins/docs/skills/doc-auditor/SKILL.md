@@ -39,7 +39,8 @@ You generate specifications that can be followed to bring documentation into com
 
 <INPUTS>
 - **project_root**: Project directory to analyze (default: current directory)
-- **output_dir**: Directory for audit reports (default: ./.fractary/audit)
+- **audit_report_path**: Path for final audit report (default: logs/audits/{timestamp}-audit-report.md)
+- **temp_dir**: Directory for temporary discovery files (default: logs/audits/tmp)
 - **config_path**: Path to fractary-docs config (if exists)
 - **dry_run**: Generate spec without installing config (default: false)
 </INPUTS>
@@ -89,9 +90,23 @@ Execute plugin availability check and store state for later steps:
 ```bash
 #!/bin/bash
 
-# Set output directory for state tracking
-output_dir="${output_dir:-./.fractary/audit}"
-mkdir -p "$output_dir"
+# Set up directories with timestamp
+timestamp=$(date +%Y-%m-%d-%H%M%S)
+
+# Temporary discovery files go in tmp directory
+temp_dir="${temp_dir:-logs/audits/tmp}"
+mkdir -p "$temp_dir"
+
+# Final audit report will be saved in logs/audits with timestamp
+audit_report_path="${audit_report_path:-logs/audits/$timestamp-audit-report.md}"
+mkdir -p "logs/audits"
+
+# State directory for workflow state (separate from logs)
+state_dir=".fractary/state"
+mkdir -p "$state_dir"
+
+echo "Temporary discovery files: $temp_dir"
+echo "Final audit report: $audit_report_path"
 
 # Check for spec plugin in both local project and global plugin directory
 SPEC_PLUGIN_AVAILABLE=false
@@ -114,22 +129,32 @@ else
   SPEC_PLUGIN_AVAILABLE=false
 fi
 
-# Store plugin availability state for use in later steps
+# Store plugin availability state in state directory (not in logs)
 # Using file-based state tracking for persistence across LLM turns
 if [ "$SPEC_PLUGIN_AVAILABLE" = "true" ]; then
-  echo "available" > "$output_dir/spec-plugin-status.txt"
+  echo "available" > "$state_dir/audit-spec-plugin-status.txt"
 else
-  echo "unavailable" > "$output_dir/spec-plugin-status.txt"
+  echo "unavailable" > "$state_dir/audit-spec-plugin-status.txt"
 fi
 
-echo "State saved to: $output_dir/spec-plugin-status.txt"
+# Store paths for use in later steps
+echo "$temp_dir" > "$state_dir/audit-temp-dir.txt"
+echo "$audit_report_path" > "$state_dir/audit-report-path.txt"
+echo "$timestamp" > "$state_dir/audit-timestamp.txt"
+
+echo "State saved to: $state_dir/"
 ```
 
+**Directory Structure**:
+- **Temporary discovery files**: `logs/audits/tmp/` (deleted after final report generated)
+- **Final audit reports**: `logs/audits/{timestamp}-audit-report.md` (permanent, tracked by logs-manager)
+- **Workflow state**: `.fractary/state/` (ephemeral workflow state)
+
 **State Tracking**:
-- Plugin availability is stored in `{output_dir}/spec-plugin-status.txt`
+- Plugin availability is stored in `.fractary/state/audit-spec-plugin-status.txt`
+- Paths stored in `.fractary/state/` for access across workflow steps
 - File contains either "available" or "unavailable"
 - This persists across workflow steps and LLM turns
-- Later steps check this file to determine workflow behavior
 
 **Behavior based on plugin availability:**
 
@@ -159,13 +184,19 @@ Load project-specific standards (if configured):
 
 ## Step 3: Discover Documentation State
 
-Execute discovery scripts:
+Execute discovery scripts and write results to temporary directory:
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} {output_dir}/discovery-docs.json
-bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} {output_dir}/discovery-structure.json
-bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh {output_dir}/discovery-docs.json {output_dir}/discovery-frontmatter.json
-bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh {output_dir}/discovery-docs.json {output_dir}/discovery-quality.json
+# Read temp directory from state
+temp_dir=$(cat .fractary/state/audit-temp-dir.txt)
+
+# Execute discovery scripts
+bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} $temp_dir/discovery-docs.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} $temp_dir/discovery-structure.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh $temp_dir/discovery-docs.json $temp_dir/discovery-frontmatter.json
+bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh $temp_dir/discovery-docs.json $temp_dir/discovery-quality.json
 ```
+
+**Temporary Files**: These discovery reports are temporary working files in `logs/audits/tmp/` that will be cleaned up after the final audit report is generated.
 
 ## Step 4: Analyze Against Standards
 
@@ -215,8 +246,9 @@ Check plugin availability state and present the audit findings to the user for r
 
 **Read plugin status from state file**:
 ```bash
-if [ -f "$output_dir/spec-plugin-status.txt" ]; then
-  PLUGIN_STATUS=$(cat "$output_dir/spec-plugin-status.txt")
+state_dir=".fractary/state"
+if [ -f "$state_dir/audit-spec-plugin-status.txt" ]; then
+  PLUGIN_STATUS=$(cat "$state_dir/audit-spec-plugin-status.txt")
 else
   PLUGIN_STATUS="unavailable"
 fi
@@ -357,6 +389,103 @@ Use the @agent-fractary-spec:spec-manager agent to generate specification with t
 4. Link the spec back to the issue via GitHub comment
 5. Return the spec path for verification
 
+### Step 7.3: Register Audit Logs
+
+Use the @agent-fractary-logs:logs-manager agent to register the audit logs for tracking.
+
+**Natural Language Invocation**:
+```
+Use the @agent-fractary-logs:logs-manager agent to register audit logs with the following request:
+
+{
+  "operation": "register-log",
+  "parameters": {
+    "log_type": "audit",
+    "log_directory": "logs/audit/{timestamp}",
+    "metadata": {
+      "project_name": "{project_name}",
+      "total_files": {count},
+      "issues_found": {total_issues},
+      "quality_score": {score},
+      "spec_generated": true,
+      "tracking_issue": "{issue_number}"
+    }
+  }
+}
+```
+
+**Note**: The logs-manager tracks all audit runs over time, allowing you to see compliance trends and history.
+
+### Step 7.4: Generate Final Audit Report
+
+Create the permanent audit report and clean up temporary files:
+
+```bash
+# Read paths from state
+audit_report_path=$(cat .fractary/state/audit-report-path.txt)
+temp_dir=$(cat .fractary/state/audit-temp-dir.txt)
+timestamp=$(cat .fractary/state/audit-timestamp.txt)
+
+# Generate final audit report markdown
+cat > "$audit_report_path" <<EOF
+# Documentation Audit Report
+
+**Date**: $(date -Iseconds)
+**Timestamp**: $timestamp
+**Project**: {project_name}
+
+## Summary
+
+- **Total Files**: {count}
+- **Issues Found**: {total_issues} ({high_count} high, {medium_count} medium, {low_count} low)
+- **Quality Score**: {score}/10
+- **Compliance**: {percentage}%
+- **Estimated Effort**: {hours} hours
+
+## Tracking
+
+- **GitHub Issue**: #{issue_number} - {issue_url}
+- **Remediation Spec**: specs/spec-{issue_number}-documentation-remediation.md
+
+## Discovery Reports
+
+See temporary discovery files (will be cleaned up):
+- $temp_dir/discovery-docs.json
+- $temp_dir/discovery-structure.json
+- $temp_dir/discovery-frontmatter.json
+- $temp_dir/discovery-quality.json
+
+## Key Findings
+
+### High Priority Issues ({high_count})
+{list high priority issues}
+
+### Medium Priority Issues ({medium_count})
+{list medium priority issues}
+
+### Low Priority Issues ({low_count})
+{list low priority issues}
+
+## Next Steps
+
+1. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
+2. Follow implementation plan
+3. Verify with: /fractary-docs:validate
+4. Re-audit to confirm compliance
+
+---
+Generated by fractary-docs audit workflow
+EOF
+
+echo "Final audit report: $audit_report_path"
+
+# Clean up temporary discovery files
+echo "Cleaning up temporary files from $temp_dir/"
+rm -f "$temp_dir"/*
+```
+
+**Final Report**: The permanent audit report is saved to `logs/audits/{timestamp}-audit-report.md` and tracked by logs-manager for historical reference.
+
 ## Step 8: Present Final Summary to User (After Spec Generation)
 
 Display audit completion summary:
@@ -380,16 +509,18 @@ Display audit completion summary:
   Medium Priority: {count}
   Low Priority: {count}
 
-📋 REMEDIATION SPEC
-  Generated: specs/spec-{issue_number}-documentation-remediation.md
+📋 OUTPUTS
+  Audit Report: logs/audits/{timestamp}-audit-report.md
+  Remediation Spec: specs/spec-{issue_number}-documentation-remediation.md
   Tracking Issue: #{issue_number}
-  Estimated Time: {hours} hours
-  Phases: {count}
+  Estimated Effort: {hours} hours
 
 💡 NEXT STEPS
-  1. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
-  2. Follow implementation plan
-  3. Verify with: /fractary-docs:validate
+  1. Review audit report: logs/audits/{timestamp}-audit-report.md
+  2. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
+  3. Follow implementation plan
+  4. Verify with: /fractary-docs:validate
+  5. View audit history: logs/audits/
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -448,15 +579,16 @@ Next: Review and follow remediation spec
     "quality_score": 6.2,
     "compliance_percentage": 45,
     "estimated_hours": 8,
+    "temp_discovery_dir": "logs/audits/tmp",
     "discovery_reports": [
-      ".fractary/audit/discovery-docs.json",
-      ".fractary/audit/discovery-structure.json",
-      ".fractary/audit/discovery-frontmatter.json",
-      ".fractary/audit/discovery-quality.json"
+      "logs/audits/tmp/discovery-docs.json",
+      "logs/audits/tmp/discovery-structure.json",
+      "logs/audits/tmp/discovery-frontmatter.json",
+      "logs/audits/tmp/discovery-quality.json"
     ],
     "awaiting_user_approval": true
   },
-  "timestamp": "2025-01-15T12:00:00Z"
+  "timestamp": "2025-01-15T14:30:22Z"
 }
 ```
 
@@ -476,13 +608,16 @@ Next: Review and follow remediation spec
     },
     "quality_score": 6.2,
     "compliance_percentage": 45,
+    "audit_report_path": "logs/audits/2025-01-15-143022-audit-report.md",
     "spec_path": "specs/spec-123-documentation-remediation.md",
     "tracking_issue_number": "123",
     "tracking_issue_url": "https://github.com/org/repo/issues/123",
     "estimated_hours": 8,
-    "spec_manager_used": true
+    "spec_manager_used": true,
+    "logs_registered": true,
+    "temp_files_cleaned": true
   },
-  "timestamp": "2025-01-15T12:00:00Z"
+  "timestamp": "2025-01-15T14:35:45Z"
 }
 ```
 
@@ -564,6 +699,11 @@ Use the doc-auditor skill to audit documentation:
 - **Spec plugin** (REQUIRED for spec generation): fractary-spec:spec-manager
   - Audit can run without it (presents findings only)
   - Spec generation requires fractary-spec plugin installed
+- **Logs manager** (REQUIRED for log tracking): fractary-logs:logs-manager
+  - Tracks audit runs over time in `logs/audit/{timestamp}/`
+  - Enables compliance trend analysis
+- **Work manager** (REQUIRED for tracking issues): fractary-work:work-manager
+  - Creates GitHub tracking issues for remediation
 - **Configuration**: .fractary/plugins/docs/config/config.json
 - **Project standards** (optional): Configured in validation.project_standards_doc
 </DEPENDENCIES>
@@ -572,16 +712,27 @@ Use the doc-auditor skill to audit documentation:
 Document the audit process:
 
 **What to document:**
-- Discovery results (saved to .fractary/audit/discovery-*.json)
+- Final audit report (saved to logs/audits/{timestamp}-audit-report.md)
+- Discovery results (temporary files in logs/audits/tmp/, cleaned up after report)
 - Issues identified by priority
 - Standards applied (plugin + project)
 - Remediation actions presented for review
 - Estimated effort
 - User decision (save as spec, refine, or hold off)
 - Spec generation results (if user approves)
+- Audit log registration via logs-manager
 
 **Format:**
+- Final audit report: Markdown file in `logs/audits/{timestamp}-audit-report.md`
 - Audit findings: Formatted text presentation for user review
 - Remediation spec: Generated via fractary-spec:spec-manager (if approved)
-- Discovery reports: JSON files for programmatic access
+- Temporary discovery reports: JSON files in `logs/audits/tmp/` (cleaned up after report)
+- Audit log metadata: Tracked by logs-manager for trend analysis
+
+**Log Management:**
+- All audit runs produce a permanent report in `logs/audits/{timestamp}-audit-report.md`
+- Managed by fractary-logs:logs-manager agent
+- Temporary discovery files in `logs/audits/tmp/` are cleaned up after final report
+- Enables tracking of compliance trends over time
+- Each audit has a unique timestamp for historical reference
 </DOCUMENTATION>
