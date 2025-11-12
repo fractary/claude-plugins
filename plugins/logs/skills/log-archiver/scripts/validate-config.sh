@@ -1,10 +1,15 @@
 #!/bin/bash
 # Validate configuration against JSON schema
+# Usage: validate-config.sh <config-file-path> [schema-file-path]
+# Example: validate-config.sh .fractary/plugins/logs/config.json
+#
+# Note: This script runs from the plugin source directory and validates
+# the runtime config at .fractary/plugins/logs/config.json
 set -euo pipefail
 
 CONFIG_FILE="${1:?Configuration file path required}"
 
-# Determine schema file path relative to script location
+# Determine schema file path relative to script location (in plugin source)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCHEMA_FILE="${2:-$SCRIPT_DIR/../../../config/config.schema.json}"
 

@@ -286,11 +286,26 @@ Understand time spent by issue, type, day of week.
 
 ## Configuration
 
-Located at `.fractary/plugins/logs/config.json`.
+### Location
+
+Runtime configuration: **`.fractary/plugins/logs/config.json`** (flat structure, no subdirectory)
+
+**⚠️ IMPORTANT:**
+- **Correct**: `.fractary/plugins/logs/config.json` ✅
+- **Wrong**: `.fractary/plugins/logs/config/config.json` ❌ (nested - do not create a config/ subdirectory)
+
+Only `config.json` should exist in `.fractary/plugins/logs/`. Do not copy any other files (scripts, schemas, documentation) from the plugin source.
+
+### Setup
 
 Copy from example:
 ```bash
 cp plugins/logs/config/config.example.json .fractary/plugins/logs/config.json
+```
+
+Or use the init command:
+```bash
+/fractary-logs:init
 ```
 
 ### Key Settings
