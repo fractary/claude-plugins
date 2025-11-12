@@ -90,6 +90,27 @@ archive/logs/
 - **OAuth State Parameter**: Critical for CSRF protection, don't skip!
 ```
 
+**⚠️ Cost Considerations**:
+AI summaries use Claude API calls and incur costs. **Disabled by default.**
+
+- **Estimated cost per session**: $0.01-0.05 (varies by session length)
+- **Typical monthly cost** (10 sessions/day): $3-15/month
+- **Enable only if**: You frequently review past sessions and need quick summaries
+- **Alternative**: Use built-in analysis commands (free) for quick insights
+
+To enable AI summaries:
+```json
+{
+  "summarization": {
+    "enabled": true,
+    "auto_generate_on_archive": true
+  },
+  "auto_backup": {
+    "generate_summaries": true
+  }
+}
+```
+
 ### 📂 Separate Storage Paths
 
 Logs and summaries are stored in separate, configurable paths:
@@ -301,17 +322,17 @@ cp plugins/logs/config/config.example.json .fractary/plugins/logs/config.json
     "trigger_on_init": true,
     "trigger_on_session_start": true,
     "backup_older_than_days": 7,
-    "generate_summaries": true
+    "generate_summaries": false  // Disabled by default (API costs)
   }
 }
 ```
 
-**AI Summaries**:
+**AI Summaries** (disabled by default due to API costs):
 ```json
 {
   "summarization": {
-    "enabled": true,
-    "auto_generate_on_archive": true,
+    "enabled": false,  // Set to true to enable (incurs API costs)
+    "auto_generate_on_archive": false,
     "model": "claude-sonnet-4-5-20250929",
     "store_with_logs": false,
     "separate_paths": true,

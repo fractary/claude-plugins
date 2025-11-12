@@ -27,11 +27,11 @@
     "trigger_on_init": true,
     "trigger_on_session_start": true,
     "backup_older_than_days": 7,
-    "generate_summaries": true
+    "generate_summaries": false
   },
   "summarization": {
-    "enabled": true,
-    "auto_generate_on_archive": true,
+    "enabled": false,
+    "auto_generate_on_archive": false,
     "model": "claude-sonnet-4-5-20250929",
     "store_with_logs": false,
     "separate_paths": true,

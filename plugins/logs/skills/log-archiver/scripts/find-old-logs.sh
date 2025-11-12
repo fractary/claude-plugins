@@ -19,13 +19,21 @@ if [[ -z "$SESSION_LOGS" ]]; then
     exit 0
 fi
 
-# Build JSON array of old logs
-OLD_LOGS="["
-FIRST=true
+# Build JSON array of old logs using jq for safe construction
+OLD_LOGS_ARRAY=()
 
 while IFS= read -r log_file; do
-    # Get file modification time
-    FILE_TIME=$(stat -c %Y "$log_file" 2>/dev/null || stat -f %m "$log_file" 2>/dev/null || echo "0")
+    [[ -z "$log_file" ]] && continue
+
+    # Get file modification time with better error handling
+    if FILE_TIME=$(stat -c %Y "$log_file" 2>/dev/null); then
+        : # Linux stat succeeded
+    elif FILE_TIME=$(stat -f %m "$log_file" 2>/dev/null); then
+        : # BSD/macOS stat succeeded
+    else
+        echo "Warning: Failed to get modification time for: $log_file" >&2
+        continue
+    fi
 
     # Check if older than threshold
     if [[ $FILE_TIME -lt $CUTOFF_TIME ]]; then
@@ -49,25 +57,26 @@ while IFS= read -r log_file; do
         AGE_SECONDS=$((CURRENT_TIME - FILE_TIME))
         AGE_DAYS=$((AGE_SECONDS / 86400))
 
-        # Add to array
-        if [[ "$FIRST" == "true" ]]; then
-            FIRST=false
-        else
-            OLD_LOGS+=","
-        fi
+        # Use jq to safely construct JSON object (prevents injection/escaping issues)
+        JSON_ENTRY=$(jq -n \
+            --arg file_path "$log_file" \
+            --arg issue_number "$ISSUE_NUM" \
+            --argjson age_days "$AGE_DAYS" \
+            --argjson modified_time "$FILE_TIME" \
+            '{
+                file_path: $file_path,
+                issue_number: $issue_number,
+                age_days: $age_days,
+                modified_time: $modified_time
+            }')
 
-        OLD_LOGS+=$(cat <<EOF
-{
-  "file_path": "$log_file",
-  "issue_number": "$ISSUE_NUM",
-  "age_days": $AGE_DAYS,
-  "modified_time": $FILE_TIME
-}
-EOF
-)
+        OLD_LOGS_ARRAY+=("$JSON_ENTRY")
     fi
 done <<< "$SESSION_LOGS"
 
-OLD_LOGS+="]"
-
-echo "$OLD_LOGS"
+# Combine all JSON objects into a single array using jq
+if [[ ${#OLD_LOGS_ARRAY[@]} -eq 0 ]]; then
+    echo "[]"
+else
+    printf '%s\n' "${OLD_LOGS_ARRAY[@]}" | jq -s '.'
+fi

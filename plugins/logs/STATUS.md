@@ -54,7 +54,7 @@ Claude API logs are only retained for 7 days. This ensures you never lose valuab
 ```
 
 ### 🤖 AI-Powered Session Summaries
-**Status**: ✅ Fully Implemented
+**Status**: ✅ Fully Implemented (Opt-in)
 
 **What It Does**:
 - Analyzes full session logs using Claude
@@ -71,11 +71,18 @@ Claude API logs are only retained for 7 days. This ensures you never lose valuab
 - Issues encountered and solutions
 - Follow-up items and TODOs
 
-**Configuration**:
+**⚠️ Disabled by Default**:
+AI summaries incur API costs and are **disabled by default**. Enable only if you frequently review past sessions.
+
+- **Estimated cost**: $0.01-0.05 per session
+- **Typical monthly cost**: $3-15 (10 sessions/day)
+- **Alternative**: Use free analysis commands
+
+**Configuration** (to enable):
 ```json
 {
   "summarization": {
-    "enabled": true,
+    "enabled": true,  // Set to true to enable
     "auto_generate_on_archive": true,
     "model": "claude-sonnet-4-5-20250929",
     "separate_paths": true
