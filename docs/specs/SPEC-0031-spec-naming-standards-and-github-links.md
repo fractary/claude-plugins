@@ -51,17 +51,22 @@ The markdown link uses a relative path (`/specs/spec-123-feature.md`) which is *
 1. It's a relative path without a repository context
 2. GitHub needs a full URL to the file in a specific branch
 
-**Desired Behavior:**
+**Desired Behavior (Dual-Link Approach):**
 ```markdown
 📋 Specification Created
 
 Specification generated for this issue:
-- [WORK-00123-feature.md](https://github.com/owner/repo/blob/branch-name/specs/WORK-00123-feature.md)
+- **Preview:** [WORK-00123-feature.md](https://github.com/owner/repo/blob/feature-branch/specs/WORK-00123-feature.md) (current branch)
+- **Permanent:** [WORK-00123-feature.md](https://github.com/owner/repo/blob/main/specs/WORK-00123-feature.md) (after merge)
 
 This spec will guide implementation and be validated before archival.
 ```
 
-This creates a clickable link that opens the spec file in the GitHub web interface.
+**Why Dual Links?**
+- **Preview link**: Points to current branch, works immediately, allows reviewer to see spec right now
+- **Permanent link**: Points to default branch (main/master), works after PR merge, permanent reference
+
+This approach ensures the comment is useful both during development (preview) and after merge (permanent), avoiding broken links in either scenario.
 
 ## Requirements
 
@@ -100,13 +105,16 @@ Define clear, enforceable naming standards for all spec types:
 
 ### FR2: Fix GitHub Link Generation
 
-Update the GitHub comment to include clickable links:
+Update the GitHub comment to include dual clickable links (preview + permanent):
 
 **Changes Required:**
 1. Detect repository owner and name from git remote
 2. Detect current branch name
-3. Construct full GitHub URL: `https://github.com/{owner}/{repo}/blob/{branch}/{path}`
-4. Use full URL in markdown link
+3. Detect default branch name (main/master/etc.)
+4. Construct two full GitHub URLs:
+   - Preview: `https://github.com/{owner}/{repo}/blob/{current-branch}/{path}`
+   - Permanent: `https://github.com/{owner}/{repo}/blob/{default-branch}/{path}`
+5. Use both URLs in markdown with clear labels
 
 **Implementation Location:**
 - File: `plugins/spec/skills/spec-generator/scripts/link-to-issue.sh`
@@ -229,35 +237,54 @@ if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
   REPO_NAME="${BASH_REMATCH[2]}"
 else
   echo "Warning: Could not parse GitHub repository from remote URL" >&2
-  # Fallback to relative path
-  SPEC_URL="$SPEC_PATH"
+  # Fallback: single relative path link
+  PREVIEW_URL="$SPEC_PATH"
+  PERMANENT_URL="$SPEC_PATH"
 fi
 
 # Get current branch
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-# Construct full GitHub URL
+# Get default branch from remote
+DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+if [[ -z "$DEFAULT_BRANCH" ]]; then
+  # Fallback to common defaults
+  if git show-ref --verify --quiet refs/remotes/origin/main; then
+    DEFAULT_BRANCH="main"
+  elif git show-ref --verify --quiet refs/remotes/origin/master; then
+    DEFAULT_BRANCH="master"
+  else
+    DEFAULT_BRANCH="main"  # Final fallback
+  fi
+fi
+
+# Construct full GitHub URLs (dual-link approach)
 if [[ -n "${REPO_OWNER:-}" && -n "${REPO_NAME:-}" ]]; then
   # Remove leading slash from spec path if present
   CLEAN_PATH="${SPEC_PATH#/}"
-  SPEC_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${BRANCH}/${CLEAN_PATH}"
-else
-  SPEC_URL="$SPEC_PATH"  # Fallback
+
+  # Preview link: current branch
+  PREVIEW_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${CURRENT_BRANCH}/${CLEAN_PATH}"
+
+  # Permanent link: default branch
+  PERMANENT_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${DEFAULT_BRANCH}/${CLEAN_PATH}"
 fi
 
-# Build comment message
+# Build comment message with dual links
 if [[ -n "$PHASE" ]]; then
     COMMENT_BODY="📋 Specification Created (Phase $PHASE)
 
 Specification generated for this issue:
-- [$SPEC_FILENAME]($SPEC_URL)
+- **Preview:** [$SPEC_FILENAME]($PREVIEW_URL) (current branch: \`$CURRENT_BRANCH\`)
+- **Permanent:** [$SPEC_FILENAME]($PERMANENT_URL) (after merge to \`$DEFAULT_BRANCH\`)
 
 This spec will guide implementation and be validated before archival."
 else
     COMMENT_BODY="📋 Specification Created
 
 Specification generated for this issue:
-- [$SPEC_FILENAME]($SPEC_URL)
+- **Preview:** [$SPEC_FILENAME]($PREVIEW_URL) (current branch: \`$CURRENT_BRANCH\`)
+- **Permanent:** [$SPEC_FILENAME]($PERMANENT_URL) (after merge to \`$DEFAULT_BRANCH\`)
 
 This spec will guide implementation and be validated before archival."
 fi
@@ -308,7 +335,7 @@ echo "GitHub comment added to issue #$ISSUE_NUMBER"
   },
   "integration": {
     "update_issue_on_create": true,
-    "github_url_format": "full"
+    "github_link_format": "dual"
   }
 }
 ```
@@ -407,13 +434,15 @@ done
 - [ ] **AC1:** Specs generated from issues use `WORK-XXXXX-slug.md` format with 5-digit padding
 - [ ] **AC2:** Multi-phase specs use `WORK-XXXXX-YY-slug.md` format with 2-digit phase numbers
 - [ ] **AC3:** Standalone specs continue using `SPEC-XXXX-slug.md` with 4-digit padding
-- [ ] **AC4:** GitHub comments contain clickable links with full repository URLs
-- [ ] **AC5:** Links work in GitHub web interface and navigate to correct file in branch
-- [ ] **AC6:** Configuration file includes `naming` section with all parameters
-- [ ] **AC7:** All documentation updated with new naming examples
-- [ ] **AC8:** Existing functionality preserved (no breaking changes to skill invocation)
-- [ ] **AC9:** Fallback behavior works if GitHub URL construction fails
-- [ ] **AC10:** FABER integration continues to work with new naming
+- [ ] **AC4:** GitHub comments contain dual clickable links (preview + permanent)
+- [ ] **AC5:** Preview link points to current branch and works immediately
+- [ ] **AC6:** Permanent link points to default branch (main/master) and works after merge
+- [ ] **AC7:** Both links work in GitHub web interface and navigate to correct file
+- [ ] **AC8:** Configuration file includes `naming` section with all parameters
+- [ ] **AC9:** All documentation updated with new naming examples and dual-link format
+- [ ] **AC10:** Existing functionality preserved (no breaking changes to skill invocation)
+- [ ] **AC11:** Fallback behavior works if GitHub URL construction fails (uses relative paths)
+- [ ] **AC12:** FABER integration continues to work with new naming
 
 ## Testing Strategy
 
@@ -435,28 +464,47 @@ assert_equal "$(generate_standalone_spec_name "architecture")" "SPEC-0031-archit
 
 **URL Construction:**
 ```bash
-# Test HTTPS URL parsing
-test_url_https() {
+# Test HTTPS URL parsing (dual-link)
+test_url_https_dual() {
   REMOTE_URL="https://github.com/fractary/claude-plugins.git"
-  BRANCH="main"
+  CURRENT_BRANCH="feature/my-feature"
+  DEFAULT_BRANCH="main"
   PATH="specs/WORK-00123-feature.md"
 
-  result=$(construct_github_url "$REMOTE_URL" "$BRANCH" "$PATH")
-  expected="https://github.com/fractary/claude-plugins/blob/main/specs/WORK-00123-feature.md"
+  preview=$(construct_github_url "$REMOTE_URL" "$CURRENT_BRANCH" "$PATH")
+  permanent=$(construct_github_url "$REMOTE_URL" "$DEFAULT_BRANCH" "$PATH")
 
-  assert_equal "$result" "$expected"
+  expected_preview="https://github.com/fractary/claude-plugins/blob/feature/my-feature/specs/WORK-00123-feature.md"
+  expected_permanent="https://github.com/fractary/claude-plugins/blob/main/specs/WORK-00123-feature.md"
+
+  assert_equal "$preview" "$expected_preview"
+  assert_equal "$permanent" "$expected_permanent"
 }
 
-# Test SSH URL parsing
-test_url_ssh() {
+# Test SSH URL parsing (dual-link)
+test_url_ssh_dual() {
   REMOTE_URL="git@github.com:fractary/claude-plugins.git"
-  BRANCH="feature/test"
+  CURRENT_BRANCH="feature/test"
+  DEFAULT_BRANCH="main"
   PATH="specs/WORK-00123-feature.md"
 
-  result=$(construct_github_url "$REMOTE_URL" "$BRANCH" "$PATH")
-  expected="https://github.com/fractary/claude-plugins/blob/feature/test/specs/WORK-00123-feature.md"
+  preview=$(construct_github_url "$REMOTE_URL" "$CURRENT_BRANCH" "$PATH")
+  permanent=$(construct_github_url "$REMOTE_URL" "$DEFAULT_BRANCH" "$PATH")
 
-  assert_equal "$result" "$expected"
+  expected_preview="https://github.com/fractary/claude-plugins/blob/feature/test/specs/WORK-00123-feature.md"
+  expected_permanent="https://github.com/fractary/claude-plugins/blob/main/specs/WORK-00123-feature.md"
+
+  assert_equal "$preview" "$expected_preview"
+  assert_equal "$permanent" "$expected_permanent"
+}
+
+# Test default branch detection
+test_default_branch_detection() {
+  # Test main
+  assert_equal "$(detect_default_branch)" "main"
+
+  # Test master fallback
+  assert_equal "$(detect_default_branch)" "master"
 }
 ```
 
@@ -466,7 +514,9 @@ test_url_ssh() {
    ```bash
    /fractary-spec:generate 84
    # Verify: specs/WORK-00084-*.md created
-   # Verify: GitHub comment has clickable link
+   # Verify: GitHub comment has dual links (preview + permanent)
+   # Verify: Preview link works immediately
+   # Verify: Permanent link shows 404 before merge (expected)
    ```
 
 2. **Generate multi-phase spec:**
@@ -475,21 +525,32 @@ test_url_ssh() {
    /fractary-spec:generate 123 --phase 2 --title "OAuth"
    # Verify: WORK-00123-01-authentication.md
    # Verify: WORK-00123-02-oauth.md
+   # Verify: Both have dual links in comments
    ```
 
 3. **Test GitHub link clickability:**
-   - Generate spec
+   - Generate spec from issue
    - View issue in GitHub web UI
-   - Click link in comment
-   - Verify file opens in browser
+   - Click **preview link** in comment
+   - Verify file opens in browser on current branch
+   - Merge PR to main
+   - Click **permanent link** in comment
+   - Verify file opens in browser on main branch
+
+4. **Test dual-link lifecycle:**
+   - Before merge: Preview link works, permanent link 404
+   - After merge: Both links work and point to same content
+   - After branch deletion: Preview link 404, permanent link works
 
 ### Manual Testing
 
 - [ ] Test in repository with HTTPS remote
 - [ ] Test in repository with SSH remote
 - [ ] Test with branch names containing special characters
+- [ ] Test default branch detection (main vs master)
 - [ ] Test fallback when git remote not available
-- [ ] Test FABER workflow integration
+- [ ] Test dual links remain stable after branch rename
+- [ ] Test FABER workflow integration with new naming and links
 
 ## Migration Impact
 
