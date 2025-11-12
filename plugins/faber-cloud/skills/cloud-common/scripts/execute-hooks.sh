@@ -20,6 +20,20 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Array to track temp files for cleanup
+declare -a TEMP_FILES_TO_CLEANUP
+
+# Function: Cleanup temp files
+cleanup_temp_files() {
+  if [ ${#TEMP_FILES_TO_CLEANUP[@]} -gt 0 ]; then
+    for temp_file in "${TEMP_FILES_TO_CLEANUP[@]}"; do
+      if [ -f "$temp_file" ]; then
+        rm -f "$temp_file"
+      fi
+    done
+  fi
+}
+
 # Function: Display usage
 usage() {
   cat <<EOF
@@ -278,8 +292,9 @@ execute_prompt_hook() {
 
   # Detect file references in prompt, excluding URLs
   # Matches: docs/FILE.md, path/to/file.txt, ./docs/guide.md
-  # Excludes: http://example.com/file.md, https://example.com/file.md
-  local file_refs=$(echo "$prompt_text" | grep -oE '(\.\/|[a-zA-Z0-9_-]+\/)[a-zA-Z0-9_/-]+\.(md|txt|json|yaml|yml|toml)' | grep -v '^http' | sort -u)
+  # Excludes: http://example.com/file.md, https://example.com/file.md, consecutive slashes
+  # Improved regex: require at least one path component, no consecutive slashes
+  local file_refs=$(echo "$prompt_text" | grep -oE '(\.\/|[a-zA-Z0-9_-]+\/)[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)*\.(md|txt|json|yaml|yml|toml)' | grep -v '^http' | grep -v '//' | sort -u)
 
   # Build context output
   local context_output=""
@@ -307,8 +322,8 @@ execute_prompt_hook() {
         continue
       fi
 
-      # Check file size before loading
-      local file_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
+      # Check file size before loading (using wc -c for portability)
+      local file_size=$(wc -c < "$file_path" | tr -d ' ')
       if [ $file_size -gt 51200 ]; then  # Warn if file > 50KB
         log_warning "Large file referenced: $file_ref (${file_size} bytes)"
       fi
@@ -328,11 +343,11 @@ execute_prompt_hook() {
 
   context_output+="──────────────────────────────────────────────────────────\n"
 
-  # Create secure temporary file with cleanup trap
+  # Create secure temporary file
   local context_file=$(mktemp "/tmp/faber-cloud-hook-context-${hook_name}.XXXXXX")
 
-  # Set cleanup trap for this file
-  trap "rm -f '$context_file'" EXIT
+  # Add to cleanup array (trap will be set once in main)
+  TEMP_FILES_TO_CLEANUP+=("$context_file")
 
   echo -e "$context_output" > "$context_file"
 
@@ -346,6 +361,9 @@ execute_prompt_hook() {
 
 # Main execution
 main() {
+  # Set cleanup trap for temp files
+  trap cleanup_temp_files EXIT
+
   # Check dependencies
   if ! command -v jq &> /dev/null; then
     log_error "Required dependency 'jq' not found"
