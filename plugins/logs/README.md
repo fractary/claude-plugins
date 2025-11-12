@@ -1,23 +1,24 @@
 # fractary-logs Plugin
 
-> ⚠️ **ALPHA/PREVIEW STATUS** - See [STATUS.md](STATUS.md) for details
+> ✅ **STABLE RELEASE** - See [STATUS.md](STATUS.md) for details
 >
-> **What Works**: Session capture, local storage, search, analysis
-> **Not Yet Implemented**: Cloud upload integration (files stay local)
-> **Recommended**: Use for development and testing, not production retention
+> **What Works**: Session capture, cloud backup, AI summaries, search, analysis
+> **New Features**: Automatic cloud backup after 7 days, AI-powered session summaries
+> **Recommended**: Production-ready for log retention and knowledge management
 
-Operational log management for Claude Code development sessions, including session capture, local storage, archival, search, and analysis.
+Operational log management for Claude Code development sessions, including session capture, automatic cloud backup, AI-powered summaries, search, and analysis.
 
 ## Overview
 
 The fractary-logs plugin provides comprehensive logging infrastructure for development workflows:
 
 - **Session Capture**: Record Claude Code conversations in structured markdown ✅
-- **Local Storage**: 30-day retention in local filesystem ✅
-- **Archival Preparation**: Collect, compress, index logs ✅
-- **Search**: Fast local search with filters ✅
+- **Automatic Cloud Backup**: Auto-archive logs older than 7 days to prevent data loss ✅
+- **AI-Powered Summaries**: Generate intelligent summaries with key decisions, learnings, and insights ✅
+- **Hybrid Retention**: 7-day local storage, forever in cloud (S3, R2, GCS, etc.) ✅
+- **Separate Storage Paths**: Logs in `/claude-logs/`, summaries in `/claude-summaries/` ✅
+- **Search**: Fast local + cloud search with filters ✅
 - **Analysis**: Error extraction, pattern detection, session summaries, time analysis ✅
-- **Cloud Upload**: Architecture designed, implementation pending ⚠️
 
 ## Architecture
 
@@ -26,9 +27,101 @@ fractary-logs
 ├── log-manager (agent)          # Orchestrates all log operations
 ├── log-capturer (skill)         # Capture sessions
 ├── log-archiver (skill)         # Archive with hybrid retention
+├── log-summarizer (skill)       # Generate AI-powered summaries (NEW)
 ├── log-searcher (skill)         # Search local + cloud
 └── log-analyzer (skill)         # Extract insights
 ```
+
+## Key Features
+
+### 🔄 Automatic Cloud Backup
+
+**Never lose your Claude sessions again!** The plugin automatically backs up logs older than 7 days to your configured cloud storage (S3, R2, GCS, etc.).
+
+**How it works:**
+- **On initialization**: Checks for logs older than 7 days and backs them up
+- **On session start**: Background check for old logs, auto-backup without blocking
+- **Configurable threshold**: Adjust `auto_backup.backup_older_than_days` (default: 7)
+
+**Why 7 days?**
+Claude API logs are retained for only 7 days. This plugin ensures you have a permanent backup before Claude deletes them.
+
+**Storage structure:**
+```
+archive/logs/
+├── claude-logs/
+│   └── 2025/
+│       ├── session-123-2025-01-15.md.gz
+│       └── session-124-2025-01-16.md.gz
+└── claude-summaries/
+    └── 2025/
+        ├── session-123-2025-01-15-summary.md
+        └── session-124-2025-01-16-summary.md
+```
+
+### 🤖 AI-Powered Session Summaries
+
+**Quickly understand past sessions** without reading the full conversation. The plugin uses Claude to analyze sessions and generate intelligent summaries.
+
+**What's included:**
+- **Key Accomplishments**: What was actually completed
+- **Technical Decisions**: What was decided and why
+- **Learnings & Insights**: Gotchas, best practices, new techniques
+- **Files Changed**: Categorized by type of change
+- **Issues Encountered**: Problems and solutions
+- **Follow-up Items**: TODOs and unresolved questions
+
+**Example summary excerpt:**
+```markdown
+## Key Accomplishments
+- Implemented OAuth2 authentication flow with JWT tokens
+- Added user session management with Redis
+- Created comprehensive test suite (95% coverage)
+
+## Technical Decisions
+### Session Storage
+**Decision**: Use Redis for session storage
+**Rationale**: Fast in-memory access, built-in TTL, horizontal scaling
+**Alternatives Considered**: PostgreSQL (too slow), JWT-only (stateless but less secure)
+
+## Learnings & Insights
+- **Redis Connection Pooling**: Always configure maxClients for production
+- **JWT Refresh Tokens**: Store in httpOnly cookies to prevent XSS
+- **OAuth State Parameter**: Critical for CSRF protection, don't skip!
+```
+
+**⚠️ Cost Considerations**:
+AI summaries use Claude API calls and incur costs. **Disabled by default.**
+
+- **Estimated cost per session**: $0.01-0.05 (varies by session length)
+- **Typical monthly cost** (10 sessions/day): $3-15/month
+- **Enable only if**: You frequently review past sessions and need quick summaries
+- **Alternative**: Use built-in analysis commands (free) for quick insights
+
+To enable AI summaries:
+```json
+{
+  "summarization": {
+    "enabled": true,
+    "auto_generate_on_archive": true
+  },
+  "auto_backup": {
+    "generate_summaries": true
+  }
+}
+```
+
+### 📂 Separate Storage Paths
+
+Logs and summaries are stored in separate, configurable paths:
+- **Logs**: `archive/logs/claude-logs/{year}/` (compressed)
+- **Summaries**: `archive/logs/claude-summaries/{year}/` (markdown)
+
+**Benefits:**
+- Easier to browse summaries without downloading full logs
+- Different retention policies possible
+- Cleaner organization
+- Faster summary access
 
 ## Quick Start
 
@@ -214,14 +307,46 @@ cp plugins/logs/config/config.example.json .fractary/plugins/logs/config.json
 }
 ```
 
-**Retention**:
+**Retention & Auto-Backup**:
 ```json
 {
   "retention": {
     "strategy": "hybrid",
     "local_days": 30,
     "cloud_days": "forever",
-    "auto_archive_on_age": true
+    "auto_archive_on_age": true,
+    "auto_archive_threshold_days": 7
+  },
+  "auto_backup": {
+    "enabled": true,
+    "trigger_on_init": true,
+    "trigger_on_session_start": true,
+    "backup_older_than_days": 7,
+    "generate_summaries": false  // Disabled by default (API costs)
+  }
+}
+```
+
+**AI Summaries** (disabled by default due to API costs):
+```json
+{
+  "summarization": {
+    "enabled": false,  // Set to true to enable (incurs API costs)
+    "auto_generate_on_archive": false,
+    "model": "claude-sonnet-4-5-20250929",
+    "store_with_logs": false,
+    "separate_paths": true,
+    "format": "markdown"
+  }
+}
+```
+
+**Storage Paths**:
+```json
+{
+  "storage": {
+    "cloud_logs_path": "archive/logs/claude-logs/{year}",
+    "cloud_summaries_path": "archive/logs/claude-summaries/{year}"
   }
 }
 ```

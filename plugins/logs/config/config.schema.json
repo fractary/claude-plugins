@@ -1,0 +1,264 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.ai/schemas/logs-config-v1.1.json",
+  "title": "Fractary Logs Plugin Configuration",
+  "description": "Configuration schema for fractary-logs plugin v1.1",
+  "type": "object",
+  "required": ["schema_version", "storage", "retention"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0", "1.1"],
+      "description": "Configuration schema version"
+    },
+    "storage": {
+      "type": "object",
+      "required": ["local_path"],
+      "properties": {
+        "local_path": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Absolute path for local log storage"
+        },
+        "cloud_archive_path": {
+          "type": "string",
+          "description": "Cloud path template for archived logs (supports {year}, {month}, {issue_number})"
+        },
+        "cloud_logs_path": {
+          "type": "string",
+          "description": "Cloud path template for session logs (supports {year})"
+        },
+        "cloud_summaries_path": {
+          "type": "string",
+          "description": "Cloud path template for AI summaries (supports {year})"
+        },
+        "archive_index_file": {
+          "type": "string",
+          "default": ".archive-index.json"
+        },
+        "provider": {
+          "type": "string",
+          "enum": ["s3", "r2", "gcs", "local"],
+          "description": "Cloud storage provider"
+        },
+        "bucket": {
+          "type": "string",
+          "description": "Cloud storage bucket name"
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "max_session_size_mb": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "max_log_size_mb": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "warn_session_size_mb": {
+              "type": "number",
+              "minimum": 1
+            },
+            "total_storage_warn_gb": {
+              "type": "number",
+              "minimum": 0.1
+            }
+          }
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "required": ["strategy"],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["local", "hybrid"],
+          "description": "Retention strategy: local-only or hybrid (local + cloud)"
+        },
+        "local_days": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Days to retain logs locally"
+        },
+        "cloud_days": {
+          "oneOf": [
+            {"type": "string", "enum": ["forever"]},
+            {"type": "number", "minimum": 1}
+          ],
+          "description": "Days to retain in cloud (or 'forever')"
+        },
+        "auto_archive_on_age": {
+          "type": "boolean",
+          "description": "Automatically archive logs when they reach threshold"
+        },
+        "auto_archive_threshold_days": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Age threshold for automatic archival"
+        }
+      }
+    },
+    "auto_backup": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable automatic cloud backup"
+        },
+        "trigger_on_init": {
+          "type": "boolean",
+          "description": "Check for old logs on plugin initialization"
+        },
+        "trigger_on_session_start": {
+          "type": "boolean",
+          "description": "Check for old logs when starting a session"
+        },
+        "backup_older_than_days": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Backup logs older than this threshold (default: 7 days)"
+        },
+        "generate_summaries": {
+          "type": "boolean",
+          "description": "Generate AI summaries during backup (incurs API costs)"
+        }
+      }
+    },
+    "summarization": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable AI-powered session summaries"
+        },
+        "auto_generate_on_archive": {
+          "type": "boolean",
+          "description": "Automatically generate summaries when archiving"
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^claude-",
+          "description": "Claude model to use for summarization"
+        },
+        "store_with_logs": {
+          "type": "boolean",
+          "description": "Store summaries alongside logs (deprecated)"
+        },
+        "separate_paths": {
+          "type": "boolean",
+          "description": "Store summaries in separate path"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["markdown", "json"],
+          "description": "Summary output format"
+        }
+      }
+    },
+    "archive": {
+      "type": "object",
+      "properties": {
+        "auto_archive_on": {
+          "type": "object",
+          "properties": {
+            "work_complete": {"type": "boolean"},
+            "issue_close": {"type": "boolean"},
+            "manual_trigger": {"type": "boolean"}
+          }
+        },
+        "compression": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "format": {
+              "type": "string",
+              "enum": ["gzip", "bzip2", "xz"]
+            },
+            "threshold_mb": {
+              "type": "number",
+              "minimum": 0.1
+            }
+          }
+        },
+        "post_archive": {
+          "type": "object",
+          "properties": {
+            "update_archive_index": {"type": "boolean"},
+            "comment_on_issue": {"type": "boolean"},
+            "remove_from_local": {"type": "boolean"},
+            "keep_index": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "session_logging": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "auto_capture": {"type": "boolean"},
+        "format": {
+          "type": "string",
+          "enum": ["markdown", "json"]
+        },
+        "include_timestamps": {"type": "boolean"},
+        "redact_sensitive": {"type": "boolean"},
+        "auto_name_by_issue": {"type": "boolean"},
+        "model_name": {"type": "string"},
+        "redaction_patterns": {
+          "type": "object",
+          "properties": {
+            "api_keys": {"type": "boolean"},
+            "jwt_tokens": {"type": "boolean"},
+            "passwords": {"type": "boolean"},
+            "credit_cards": {"type": "boolean"},
+            "email_addresses": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "search": {
+      "type": "object",
+      "properties": {
+        "index_local": {"type": "boolean"},
+        "search_cloud": {"type": "boolean"},
+        "max_results": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "default_context_lines": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "properties": {
+        "github": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "comment_on_capture": {"type": "boolean"},
+            "comment_on_archive": {"type": "boolean"}
+          }
+        },
+        "faber": {
+          "type": "object",
+          "properties": {
+            "auto_capture": {"type": "boolean"},
+            "auto_archive_on_complete": {"type": "boolean"}
+          }
+        }
+      }
+    }
+  }
+}
