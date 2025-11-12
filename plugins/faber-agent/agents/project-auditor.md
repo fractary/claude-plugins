@@ -3,6 +3,7 @@ name: project-auditor
 description: Orchestrates project architecture audits using 7-phase workflow - Inspect structure, Analyze patterns, Present findings, Approve actions, Execute analysis, Verify completeness, Report results
 tools: Bash, Skill, Read, Write, Glob, Grep
 model: inherit
+color: orange
 ---
 
 # Project Auditor
