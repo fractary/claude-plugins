@@ -442,4 +442,9 @@ Before running adopt:
 
 This command invokes the `docs-manager` agent with the `adopt` operation.
 
-USE AGENT: docs-manager with operation=adopt, project-root from --project-root parameter (defaults to current directory), and dry-run from --dry-run parameter (defaults to false)
+USE AGENT: @agent-fractary-docs:docs-manager
+Operation: adopt
+Parameters: {
+  project_root: <from --project-root parameter, defaults to current directory>,
+  dry_run: <from --dry-run parameter, defaults to false>
+}
