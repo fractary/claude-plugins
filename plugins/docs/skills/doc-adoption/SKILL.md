@@ -43,24 +43,28 @@ This enables projects to adopt the plugin while preserving unique requirements t
 
 <INPUTS>
 - **project_root**: Project directory to analyze (default: current directory)
-- **output_dir**: Directory for discovery reports (default: ./.fractary/adoption)
 - **dry_run**: Generate reports without installing configuration (default: false)
+
+**Note:** Output paths are automatically determined from plugin configurations:
+- **MIGRATION.md** → `/specs/adoption-plan.md` (from fractary-spec config)
+- **Discovery reports** → `/logs/adoption/` (from fractary-logs config)
 </INPUTS>
 
 <WORKFLOW>
 Use TodoWrite to track adoption progress:
 
-1. ⏳ Validate project structure
-2. ⏳ Detect custom document agents
-3. ⏳ Analyze custom agent logic
-4. ⏳ Discover documentation files
-5. ⏳ Discover documentation structure
-6. ⏳ Analyze front matter patterns
-7. ⏳ Assess documentation quality
-8. ⏳ Generate fractary-docs configuration (with hooks)
-9. ⏳ Generate remediation spec (via doc-auditor)
-10. ⏳ Present comprehensive findings to user
-11. ⏳ Get user confirmation to proceed
+1. ⏳ Determine output paths from plugin configs
+2. ⏳ Validate project structure
+3. ⏳ Detect custom document agents
+4. ⏳ Analyze custom agent logic
+5. ⏳ Discover documentation files
+6. ⏳ Discover documentation structure
+7. ⏳ Analyze front matter patterns
+8. ⏳ Assess documentation quality
+9. ⏳ Generate fractary-docs configuration (with hooks)
+10. ⏳ Generate migration plan (to specs directory)
+11. ⏳ Present comprehensive findings to user
+12. ⏳ Get user confirmation to proceed
 
 Mark each step in_progress → completed as you go.
 
@@ -68,11 +72,44 @@ Mark each step in_progress → completed as you go.
 ```
 🔍 STARTING: Documentation Discovery
 Project: {project_name}
-Output: {output_dir}
+Specs: {spec_path}/adoption-plan.md
+Logs: {logs_path}/adoption/
 ───────────────────────────────────────
 ```
 
 **EXECUTE STEPS:**
+
+## Step 0: Determine Output Paths
+
+**Read spec plugin configuration:**
+```bash
+SPEC_CONFIG_PATH=".fractary/plugins/spec/config/config.json"
+if [ -f "$SPEC_CONFIG_PATH" ]; then
+  SPEC_PATH=$(jq -r '.storage.local_path // "/specs"' "$SPEC_CONFIG_PATH")
+else
+  SPEC_PATH="/specs"
+fi
+```
+
+**Read logs plugin configuration:**
+```bash
+LOGS_CONFIG_PATH=".fractary/plugins/logs/config/config.json"
+if [ -f "$LOGS_CONFIG_PATH" ]; then
+  LOGS_PATH=$(jq -r '.storage.local_path // "/logs"' "$LOGS_CONFIG_PATH")
+else
+  LOGS_PATH="/logs"
+fi
+```
+
+**Set output paths:**
+```bash
+# Migration plan goes to specs directory
+MIGRATION_OUTPUT="${SPEC_PATH}/adoption-plan.md"
+
+# Discovery reports go to logs directory
+LOGS_OUTPUT_DIR="${LOGS_PATH}/adoption"
+mkdir -p "$LOGS_OUTPUT_DIR"
+```
 
 ## Step 1: Validate Project Structure
 
@@ -147,7 +184,7 @@ Document what will be extracted where in the remediation spec.
 
 Execute documentation discovery:
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} {output_dir}/discovery-docs.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-docs.sh {project_root} ${LOGS_OUTPUT_DIR}/discovery-docs.json
 ```
 
 This discovers:
@@ -171,7 +208,7 @@ This discovers:
 
 Execute structure discovery:
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} {output_dir}/discovery-structure.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-structure.sh {project_root} ${LOGS_OUTPUT_DIR}/discovery-structure.json
 ```
 
 This discovers:
@@ -186,7 +223,7 @@ This discovers:
 
 Execute front matter analysis:
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh {output_dir}/discovery-docs.json {output_dir}/discovery-frontmatter.json
+bash plugins/docs/skills/doc-adoption/scripts/discover-frontmatter.sh ${LOGS_OUTPUT_DIR}/discovery-docs.json ${LOGS_OUTPUT_DIR}/discovery-frontmatter.json
 ```
 
 This discovers:
@@ -201,7 +238,7 @@ This discovers:
 
 Execute quality assessment:
 ```bash
-bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh {output_dir}/discovery-docs.json {output_dir}/discovery-quality.json
+bash plugins/docs/skills/doc-adoption/scripts/assess-quality.sh ${LOGS_OUTPUT_DIR}/discovery-docs.json ${LOGS_OUTPUT_DIR}/discovery-quality.json
 ```
 
 This assesses:
@@ -215,11 +252,11 @@ This assesses:
 
 ## Step 8: Analyze Discovery Results
 
-Load all four discovery reports:
-- Read discovery-docs.json
-- Read discovery-structure.json
-- Read discovery-frontmatter.json
-- Read discovery-quality.json
+Load all four discovery reports from logs directory:
+- Read ${LOGS_OUTPUT_DIR}/discovery-docs.json
+- Read ${LOGS_OUTPUT_DIR}/discovery-structure.json
+- Read ${LOGS_OUTPUT_DIR}/discovery-frontmatter.json
+- Read ${LOGS_OUTPUT_DIR}/discovery-quality.json
 
 Analyze combined results:
 - Identify documentation complexity level (minimal, moderate, extensive)
@@ -286,11 +323,11 @@ Display comprehensive summary:
 Execute configuration generation with hooks support:
 ```bash
 bash plugins/docs/skills/doc-adoption/scripts/generate-config.sh \
-  {output_dir}/discovery-docs.json \
-  {output_dir}/discovery-structure.json \
-  {output_dir}/discovery-frontmatter.json \
-  {output_dir}/discovery-quality.json \
-  {output_dir}/docs-config.json
+  ${LOGS_OUTPUT_DIR}/discovery-docs.json \
+  ${LOGS_OUTPUT_DIR}/discovery-structure.json \
+  ${LOGS_OUTPUT_DIR}/discovery-frontmatter.json \
+  ${LOGS_OUTPUT_DIR}/discovery-quality.json \
+  ${LOGS_OUTPUT_DIR}/docs-config.json
 ```
 
 **If custom agent detected, add hooks configuration:**
@@ -323,45 +360,34 @@ Configuration includes:
 - **Hooks for custom agent logic**
 - **Project standards reference**
 
-## Step 10: Generate Remediation Specification
+## Step 10: Generate Migration Plan
 
-Use the doc-auditor skill to generate remediation specification:
+**Generate adoption migration plan:**
 
-**Check for spec plugin:**
+Execute migration report generation:
 ```bash
-if [ -f ".fractary/plugins/spec/config/config.json" ]; then
-  USE_SPEC_PLUGIN=true
-else
-  USE_SPEC_PLUGIN=false
-fi
+bash plugins/docs/skills/doc-adoption/scripts/generate-migration-report.sh \
+  ${LOGS_OUTPUT_DIR}/discovery-docs.json \
+  ${LOGS_OUTPUT_DIR}/discovery-structure.json \
+  ${LOGS_OUTPUT_DIR}/discovery-frontmatter.json \
+  ${LOGS_OUTPUT_DIR}/discovery-quality.json \
+  ${MIGRATION_OUTPUT}
 ```
 
-**Invoke doc-auditor:**
-```
-Use the doc-auditor skill to generate remediation spec:
-{
-  "operation": "audit",
-  "parameters": {
-    "project_root": "{project_root}",
-    "output_dir": "{output_dir}",
-    "config_path": "{output_dir}/docs-config.json"
-  }
-}
-```
+This creates a comprehensive migration plan in the specs directory:
+- Analyzes documentation complexity
+- Generates 5-phase migration plan
+- Provides prioritized recommendations
+- Includes custom agent extraction plan (if detected)
+- Creates actionable checklist
+- Output: `${MIGRATION_OUTPUT}` (adoption-plan.md in specs directory)
 
-The auditor will:
-- Analyze documentation against plugin standards
-- Generate prioritized remediation actions
-- **Include custom agent extraction in spec**
-- Create actionable implementation plan
-- Output: `{output_dir}/REMEDIATION-SPEC.md`
-
-**Ensure custom agent migration is in spec:**
-The remediation spec must include a high-priority action for extracting custom agent logic with:
+**If custom agent detected:**
+The migration plan will include a high-priority phase for extracting custom agent logic with:
 - Project standards document creation
 - Hook script creation
 - Command conversion
-- Agent removal
+- Agent removal steps
 
 ## Step 11: Present Comprehensive Findings
 
@@ -375,7 +401,7 @@ Display complete adoption summary:
 🤖 CUSTOM AGENT DETECTED
   Found: {CUSTOM_AGENT_PATH}
   Custom Logic: {count} items identified
-  Extraction Plan: In remediation spec
+  Extraction Plan: In migration plan
 
 📄 DOCUMENTATION INVENTORY
   Total Files: {total_count}
@@ -409,11 +435,11 @@ Display complete adoption summary:
   Project Standards: Will be created at docs/DOCUMENTATION-STANDARDS.md
   Validation: Custom validation script configured
 
-📋 REMEDIATION SPECIFICATION
-  Generated: {output_dir}/REMEDIATION-SPEC.md
+📋 MIGRATION PLAN
+  Generated: {spec_path}/adoption-plan.md
   Estimated Time: {hours} hours
-  Total Actions: {action_count}
-  Custom Agent Migration: Included
+  Total Phases: 5
+  Custom Agent Migration: {included if detected}
 
 💡 KEY ACTIONS
   1. Extract custom agent logic → hooks + standards
@@ -422,9 +448,9 @@ Display complete adoption summary:
   4. Fix {count} quality issues
 
 📁 OUTPUT FILES
-  - {output_dir}/REMEDIATION-SPEC.md (actionable plan)
-  - {output_dir}/docs-config.json (plugin configuration)
-  - {output_dir}/discovery-*.json (analysis reports)
+  - {spec_path}/adoption-plan.md (migration guide)
+  - {logs_path}/adoption/docs-config.json (plugin configuration)
+  - {logs_path}/adoption/discovery-*.json (analysis reports)
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -443,8 +469,9 @@ This will:
 
 You can:
   1. Proceed now (recommended after review)
-  2. Review reports first (.fractary/adoption/)
-  3. Make manual adjustments to generated config
+  2. Review migration plan first ({spec_path}/adoption-plan.md)
+  3. Review discovery reports ({logs_path}/adoption/)
+  4. Make manual adjustments to generated config
 
 Proceed with installation? (yes/no)
 ```
@@ -462,7 +489,7 @@ If user approves and not in dry-run mode:
 
 2. Copy generated configuration:
    ```bash
-   cp {output_dir}/docs-config.json .fractary/plugins/docs/config/config.json
+   cp ${LOGS_OUTPUT_DIR}/docs-config.json .fractary/plugins/docs/config/config.json
    ```
 
 3. Create recommended directory structure (if it doesn't exist):
@@ -477,21 +504,27 @@ If user approves and not in dry-run mode:
 
    📋 Next Steps:
 
-   1. Review the remediation spec: {output_dir}/REMEDIATION-SPEC.md
-   2. Follow the implementation plan in the spec
-   3. Start with Phase 1: Critical Fixes (includes custom agent migration if detected)
-   4. Execute commands from spec or follow manual steps
+   1. Review the migration plan: {spec_path}/adoption-plan.md
+   2. Follow the 5-phase implementation plan
+   3. Start with Phase 1: Configuration Setup
+   4. Continue through each phase systematically
    5. Verify with: /fractary-docs:validate
 
-   📖 The remediation spec contains:
-      - Detailed step-by-step instructions
-      - Executable commands you can copy/paste
+   📖 The migration plan contains:
+      - Current state assessment
+      - 5-phase migration roadmap
+      - Prioritized recommendations
       - Custom agent extraction plan (if applicable)
-      - Verification steps
+      - Interactive checklist
+      - Rollback instructions
 
-   🚀 To execute remediation in another session:
-      Simply open the spec and follow the instructions, or copy/paste
-      commands as you work through each phase.
+   📁 Additional Resources:
+      - Discovery reports: {logs_path}/adoption/
+      - Configuration: .fractary/plugins/docs/config/config.json
+
+   🚀 Migration Timeline:
+      Follow the phases in order. The plan includes time estimates
+      for each phase based on your documentation complexity.
    ```
 
 **OUTPUT END MESSAGE:**
@@ -500,9 +533,10 @@ If user approves and not in dry-run mode:
 Total Documents: {count}
 Custom Agent: {detected|not found}
 Configuration: {installed|generated only}
-Remediation Spec: {output_dir}/REMEDIATION-SPEC.md
+Migration Plan: {spec_path}/adoption-plan.md
+Discovery Reports: {logs_path}/adoption/
 ───────────────────────────────────────
-Next: Follow remediation spec to complete migration
+Next: Follow migration plan to complete adoption
 ```
 
 </WORKFLOW>
@@ -511,9 +545,9 @@ Next: Follow remediation spec to complete migration
 Adoption is complete when:
 - Custom document agents detected and analyzed
 - All discovery scripts have been executed
-- All discovery reports have been generated
+- All discovery reports have been generated in logs directory
 - Configuration has been generated (with hooks if custom agent found)
-- Remediation spec has been generated (via doc-auditor)
+- Migration plan has been generated in specs directory
 - Findings have been presented to user
 - User has been asked for confirmation
 - Configuration has been installed (if approved and not dry-run)
@@ -556,17 +590,19 @@ Return structured results showing:
       "has_hooks": true,
       "path": ".fractary/plugins/docs/config/config.json"
     },
-    "remediation_spec": {
-      "path": ".fractary/adoption/REMEDIATION-SPEC.md",
-      "total_actions": 15,
+    "migration_plan": {
+      "path": "/specs/adoption-plan.md",
+      "total_phases": 5,
       "estimated_hours": 8,
-      "used_spec_plugin": true
+      "complexity": "MODERATE"
     },
     "discovery_reports": {
-      "docs": ".fractary/adoption/discovery-docs.json",
-      "structure": ".fractary/adoption/discovery-structure.json",
-      "frontmatter": ".fractary/adoption/discovery-frontmatter.json",
-      "quality": ".fractary/adoption/discovery-quality.json"
+      "location": "/logs/adoption",
+      "docs": "/logs/adoption/discovery-docs.json",
+      "structure": "/logs/adoption/discovery-structure.json",
+      "frontmatter": "/logs/adoption/discovery-frontmatter.json",
+      "quality": "/logs/adoption/discovery-quality.json",
+      "config": "/logs/adoption/docs-config.json"
     }
   },
   "timestamp": "2025-01-15T12:00:00Z"
@@ -621,12 +657,15 @@ Use the doc-adoption skill to adopt existing documentation:
   "operation": "adopt",
   "parameters": {
     "project_root": "/path/to/project",
-    "output_dir": ".fractary/adoption",
     "dry_run": false
   },
   "config": {}
 }
 ```
+
+**Note**: Output paths are automatically determined from plugin configurations:
+- Migration plan → /specs/adoption-plan.md (from fractary-spec config)
+- Discovery reports → /logs/adoption/ (from fractary-logs config)
 </INTEGRATION>
 
 <DEPENDENCIES>
@@ -638,7 +677,12 @@ Use the doc-adoption skill to adopt existing documentation:
   - generate-config.sh
   - generate-migration-report.sh
 - **Configuration template**: plugins/docs/config/config.example.json
-- **Output directory**: .fractary/adoption/
+- **Plugin configurations**:
+  - fractary-spec: .fractary/plugins/spec/config/config.json (for migration plan path)
+  - fractary-logs: .fractary/plugins/logs/config/config.json (for discovery reports path)
+- **Output directories**:
+  - Migration plan: /specs/ (configurable via spec plugin)
+  - Discovery reports: /logs/adoption/ (configurable via logs plugin)
 </DEPENDENCIES>
 
 <DOCUMENTATION>

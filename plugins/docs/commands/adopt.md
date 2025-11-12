@@ -105,24 +105,29 @@ This command follows the standard space-separated syntax:
 
 The adoption workflow produces:
 
-### Discovery Reports (JSON)
-- `discovery-docs.json` - Documentation file inventory and analysis
-- `discovery-structure.json` - Directory structure and organization
-- `discovery-frontmatter.json` - Front matter pattern analysis
-- `discovery-quality.json` - Documentation quality assessment
-
-### Generated Configuration
-- `docs-config.json` - Complete fractary-docs configuration
-
-### Migration Report (Markdown)
-- `MIGRATION.md` - Comprehensive migration guide
+### Migration Plan (Markdown) → `/specs/`
+- `adoption-plan.md` - Comprehensive migration guide
   - Executive summary
   - Documentation inventory
   - Quality assessment
   - Gap analysis
-  - Standardization recommendations
+  - 5-phase migration roadmap
+  - Prioritized recommendations
   - Timeline estimation
   - Migration checklist
+
+**Location**: Stored in `/specs/` directory (configurable via fractary-spec plugin)
+
+### Discovery Reports (JSON) → `/logs/adoption/`
+- `discovery-docs.json` - Documentation file inventory and analysis
+- `discovery-structure.json` - Directory structure and organization
+- `discovery-frontmatter.json` - Front matter pattern analysis
+- `discovery-quality.json` - Documentation quality assessment
+- `docs-config.json` - Complete fractary-docs configuration
+
+**Location**: Stored in `/logs/adoption/` directory (configurable via fractary-logs plugin)
+
+**Note**: Discovery reports are ephemeral analysis data. The migration plan in `/specs/` is the main deliverable.
 
 ## Examples
 
@@ -226,16 +231,16 @@ Step 3: Configuration Generation
   ✅ Configuration generated
 
 Step 4: Report Generation
-  📝 Generating migration report...
+  📝 Generating migration plan...
   📝 Assessing quality gaps...
   📝 Creating standardization checklist...
-  ✅ MIGRATION.md created
+  ✅ adoption-plan.md created in /specs/
 
 Step 5: User Review
   📋 Review findings:
-     - Configuration: docs-config.json
-     - Report: MIGRATION.md
-     - Discovery: .fractary/adoption/*.json
+     - Migration Plan: /specs/adoption-plan.md
+     - Configuration: /logs/adoption/docs-config.json
+     - Discovery: /logs/adoption/*.json
 
   ❓ Proceed with setup? (yes/no)
 
@@ -274,8 +279,11 @@ cd /path/to/my-project
 # Run discovery only
 /fractary-docs:adopt --dry-run
 
-# Review reports
-cat .fractary/adoption/MIGRATION.md
+# Review migration plan
+cat /specs/adoption-plan.md
+
+# Review discovery reports
+cat /logs/adoption/discovery-docs.json
 
 # Decide whether to adopt
 # Re-run without --dry-run to proceed
@@ -320,20 +328,23 @@ cd /path/to/my-project
 
 ```
 project/
-├── .fractary/
+├── /specs/
+│   └── adoption-plan.md          # Migration plan (main deliverable)
+├── /logs/
 │   └── adoption/
 │       ├── discovery-docs.json
 │       ├── discovery-structure.json
 │       ├── discovery-frontmatter.json
 │       ├── discovery-quality.json
-│       ├── docs-config.json
-│       └── MIGRATION.md
+│       └── docs-config.json      # Generated configuration
 └── .fractary/
     └── plugins/
         └── docs/
             └── config/
-                └── config.json  (if setup approved)
+                └── config.json   # Installed configuration (if setup approved)
 ```
+
+**Note**: Output paths are configurable via fractary-spec and fractary-logs plugins.
 
 ### Configuration File
 
@@ -349,27 +360,33 @@ Generated `config.json` includes:
 
 Once documentation is adopted, follow the migration checklist:
 
-1. **Review generated configuration**
+1. **Review the migration plan**
    ```bash
-   cat .fractary/plugins/docs/config/config.json
+   cat /specs/adoption-plan.md
    ```
 
-2. **Start with high-value documentation**
+2. **Review generated configuration**
+   ```bash
+   cat /logs/adoption/docs-config.json
+   cat .fractary/plugins/docs/config/config.json  # After installation
+   ```
+
+3. **Start with high-value documentation**
    - Add front matter to existing docs
    - Validate documentation quality
    - Fix broken links
 
-3. **Organize by document type**
+4. **Organize by document type**
    - Move ADRs to configured location
    - Organize design docs
    - Consolidate runbooks
 
-4. **Generate missing documentation**
+5. **Generate missing documentation**
    - Create ADRs for key decisions
    - Document critical operational procedures
    - Add API documentation
 
-5. **Validate and iterate**
+6. **Validate and iterate**
    ```bash
    /fractary-docs:validate
    /fractary-docs:link check
@@ -417,10 +434,11 @@ Before running adopt:
 
 ## Next Steps After Adoption
 
-1. **Review generated reports**
-   - Read `MIGRATION.md` thoroughly
-   - Understand quality gaps
-   - Review standardization recommendations
+1. **Review the migration plan**
+   - Read `/specs/adoption-plan.md` thoroughly
+   - Understand quality gaps and complexity assessment
+   - Review the 5-phase migration roadmap
+   - Check prioritized recommendations
 
 2. **Test configuration**
    - Generate a test document
@@ -434,7 +452,7 @@ Before running adopt:
    - Validate frequently
 
 4. **Team alignment**
-   - Share migration report
+   - Share migration plan from /specs/adoption-plan.md
    - Document new standards
    - Update contribution guidelines
 

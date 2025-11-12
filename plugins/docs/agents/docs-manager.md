@@ -412,8 +412,12 @@ Skill: doc-adoption
 Operations:
 - discover-documentation: Scan and analyze existing docs
 - generate-adoption-config: Create configuration from discovery
-- generate-migration-report: Create migration guidance
+- generate-migration-plan: Create migration plan in specs directory
 - install-configuration: Set up fractary-docs
+
+**Output Paths** (automatically determined):
+- Migration plan → /specs/adoption-plan.md (from fractary-spec config)
+- Discovery reports → /logs/adoption/ (from fractary-logs config)
 
 Example:
 ```
@@ -422,7 +426,6 @@ Use the doc-adoption skill to adopt existing documentation:
   "operation": "adopt",
   "parameters": {
     "project_root": "/path/to/project",
-    "output_dir": ".fractary/adoption",
     "dry_run": false
   },
   "config": {}
