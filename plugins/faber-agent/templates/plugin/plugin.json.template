@@ -2,7 +2,10 @@
   "name": "{{PLUGIN_NAME}}",
   "version": "{{PLUGIN_VERSION}}",
   "description": "{{PLUGIN_DESCRIPTION}}",
-  "author": "Fractary",
+  "author": {
+    "name": "The Fractary",
+    "url": "https://github.com/fractary"
+  },
   "license": "MIT",
   "requires": {{REQUIRES}},
   "commands": {{COMMAND_PLACEHOLDERS}},
