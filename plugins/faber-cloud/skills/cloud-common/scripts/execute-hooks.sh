@@ -270,9 +270,16 @@ execute_prompt_hook() {
   log_info "Processing PROMPT hook [$hook_index]: $hook_name"
   echo "═══════════════════════════════════════════════════════════"
 
-  # Detect file references in prompt (simple pattern matching for .md, .txt, docs/ paths)
-  # Matches patterns like: docs/FILE.md, path/to/file.txt, ./docs/guide.md
-  local file_refs=$(echo "$prompt_text" | grep -oE '([./a-zA-Z0-9_-]+/)?[a-zA-Z0-9_-]+\.(md|txt|json|yaml|yml|toml)' | sort -u)
+  # Validate prompt text size (warn if > 10KB)
+  local prompt_size=${#prompt_text}
+  if [ $prompt_size -gt 10240 ]; then
+    log_warning "Prompt text is large (${prompt_size} bytes). Consider moving to external file."
+  fi
+
+  # Detect file references in prompt, excluding URLs
+  # Matches: docs/FILE.md, path/to/file.txt, ./docs/guide.md
+  # Excludes: http://example.com/file.md, https://example.com/file.md
+  local file_refs=$(echo "$prompt_text" | grep -oE '(\.\/|[a-zA-Z0-9_-]+\/)[a-zA-Z0-9_/-]+\.(md|txt|json|yaml|yml|toml)' | grep -v '^http' | sort -u)
 
   # Build context output
   local context_output=""
@@ -281,33 +288,55 @@ execute_prompt_hook() {
   context_output+="──────────────────────────────────────────────────────────\n\n"
   context_output+="$prompt_text\n\n"
 
-  # Load referenced files
+  # Load referenced files with size tracking
   local files_loaded=0
+  local total_context_size=$prompt_size
+  local max_context_size=102400  # 100KB warning threshold
+
   if [ -n "$file_refs" ]; then
     for file_ref in $file_refs; do
+      local file_path=""
+
+      # Try to find the file
       if [ -f "$file_ref" ]; then
-        log_info "Loading referenced file: $file_ref"
-        context_output+="## Referenced: $file_ref\n\n"
-        context_output+="$(cat "$file_ref")\n\n"
-        ((files_loaded++))
+        file_path="$file_ref"
       elif [ -f "./$file_ref" ]; then
-        log_info "Loading referenced file: ./$file_ref"
-        context_output+="## Referenced: $file_ref\n\n"
-        context_output+="$(cat "./$file_ref")\n\n"
-        ((files_loaded++))
+        file_path="./$file_ref"
       else
         log_warning "Referenced file not found: $file_ref"
+        continue
+      fi
+
+      # Check file size before loading
+      local file_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
+      if [ $file_size -gt 51200 ]; then  # Warn if file > 50KB
+        log_warning "Large file referenced: $file_ref (${file_size} bytes)"
+      fi
+
+      log_info "Loading referenced file: $file_ref (${file_size} bytes)"
+      context_output+="## Referenced: $file_ref\n\n"
+      context_output+="$(cat "$file_path")\n\n"
+      ((files_loaded++))
+      ((total_context_size+=file_size))
+
+      # Check total context size
+      if [ $total_context_size -gt $max_context_size ]; then
+        log_warning "Total context size (${total_context_size} bytes) exceeds recommended limit (${max_context_size} bytes)"
       fi
     done
   fi
 
   context_output+="──────────────────────────────────────────────────────────\n"
 
-  # Save context to temporary file for skills to consume
-  local context_file="/tmp/faber-cloud-hook-context-${hook_name}.txt"
+  # Create secure temporary file with cleanup trap
+  local context_file=$(mktemp "/tmp/faber-cloud-hook-context-${hook_name}.XXXXXX")
+
+  # Set cleanup trap for this file
+  trap "rm -f '$context_file'" EXIT
+
   echo -e "$context_output" > "$context_file"
 
-  log_success "Prompt hook '$hook_name' processed (loaded $files_loaded file(s))"
+  log_success "Prompt hook '$hook_name' processed (loaded $files_loaded file(s), ${total_context_size} bytes total)"
   log_info "Context saved to: $context_file"
 
   echo "───────────────────────────────────────────────────────────"

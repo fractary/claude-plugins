@@ -797,432 +797,105 @@ Commands invoke agents using **declarative statements** in markdown. Claude Code
 
 ### When to Use Hooks
 
-Hooks enable **project-specific customization** without requiring code changes or wrapper commands. Use hooks when:
+Hooks enable **project-specific customization** without requiring code changes or wrapper commands.
 
-- Projects need to inject project-specific context (standards, patterns, constraints)
+Use hooks when:
+- Projects need to inject project-specific context (standards, patterns, documentation)
 - Different environments require different behavior (dev vs prod)
-- Custom validation or setup is needed before/after operations
-- External systems need to be notified of lifecycle events
+- Custom validation or setup scripts are needed before/after operations
+- External systems need notifications at lifecycle points
 
 ### Hook Types
 
-**Four hook types supported:**
+The hook system supports **three types of hooks**:
 
-1. **Context Hooks**: Inject documentation and standards into agent context
-2. **Prompt Hooks**: Inject short reminders or warnings
-3. **Script Hooks**: Execute shell scripts at lifecycle points
-4. **Skill Hooks**: Invoke Claude Code skills for complex operations
+1. **Prompt Hooks**: Flexible text-based guidance that can reference documentation, suggest scripts, or invoke skills
+2. **Script Hooks**: Execute shell scripts at lifecycle points
+3. **Skill Hooks**: Invoke Claude Code skills for complex operations
 
-### Hook Configuration Structure
+### Implementation
 
-**Location:**
-- FABER: `.faber.config.toml` → `[hooks]` section
-- Plugins: `.fractary/plugins/{plugin}/config.json` → `hooks` object
+**Primary Implementation**: faber-cloud plugin
+- File: `plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh`
+- Lifecycle points: pre-plan, post-plan, pre-deploy, post-deploy, pre-destroy, post-destroy
 
-**TOML Format (FABER):**
+**Documentation**: See `plugins/faber-cloud/docs/guides/HOOKS.md` for complete guide
 
-```toml
-[[hooks.{phase}.{timing}]]
-type = "context" | "prompt" | "script" | "skill"
-name = "hook-name"
-required = true | false
-failureMode = "stop" | "warn"
-timeout = 300
-environments = ["dev", "test", "prod"]  # Optional: filter by environment
+### Configuration
 
-# Context hook fields
-prompt = "Apply these standards when..."
-references = [
-  { path = "docs/STANDARDS.md", description = "Project standards" },
-  { path = "docs/PATTERNS.md", description = "Patterns", sections = ["API Design"] }
-]
-weight = "critical" | "high" | "medium" | "low"
+**Location**: `.fractary/plugins/{plugin}/config.json` → `hooks` object
 
-# Prompt hook fields
-content = "⚠️  PRODUCTION - Extra caution required"
-weight = "critical"
-
-# Script hook fields
-path = "./scripts/setup.sh"
-description = "Setup environment"
-
-# Skill hook fields
-# (name is used as skill name)
-description = "Run validation checks"
-```
-
-**JSON Format (Plugin Configs):**
-
+**Basic Format**:
 ```json
 {
   "hooks": {
-    "{phase}": {
-      "pre": [
-        {
-          "type": "context",
-          "name": "standards",
-          "references": [{"path": "docs/STANDARDS.md", "description": "Standards"}],
-          "weight": "high"
-        }
-      ],
-      "post": [
-        {
-          "type": "script",
-          "name": "notify",
-          "path": "./scripts/notify.sh",
-          "required": false
-        }
-      ]
-    }
+    "pre-deploy": [
+      {
+        "type": "prompt",
+        "name": "deployment-guidance",
+        "prompt": "Review docs/DEPLOYMENT.md before proceeding. Run ./scripts/validate.sh to check readiness."
+      },
+      {
+        "type": "script",
+        "path": "./scripts/build.sh",
+        "required": true,
+        "timeout": 300
+      },
+      {
+        "type": "skill",
+        "name": "security-scanner",
+        "required": true,
+        "timeout": 600
+      }
+    ]
   }
 }
 ```
 
-### Hook Timing
-
-**Pre-phase hooks**: Execute **before** phase/operation starts
-- Context injection (standards, patterns, constraints)
-- Prompt injection (reminders, warnings)
-- Setup scripts (environment prep, validation)
-- Pre-flight checks
-
-**Post-phase hooks**: Execute **after** phase/operation completes
-- Validation scripts (quality gates, tests)
-- Notification scripts (Slack, email, status updates)
-- Cleanup scripts
-- Post-operation validation
-
-### Hook Execution Order
-
-**Pre-phase**:
-1. Context hooks (by weight: critical → high → medium → low)
-2. Prompt hooks (by weight: critical → high → medium → low)
-3. Script hooks (in declared order)
-4. Skill hooks (in declared order)
-
-**Post-phase**:
-1. Script hooks (in declared order)
-2. Skill hooks (in declared order)
-
-### Context Hook Pattern (NEW)
-
-**Purpose**: Inject project-specific documentation and standards into agent context
-
-**Configuration**:
-```toml
-[[hooks.architect.pre]]
-type = "context"
-name = "architecture-standards"
-prompt = "Follow our architecture patterns when designing solutions."
-references = [
-  {
-    path = "docs/ARCHITECTURE.md",
-    description = "Architecture standards",
-    sections = ["Microservices", "API Design"]  # Optional: extract specific sections
-  }
-]
-weight = "high"
-```
-
-**Result**: Agent receives formatted context block:
-```markdown
-═══════════════════════════════════════════════════════════
-📋 PROJECT CONTEXT: architecture-standards
-Priority: high
-═══════════════════════════════════════════════════════════
-
-Follow our architecture patterns when designing solutions.
-
-## Referenced Documentation
-
-### Architecture standards
-**Source**: `docs/ARCHITECTURE.md`
-**Sections**: Microservices, API Design
-
-[... content of docs/ARCHITECTURE.md, sections extracted ...]
-
-═══════════════════════════════════════════════════════════
-```
-
-**Use Cases**:
-- Coding standards for build phase
-- Architecture patterns for design phase
-- Testing requirements for evaluate phase
-- Release checklists for release phase
-
-### Prompt Hook Pattern (NEW)
-
-**Purpose**: Inject short reminders or critical warnings
-
-**Configuration**:
-```toml
-[[hooks.release.pre]]
-type = "prompt"
-name = "production-warning"
-content = """
-⚠️  PRODUCTION DEPLOYMENT
-
-Verify:
-- All tests pass
-- Migrations are backward compatible
-- Team notified in #deployments
-"""
-weight = "critical"
-environments = ["prod"]  # Only for production!
-```
-
-**Result**: Agent receives formatted prompt:
-```markdown
-─────────────────────────────────────────────────────────
-⚠️  CRITICAL PROMPT: production-warning
-Priority: critical
-─────────────────────────────────────────────────────────
-
-⚠️  PRODUCTION DEPLOYMENT
-
-Verify:
-- All tests pass
-- Migrations are backward compatible
-- Team notified in #deployments
-
-─────────────────────────────────────────────────────────
-```
-
-**Use Cases**:
-- Environment-specific warnings
-- Critical safety reminders
-- Quick guidance without external files
-- Technology constraints
-
-### Script Hook Pattern
-
-**Purpose**: Execute shell scripts at lifecycle points
-
-**Configuration**:
-```toml
-[[hooks.build.post]]
-type = "script"
-name = "run-tests"
-path = "./scripts/run-tests.sh"
-description = "Run test suite"
-required = true
-failureMode = "stop"
-timeout = 600
-```
-
-**Environment Variables Passed**:
-```bash
-FABER_PHASE="build"
-FABER_HOOK_TYPE="post"
-FABER_ENVIRONMENT="dev"
-FABER_WORK_ITEM_ID="123"
-FABER_PROJECT_ROOT="/path/to/project"
-FABER_CONFIG_PATH="/path/to/.faber.config.toml"
-```
-
-**Use Cases**:
-- Build scripts
-- Test execution
-- Deployment preparation
-- Notifications
-- Cleanup
-
-### Skill Hook Pattern
-
-**Purpose**: Invoke Claude Code skills for complex validation or operations
-
-**Configuration**:
-```toml
-[[hooks.evaluate.post]]
-type = "skill"
-name = "security-scanner"
-description = "Run security scanning on code"
-required = true
-failureMode = "stop"
-timeout = 600
-```
-
-**Skill Interface**: Skills receive WorkflowContext JSON:
-```json
-{
-  "workflowType": "faber",
-  "workflowPhase": "evaluate",
-  "hookType": "post",
-  "pluginName": "faber",
-  "environment": "dev",
-  "projectRoot": "/path/to/project",
-  "workItem": {
-    "id": "123",
-    "type": "feature"
-  },
-  "flags": {
-    "dryRun": false,
-    "autonomyLevel": "guarded"
-  }
-}
-```
-
-**Skill Response**: Skills return WorkflowResult JSON:
-```json
-{
-  "success": true,
-  "message": "Security scan passed",
-  "data": {
-    "vulnerabilities": 0
-  },
-  "errors": []
-}
-```
-
-**Use Cases**:
-- Complex validation requiring AI
-- Custom code review checks
-- Architecture compliance validation
-- Data quality checks
-
-### Environment Filtering
-
-**Filter hooks by environment**:
-
-```toml
-[[hooks.release.pre]]
-type = "prompt"
-name = "production-warning"
-content = "⚠️  PRODUCTION - Extra caution!"
-environments = ["prod", "production"]  # Only for these environments
-```
-
-**Behavior**:
-- If `environments` specified: Hook only executes if current environment in list
-- If `environments` empty/null: Hook executes in all environments
-- Common values: `["dev"]`, `["test", "staging"]`, `["prod"]`
-
-### Failure Handling
-
-**Required vs Optional**:
-- `required: true` → Hook must succeed for workflow to continue
-- `required: false` → Hook failure logged but workflow continues
-
-**Failure Modes**:
-- `failureMode: "stop"` → Stop workflow, return error
-- `failureMode: "warn"` → Log warning, continue workflow
-
-**Combinations**:
-- `required: true, failureMode: "stop"` → Critical hook, must pass
-- `required: true, failureMode: "warn"` → Important hook, log if fails but continue
-- `required: false, failureMode: "warn"` → Optional hook, always continue
-
-### Weight/Priority System
-
-**For context and prompt hooks**:
-
-- `critical` → Always included, shown first, never pruned
-- `high` → Always included, high priority
-- `medium` → Included (default), medium priority
-- `low` → Included if context budget allows, may be pruned
-
-**Use critical for**:
-- Production safety warnings
-- Absolute must-follow rules
-- Critical security requirements
-
-**Use high for**:
-- Architecture standards
-- Coding standards
-- Important patterns
-
-**Use medium for**:
-- General guidance (default)
-- Nice-to-have context
-
-**Use low for**:
-- Optional context that may be pruned
-
-### Hook Executor Skill
-
-**Every plugin with hooks needs a hook executor skill**:
-
-**File**: `skills/hook-executor/SKILL.md`
-
-**Responsibilities**:
-1. Validate hook configuration
-2. Filter hooks by environment
-3. Execute hooks in correct order
-4. Load referenced documents (context hooks)
-5. Format context/prompt injection blocks
-6. Execute scripts with proper environment
-7. Invoke skills with WorkflowContext
-8. Handle failures per configuration
-9. Track execution state
-10. Return results to manager
-
-**Reusable Implementation**:
-- FABER implementation: `plugins/faber/skills/hook-executor/`
-- Can be adapted/reused by other plugins
-- Scripts: `load-context.sh`, `execute-script-hook.sh`, `format-context-injection.sh`
-
-### Manager Integration
-
-**Managers must**:
-
-1. Load hooks configuration
-2. Execute pre-phase hooks before phase execution
-3. Capture context injection from hooks
-4. Pass injected context to phase skills
-5. Execute post-phase hooks after phase completion
-6. Handle hook failures
-7. Update session/state with hook results
-
-**Example integration pattern**:
-
-```bash
-# Before phase execution
-execute_phase_hooks "architect" "pre" "$PHASE_CONTEXT"
-HOOK_EXIT=$?
-if [ $HOOK_EXIT -ne 0 ]; then
-    echo "❌ Pre-architect hooks failed"
-    exit 1
-fi
-
-# Get context injection
-CONTEXT_INJECTION=$(get_hook_context_injection)
-
-# Execute phase with injected context
-Use skill with context and injected_context
-
-# After phase execution
-execute_phase_hooks "architect" "post" "$PHASE_CONTEXT"
-```
-
-### Skill Modifications for Hooks
-
-**Skills that receive injected context must**:
-
-1. Accept `injected_context` parameter in inputs
-2. Document injected context in `<CONTEXT>` section
-3. Apply injected context when executing
-4. Add "Step 0: Process Injected Context" to workflow
+### Prompt Hooks (Flexible Context Injection)
+
+**Purpose**: Provide natural language guidance that can reference documentation
+
+**Key Features**:
+- Automatic file reference detection (*.md, *.txt, *.json, etc.)
+- Context injection into agent workflows
+- Natural language instructions
+- Can combine docs, scripts, skills in one prompt
 
 **Example**:
-
-```markdown
-<INPUTS>
-... existing inputs ...
-
-**Optional**:
-- `injected_context` (string): Project-specific context from hooks
-</INPUTS>
-
-<WORKFLOW>
-## Step 0: Process Injected Context
-
-If `injected_context` provided:
-1. Read the injected context carefully
-2. Apply project-specific guidance/standards/constraints
-3. Treat as authoritative project requirements
-
-## Step 1: ... (continue with normal workflow)
+```json
+{
+  "type": "prompt",
+  "name": "architecture-context",
+  "prompt": "Apply the standards from docs/ARCHITECTURE.md when reviewing changes. Pay attention to naming conventions in docs/NAMING.md.",
+  "environments": ["prod"]
+}
 ```
+
+**How it works**:
+1. Hook executor detects file references in prompt text
+2. Loads referenced files from project
+3. Builds context block with prompt + file contents
+4. Saves to temp file for skills to consume
+5. Skills read context and apply guidance
+
+### Extension to FABER
+
+FABER workflows can use hooks in `.faber.config.toml`:
+
+```toml
+[[hooks.architect.pre]]
+type = "prompt"
+name = "design-standards"
+prompt = "Follow architecture patterns in docs/ARCHITECTURE.md"
+
+[[hooks.build.post]]
+type = "script"
+path = "./scripts/test-all.sh"
+required = true
+```
+
+Hook points: frame, architect, build, evaluate, release (pre/post)
 
 ### Benefits
 
@@ -1230,28 +903,20 @@ If `injected_context` provided:
 - No wrapper commands needed
 - Configuration-driven customization
 - Environment-specific behavior
-- Discoverable (explicit in config)
+- Project documentation available in workflows
 
 **For Plugin Authors**:
+- Consistent pattern across plugins
 - Separation of concerns (core vs project-specific)
-- Reusable across projects
-- Easy maintenance
-- Testable
+- Reusable implementation (`execute-hooks.sh`)
+- Well-documented pattern
 
-**For the Ecosystem**:
-- Consistent hook pattern across plugins
-- Reduced custom code
-- Better defaults with project customization
+### See Also
 
-### Example: FABER with Hooks
-
-**Complete example**: See `plugins/faber/config/faber.example-with-hooks.toml`
-
-**Guides**:
-- Hook integration: `plugins/faber/docs/guides/HOOKS_INTEGRATION_GUIDE.md`
-- Eliminating wrappers: `plugins/faber/docs/guides/ELIMINATING_WRAPPER_COMMANDS.md`
-
-**Specification**: See `docs/specs/SPEC-0026-unified-hooks-context-injection.md`
+- Complete hook guide: `plugins/faber-cloud/docs/guides/HOOKS.md`
+- Example configurations:
+  - `plugins/faber-cloud/templates/config/hooks-with-prompts-example.json`
+  - `plugins/faber/config/faber-with-hooks.example.toml`
 
 ---
 
