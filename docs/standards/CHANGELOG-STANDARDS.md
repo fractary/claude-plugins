@@ -2,7 +2,7 @@
 
 Standards for maintaining changelogs across the Fractary plugin ecosystem.
 
-**Version**: 1.0 (2025-01-15)
+**Version**: 1.0 (2025-11-12)
 
 ## Overview
 
@@ -825,6 +825,6 @@ Before releasing a changelog:
 
 ---
 
-**Standards Version**: 1.0 (2025-01-15)
-**Last Updated**: 2025-01-15
-**Next Review**: 2025-04-15
+**Standards Version**: 1.0 (2025-11-12)
+**Last Updated**: 2025-11-12
+**Next Review**: 2026-02-12

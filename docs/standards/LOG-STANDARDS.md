@@ -2,7 +2,7 @@
 
 Standards for logging and log management across the Fractary plugin ecosystem.
 
-**Version**: 1.0 (2025-01-15)
+**Version**: 1.0 (2025-11-12)
 
 ## Overview
 
@@ -616,39 +616,30 @@ Audit reports assess compliance with standards and identify gaps.
 
 ### Audit Workflow
 
-**Standard audit workflow** (4 phases + approval gate):
+**Standard two-phase audit workflow** (aligned with fractary-docs and fractary-logs patterns):
 
 ```
-Phase 1: Discovery (Read-Only Analysis)
+Phase 1: Analysis & Presentation (Automatic)
   ├─ Load configuration and context
   ├─ Scan project structure
   ├─ Identify current state
   ├─ Compare against standards
-  └─ Generate discovery data (JSON)
-
-Phase 1b: Present Findings & Await Approval ⚠️
-  ├─ Show summary of findings
-  ├─ Present recommendations
-  ├─ Wait for user approval to proceed
-  └─ User decides: approve or stop
-
-Phase 2: Generate Audit Report (After Approval)
+  ├─ Generate discovery data (JSON)
   ├─ Create detailed audit report
-  ├─ Document gaps by priority
-  └─ Save to /logs/audits/audit-{timestamp}.md
+  ├─ Present summary of findings
+  ├─ Display recommendations by priority
+  └─ ⏸️  PAUSE for user approval
 
-Phase 3: Generate Remediation Spec (After Approval)
+Phase 2: Specification & Tracking (After Approval)
   ├─ Invoke spec-manager agent
+  ├─ Generate remediation specification
   ├─ Create actionable implementation plan
   ├─ Include copy/paste commands
-  └─ Save to /specs/{type}-remediation-{timestamp}.md
-
-Phase 4: Create Tracking (Optional)
-  ├─ Create GitHub issues for remediations
-  └─ Link issues to spec
+  ├─ Save to /specs/{type}-remediation-{timestamp}.md
+  └─ Optionally create GitHub issues for tracking
 ```
 
-**Approval Gate**: User must explicitly approve Phase 1 findings before proceeding to Phases 2-4. This prevents skipping the review step.
+**Approval Gate**: Phase 1 completes with findings presentation and pauses for user approval. User reviews the audit report and decides whether to proceed with Phase 2 (specification generation and tracking) or stop. This ensures users maintain control over when remediation plans are created.
 
 ### Audit Report Structure
 
@@ -1212,6 +1203,6 @@ Before committing log management configuration:
 
 ---
 
-**Standards Version**: 1.0 (2025-01-15)
-**Last Updated**: 2025-01-15
-**Next Review**: 2025-04-15
+**Standards Version**: 1.0 (2025-11-12)
+**Last Updated**: 2025-11-12
+**Next Review**: 2026-02-12
