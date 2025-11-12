@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:branch-delete
 description: Delete a Git branch (local, remote, or both)
-argument-hint: <branch_name> [--location <where>] [--force]
+argument-hint: <branch_name> [--location <where>] [--force] [--worktree-cleanup]
 ---
 
 <CONTEXT>
@@ -77,6 +77,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 **Optional Arguments**:
 - `--location` (enum): Where to delete the branch. Must be one of: `local`, `remote`, `both` (default: local)
 - `--force` (boolean flag): Force delete unmerged branch. No value needed, just include the flag
+- `--worktree-cleanup` (boolean flag): Automatically clean up worktree for deleted branch. No value needed, just include the flag. If not provided and worktree exists, user will be prompted
 
 **Maps to**: delete-branch
 

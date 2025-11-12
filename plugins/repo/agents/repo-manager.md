@@ -168,6 +168,17 @@ For other operations:
 - Return combined results from both operations
 - If commit fails, do not attempt push
 
+**Special handling for merge-pr with worktree cleanup:**
+- After PR is merged successfully
+- Check if `worktree_cleanup` parameter is provided:
+  - If `worktree_cleanup` is true: Automatically invoke worktree-manager to remove worktree
+  - If `worktree_cleanup` is false/not provided: Check if worktree exists for merged branch
+    - If worktree exists: Present proactive cleanup prompt using AskUserQuestion tool
+      - Option 1: "Yes, remove it now" → invoke worktree-manager to remove
+      - Option 2: "No, keep it for now" → skip cleanup
+      - Option 3: "Show me the cleanup command" → display `/repo:worktree-remove <branch>` command
+- This reinforces cleanup best practices without being intrusive
+
 If validation fails:
 ```
 RETURN: {

@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-merge
 description: Merge a pull request
-argument-hint: <pr_number> [--strategy <strategy>] [--delete-branch]
+argument-hint: <pr_number> [--strategy <strategy>] [--delete-branch] [--worktree-cleanup]
 ---
 
 <CONTEXT>
@@ -88,13 +88,14 @@ This command follows the **space-separated** argument syntax (consistent with wo
 **Optional Arguments**:
 - `--strategy` (enum): Merge strategy. Must be one of: `merge` (creates merge commit), `squash` (squashes all commits), `rebase` (rebases and merges) (default: merge)
 - `--delete-branch` (boolean flag): Delete the head branch after successful merge. No value needed, just include the flag
+- `--worktree-cleanup` (boolean flag): Automatically clean up worktree for merged branch. No value needed, just include the flag. If not provided and worktree exists, user will be prompted
 
 **Maps to**: merge-pr
 
 **Example**:
 ```
-/repo:pr-merge 456 --strategy squash --delete-branch
-→ Invoke agent with {"operation": "merge-pr", "parameters": {"pr_number": "456", "strategy": "squash", "delete_branch": true}}
+/repo:pr-merge 456 --strategy squash --delete-branch --worktree-cleanup
+→ Invoke agent with {"operation": "merge-pr", "parameters": {"pr_number": "456", "strategy": "squash", "delete_branch": true, "worktree_cleanup": true}}
 ```
 </ARGUMENT_PARSING>
 
@@ -113,6 +114,18 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Merge and delete branch
 /repo:pr-merge 456 --delete-branch
+
+# Merge with worktree cleanup
+/repo:pr-merge 456 --strategy squash --delete-branch --worktree-cleanup
+
+# Without --worktree-cleanup flag (prompts if worktree exists)
+/repo:pr-merge 456
+# If worktree exists, displays:
+#   🧹 Worktree Cleanup Reminder
+#   Would you like to clean up the worktree for feat/456-my-feature?
+#   1. Yes, remove it now
+#   2. No, keep it for now
+#   3. Show me the cleanup command
 ```
 </EXAMPLES>
 
@@ -130,16 +143,20 @@ After parsing arguments, invoke the repo-manager agent using declarative syntax:
   "parameters": {
     "pr_number": "456",
     "strategy": "squash",
-    "delete_branch": true
+    "delete_branch": true,
+    "worktree_cleanup": false
   }
 }
 ```
 
 The repo-manager agent will:
 1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
+2. Route to pr-manager skill for merge operation
+3. Execute platform-specific merge logic (GitHub/GitLab/Bitbucket)
+4. If worktree_cleanup not provided but worktree exists:
+   - Present proactive cleanup prompt (3 options)
+   - Execute cleanup if user selects option 1
+5. Return structured response
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>
@@ -183,7 +200,34 @@ Reasons: merge conflicts, required reviews missing, CI checks failing
 - Get required approvals
 - Resolve merge conflicts
 - Use `--delete-branch` to keep repository clean
+- Use `--worktree-cleanup` to remove associated worktrees
 - Choose strategy based on team conventions
+
+## Worktree Cleanup
+
+When a PR is merged, the associated worktree (if any) should be cleaned up to free disk space and prevent accumulation.
+
+**Automatic cleanup** (with flag):
+```bash
+/repo:pr-merge 456 --worktree-cleanup
+```
+
+**Proactive prompting** (without flag):
+If no `--worktree-cleanup` flag is provided and a worktree exists for the merged branch, the system will prompt:
+
+```
+🧹 Worktree Cleanup Reminder
+A worktree exists for branch feat/456-my-feature:
+  Path: ../repo-wt-feat-456-my-feature
+  Status: Safe to remove (no uncommitted changes)
+
+Would you like to clean up this worktree?
+  1. Yes, remove it now
+  2. No, keep it for now
+  3. Show me the cleanup command
+```
+
+This reinforces cleanup best practices while giving users control.
 
 ## Platform Support
 
