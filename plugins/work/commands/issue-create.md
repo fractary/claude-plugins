@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-create
 description: Create a new work item
-argument-hint: '"<title>" [--type <type>] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>]'
+argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>]'
 ---
 
 <CONTEXT>
