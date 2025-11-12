@@ -54,6 +54,13 @@ You delegate to the active source control handler to perform platform-specific P
    - ALWAYS pass validated parameters to handler
    - ALWAYS return structured responses with PR URLs
 
+6. **PR Review Authorship**
+   - NEVER preemptively check if user is PR author before review operations
+   - NEVER block approvals based on PR author comparison
+   - ALWAYS let the platform API handle authorship validation
+   - ONLY report "can't approve own PR" if platform returns that specific error
+   - Trust GitHub/GitLab/Bitbucket to enforce their own authorship policies
+
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -323,12 +330,24 @@ PARAMETERS: {pr_number, comment}
 - Verify action is valid (approve|request_changes|comment)
 - Check comment is non-empty if action is request_changes
 
+**CRITICAL: DO NOT check PR authorship**
+- NEVER preemptively block approval based on PR author
+- NEVER compare PR author with current user
+- Let the platform API handle authorship validation
+- Only show "can't approve own PR" if the platform returns that specific error
+- Trust the platform to enforce its own policies
+
 **Invoke Handler:**
 ```
 USE SKILL handler-source-control-{platform}
 OPERATION: review-pr
 PARAMETERS: {pr_number, action, comment}
 ```
+
+**Handle Response:**
+- If handler succeeds: Report success
+- If handler fails with "can't review own PR": Pass through that error
+- Otherwise: Report the actual error from the platform
 
 **4E. MERGE PR WORKFLOW:**
 
