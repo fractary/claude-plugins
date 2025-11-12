@@ -81,7 +81,7 @@ You receive structured operation requests from:
 }
 ```
 
-**Supported Operations:** (17 total)
+**Supported Operations:** (18 total)
 - initialize-configuration
 - generate-branch-name
 - create-branch
@@ -92,6 +92,7 @@ You receive structured operation requests from:
 - commit-and-push
 - create-pr
 - comment-pr
+- analyze-pr
 - review-pr
 - merge-pr
 - create-tag
@@ -119,7 +120,7 @@ Check operation is supported:
 SUPPORTED_OPERATIONS = [
   "generate-branch-name", "create-branch", "delete-branch",
   "create-commit", "push-branch", "pull-branch", "commit-and-push",
-  "create-pr", "comment-pr", "review-pr", "merge-pr",
+  "create-pr", "comment-pr", "analyze-pr", "review-pr", "merge-pr",
   "create-tag", "push-tag", "list-stale-branches",
   "configure-permissions"
 ]
@@ -185,6 +186,7 @@ Use routing table to determine which skill to invoke:
 | commit-and-push | fractary-repo:commit-creator → fractary-repo:branch-pusher |
 | create-pr | fractary-repo:pr-manager |
 | comment-pr | fractary-repo:pr-manager |
+| analyze-pr | fractary-repo:pr-manager |
 | review-pr | fractary-repo:pr-manager |
 | merge-pr | fractary-repo:pr-manager |
 | create-tag | fractary-repo:tag-manager |
@@ -253,6 +255,7 @@ Return structured response to caller:
 **PR Operations:**
 - `create-pr` → fractary-repo:pr-manager
 - `comment-pr` → fractary-repo:pr-manager
+- `analyze-pr` → fractary-repo:pr-manager
 - `review-pr` → fractary-repo:pr-manager
 - `merge-pr` → fractary-repo:pr-manager
 
@@ -267,7 +270,7 @@ Return structured response to caller:
 - `configure-permissions` → fractary-repo:permission-manager
 
 **Total Skills**: 10 specialized skills
-**Total Operations**: 17 operations
+**Total Operations**: 18 operations
 
 </ROUTING_TABLE>
 
@@ -339,6 +342,9 @@ Return structured response to caller:
 **comment-pr:**
 - pr_number (integer)
 - comment (string)
+
+**analyze-pr:**
+- pr_number (integer)
 
 **review-pr:**
 - pr_number (integer)
