@@ -122,16 +122,18 @@ The audit produces:
 
 ### Phase 1 Outputs (Always Generated)
 
-**Discovery Reports (JSON)**:
+**Temporary Discovery Reports (JSON)** - Stored in `logs/audits/tmp/`:
 - `discovery-docs.json` - Documentation inventory
 - `discovery-structure.json` - Organization analysis
 - `discovery-frontmatter.json` - Front matter coverage
 - `discovery-quality.json` - Quality assessment
+- **Note**: These files are temporary and cleaned up after final report generation
 
 **Findings Presentation (Interactive)**:
 - Detailed issue breakdown by priority
 - Proposed remediation actions
 - Estimated effort
+- Temporary discovery directory path
 - User decision prompt
 
 ### Phase 2 Outputs (Generated After "Save as Spec")
@@ -140,6 +142,14 @@ The audit produces:
 - Created automatically for remediation tracking
 - Contains audit summary and findings
 - Labels: `documentation`, `remediation`, `automated-audit`
+
+**Final Audit Report (Markdown)** - Permanent, tracked by logs-manager:
+- `logs/audits/{timestamp}-audit-report.md`
+  - Summary with quality score and compliance percentage
+  - Key findings by priority
+  - References to tracking issue and remediation spec
+  - Next steps
+  - Managed by `fractary-logs:logs-manager` for trend analysis
 
 **Remediation Specification (Markdown)**:
 - `specs/spec-{issue_number}-documentation-remediation.md` - Generated via fractary-spec:spec-manager
@@ -150,6 +160,9 @@ The audit produces:
   - Executable commands
   - Verification steps
   - Linked to GitHub tracking issue
+
+**Cleanup**:
+- Temporary discovery files in `logs/audits/tmp/` are removed after report generation
 
 ## Examples
 
@@ -241,6 +254,8 @@ cat specs/spec-456-documentation-remediation.md
 Step 1: Loading Configuration
   📖 Configuration: .fractary/plugins/docs/config/config.json
   📖 Project Standards: docs/DOCUMENTATION-STANDARDS.md
+  📁 Temporary files: logs/audits/tmp/
+  📄 Final report: logs/audits/2025-01-15-143022-audit-report.md
   ✅ Configuration loaded
 
 Step 2: Discovery
@@ -248,6 +263,7 @@ Step 2: Discovery
   🔍 Analyzing structure...
   🔍 Checking front matter...
   🔍 Assessing quality...
+  📝 Writing temporary files to: logs/audits/tmp/
   ✅ Discovery complete
 
 Step 3: Analysis
@@ -290,16 +306,29 @@ Step 6: Generate Spec
   📝 Creating formal specification...
   ✅ specs/spec-456-documentation-remediation.md generated
 
-Step 7: Final Summary
+Step 7: Register Audit Logs
+  📋 Registering audit logs via logs-manager agent...
+  📋 Using fractary-logs:logs-manager ✓
+  ✅ Audit run registered in log tracking system
+
+Step 8: Generate Final Report
+  📝 Creating permanent audit report...
+  📝 Writing to: logs/audits/2025-01-15-143022-audit-report.md
+  🧹 Cleaning up temporary files from logs/audits/tmp/
+  ✅ Final report generated
+
+Step 9: Final Summary
   📁 Outputs:
-     - Spec: specs/spec-456-documentation-remediation.md
-     - Issue: #456 (tracking)
-     - Reports: .fractary/audit/discovery-*.json
+     - Audit Report: logs/audits/2025-01-15-143022-audit-report.md
+     - Remediation Spec: specs/spec-456-documentation-remediation.md
+     - Tracking Issue: #456
 
   💡 Next Steps:
-     1. Review remediation spec
-     2. Follow implementation plan
-     3. Verify with /fractary-docs:validate
+     1. Review audit report: logs/audits/2025-01-15-143022-audit-report.md
+     2. Review remediation spec: specs/spec-456-documentation-remediation.md
+     3. Follow implementation plan
+     4. Verify with /fractary-docs:validate
+     5. View audit history: logs/audits/
 ```
 
 ### Workflow Without Spec Plugin
@@ -414,17 +443,28 @@ Ensure documentation is release-ready:
 ```
 project/
 ├── .fractary/
-│   └── audit/
-│       ├── discovery-docs.json
-│       ├── discovery-structure.json
-│       ├── discovery-frontmatter.json
-│       ├── discovery-quality.json
-│       └── spec-plugin-status.txt
+│   └── state/
+│       ├── audit-spec-plugin-status.txt  # Workflow state
+│       ├── audit-temp-dir.txt
+│       ├── audit-report-path.txt
+│       └── audit-timestamp.txt
+├── logs/
+│   └── audits/
+│       ├── 2025-01-15-143022-audit-report.md  # First audit report
+│       ├── 2025-01-22-091530-audit-report.md  # Second audit report
+│       └── tmp/                                # Temporary discovery files
+│           └── (cleaned up after each audit)
 └── specs/
-    └── spec-{issue_number}-documentation-remediation.md
+    ├── spec-123-documentation-remediation.md  # From first audit
+    └── spec-456-documentation-remediation.md  # From second audit
 ```
 
-**Note**: The spec file is generated in the `specs/` directory (default location, configurable via spec plugin). Discovery reports and state files remain in `.fractary/audit/`.
+**Note**:
+- **Permanent audit reports**: `logs/audits/{timestamp}-audit-report.md` (managed by logs-manager)
+- **Temporary discovery files**: `logs/audits/tmp/` (cleaned up after each audit)
+- **Spec files**: `specs/` directory (configurable via spec plugin)
+- **Workflow state**: `.fractary/state/` (ephemeral, not logged)
+- Each audit produces one permanent report with unique timestamp
 
 ### Remediation Specification
 
@@ -453,26 +493,61 @@ Follow the remediation spec to address issues:
    cat specs/spec-{issue_number}-documentation-remediation.md
    ```
 
-2. **Execute high-priority fixes**
+2. **Review audit reports** (useful for understanding findings)
+   ```bash
+   # View latest audit report
+   cat logs/audits/$(ls -t logs/audits/*.md | head -1)
+
+   # List all audit reports
+   ls -ltr logs/audits/*.md
+   ```
+
+3. **Execute high-priority fixes**
    - Follow Phase 1 in spec
    - Copy/paste commands or execute manually
    - Verify each fix
 
-3. **Schedule remaining work**
+4. **Schedule remaining work**
    - Medium priority: Plan for next sprint
    - Low priority: Backlog for future improvement
 
-4. **Verify compliance**
+5. **Verify compliance**
    ```bash
    /fractary-docs:validate
    /fractary-docs:link check
    ```
 
-5. **Commit improvements**
+6. **Commit improvements**
    ```bash
    git add .
    git commit -m "docs: address audit findings"
    ```
+
+## Viewing Audit History
+
+Since audits are logged over time with timestamps, you can track compliance trends:
+
+```bash
+# List all audit runs (sorted by date)
+ls -ltr logs/audits/*.md
+
+# View a specific audit report
+cat logs/audits/2025-01-15-143022-audit-report.md
+
+# View the latest audit report
+cat logs/audits/$(ls -t logs/audits/*.md | head -1)
+
+# Compare audit reports over time to track improvements
+diff logs/audits/2025-01-15-143022-audit-report.md logs/audits/2025-01-22-091530-audit-report.md
+```
+
+**Note**: Temporary discovery JSON files in `logs/audits/tmp/` are cleaned up after each audit. Only the permanent markdown audit reports with timestamps are retained for historical tracking.
+
+**Trend Analysis**: The logs-manager agent tracks audit metadata, enabling you to:
+- See how documentation quality improves over time
+- Identify recurring compliance issues
+- Track remediation progress
+- Generate compliance reports
 
 ## Comparison: Audit vs Adopt
 
@@ -543,11 +618,13 @@ Before running audit:
 1. Run: `/fractary-docs:audit`
 2. Verify: Findings presentation appears
 3. Action: Choose "Hold Off"
-4. Verify: Discovery reports saved to `.fractary/audit/`
-5. Verify: No spec generated
-6. Verify: No GitHub issue created
+4. Verify: Temporary discovery reports saved to `logs/audits/tmp/`
+5. Verify: No final audit report generated (no permanent `.md` file)
+6. Verify: No spec generated
+7. Verify: No GitHub issue created
+8. Verify: Workflow stops gracefully
 
-**Expected Result:** Findings saved, workflow stops gracefully
+**Expected Result:** Temporary findings saved, no formal spec or report generated, workflow stops gracefully
 
 ### Test Case 4: Missing Spec Plugin
 
