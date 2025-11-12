@@ -659,4 +659,9 @@ Before running audit:
 
 This command invokes the `docs-manager` agent with the `audit` operation.
 
-USE AGENT: docs-manager with operation=audit, project-root from --project-root parameter (defaults to current directory), and execute from --execute parameter (defaults to false)
+USE AGENT: @agent-fractary-docs:docs-manager
+Operation: audit
+Parameters: {
+  project_root: <from --project-root parameter, defaults to current directory>,
+  execute: <from --execute parameter, defaults to false>
+}
