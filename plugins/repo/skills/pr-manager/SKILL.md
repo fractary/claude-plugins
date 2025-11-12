@@ -168,13 +168,22 @@ PARAMETERS: {pr_number}
 **Analyze Response:**
 - Extract PR details (title, description, status, branch names)
 - Extract CI status from statusCheckRollup
+- Extract merge conflict information
 - Parse all comments for code review bot results
 - Parse all reviews for approval status
 - Identify outstanding issues from most recent code review
 
 **Determine Recommendation:**
 
-If CI checks are failing:
+If merge conflicts detected:
+- Recommendation: CANNOT MERGE - Resolve conflicts first
+- List conflicting files (if available)
+- Propose conflict resolution strategy:
+  - Pull latest from base branch into head branch
+  - Resolve conflicts manually
+  - Re-run tests and code review
+
+Else if CI checks are failing:
 - Recommendation: DO NOT APPROVE - Fix CI failures first
 
 Else if code review comments indicate critical issues:
@@ -195,6 +204,10 @@ Author: {author}
 Status: {state}
 ───────────────────────────────────────
 
+🔀 MERGE STATUS:
+{Mergeable status - MERGEABLE, CONFLICTING, or UNKNOWN}
+{If conflicts: list conflicting files}
+
 🔍 CI STATUS:
 {CI check results}
 
@@ -208,20 +221,31 @@ Status: {state}
 {List of unresolved issues, if any}
 
 ✅ RECOMMENDATION:
-{APPROVE or FIX ISSUES FIRST}
+{APPROVE, FIX ISSUES FIRST, or RESOLVE CONFLICTS FIRST}
 
 ───────────────────────────────────────
 📍 SUGGESTED NEXT STEPS:
 
-{If issues exist:}
-1. [FIX ISSUES] Address outstanding code review issues
+{If merge conflicts exist:}
+1. [RESOLVE CONFLICTS] Fix merge conflicts on branch {head_branch}
+   Steps:
+   a. Switch to branch: git checkout {head_branch}
+   b. Pull latest changes: git pull origin {head_branch}
+   c. Merge base branch: git merge origin/{base_branch}
+   d. Resolve conflicts in: {list conflicting files}
+   e. Commit resolution: git commit
+   f. Push changes: git push origin {head_branch}
+   g. Wait for CI to pass and re-analyze: /repo:pr-review {pr_number}
+
+{Else if CI or code review issues exist:}
+1. [FIX ISSUES] Address outstanding issues
    Use: Continue work to fix issues on branch {head_branch}
 
 2. [APPROVE ANYWAY] Approve and merge PR (override issues)
    Use: /repo:pr-review {pr_number} approve
    Then: /repo:pr-merge {pr_number}
 
-{If ready to approve:}
+{Else if ready to approve:}
 1. [APPROVE & MERGE] Approve and merge this PR
    Use: /repo:pr-review {pr_number} approve
    Then: /repo:pr-merge {pr_number}
@@ -364,9 +388,10 @@ Next: {next_action}
 **For Analyze PR:**
 ✅ PR details fetched successfully
 ✅ Comments and reviews retrieved
+✅ Merge conflict status checked
 ✅ CI status analyzed
 ✅ Code review findings summarized
-✅ Recommendation generated
+✅ Recommendation generated (with conflict resolution if needed)
 ✅ Next steps presented to user
 
 **For Create PR:**
@@ -407,6 +432,10 @@ Next: {next_action}
     "author": "username",
     "state": "OPEN",
     "mergeable": "MERGEABLE",
+    "conflicts": {
+      "detected": false,
+      "files": []
+    },
     "reviewDecision": "APPROVED",
     "ci_status": "passing",
     "code_review_summary": "All checks passed",
@@ -534,7 +563,7 @@ The active handler is determined by configuration: `config.handlers.source_contr
 
 <USAGE_EXAMPLES>
 
-**Example 1: Analyze PR**
+**Example 1a: Analyze PR (with conflicts)**
 ```
 INPUT:
 {
@@ -551,6 +580,40 @@ OUTPUT:
   "analysis": {
     "title": "Add CSV export functionality",
     "state": "OPEN",
+    "mergeable": "CONFLICTING",
+    "conflicts": {
+      "detected": true,
+      "files": ["src/export.js", "src/utils.js"]
+    },
+    "ci_status": "pending",
+    "reviewDecision": "REVIEW_REQUIRED",
+    "recommendation": "RESOLVE_CONFLICTS_FIRST"
+  }
+}
+```
+
+**Example 1b: Analyze PR (with code review issues)**
+```
+INPUT:
+{
+  "operation": "analyze-pr",
+  "parameters": {
+    "pr_number": 456
+  }
+}
+
+OUTPUT:
+{
+  "status": "success",
+  "pr_number": 456,
+  "analysis": {
+    "title": "Add CSV export functionality",
+    "state": "OPEN",
+    "mergeable": "MERGEABLE",
+    "conflicts": {
+      "detected": false,
+      "files": []
+    },
     "ci_status": "passing",
     "reviewDecision": "REVIEW_REQUIRED",
     "outstanding_issues": [

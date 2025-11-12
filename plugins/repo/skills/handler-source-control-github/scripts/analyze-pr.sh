@@ -78,12 +78,56 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Extract mergeable state and check for conflicts
+MERGEABLE=$(echo "$PR_DETAILS" | jq -r '.mergeable')
+HEAD_BRANCH=$(echo "$PR_DETAILS" | jq -r '.headRefName')
+BASE_BRANCH=$(echo "$PR_DETAILS" | jq -r '.baseRefName')
+
+# Initialize conflict info
+CONFLICTS_DETECTED="false"
+CONFLICTING_FILES="[]"
+CONFLICT_DETAILS=""
+
+# If not mergeable, try to identify conflicting files
+if [ "$MERGEABLE" = "CONFLICTING" ]; then
+    CONFLICTS_DETECTED="true"
+
+    # Try to fetch the base branch and compare to find conflicts
+    # Note: This requires the branches to be available locally or we fetch them
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+    # Fetch latest changes (silently)
+    git fetch origin "$BASE_BRANCH" 2>/dev/null || true
+    git fetch origin "$HEAD_BRANCH" 2>/dev/null || true
+
+    # Try to get a list of files that would conflict
+    # We do a test merge in a safe way to identify conflicts
+    CONFLICT_CHECK=$(git merge-tree "origin/$BASE_BRANCH" "origin/$HEAD_BRANCH" 2>&1 || true)
+
+    if echo "$CONFLICT_CHECK" | grep -q "changed in both"; then
+        # Extract conflicting files from merge-tree output
+        CONFLICTING_FILES_LIST=$(echo "$CONFLICT_CHECK" | grep "changed in both" | sed 's/.*changed in both$//' | sed 's/^[[:space:]]*//' || echo "")
+
+        if [ -n "$CONFLICTING_FILES_LIST" ]; then
+            # Convert to JSON array
+            CONFLICTING_FILES=$(echo "$CONFLICTING_FILES_LIST" | jq -R -s 'split("\n") | map(select(length > 0))')
+            CONFLICT_DETAILS="Files modified in both branches require manual resolution"
+        fi
+    else
+        # If we can't determine specific files, just note that conflicts exist
+        CONFLICT_DETAILS="Merge conflicts detected. Fetch branches locally to see specific files."
+    fi
+fi
+
 # Combine all data into a structured JSON response
 jq -n \
     --argjson details "$PR_DETAILS" \
     --argjson comments "$PR_COMMENTS" \
     --argjson reviews "$PR_REVIEWS" \
     --argjson review_comments "$PR_REVIEW_COMMENTS" \
+    --arg conflicts_detected "$CONFLICTS_DETECTED" \
+    --argjson conflicting_files "$CONFLICTING_FILES" \
+    --arg conflict_details "$CONFLICT_DETAILS" \
     '{
         status: "success",
         pr: {
@@ -109,7 +153,12 @@ jq -n \
         },
         comments: $comments,
         reviews: $reviews,
-        review_comments: $review_comments
+        review_comments: $review_comments,
+        conflicts: {
+            detected: ($conflicts_detected == "true"),
+            files: $conflicting_files,
+            details: $conflict_details
+        }
     }'
 
 exit 0

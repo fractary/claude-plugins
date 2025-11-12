@@ -367,6 +367,7 @@ Next: {what_calling_skill_should_do}
 - Retrieves all review comments (line-level code review comments)
 - Retrieves all reviews (approve/request changes/comment)
 - Fetches CI status checks
+- Detects merge conflicts and identifies conflicting files
 - Returns comprehensive JSON for analysis
 
 **Example Invocation**:
@@ -401,7 +402,12 @@ Next: {what_calling_skill_should_do}
   },
   "comments": [...],
   "reviews": [...],
-  "review_comments": [...]
+  "review_comments": [...],
+  "conflicts": {
+    "detected": false,
+    "files": [],
+    "details": ""
+  }
 }
 ```
 
