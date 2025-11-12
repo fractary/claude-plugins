@@ -53,21 +53,37 @@ if [[ $MESSAGE_COUNT -gt 100 ]] || [[ $CODE_BLOCK_COUNT -gt 20 ]] || [[ $FILE_CO
     COMPLEXITY="high"
 fi
 
-# Output as JSON
-cat <<EOF
-{
-  "session_id": "$SESSION_ID",
-  "issue_number": "$ISSUE_NUMBER",
-  "issue_title": "$ISSUE_TITLE",
-  "started": "$STARTED",
-  "ended": "$ENDED",
-  "duration_minutes": $DURATION,
-  "duration_formatted": "$DURATION_STR",
-  "status": "$STATUS",
-  "message_count": $MESSAGE_COUNT,
-  "code_block_count": $CODE_BLOCK_COUNT,
-  "file_count": $FILE_COUNT,
-  "error_count": $ERROR_COUNT,
-  "complexity": "$COMPLEXITY"
-}
-EOF
+# Handle empty DURATION (set to 0 if empty for JSON)
+DURATION_NUM="${DURATION:-0}"
+
+# Output as JSON using jq for safe construction (prevents injection/escaping issues)
+jq -n \
+  --arg session_id "$SESSION_ID" \
+  --arg issue_number "$ISSUE_NUMBER" \
+  --arg issue_title "$ISSUE_TITLE" \
+  --arg started "$STARTED" \
+  --arg ended "$ENDED" \
+  --argjson duration_minutes "$DURATION_NUM" \
+  --arg duration_formatted "$DURATION_STR" \
+  --arg status "$STATUS" \
+  --argjson message_count "$MESSAGE_COUNT" \
+  --argjson code_block_count "$CODE_BLOCK_COUNT" \
+  --argjson file_count "$FILE_COUNT" \
+  --argjson error_count "$ERROR_COUNT" \
+  --arg complexity "$COMPLEXITY" \
+  '{
+    session_id: $session_id,
+    issue_number: $issue_number,
+    issue_title: $issue_title,
+    started: $started,
+    ended: $ended,
+    duration_minutes: $duration_minutes,
+    duration_formatted: $duration_formatted,
+    status: $status,
+    message_count: $message_count,
+    code_block_count: $code_block_count,
+    file_count: $file_count,
+    error_count: $error_count,
+    complexity: $complexity
+  }'
+
