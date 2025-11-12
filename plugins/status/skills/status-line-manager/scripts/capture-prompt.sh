@@ -9,12 +9,24 @@ set -euo pipefail
 PLUGIN_DIR="${FRACTARY_PLUGINS_DIR:-.fractary/plugins}/status"
 PROMPT_CACHE="$PLUGIN_DIR/last-prompt.json"
 MAX_PROMPT_LENGTH=40
+MAX_INPUT_SIZE=10000  # 10KB limit for safety
 
 # Ensure plugin directory exists
 mkdir -p "$PLUGIN_DIR"
 
-# Read prompt from stdin or environment
-PROMPT="${PROMPT_TEXT:-$(cat)}"
+# Read prompt from stdin or environment with size limit
+if [ -n "${PROMPT_TEXT:-}" ]; then
+  PROMPT="$PROMPT_TEXT"
+else
+  # Read with size limit to prevent memory issues
+  PROMPT=$(head -c "$MAX_INPUT_SIZE")
+fi
+
+# Validate input size
+if [ ${#PROMPT} -gt "$MAX_INPUT_SIZE" ]; then
+  # Truncate to safe size if exceeded
+  PROMPT="${PROMPT:0:$MAX_INPUT_SIZE}"
+fi
 
 # Get timestamp
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
