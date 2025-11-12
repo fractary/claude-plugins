@@ -16,7 +16,7 @@ All generated documentation includes YAML front matter at the beginning of the f
 ```yaml
 ---
 title: "Document Title"
-type: adr|design|runbook|api-spec|test-report|deployment|changelog|architecture|troubleshooting|postmortem
+type: adr|design|runbook|api-spec|schema|test-report|deployment|changelog|architecture|troubleshooting|postmortem
 status: draft|review|approved|deprecated|proposed|accepted|superseded
 date: "2025-01-15"
 updated: "2025-01-15"
@@ -54,6 +54,7 @@ generated: true
 - `design` - System/feature design document
 - `runbook` - Operational procedure
 - `api-spec` - API documentation
+- `schema` - Data schema / Data dictionary
 - `test-report` - Test execution results
 - `deployment` - Deployment record
 - `changelog` - Version changes
@@ -253,6 +254,26 @@ version: "2.0"          # API version
 base_url: "https://api.example.com/v2"  # API base URL
 ```
 
+### Schema-Specific Fields
+
+```yaml
+version: "1.0.0"                          # Schema version
+schema_format: "json-schema"              # Format: json-schema, openapi, graphql, avro, protobuf
+namespace: "com.example.api"              # Schema namespace or package
+dialect: "https://json-schema.org/draft/2020-12/schema"  # Format dialect/specification version
+entities: ["User", "Product", "Order"]    # Primary entities defined
+```
+
+**Supported Schema Formats**:
+- `json-schema` - JSON Schema specification
+- `openapi` - OpenAPI/Swagger schemas
+- `graphql` - GraphQL type definitions
+- `avro` - Apache Avro schemas
+- `protobuf` - Protocol Buffers
+- `database` - Database schema (SQL DDL)
+- `event` - Event/message schemas
+- `custom` - Project-specific format
+
 ### Test Report-Specific Fields
 
 ```yaml
@@ -343,6 +364,30 @@ tags: [database, operations, failover, emergency, postgresql]
 related:
   - "/docs/architecture/designs/database-architecture.md"
   - "/docs/operations/runbooks/database-backup.md"
+codex_sync: true
+generated: true
+---
+```
+
+### Complete Schema Front Matter
+
+```yaml
+---
+title: "User API Schema"
+type: schema
+status: approved
+version: "2.1.0"
+schema_format: "json-schema"
+namespace: "com.example.api.user"
+dialect: "https://json-schema.org/draft/2020-12/schema"
+date: "2025-01-15"
+updated: "2025-01-20"
+author: "API Team"
+entities: ["User", "Profile", "Preferences"]
+tags: [api, schema, user, json-schema, v2]
+related:
+  - "/docs/api/user-api-spec.md"
+  - "/docs/architecture/designs/user-service.md"
 codex_sync: true
 generated: true
 ---
