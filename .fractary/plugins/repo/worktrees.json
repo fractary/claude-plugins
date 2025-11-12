@@ -1,0 +1,11 @@
+{
+  "worktrees": [
+    {
+      "path": "../claude-plugins-wt-feat-99-custom-status-line-to-repo-plugin",
+      "branch": "feat/99-custom-status-line-to-repo-plugin",
+      "work_id": "99",
+      "created": "2025-11-12T16:00:00Z",
+      "status": "active"
+    }
+  ]
+}
