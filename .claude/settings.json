@@ -136,5 +136,22 @@
     }
   },
   "_comment": "Managed by fractary-repo plugin. Protected branches: main, master, production",
-  "_note": "Most operations auto-allowed. Approval required only for protected branch operations."
+  "_note": "Most operations auto-allowed. Approval required only for protected branch operations.",
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/status/scripts/status-line.sh"
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/status/scripts/capture-prompt.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
