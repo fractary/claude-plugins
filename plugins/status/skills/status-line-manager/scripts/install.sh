@@ -49,7 +49,7 @@ mkdir -p .claude
 
 # Determine the status line script path
 # Use the installed marketplace location
-STATUS_LINE_SCRIPT="$HOME/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
+STATUS_LINE_SCRIPT="~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
 
 # Create or update settings.json with statusLine configuration
 if [ -f .claude/settings.json ]; then
