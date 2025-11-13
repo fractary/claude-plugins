@@ -6,23 +6,23 @@ Custom Claude Code status line showing git status, issue numbers, PR numbers, an
 
 - **Branch Name**: Current git branch in cyan
 - **File Changes**: Count of uncommitted files (±N) - yellow if dirty, green if clean
+- **Sync Status**: Commits ahead (↑N) in green, commits behind (↓N) in red (displayed after file changes)
 - **Issue Number**: Extracted from branch name (#N) in magenta
 - **PR Number**: Current PR for branch (PR#N) in blue
-- **Sync Status**: Commits ahead (↑N) in green, commits behind (↓N) in red
 - **Last Prompt**: Your most recent command/question (truncated to 40 chars) in dim text
 
 ## Status Line Format
 
 ```
-[branch] [±files] [#issue] [PR#pr] [↑ahead ↓behind] last: prompt...
+[branch] [±files] [↑ahead ↓behind] [#issue] [PR#pr] last: prompt...
 ```
 
 ### Examples
 
 ```
-feat/99-new-status-plugin ±4 #99 ↑2 last: update spec accordingly
+feat/99-new-status-plugin ±4 ↑2 #99 last: update spec accordingly
 main ±0 last: /fractary-spec:generate 99
-fix/bug-authentication ±2 #87 PR#91 ↑1 ↓3 last: fix login validation
+fix/bug-authentication ±2 ↑1 ↓3 #87 PR#91 last: fix login validation
 ```
 
 ## Installation

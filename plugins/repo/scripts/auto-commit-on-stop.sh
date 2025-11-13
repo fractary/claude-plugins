@@ -19,12 +19,24 @@ NC='\033[0m' # No Color
 
 # Configuration
 CACHE_DIR="${HOME}/.fractary/repo"
-LOCK_FILE="${CACHE_DIR}/status.lock"
 LOG_FILE="${CACHE_DIR}/auto-commit.log"
 MAX_LOCK_RETRIES=2
 RETRY_DELAY=2
 
 mkdir -p "${CACHE_DIR}"
+
+# Get repository root path for cache key (same as update-status-cache.sh)
+# This ensures we use the same repo-scoped lock file
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    # Use repo-scoped lock based on repository path hash
+    # Try multiple hash commands for cross-platform compatibility
+    REPO_ID=$(echo "$REPO_PATH" | (md5sum 2>/dev/null || md5 2>/dev/null || shasum 2>/dev/null) | cut -d' ' -f1 | cut -c1-16 || echo "global")
+    LOCK_FILE="${CACHE_DIR}/status-${REPO_ID}.lock"
+else
+    # Fallback to global lock if not in a git repo
+    LOCK_FILE="${CACHE_DIR}/status.lock"
+fi
 
 # Logging function
 log_message() {

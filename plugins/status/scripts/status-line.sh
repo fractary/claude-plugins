@@ -38,10 +38,36 @@ RED='\033[0;31m'
 DIM='\033[2m'
 NC='\033[0m' # No Color
 
+# OSC 8 hyperlink format (for clickable terminal links)
+# Usage: create_hyperlink "URL" "TEXT" "COLOR"
+create_hyperlink() {
+  local url="$1"
+  local text="$2"
+  local color="${3:-$NC}"
+
+  # OSC 8 format: \033]8;;URL\033\\TEXT\033]8;;\033\\
+  echo -en "${color}\033]8;;${url}\033\\${text}\033]8;;\033\\${NC}"
+}
+
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
   echo "not a git repository"
   exit 0
+fi
+
+# Detect GitHub repository for clickable links
+GITHUB_REPO=""
+REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
+if [[ -n "$REMOTE_URL" ]]; then
+  # Parse GitHub owner/repo from remote URL
+  # Handles both HTTPS and SSH formats:
+  # - https://github.com/owner/repo.git
+  # - git@github.com:owner/repo.git
+  if [[ "$REMOTE_URL" =~ github\.com[:/]([^/]+)/([^/.]+) ]]; then
+    REPO_OWNER="${BASH_REMATCH[1]}"
+    REPO_NAME="${BASH_REMATCH[2]}"
+    GITHUB_REPO="https://github.com/${REPO_OWNER}/${REPO_NAME}"
+  fi
 fi
 
 # Read git status from cache (uses fractary-repo plugin)
@@ -120,22 +146,38 @@ else
   STATUS_LINE="${STATUS_LINE} ${GREEN}±0${NC}"
 fi
 
-# Issue number (magenta)
-if [ -n "$ISSUE_ID" ]; then
-  STATUS_LINE="${STATUS_LINE} ${MAGENTA}#${ISSUE_ID}${NC}"
-fi
-
-# PR number (blue)
-if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
-  STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
-fi
-
 # Ahead/behind (green for ahead, red for behind)
 if [ "$AHEAD" -gt 0 ]; then
   STATUS_LINE="${STATUS_LINE} ${GREEN}↑${AHEAD}${NC}"
 fi
 if [ "$BEHIND" -gt 0 ]; then
   STATUS_LINE="${STATUS_LINE} ${RED}↓${BEHIND}${NC}"
+fi
+
+# Issue number (magenta, clickable if GitHub repo detected)
+if [ -n "$ISSUE_ID" ]; then
+  if [ -n "$GITHUB_REPO" ]; then
+    # Create clickable link to GitHub issue
+    ISSUE_URL="${GITHUB_REPO}/issues/${ISSUE_ID}"
+    ISSUE_LINK=$(create_hyperlink "$ISSUE_URL" "issue #${ISSUE_ID}" "$MAGENTA")
+    STATUS_LINE="${STATUS_LINE} ${ISSUE_LINK}"
+  else
+    # Fallback: non-clickable
+    STATUS_LINE="${STATUS_LINE} ${MAGENTA}issue #${ISSUE_ID}${NC}"
+  fi
+fi
+
+# PR number (blue, clickable if GitHub repo detected)
+if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
+  if [ -n "$GITHUB_REPO" ]; then
+    # Create clickable link to GitHub PR
+    PR_URL="${GITHUB_REPO}/pull/${PR_NUMBER}"
+    PR_LINK=$(create_hyperlink "$PR_URL" "PR#${PR_NUMBER}" "$BLUE")
+    STATUS_LINE="${STATUS_LINE} ${PR_LINK}"
+  else
+    # Fallback: non-clickable
+    STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
+  fi
 fi
 
 # Output first line (strip color codes if NO_COLOR is set)

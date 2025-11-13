@@ -39,8 +39,8 @@ REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
 REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
 REPO_SPEC="$REPO_OWNER/$REPO_NAME"
 
-# Fetch issue using gh CLI with explicit repository
-issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,title,body,state,labels,author,createdAt,updatedAt,url 2>&1)
+# Fetch issue using gh CLI with explicit repository (including comments for full context)
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,title,body,state,labels,author,createdAt,updatedAt,url,comments 2>&1)
 
 if [ $? -ne 0 ]; then
     if echo "$issue_json" | grep -q "Could not resolve to an Issue"; then
