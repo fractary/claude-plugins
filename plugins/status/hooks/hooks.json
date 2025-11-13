@@ -11,5 +11,9 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
   }
 }
