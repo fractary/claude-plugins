@@ -122,7 +122,7 @@ fi
 
 # Issue number (magenta)
 if [ -n "$ISSUE_ID" ]; then
-  STATUS_LINE="${STATUS_LINE} ${MAGENTA}#${ISSUE_ID}${NC}"
+  STATUS_LINE="${STATUS_LINE} ${MAGENTA}issue #${ISSUE_ID}${NC}"
 fi
 
 # PR number (blue)
