@@ -5,9 +5,9 @@
         {
           "hooks": [
             {
-              "type": "command",
-              "command": "claude plugin marketplace update fractary"
-            }, 
+              "type": "prompt",
+              "prompt": "/plugin marketplace update fractary"
+            },
             {
               "type": "command",
               "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
