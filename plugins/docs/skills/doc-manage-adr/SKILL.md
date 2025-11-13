@@ -1,5 +1,5 @@
 ---
-name: doc-adr
+name: doc-manage-adr
 description: Generate, update, and manage Architecture Decision Records (ADRs) documenting significant architectural and technical decisions
 schema: schemas/adr.schema.json
 ---
@@ -521,7 +521,7 @@ This skill is used by:
 
 1. **Direct Invocation** (from other skills/agents):
    ```markdown
-   Use the doc-adr skill to document this architectural decision:
+   Use the doc-manage-adr skill to document this architectural decision:
    {
      "operation": "generate",
      "title": "Use PostgreSQL for Primary Datastore",
@@ -540,13 +540,13 @@ This skill is used by:
 3. **FABER Integration** (architect phase):
    ```markdown
    # In architect workflow
-   Use the doc-adr skill to document the architectural decision made in this specification...
+   Use the doc-manage-adr skill to document the architectural decision made in this specification...
    ```
 
 4. **docs-manager Integration** (multi-doc workflows):
    ```markdown
    # In docs-manager orchestration
-   Use the doc-adr skill to generate the ADR...
+   Use the doc-manage-adr skill to generate the ADR...
    ```
 
 </INTEGRATION>

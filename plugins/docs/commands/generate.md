@@ -198,7 +198,7 @@ Merge with `--template-data` if provided.
 This preserves context and improves efficiency.
 
 **Skill Routing**:
-- `adr` → doc-adr skill
+- `adr` → doc-manage-adr skill
 - `spec` → doc-spec skill
 - `runbook` → doc-runbook skill
 - `api-spec` → doc-api skill
@@ -208,7 +208,7 @@ This preserves context and improves efficiency.
 **Example for ADR**:
 
 ```markdown
-Use the doc-adr skill to generate an Architecture Decision Record:
+Use the doc-manage-adr skill to generate an Architecture Decision Record:
 {
   "operation": "generate",
   "title": "{title}",

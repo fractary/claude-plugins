@@ -26,12 +26,12 @@ User/Agent → doc-{type} skill → Document
 **Benefits**:
 - ✅ Context preserved throughout operation
 - ✅ More efficient (no agent hop)
-- ✅ Better auto-discovery (`doc-adr` clearly indicates ADR generation)
+- ✅ Better auto-discovery (`doc-manage-adr` clearly indicates ADR generation)
 - ✅ Explicit intent in code
 
 ## Type-Specific Skills
 
-### doc-adr
+### doc-manage-adr
 **Purpose**: Generate, update, and manage Architecture Decision Records
 
 **Operations**:
@@ -42,7 +42,7 @@ User/Agent → doc-{type} skill → Document
 
 **Example**:
 ```markdown
-Use the doc-adr skill to document this architectural decision:
+Use the doc-manage-adr skill to document this architectural decision:
 {
   "operation": "generate",
   "title": "Use PostgreSQL for Primary Datastore",
@@ -176,10 +176,10 @@ Project-specific overrides.
 Existing commands still work but now route directly to type-specific skills:
 
 ```bash
-# Generate ADR (routes to doc-adr skill)
+# Generate ADR (routes to doc-manage-adr skill)
 /fractary-docs:generate adr "Use PostgreSQL for Data Store"
 
-# Update ADR (routes to doc-adr skill)
+# Update ADR (routes to doc-manage-adr skill)
 /fractary-docs:update docs/architecture/adrs/ADR-005-use-postgresql.md --status accepted
 
 # Validate (routes to doc-validator skill)
@@ -223,7 +223,7 @@ Use the @agent-fractary-docs:docs-manager agent for architecture suite:
 ```
 
 Orchestrates:
-1. doc-adr skill → Generate ADR
+1. doc-manage-adr skill → Generate ADR
 2. doc-spec skill → Generate implementation spec
 3. doc-architecture skill → Create architecture diagram
 4. doc-updater skill → Update README
@@ -231,7 +231,7 @@ Orchestrates:
 
 ### When NOT to Use docs-manager
 
-❌ **Single ADR** → Use `doc-adr` skill directly
+❌ **Single ADR** → Use `doc-manage-adr` skill directly
 ❌ **Single spec** → Use `doc-spec` skill directly
 ❌ **Single validation** → Use `doc-validator` skill directly
 
@@ -251,7 +251,7 @@ Use the @agent-fractary-docs:docs-manager agent to generate ADR:
 
 **After (v1.1)**:
 ```markdown
-Use the doc-adr skill to document this architectural decision:
+Use the doc-manage-adr skill to document this architectural decision:
 {
   "operation": "generate",
   "title": "...",
@@ -303,7 +303,7 @@ Scripts stay OUT of LLM context for efficiency.
 
 1. **Update agent invocations**:
    - Replace `@agent-fractary-docs:docs-manager` → Direct skill invocation
-   - Example: `doc-adr skill` instead of `docs-manager agent with operation=generate`
+   - Example: `doc-manage-adr skill` instead of `docs-manager agent with operation=generate`
 
 2. **Update to new config structure**:
    - Add `doc_types` section to your config
@@ -356,7 +356,7 @@ No changes required! Commands work the same:
 
 ## Questions?
 
-- Check existing implementations in `plugins/docs/skills/doc-adr/`
+- Check existing implementations in `plugins/docs/skills/doc-manage-adr/`
 - Review schemas in `plugins/docs/schemas/`
 - See usage examples in this guide
 - Refer to updated command docs in `plugins/docs/commands/`

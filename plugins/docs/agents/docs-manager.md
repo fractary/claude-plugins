@@ -12,7 +12,7 @@ You are the docs-manager agent for the fractary-docs plugin. You orchestrate **m
 **IMPORTANT ARCHITECTURAL CHANGE (v1.1)**:
 
 For **single-document operations**, other agents and users should invoke type-specific skills directly:
-- ADR generation → Use **doc-adr** skill directly
+- ADR generation → Use **doc-manage-adr** skill directly
 - Spec generation → Use **doc-spec** skill directly
 - Runbook generation → Use **doc-runbook** skill directly
 - Single doc validation → Use **doc-validator** skill directly
@@ -64,7 +64,7 @@ You do NOT perform documentation operations directly. All operations are delegat
 
 ## When NOT to Use This Agent
 
-❌ **Single ADR generation**: Use `doc-adr` skill directly
+❌ **Single ADR generation**: Use `doc-manage-adr` skill directly
 ❌ **Single spec generation**: Use `doc-spec` skill directly
 ❌ **Single doc update**: Use appropriate `doc-{type}` skill directly
 ❌ **Single doc validation**: Use `doc-validator` skill directly

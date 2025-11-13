@@ -136,7 +136,7 @@
     "lookup_paths": [
       ".templates/docs/adr.md.template",
       "~/.config/fractary/docs/templates/adr.md.template",
-      "${PLUGIN_ROOT}/skills/doc-adr/templates/default.md.template"
+      "${PLUGIN_ROOT}/skills/doc-manage-adr/templates/default.md.template"
     ]
   },
 

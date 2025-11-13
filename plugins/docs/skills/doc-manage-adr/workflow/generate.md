@@ -169,7 +169,7 @@ Use Claude's capabilities to render the template with provided data.
 **Template Location Priority**:
 1. Project templates: `.templates/docs/adr.md.template`
 2. Global templates: `~/.config/fractary/docs/templates/adr.md.template`
-3. Built-in template: `${PLUGIN_ROOT}/skills/doc-adr/templates/default.md.template`
+3. Built-in template: `${PLUGIN_ROOT}/skills/doc-manage-adr/templates/default.md.template`
 
 **Template Variables Available**:
 - `{{number}}` - ADR number (formatted: 005)
