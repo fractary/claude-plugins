@@ -202,7 +202,8 @@
         "strict": true,
         "commands": [
           "./commands/install.md"
-        ]
+        ],
+        "hooks": "./hooks/hooks.json"
       },
       {
         "name": "fractary-spec",

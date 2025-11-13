@@ -64,12 +64,13 @@ Request:
 
 The skill will:
 1. Verify project is a git repository
-2. Copy scripts to .claude/status/scripts/
-3. Configure StatusLine hook
-4. Configure UserPromptSubmit hook
-5. Create plugin configuration
-6. Verify installation
-7. Return installation summary
+2. Create plugin configuration directory (.fractary/plugins/status/)
+3. Configure plugin settings
+4. Verify installation
+5. Return installation summary
+
+Note: Hooks are managed at the plugin level and automatically activated when the plugin is installed.
+Scripts remain in the plugin directory and are referenced using ${CLAUDE_PLUGIN_ROOT}.
 </SKILL_INVOCATION>
 
 <ERROR_HANDLING>
@@ -83,12 +84,17 @@ Common errors:
 ## What Gets Installed
 
 The installation process:
-1. Creates `.claude/status/scripts/` directory
-2. Copies `status-line.sh` (status line generator)
-3. Copies `capture-prompt.sh` (prompt capture hook)
-4. Updates `.claude/settings.json` with both hooks
-5. Creates `.fractary/plugins/status/config.json`
-6. Updates `.gitignore` to exclude cache file
+1. Creates `.fractary/plugins/status/` directory for plugin configuration
+2. Creates `.fractary/plugins/status/config.json` with plugin settings
+3. Updates `.gitignore` to exclude cache file
+
+**Plugin-Level Components (Managed Automatically):**
+- Hooks are registered in the plugin's marketplace entry
+- Scripts remain in plugin root directory (`${CLAUDE_PLUGIN_ROOT}/scripts/`)
+- UserPromptSubmit hook captures prompts automatically
+- StatusLine hook displays dynamic status automatically
+
+No per-project script copying or settings.json modifications needed!
 
 ## Status Line Features
 

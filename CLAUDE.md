@@ -71,16 +71,56 @@ Layer 4: Scripts (Deterministic Operations - executed outside LLM context)
 - `agents` (array) - Array of agent file paths (e.g., `["./agents/manager.md"]`)
 - `skills` (string) - Path to skills directory (e.g., `"./skills/"`)
 
-**DO NOT USE** these fields (they will cause validation errors):
-- ❌ `author` (not part of schema)
-- ❌ `license` (not part of schema)
+**DO NOT USE** these fields in plugin.json (they will cause validation errors):
+- ❌ `author` (belongs in marketplace.json only)
+- ❌ `license` (belongs in marketplace.json only)
 - ❌ `requires` (not part of schema)
-- ❌ `hooks` (not part of schema)
+- ❌ `hooks` (belongs in marketplace.json only)
 - ❌ Array format for `commands` or `skills` (must be strings pointing to directories)
 
 **Reference template**: `docs/templates/plugin.json.template`
 
 **Common mistake**: Using detailed object arrays for commands/skills instead of simple directory paths. The plugin system auto-discovers files in the specified directories.
+
+### Plugin Hooks (Marketplace-Level)
+
+Hooks are registered in `.claude-plugin/marketplace.json`, NOT in the plugin manifest:
+
+```json
+{
+  "plugins": [{
+    "name": "fractary-status",
+    "hooks": "./hooks/hooks.json"
+  }]
+}
+```
+
+**Hook Definition** (`plugins/{plugin}/hooks/hooks.json`):
+```json
+{
+  "description": "Plugin hooks description",
+  "hooks": {
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/script-name.sh"
+      }]
+    }]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
+  }
+}
+```
+
+**Key Features**:
+- `${CLAUDE_PLUGIN_ROOT}` - Variable that resolves to plugin root directory
+- Scripts stay in plugin, no per-project copying needed
+- Plugin updates automatically propagate to all projects
+- Hooks auto-activate when plugin installed
+
+**Examples**: See `plugins/repo/hooks/hooks.json` and `plugins/status/hooks/hooks.json`
 
 ## Directory Structure
 
@@ -96,10 +136,18 @@ plugins/
 ├── faber-cloud/        # Cloud infrastructure workflows (AWS, Terraform)
 ├── work/               # Work tracking primitive (GitHub, Jira, Linear)
 │   ├── agents/         # work-manager agent
-│   └── skills/         # Platform-specific scripts (github/, jira/, linear/)
+│   ├── skills/         # Platform-specific scripts (github/, jira/, linear/)
+│   └── hooks/          # Plugin-level hooks (auto-comment, etc.)
 ├── repo/               # Source control primitive (GitHub, GitLab, Bitbucket) + worktrees
 │   ├── agents/         # repo-manager agent
-│   └── skills/         # Platform-specific scripts (github/, gitlab/) + worktree-manager
+│   ├── skills/         # Platform-specific scripts (github/, gitlab/) + worktree-manager
+│   ├── scripts/        # Plugin-level scripts (auto-commit, status-cache)
+│   └── hooks/          # Plugin-level hooks (SessionStart, Stop, UserPromptSubmit)
+├── status/             # Custom status line display
+│   ├── skills/         # Status line manager
+│   ├── scripts/        # Plugin-level scripts (status-line.sh, capture-prompt.sh)
+│   ├── hooks/          # Plugin-level hooks (UserPromptSubmit, statusLine)
+│   └── commands/       # Installation command
 ├── file/               # File storage primitive (R2, S3, local)
 │   ├── agents/         # file-manager agent
 │   └── skills/         # Storage-specific scripts (r2/, s3/)

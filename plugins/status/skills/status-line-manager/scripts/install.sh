@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# install.sh - Installs status line hooks and scripts in current project
+# install.sh - Installs status plugin configuration in current project
 # Part of fractary-status plugin
 # Usage: bash install.sh
+#
+# Note: Hooks and scripts are managed at plugin level. This script only
+# creates project-specific configuration.
 
 set -euo pipefail
 
@@ -25,67 +28,15 @@ fi
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 cd "$PROJECT_ROOT"
 
-# Get plugin directory (go up from scripts/ to status-line-manager/ to skills/ to status/)
-PLUGIN_SOURCE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-echo -e "${CYAN}Plugin source: ${PLUGIN_SOURCE}${NC}"
-
-# Create project directories
-echo -e "${CYAN}Creating project directories...${NC}"
-mkdir -p .claude/status/scripts
+# Create plugin configuration directory
+echo -e "${CYAN}Creating plugin configuration...${NC}"
 mkdir -p .fractary/plugins/status
 
-# Copy scripts to project
-echo -e "${CYAN}Copying scripts...${NC}"
-cp "$PLUGIN_SOURCE/skills/status-line-manager/scripts/status-line.sh" .claude/status/scripts/
-cp "$PLUGIN_SOURCE/skills/status-line-manager/scripts/capture-prompt.sh" .claude/status/scripts/
-chmod +x .claude/status/scripts/*.sh
-
-echo -e "${GREEN}✓ Scripts installed to .claude/status/scripts/${NC}"
-
-# Configure hooks in .claude/settings.json
-SETTINGS_FILE=".claude/settings.json"
-
-echo -e "${CYAN}Configuring hooks...${NC}"
-
-# Initialize settings file if it doesn't exist
-if [ ! -f "$SETTINGS_FILE" ]; then
-  echo '{}' > "$SETTINGS_FILE"
-fi
-
-# Read existing settings
-EXISTING_SETTINGS=$(cat "$SETTINGS_FILE")
-
-# Create hooks configuration using jq
-NEW_SETTINGS=$(echo "$EXISTING_SETTINGS" | jq '
-  # Add StatusLine hook
-  .statusLine = {
-    "type": "command",
-    "command": "bash .claude/status/scripts/status-line.sh"
-  } |
-  # Add UserPromptSubmit hook
-  .hooks.UserPromptSubmit = (
-    (.hooks.UserPromptSubmit // []) + [{
-      "matcher": "*",
-      "hooks": [{
-        "type": "command",
-        "command": "bash .claude/status/scripts/capture-prompt.sh"
-      }]
-    }] | unique_by(.matcher)
-  )
-')
-
-# Write updated settings
-echo "$NEW_SETTINGS" > "$SETTINGS_FILE"
-
-echo -e "${GREEN}✓ Hooks configured in .claude/settings.json${NC}"
-
 # Create plugin configuration
-echo -e "${CYAN}Creating plugin configuration...${NC}"
 cat > .fractary/plugins/status/config.json <<EOF
 {
   "version": "1.0.0",
   "installed": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "scripts_path": ".claude/status/scripts",
   "cache_path": ".fractary/plugins/status"
 }
 EOF
@@ -108,16 +59,22 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo -e "${GREEN}✓ Installation Complete!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "Installed components:"
-echo -e "  ${CYAN}•${NC} Status line script: .claude/status/scripts/status-line.sh"
-echo -e "  ${CYAN}•${NC} Prompt capture script: .claude/status/scripts/capture-prompt.sh"
-echo -e "  ${CYAN}•${NC} StatusLine hook configured"
-echo -e "  ${CYAN}•${NC} UserPromptSubmit hook configured"
+echo -e "Plugin configuration:"
+echo -e "  ${CYAN}•${NC} Configuration: .fractary/plugins/status/config.json"
+echo -e "  ${CYAN}•${NC} Cache location: .fractary/plugins/status/"
+echo ""
+echo -e "${YELLOW}Plugin-Level Components (Automatic):${NC}"
+echo -e "  ${CYAN}•${NC} StatusLine hook (managed in plugin)"
+echo -e "  ${CYAN}•${NC} UserPromptSubmit hook (managed in plugin)"
+echo -e "  ${CYAN}•${NC} Scripts (in \${CLAUDE_PLUGIN_ROOT}/scripts/)"
 echo ""
 echo -e "${YELLOW}Note:${NC} Restart Claude Code to activate the status line"
 echo ""
 echo -e "Status line format:"
 echo -e "  ${CYAN}[branch] ${YELLOW}[±files]${NC} ${MAGENTA}[#issue]${NC} ${BLUE}[PR#pr]${NC} ${GREEN}[↑ahead]${NC} ${RED}[↓behind]${NC} last: prompt..."
+echo ""
+echo -e "${CYAN}Hooks and scripts are managed at the plugin level and automatically${NC}"
+echo -e "${CYAN}available when the plugin is installed. No per-project setup needed!${NC}"
 echo ""
 
 exit 0
