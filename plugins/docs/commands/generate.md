@@ -191,27 +191,50 @@ Build template data object based on doc type:
 
 Merge with `--template-data` if provided.
 
-## Step 5: Invoke docs-manager Agent
+## Step 5: Invoke Type-Specific Skill
 
-Use the @agent-fractary-docs:docs-manager agent to generate documentation:
-```json
+**NEW ARCHITECTURE**: Commands now invoke type-specific skills directly (not through docs-manager agent).
+
+This preserves context and improves efficiency.
+
+**Skill Routing**:
+- `adr` → doc-adr skill
+- `spec` → doc-spec skill
+- `runbook` → doc-runbook skill
+- `api-spec` → doc-api skill
+- `deployment` → doc-deployment skill
+- Other types → doc-generator skill (fallback)
+
+**Example for ADR**:
+
+```markdown
+Use the doc-adr skill to generate an Architecture Decision Record:
 {
   "operation": "generate",
-  "doc_type": "{doc_type}",
-  "parameters": {
-    "title": "{title}",
-    "output_path": "{output_path or from config}",
-    "template_data": {
-      ... prepared data ...
-    }
+  "title": "{title}",
+  "context": "{context from template_data or to be filled}",
+  "decision": "{decision from template_data or to be filled}",
+  "consequences": {
+    "positive": ["{positive consequences or placeholders}"],
+    "negative": ["{negative consequences or placeholders}"]
   },
-  "options": {
-    "validate_after": "{validate}",
-    "commit_after": "{commit}",
-    "overwrite_existing": "{overwrite}"
-  }
+  "number": {number if specified, otherwise auto-assign},
+  "status": "{status or 'proposed'}",
+  "deciders": {deciders array if provided},
+  "alternatives": {alternatives array if provided},
+  "references": {references array if provided},
+  "tags": {tags array if provided},
+  "work_id": "{work_id if provided}",
+  "validate": {validate},
+  "project_root": "{current directory}"
 }
 ```
+
+**Why this change?**
+- ✅ Context preservation: All command context flows directly to skill
+- ✅ Efficiency: No extra agent hop
+- ✅ Auto-discovery: Skill names enable better Claude matching
+- ✅ Explicit intent: Clear what operation is happening
 
 ## Step 6: Process Results
 

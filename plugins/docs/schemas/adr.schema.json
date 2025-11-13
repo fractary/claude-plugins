@@ -1,0 +1,192 @@
+{
+  "type": "adr",
+  "display_name": "Architecture Decision Record",
+  "description": "Documents significant architectural decisions, their context, and consequences",
+
+  "file_naming": {
+    "pattern": "ADR-{number}-{slug}.md",
+    "auto_number": true,
+    "number_format": "{:03d}",
+    "number_prefix": "ADR-",
+    "slug_source": "title",
+    "slug_max_length": 50
+  },
+
+  "storage": {
+    "default_path": "docs/architecture/adrs",
+    "config_key": "doc_types.adr.path"
+  },
+
+  "frontmatter": {
+    "required_fields": ["title", "type", "status", "date"],
+    "optional_fields": [
+      "author",
+      "deciders",
+      "tags",
+      "related",
+      "supersedes",
+      "superseded_by",
+      "work_id",
+      "codex_sync",
+      "generated"
+    ],
+    "type_value": "adr",
+    "defaults": {
+      "type": "adr",
+      "codex_sync": true,
+      "generated": true
+    }
+  },
+
+  "structure": {
+    "required_sections": [
+      "Status",
+      "Context",
+      "Decision",
+      "Consequences"
+    ],
+    "optional_sections": [
+      "Alternatives Considered",
+      "References",
+      "Notes"
+    ],
+    "section_order": [
+      "Status",
+      "Context",
+      "Decision",
+      "Alternatives Considered",
+      "Consequences",
+      "References",
+      "Notes"
+    ]
+  },
+
+  "status": {
+    "allowed_values": ["proposed", "accepted", "deprecated", "superseded"],
+    "default": "proposed",
+    "immutable_after": "accepted",
+    "description": {
+      "proposed": "Decision is under consideration",
+      "accepted": "Decision has been approved and is in effect",
+      "deprecated": "Decision is no longer recommended but may still be in use",
+      "superseded": "Decision has been replaced by a newer ADR"
+    },
+    "transitions": {
+      "proposed": ["accepted", "deprecated"],
+      "accepted": ["deprecated", "superseded"],
+      "deprecated": [],
+      "superseded": []
+    }
+  },
+
+  "operations": {
+    "generate": {
+      "enabled": true,
+      "description": "Create a new ADR",
+      "required_params": ["title", "context", "decision", "consequences"],
+      "optional_params": [
+        "number",
+        "status",
+        "deciders",
+        "alternatives",
+        "references",
+        "tags",
+        "work_id"
+      ]
+    },
+    "update": {
+      "enabled": true,
+      "description": "Update an existing ADR (restricted after acceptance)",
+      "allowed_when": [
+        "status != 'accepted'",
+        "status == 'accepted' AND metadata_only == true"
+      ],
+      "metadata_fields_always_updatable": [
+        "tags",
+        "related",
+        "work_id",
+        "references"
+      ]
+    },
+    "supersede": {
+      "enabled": true,
+      "description": "Mark ADR as superseded by a newer ADR",
+      "required_params": ["new_adr_number", "new_adr_title"],
+      "actions": [
+        "Set status to 'superseded'",
+        "Add superseded_by field with link to new ADR",
+        "Add note about supersession date",
+        "Optionally link new ADR back to this one"
+      ]
+    },
+    "deprecate": {
+      "enabled": true,
+      "description": "Mark ADR as deprecated",
+      "required_params": ["deprecation_reason"],
+      "actions": [
+        "Set status to 'deprecated'",
+        "Add deprecation note to Status section",
+        "Update frontmatter with deprecation date and reason"
+      ]
+    }
+  },
+
+  "templates": {
+    "default": "adr.md.template",
+    "lookup_paths": [
+      ".templates/docs/adr.md.template",
+      "~/.config/fractary/docs/templates/adr.md.template",
+      "${PLUGIN_ROOT}/skills/doc-adr/templates/default.md.template"
+    ]
+  },
+
+  "validation": {
+    "min_section_length": {
+      "Context": 50,
+      "Decision": 50,
+      "Consequences": 30
+    },
+    "require_consequences_breakdown": true,
+    "require_positive_and_negative_consequences": true,
+    "custom_rules": [
+      {
+        "rule": "adr_immutability",
+        "description": "ADRs with status 'accepted' should not have content changes",
+        "severity": "error"
+      },
+      {
+        "rule": "sequential_numbering",
+        "description": "ADR numbers should be sequential without gaps",
+        "severity": "warning"
+      },
+      {
+        "rule": "supersession_link",
+        "description": "Superseded ADRs must link to their replacement",
+        "severity": "error"
+      }
+    ]
+  },
+
+  "examples": {
+    "generate": {
+      "title": "Use PostgreSQL for Primary Datastore",
+      "context": "We need a reliable database with ACID guarantees, complex query support, and strong consistency. Our application handles financial transactions requiring strict data integrity.",
+      "decision": "We will use PostgreSQL 15 as our primary datastore for all transactional data. We will use connection pooling via pgBouncer and set up streaming replication for high availability.",
+      "consequences": {
+        "positive": [
+          "ACID compliance ensures transaction integrity",
+          "Rich query capabilities support complex reporting",
+          "Mature ecosystem with strong tooling",
+          "JSONB support provides schema flexibility when needed"
+        ],
+        "negative": [
+          "Additional operational overhead compared to managed services",
+          "Vertical scaling limits for very large datasets",
+          "Requires DBA expertise for optimal performance tuning"
+        ]
+      },
+      "status": "proposed",
+      "deciders": ["architecture-team", "engineering-lead"]
+    }
+  }
+}
