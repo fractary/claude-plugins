@@ -158,11 +158,26 @@ For other operations:
 - Validate required parameters for chosen mode
 - Set defaults for optional parameters
 - If mode is "work-id-only":
-  - First check if fractary-work plugin is configured
-  - Invoke fractary-work:work-manager to fetch issue details (fetch-issue operation)
-  - Extract title from issue response
-  - Use title as description for branch name generation
-  - Continue with semantic branch creation workflow
+  - First check if fractary-work plugin is configured:
+    - Read `.fractary/plugins/work/config.json`
+    - If file doesn't exist or `platform` field is empty:
+      - Return error (see ERROR_HANDLING section for work-id-only mode)
+      - Error code: 3 (dependency not configured)
+  - Invoke @agent-fractary-work:work-manager with the following request:
+    ```json
+    {
+      "operation": "fetch-issue",
+      "parameters": {
+        "issue_id": "{work_id}"
+      }
+    }
+    ```
+  - Extract title from issue response:
+    - Field: `result.title` from work-manager response
+    - If title is null/empty: Return error "Issue #{work_id} has no title. Please provide a description manually."
+    - Sanitize title: Remove special characters that are invalid in branch names, trim whitespace
+    - Use sanitized title as `description` parameter
+  - Continue with semantic branch creation workflow using the extracted description
 - If `create_worktree` is true:
   - First invoke branch-manager skill to create the branch
   - Then invoke worktree-manager skill to create worktree for that branch
@@ -481,6 +496,39 @@ Return structured response to caller:
   "operation": "{operation}",
   "error": "{skill_error_message}",
   "error_code": {skill_error_code}
+}
+```
+
+**Work-ID-Only Mode Errors:**
+
+**Work Plugin Not Configured** (Exit Code 3):
+```
+{
+  "status": "failure",
+  "operation": "create-branch",
+  "error": "Work-id-only mode requires the fractary-work plugin to be configured. Please run /work:init to set up work tracking.",
+  "error_code": 3,
+  "help": "Alternatively, provide a description: /repo:branch-create \"your description\" --work-id {work_id}"
+}
+```
+
+**Issue Not Found** (Exit Code 2):
+```
+{
+  "status": "failure",
+  "operation": "create-branch",
+  "error": "Work item #{work_id} not found. Please verify the work ID and try again.",
+  "error_code": 2
+}
+```
+
+**Issue Has No Title** (Exit Code 2):
+```
+{
+  "status": "failure",
+  "operation": "create-branch",
+  "error": "Issue #{work_id} has no title. Please provide a description manually: /repo:branch-create \"your description\" --work-id {work_id}",
+  "error_code": 2
 }
 ```
 
@@ -890,3 +938,28 @@ The `create-branch` operation supports four modes to accommodate different use c
 - Existing FABER calls unchanged (semantic mode is default when work_id provided with description)
 - All existing integrations continue to work
 - New work-id-only mode is additive, not breaking
+
+## Changelog
+
+### v2.2 (2025-01-13)
+- **Added**: Work-id-only mode for streamlined branch creation
+  - Auto-fetches work item title when only `--work-id` is provided
+  - Eliminates need to duplicate issue title manually
+  - Requires fractary-work plugin (optional dependency)
+- **Added**: Comprehensive error handling for work-id-only mode
+  - Detects if work plugin is not configured
+  - Handles missing or empty issue titles
+  - Provides helpful error messages with suggested alternatives
+- **Added**: Title sanitization for branch name generation
+  - Removes special characters invalid in Git branch names
+  - Trims whitespace automatically
+
+### v2.1 (2024-12-XX)
+- Added simple mode for quick branches without work items
+- Added direct mode for full control over branch naming
+- Improved branch creation flexibility with three distinct modes
+
+### v2.0 (2024-11-XX)
+- Initial release of modular repo-manager agent architecture
+- Platform-agnostic routing to specialized skills
+- Support for GitHub, GitLab, and Bitbucket

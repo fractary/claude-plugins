@@ -364,11 +364,39 @@ Error: Invalid argument format
 Expected: /repo:branch-create [<branch-name-or-description>] [options]
 ```
 
+**Mode 3 (Work-ID-Only) Specific Errors**:
+
+These errors are handled by the repo-manager agent:
+
+**Work plugin not configured**:
+```
+Error: Work-id-only mode requires the fractary-work plugin to be configured.
+
+Please run: /work:init
+
+Or provide a description manually:
+  /repo:branch-create "add feature X" --work-id 99
+```
+
+**Issue not found**:
+```
+Error: Work item #99 not found
+
+The specified work item does not exist in your work tracking system.
+Please verify the work ID and try again.
+```
+
+**Issue has no title**:
+```
+Error: Issue #99 has no title
+
+Please provide a description manually:
+  /repo:branch-create "your description" --work-id 99
+```
+
 All other errors are handled by the repo-manager agent, including:
 - Branch already exists
 - Invalid branch name format
-- Work item not found (Mode 3)
-- Work plugin not configured (Mode 3)
 - Invalid option selection (in work tracking prompt)
 - Issue creation failures
 - Network errors
