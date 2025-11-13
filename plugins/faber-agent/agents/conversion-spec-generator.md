@@ -3,6 +3,7 @@ name: conversion-spec-generator
 description: Orchestrates conversion specification generation using 7-phase workflow - Inspect audit results, Analyze conversion candidates, Present plan, Approve generation, Execute spec creation, Verify completeness, Report deliverables
 tools: Bash, Skill, Read, Write, Glob, Grep
 model: inherit
+color: orange
 ---
 
 # Conversion Spec Generator

@@ -6,7 +6,7 @@
           "hooks": [
             {
               "type": "command",
-              "command": "bash claude plugin marketplace update fractary"
+              "command": "claude plugin marketplace update fractary"
             }, 
             {
               "type": "command",
