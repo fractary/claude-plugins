@@ -132,31 +132,45 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation (e.g., "Merge PR #456")
+- **prompt**: JSON string containing the operation and parameters
 
-**Request structure**:
-```json
-{
-  "operation": "merge-pr",
-  "parameters": {
-    "pr_number": "456",
-    "strategy": "squash",
-    "delete_branch": true,
-    "worktree_cleanup": false
-  }
-}
+**Example Task tool invocation**:
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Merge PR #456",
+  prompt='{
+    "operation": "merge-pr",
+    "parameters": {
+      "pr_number": "456",
+      "strategy": "squash",
+      "delete_branch": true,
+      "worktree_cleanup": false
+    }
+  }'
+)
 ```
 
-The repo-manager agent will:
-1. Receive the request
-2. Route to pr-manager skill for merge operation
-3. Execute platform-specific merge logic (GitHub/GitLab/Bitbucket)
+**What the agent does**:
+1. Receives the request
+2. Routes to pr-manager skill for merge operation
+3. Executes platform-specific merge logic (GitHub/GitLab/Bitbucket)
 4. If worktree_cleanup not provided but worktree exists:
-   - Present proactive cleanup prompt (3 options)
-   - Execute cleanup if user selects option 1
-5. Return structured response
+   - Presents proactive cleanup prompt (3 options)
+   - Executes cleanup if user selects option 1
+5. Returns structured response to you
+6. You display results to the user
+
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to merge PR"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

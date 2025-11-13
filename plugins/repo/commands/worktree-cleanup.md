@@ -144,7 +144,15 @@ Run without --dry-run to execute cleanup
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-Invoke the fractary-repo:repo-manager agent with a cleanup-worktrees request:
+**CRITICAL**: You MUST actually invoke the Task tool. Do NOT just describe what should be done.
+
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation
+- **prompt**: JSON string containing the operation and parameters
+
+**Example Task tool invocation**::
 
 ```json
 {
@@ -158,14 +166,10 @@ Invoke the fractary-repo:repo-manager agent with a cleanup-worktrees request:
 }
 ```
 
-The repo-manager agent will:
-1. Validate the request
-2. Route to worktree-manager skill
-3. Identify cleanup candidates (merged/stale)
-4. Check for uncommitted changes
-5. Execute cleanup operations
-6. Update metadata
-7. Return cleanup summary
+**DO NOT**:
+- ❌ Write text like "Invoke the fractary-repo:repo-manager agent"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

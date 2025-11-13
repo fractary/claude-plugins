@@ -48,13 +48,15 @@ Your role is to parse user input and invoke the repo-manager agent with the appr
 
 2. **Build structured request**
    - Package parameters for commit operation
+   - Create JSON request with operation: "create-commit"
 
-3. **Invoke agent**
+3. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-repo:repo-manager"
    - Pass the structured JSON request in the prompt parameter
+   - Do NOT just describe what should be done - actually call the Task tool
 
 4. **Return response**
-   - The repo-manager agent will handle the operation and return results
+   - The Task tool returns the agent's output
    - Display results to the user
 </WORKFLOW>
 
@@ -147,21 +149,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using the Task tool.
-
-**Agent**: fractary-repo:repo-manager
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
 **How to invoke**:
-Use the Task tool with the agent as subagent_type:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation (e.g., "Create semantic commit")
+- **prompt**: JSON string containing the operation and parameters
 
-```
-Task tool invocation:
-- subagent_type: "fractary-repo:repo-manager"
-- description: Brief description of operation
-- prompt: JSON request containing operation and parameters
-```
-
-**Example invocation**:
+**Example Task tool invocation**:
 ```
 Task(
   subagent_type="fractary-repo:repo-manager",
@@ -171,21 +167,14 @@ Task(
     "parameters": {
       "message": "Add CSV export",
       "type": "feat",
-      "work_id": "123"
+      "work_id": "123",
+      "scope": "api",
+      "breaking": false,
+      "description": "Implements CSV export functionality"
     }
   }'
 )
 ```
-
-**CRITICAL - DO NOT**:
-- ❌ Invoke skills directly (commit-creator, branch-pusher, etc.) - let the agent route
-- ❌ Write declarative text about using the agent - actually invoke it
-
-**The agent will**:
-- Validate the request
-- Route to commit-creator skill
-- Return the skill's response
-- You display results to user
 
 **Request structure**:
 ```json
@@ -193,7 +182,7 @@ Task(
   "operation": "create-commit",
   "parameters": {
     "message": "commit message",
-    "type": "feat|fix|chore|...",
+    "type": "feat|fix|chore|docs|style|refactor|perf|test",
     "work_id": "123",
     "scope": "scope",
     "breaking": true|false,
@@ -202,11 +191,18 @@ Task(
 }
 ```
 
-The repo-manager agent will:
-1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
+**What the agent does**:
+1. Receives the request
+2. Routes to commit-creator skill
+3. Executes platform-specific logic
+4. Returns structured response to you
+5. You display results to the user
+
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to create a commit"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ❌ Invoke skills directly (commit-creator, etc.)
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 
 ## Supported Operations
 

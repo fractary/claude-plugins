@@ -125,25 +125,33 @@ Use --force to remove anyway (changes will be lost)
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-Invoke the fractary-repo:repo-manager agent with a remove-worktree request:
+**CRITICAL**: You MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
-```json
-{
-  "operation": "remove-worktree",
-  "parameters": {
-    "branch_name": "feat/92-add-git-worktree-support",
-    "force": false
-  }
-}
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: "Remove worktree for branch"
+- **prompt**: JSON string containing the operation and parameters
+
+**Example Task tool invocation**:
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Remove worktree for feat/92",
+  prompt='{
+    "operation": "remove-worktree",
+    "parameters": {
+      "branch_name": "feat/92-add-git-worktree-support",
+      "force": false
+    }
+  }'
+)
 ```
 
-The repo-manager agent will:
-1. Validate the request
-2. Route to worktree-manager skill
-3. Check for uncommitted changes
-4. Execute the remove operation (or fail safely)
-5. Update metadata
-6. Return removal status
+**DO NOT**:
+- ❌ Write text like "Invoke the fractary-repo:repo-manager agent with a remove-worktree request"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

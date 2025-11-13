@@ -109,27 +109,35 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation (e.g., "Delete branch feature/123")
+- **prompt**: JSON string containing the operation and parameters
 
-**Request structure**:
-```json
-{
-  "operation": "delete-branch",
-  "parameters": {
-    "branch_name": "feature/123-add-csv-export",
-    "location": "both",
-    "force": true
-  }
-}
+**Example Task tool invocation**:
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Delete branch feature/123-add-csv-export",
+  prompt='{
+    "operation": "delete-branch",
+    "parameters": {
+      "branch_name": "feature/123-add-csv-export",
+      "location": "both",
+      "force": true,
+      "worktree_cleanup": false
+    }
+  }'
+)
 ```
 
-The repo-manager agent will:
-1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to delete a branch"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>
