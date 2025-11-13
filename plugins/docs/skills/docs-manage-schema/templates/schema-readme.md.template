@@ -1,0 +1,137 @@
+---
+title: "{{title}}"
+type: schema
+dataset: {{dataset}}
+version: {{version}}
+status: {{status}}
+date: {{date}}
+author: {{author}}
+tags: {{#tags}}{{.}}, {{/tags}}
+codex_sync: true
+generated: true
+---
+
+# {{title}}
+
+**Version**: {{version}}
+**Status**: {{status}}
+**Dataset**: `{{dataset}}`
+
+## Overview
+
+{{description}}
+
+## Schema Format
+
+**Format**: {{schema_format}}
+**JSON Schema Version**: Draft 7
+**Machine-Readable**: [schema.json](./schema.json)
+
+## Fields
+
+{{#fields}}
+### `{{name}}`
+
+- **Type**: `{{type}}`
+- **Required**: {{required}}
+- **Description**: {{description}}
+{{#format}}
+- **Format**: `{{format}}`
+{{/format}}
+{{#constraints}}
+- **Constraints**: {{constraints}}
+{{/constraints}}
+{{#examples}}
+- **Example**: `{{examples}}`
+{{/examples}}
+
+{{/fields}}
+
+## Validation Rules
+
+{{#validation_rules}}
+- **{{field}}**: {{rule}}
+{{/validation_rules}}
+
+{{^validation_rules}}
+*No additional validation rules defined.*
+{{/validation_rules}}
+
+## Examples
+
+### Example 1: Valid Data
+
+```json
+{{#examples}}
+{{examples}}
+{{/examples}}
+```
+
+{{^examples}}
+```json
+{
+  "example": "Add example data here"
+}
+```
+{{/examples}}
+
+## Versioning
+
+**Current Version**: {{version}}
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history.
+
+### Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| {{version}} | {{date}} | Initial version |
+
+## Usage
+
+### Validation
+
+This schema can be used to validate data against the defined structure:
+
+```javascript
+const Ajv = require('ajv');
+const schema = require('./schema.json');
+
+const ajv = new Ajv();
+const validate = ajv.compile(schema);
+
+const valid = validate(data);
+if (!valid) console.log(validate.errors);
+```
+
+### Code Generation
+
+This schema can be used to generate types/classes:
+
+```bash
+# TypeScript
+quicktype schema.json -o types.ts
+
+# Python
+datamodel-codegen --input schema.json --output models.py
+```
+
+## Related Schemas
+
+{{#related}}
+- [{{.}}]({{.}})
+{{/related}}
+
+{{^related}}
+*No related schemas.*
+{{/related}}
+
+## References
+
+- [JSON Schema Documentation](https://json-schema.org/)
+- [Understanding JSON Schema](https://json-schema.org/understanding-json-schema/)
+
+---
+
+*Generated with fractary-docs plugin*
+*Machine-readable version: [schema.json](./schema.json)*

@@ -1,0 +1,215 @@
+{
+  "type": "schema",
+  "display_name": "Schema Documentation",
+  "description": "Data schema documentation with dual-format support (README.md + schema.json)",
+  "file_naming": {
+    "directory_pattern": "{dataset}",
+    "readme": "README.md",
+    "schema": "schema.json",
+    "changelog": "CHANGELOG.md"
+  },
+  "storage": {
+    "default_path": "docs/schema",
+    "config_key": "doc_types.schema.path",
+    "hierarchical": true
+  },
+  "frontmatter": {
+    "required_fields": ["title", "type", "dataset", "version", "status", "date"],
+    "optional_fields": ["author", "tags", "related", "codex_sync", "generated"],
+    "type_value": "schema",
+    "defaults": {
+      "type": "schema",
+      "version": "1.0.0",
+      "codex_sync": true,
+      "generated": true
+    }
+  },
+  "structure": {
+    "required_sections": [
+      "Overview",
+      "Schema Format",
+      "Fields",
+      "Validation Rules",
+      "Versioning"
+    ],
+    "optional_sections": [
+      "Examples",
+      "Usage",
+      "Code Generation",
+      "Related Schemas",
+      "References"
+    ]
+  },
+  "dual_format": {
+    "enabled": true,
+    "formats": ["readme", "json_schema"],
+    "validate_both": true,
+    "consistency_check": true
+  },
+  "json_schema": {
+    "spec_version": "draft-07",
+    "required_fields": ["$schema", "title", "description", "type", "version"],
+    "validate_against_metaschema": true
+  },
+  "versioning": {
+    "scheme": "semver",
+    "format": "MAJOR.MINOR.PATCH",
+    "changelog_required": true,
+    "changelog_filename": "CHANGELOG.md"
+  },
+  "status": {
+    "allowed_values": ["draft", "review", "approved", "deprecated"],
+    "default": "draft",
+    "description": {
+      "draft": "Schema is being developed",
+      "review": "Schema is under review",
+      "approved": "Schema is approved for use",
+      "deprecated": "Schema is deprecated, use newer version"
+    },
+    "transitions": {
+      "draft": ["review", "deprecated"],
+      "review": ["draft", "approved", "deprecated"],
+      "approved": ["deprecated"],
+      "deprecated": []
+    }
+  },
+  "operations": {
+    "create": {
+      "enabled": true,
+      "description": "Create schema with dual-format generation",
+      "required_params": ["dataset", "title", "description", "fields", "version"],
+      "optional_params": [
+        "schema_format",
+        "validation_rules",
+        "examples",
+        "changelog_entry",
+        "status",
+        "tags"
+      ],
+      "generates": ["README.md", "schema.json", "CHANGELOG.md (optional)"]
+    },
+    "update": {
+      "enabled": true,
+      "description": "Update schema and increment version",
+      "version_increment": "automatic",
+      "changelog_required": true
+    },
+    "list": {
+      "enabled": true,
+      "description": "List schemas with hierarchy",
+      "show_hierarchy": true
+    },
+    "validate": {
+      "enabled": true,
+      "description": "Validate both README.md and schema.json"
+    },
+    "reindex": {
+      "enabled": true,
+      "description": "Regenerate hierarchical index"
+    }
+  },
+  "templates": {
+    "readme": "schema-readme.md.template",
+    "json_schema": "schema.json.template",
+    "changelog": "CHANGELOG.md.template",
+    "lookup_paths": [
+      ".templates/docs/schema/",
+      "~/.config/fractary/docs/templates/schema/",
+      "${PLUGIN_ROOT}/skills/docs-manage-schema/templates/"
+    ]
+  },
+  "validation": {
+    "min_fields": 1,
+    "require_field_descriptions": true,
+    "require_examples": true,
+    "require_version": true,
+    "custom_rules": [
+      {
+        "rule": "field_completeness",
+        "description": "All fields must have type and description",
+        "severity": "error"
+      },
+      {
+        "rule": "version_format",
+        "description": "Version must follow semver format",
+        "severity": "error"
+      },
+      {
+        "rule": "json_schema_validity",
+        "description": "schema.json must be valid JSON Schema",
+        "severity": "error"
+      },
+      {
+        "rule": "format_consistency",
+        "description": "Fields must match between README.md and schema.json",
+        "severity": "warning"
+      }
+    ]
+  },
+  "auto_index": {
+    "enabled": true,
+    "hierarchical": true,
+    "group_by": "dataset_hierarchy",
+    "index_filename": "README.md",
+    "update_on_create": true
+  },
+  "examples": {
+    "create_user_schema": {
+      "dataset": "user",
+      "title": "User Schema",
+      "description": "User account and profile data",
+      "version": "1.0.0",
+      "schema_format": "json-schema",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "Unique user identifier",
+          "required": true,
+          "format": "uuid"
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "description": "User email address",
+          "required": true,
+          "format": "email",
+          "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "User full name",
+          "required": true,
+          "minLength": 1,
+          "maxLength": 255
+        },
+        {
+          "name": "age",
+          "type": "integer",
+          "description": "User age",
+          "required": false,
+          "minimum": 0,
+          "maximum": 150
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "description": "Account status",
+          "required": true,
+          "enum": ["active", "suspended", "deleted"]
+        }
+      ],
+      "examples": [
+        {
+          "id": "123e4567-e89b-12d3-a456-426614174000",
+          "email": "john.doe@example.com",
+          "name": "John Doe",
+          "age": 30,
+          "status": "active"
+        }
+      ],
+      "status": "draft"
+    }
+  }
+}
