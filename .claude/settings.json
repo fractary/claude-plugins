@@ -140,6 +140,6 @@
   "_note": "Most operations auto-allowed. Approval required only for protected branch operations.",
   "statusLine": {
     "type": "command",
-    "command": "/home/jmcwilliam/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
+    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
   }
 }

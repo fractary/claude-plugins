@@ -43,6 +43,34 @@ EOF
 
 echo -e "${GREEN}✓ Plugin configuration created${NC}"
 
+# Configure statusLine in .claude/settings.json
+echo -e "${CYAN}Configuring status line in .claude/settings.json...${NC}"
+mkdir -p .claude
+
+# Create or update settings.json with statusLine configuration
+if [ -f .claude/settings.json ]; then
+  # Merge with existing settings.json
+  jq '. + {
+    "statusLine": {
+      "type": "command",
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
+    }
+  }' .claude/settings.json > .claude/settings.json.tmp && mv .claude/settings.json.tmp .claude/settings.json
+  echo -e "${GREEN}✓ StatusLine configured in .claude/settings.json${NC}"
+else
+  # Create new settings.json with statusLine
+  cat > .claude/settings.json <<'EOF'
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "statusLine": {
+    "type": "command",
+    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
+  }
+}
+EOF
+  echo -e "${GREEN}✓ Created .claude/settings.json with statusLine${NC}"
+fi
+
 # Create .gitignore entry for cache
 if [ -f .gitignore ]; then
   if ! grep -q "^.fractary/plugins/status/last-prompt.json" .gitignore 2>/dev/null; then
@@ -62,19 +90,20 @@ echo ""
 echo -e "Plugin configuration:"
 echo -e "  ${CYAN}•${NC} Configuration: .fractary/plugins/status/config.json"
 echo -e "  ${CYAN}•${NC} Cache location: .fractary/plugins/status/"
+echo -e "  ${CYAN}•${NC} StatusLine: .claude/settings.json (using \${CLAUDE_PLUGIN_ROOT})"
 echo ""
-echo -e "${YELLOW}Plugin-Level Components (Automatic):${NC}"
-echo -e "  ${CYAN}•${NC} StatusLine hook (managed in plugin)"
-echo -e "  ${CYAN}•${NC} UserPromptSubmit hook (managed in plugin)"
-echo -e "  ${CYAN}•${NC} Scripts (in \${CLAUDE_PLUGIN_ROOT}/scripts/)"
+echo -e "${YELLOW}Plugin Components:${NC}"
+echo -e "  ${CYAN}•${NC} StatusLine command (in .claude/settings.json)"
+echo -e "  ${CYAN}•${NC} UserPromptSubmit hook (managed in plugin hooks/hooks.json)"
+echo -e "  ${CYAN}•${NC} Scripts (referenced via \${CLAUDE_PLUGIN_ROOT}/scripts/)"
 echo ""
 echo -e "${YELLOW}Note:${NC} Restart Claude Code to activate the status line"
 echo ""
 echo -e "Status line format:"
 echo -e "  ${CYAN}[branch] ${YELLOW}[±files]${NC} ${MAGENTA}[#issue]${NC} ${BLUE}[PR#pr]${NC} ${GREEN}[↑ahead]${NC} ${RED}[↓behind]${NC} last: prompt..."
 echo ""
-echo -e "${CYAN}Hooks and scripts are managed at the plugin level and automatically${NC}"
-echo -e "${CYAN}available when the plugin is installed. No per-project setup needed!${NC}"
+echo -e "${CYAN}Scripts are referenced using \${CLAUDE_PLUGIN_ROOT} for portability${NC}"
+echo -e "${CYAN}across different environments and user setups.${NC}"
 echo ""
 
 exit 0
