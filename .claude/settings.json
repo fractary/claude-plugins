@@ -17,6 +17,7 @@
     "fractary-docs@fractary": true,
     "fractary-logs@fractary": true,
     "fractary-spec@fractary": true,
+    "fractary-status@fractary": true,
     "fractary-faber@fractary": true,
     "fractary-faber-cloud@fractary": true
   },
