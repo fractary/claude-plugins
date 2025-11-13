@@ -153,7 +153,7 @@ main() {
         fi
 
         case "$field" in
-            timestamp|repo_path|branch|issue_id|pr_number)
+            timestamp|repo_path|project_name|branch|issue_id|pr_number)
                 read_cache_field "$field"
                 ;;
             uncommitted_changes|uncommitted|changes)
@@ -179,7 +179,7 @@ main() {
                 ;;
             *)
                 echo -e "${RED}❌ Unknown field: ${field}${NC}" >&2
-                echo "Valid fields: timestamp, repo_path, branch, issue_id, pr_number, uncommitted_changes, untracked_files, commits_ahead, commits_behind, has_conflicts, stash_count, clean" >&2
+                echo "Valid fields: timestamp, repo_path, project_name, branch, issue_id, pr_number, uncommitted_changes, untracked_files, commits_ahead, commits_behind, has_conflicts, stash_count, clean" >&2
                 exit 1
                 ;;
         esac

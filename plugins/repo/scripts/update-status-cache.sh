@@ -171,12 +171,16 @@ fi
 # Get current timestamp in ISO 8601 format
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+# Extract project name from repo path (last directory component)
+PROJECT_NAME=$(basename "${REPO_PATH}")
+
 # Build JSON output
 # Note: issue_id and pr_number are strings (may be empty)
 cat > "${TEMP_FILE}" <<EOF
 {
   "timestamp": "${TIMESTAMP}",
   "repo_path": "${REPO_PATH}",
+  "project_name": "${PROJECT_NAME}",
   "branch": "${BRANCH}",
   "issue_id": "${ISSUE_ID}",
   "pr_number": "${PR_NUMBER}",

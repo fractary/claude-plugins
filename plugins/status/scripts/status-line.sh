@@ -53,6 +53,12 @@ read_git_status() {
   fi
 }
 
+# Get project name
+PROJECT=$(read_git_status project_name | tr -d '\n')
+if [ -z "$PROJECT" ] || [ "$PROJECT" = "0" ]; then
+  PROJECT=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+fi
+
 # Get branch name
 BRANCH=$(read_git_status branch | tr -d '\n')
 if [ -z "$BRANCH" ] || [ "$BRANCH" = "0" ]; then
@@ -101,8 +107,11 @@ fi
 # Build status line
 STATUS_LINE=""
 
+# Project name in square brackets (cyan)
+STATUS_LINE="${STATUS_LINE}${CYAN}[${PROJECT}]${NC}"
+
 # Branch name (cyan)
-STATUS_LINE="${STATUS_LINE}${CYAN}${BRANCH}${NC}"
+STATUS_LINE="${STATUS_LINE} ${CYAN}${BRANCH}${NC}"
 
 # File changes (yellow if dirty, green if clean)
 if [ "$TOTAL_CHANGES" -gt 0 ]; then

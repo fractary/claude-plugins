@@ -105,7 +105,7 @@ echo ""
 echo -e "${YELLOW}Note:${NC} Restart Claude Code to activate the status line"
 echo ""
 echo -e "Status line format:"
-echo -e "  Line 1: ${CYAN}[branch] ${YELLOW}[±files]${NC} ${MAGENTA}[#issue]${NC} ${BLUE}[PR#pr]${NC} ${GREEN}[↑ahead]${NC} ${RED}[↓behind]${NC}"
+echo -e "  Line 1: ${CYAN}[project] branch ${YELLOW}[±files]${NC} ${MAGENTA}[#issue]${NC} ${BLUE}[PR#pr]${NC} ${GREEN}[↑ahead]${NC} ${RED}[↓behind]${NC}"
 echo -e "  Line 2: ${NC}last: prompt text (up to 120 chars)..."
 echo ""
 
