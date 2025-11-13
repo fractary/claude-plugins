@@ -179,6 +179,32 @@
         ]
       },
       {
+        "name": "fractary-status",
+        "source": "./plugins/status",
+        "description": "Custom Claude Code status line showing git status, issue numbers, PR numbers, and last prompt",
+        "version": "1.0.0",
+        "author": {
+          "name": "The Fractary",
+          "url": "https://github.com/fractary"
+        },
+        "homepage": "https://github.com/fractary/claude-plugins/tree/main/plugins/status",
+        "repository": "https://github.com/fractary/claude-plugins/tree/main/plugins/status",
+        "license": "MIT",
+        "keywords": [
+          "status-line",
+          "ui",
+          "git",
+          "hooks",
+          "productivity",
+          "workflow"
+        ],
+        "category": "productivity",
+        "strict": true,
+        "commands": [
+          "./commands/install.md"
+        ]
+      },
+      {
         "name": "fractary-spec",
         "source": "./plugins/spec",
         "description": "Manage ephemeral specifications tied to work items with lifecycle-based archival",
