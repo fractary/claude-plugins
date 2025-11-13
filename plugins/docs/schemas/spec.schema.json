@@ -1,0 +1,181 @@
+{
+  "type": "spec",
+  "display_name": "Implementation Specification",
+  "description": "Technical design and implementation plan for features, bugs, and changes",
+
+  "file_naming": {
+    "pattern": "spec-{id}-{slug}.md",
+    "auto_number": false,
+    "slug_source": "title",
+    "slug_max_length": 50,
+    "id_source": "work_id"
+  },
+
+  "storage": {
+    "default_path": "docs/specs",
+    "config_key": "doc_types.spec.path"
+  },
+
+  "frontmatter": {
+    "required_fields": ["title", "type", "status", "date", "work_id"],
+    "optional_fields": [
+      "author",
+      "tags",
+      "related",
+      "implements",
+      "work_type",
+      "work_domain",
+      "codex_sync",
+      "generated"
+    ],
+    "type_value": "spec",
+    "defaults": {
+      "type": "spec",
+      "codex_sync": true,
+      "generated": true
+    }
+  },
+
+  "structure": {
+    "required_sections": [
+      "Summary",
+      "Requirements",
+      "Technical Approach",
+      "Testing Strategy",
+      "Success Criteria"
+    ],
+    "optional_sections": [
+      "Security Considerations",
+      "Performance Considerations",
+      "Alternatives Considered",
+      "Files to Modify",
+      "References",
+      "Notes"
+    ],
+    "section_order": [
+      "Summary",
+      "Requirements",
+      "Technical Approach",
+      "Files to Modify",
+      "Testing Strategy",
+      "Security Considerations",
+      "Performance Considerations",
+      "Success Criteria",
+      "Alternatives Considered",
+      "References",
+      "Notes"
+    ]
+  },
+
+  "status": {
+    "allowed_values": ["draft", "review", "approved", "implemented", "deprecated"],
+    "default": "draft",
+    "description": {
+      "draft": "Specification is being written",
+      "review": "Specification is under review",
+      "approved": "Specification has been approved for implementation",
+      "implemented": "Implementation is complete",
+      "deprecated": "Specification is no longer relevant"
+    },
+    "transitions": {
+      "draft": ["review", "deprecated"],
+      "review": ["approved", "draft", "deprecated"],
+      "approved": ["implemented", "review", "deprecated"],
+      "implemented": ["deprecated"],
+      "deprecated": []
+    }
+  },
+
+  "operations": {
+    "generate": {
+      "enabled": true,
+      "description": "Create a new implementation specification",
+      "required_params": ["title", "work_id", "summary", "requirements"],
+      "optional_params": [
+        "status",
+        "technical_approach",
+        "testing_strategy",
+        "success_criteria",
+        "work_type",
+        "work_domain",
+        "tags",
+        "related"
+      ]
+    },
+    "update": {
+      "enabled": true,
+      "description": "Update an existing specification",
+      "allowed_when": ["always"],
+      "note": "Specs can be updated at any time, even after implementation"
+    },
+    "deprecate": {
+      "enabled": true,
+      "description": "Mark specification as deprecated",
+      "required_params": ["deprecation_reason"],
+      "actions": [
+        "Set status to 'deprecated'",
+        "Add deprecation note",
+        "Update frontmatter with deprecation date and reason"
+      ]
+    }
+  },
+
+  "templates": {
+    "default": "spec.md.template",
+    "lookup_paths": [
+      ".templates/docs/spec.md.template",
+      "~/.config/fractary/docs/templates/spec.md.template",
+      "${PLUGIN_ROOT}/skills/doc-spec/templates/default.md.template"
+    ]
+  },
+
+  "validation": {
+    "min_section_length": {
+      "Summary": 50,
+      "Requirements": 30,
+      "Technical Approach": 100,
+      "Testing Strategy": 50,
+      "Success Criteria": 30
+    },
+    "require_work_id": true,
+    "require_checklist_in_success_criteria": true,
+    "custom_rules": [
+      {
+        "rule": "work_id_reference",
+        "description": "Spec must reference a valid work item",
+        "severity": "error"
+      },
+      {
+        "rule": "testability",
+        "description": "Testing strategy should include specific test types",
+        "severity": "warning"
+      }
+    ]
+  },
+
+  "examples": {
+    "generate": {
+      "title": "Add CSV Export Feature",
+      "work_id": "abc123",
+      "summary": "Implement CSV export functionality for user data, allowing users to download their data in spreadsheet format.",
+      "requirements": [
+        "Users can export their profile data as CSV",
+        "Export includes all user fields and related data",
+        "Export is triggered from user settings page",
+        "Large exports are processed asynchronously"
+      ],
+      "technical_approach": "Implement export service using background jobs for large datasets. Use CSV library for formatting. Add export endpoint to API.",
+      "testing_strategy": "Unit tests for CSV generation, integration tests for API endpoint, E2E tests for user flow",
+      "success_criteria": [
+        "User can initiate export from settings",
+        "CSV file contains all expected fields",
+        "Large exports complete within 5 minutes",
+        "All tests passing",
+        "Documentation updated"
+      ],
+      "status": "draft",
+      "work_type": "/feature",
+      "work_domain": "engineering"
+    }
+  }
+}

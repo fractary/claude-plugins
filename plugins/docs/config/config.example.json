@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "hooks": {
     "pre_generate": null,
     "post_generate": null,
@@ -7,6 +7,40 @@
     "post_validate": null,
     "pre_update": null,
     "post_update": null
+  },
+  "doc_types": {
+    "adr": {
+      "enabled": true,
+      "path": "docs/architecture/adrs",
+      "auto_number": true,
+      "generate_on_architectural_decision": true,
+      "enforce_immutability": true
+    },
+    "spec": {
+      "enabled": true,
+      "path": "docs/specs",
+      "link_to_work_items": true
+    },
+    "runbook": {
+      "enabled": true,
+      "path": "docs/operations/runbooks"
+    },
+    "api": {
+      "enabled": true,
+      "path": "docs/api"
+    },
+    "deployment": {
+      "enabled": true,
+      "path": "docs/deployments"
+    },
+    "design": {
+      "enabled": true,
+      "path": "docs/architecture/designs"
+    },
+    "schema": {
+      "enabled": true,
+      "path": "docs/api/schemas"
+    }
   },
   "output_paths": {
     "documentation": "docs",
