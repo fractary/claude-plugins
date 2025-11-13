@@ -120,6 +120,14 @@ else
   STATUS_LINE="${STATUS_LINE} ${GREEN}±0${NC}"
 fi
 
+# Ahead/behind (green for ahead, red for behind)
+if [ "$AHEAD" -gt 0 ]; then
+  STATUS_LINE="${STATUS_LINE} ${GREEN}↑${AHEAD}${NC}"
+fi
+if [ "$BEHIND" -gt 0 ]; then
+  STATUS_LINE="${STATUS_LINE} ${RED}↓${BEHIND}${NC}"
+fi
+
 # Issue number (magenta)
 if [ -n "$ISSUE_ID" ]; then
   STATUS_LINE="${STATUS_LINE} ${MAGENTA}issue #${ISSUE_ID}${NC}"
@@ -128,14 +136,6 @@ fi
 # PR number (blue)
 if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
   STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
-fi
-
-# Ahead/behind (green for ahead, red for behind)
-if [ "$AHEAD" -gt 0 ]; then
-  STATUS_LINE="${STATUS_LINE} ${GREEN}↑${AHEAD}${NC}"
-fi
-if [ "$BEHIND" -gt 0 ]; then
-  STATUS_LINE="${STATUS_LINE} ${RED}↓${BEHIND}${NC}"
 fi
 
 # Output first line (strip color codes if NO_COLOR is set)
