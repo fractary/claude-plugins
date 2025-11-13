@@ -143,21 +143,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using the Task tool.
-
-**Agent**: fractary-repo:repo-manager
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
 **How to invoke**:
-Use the Task tool with the agent as subagent_type:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation (e.g., "Push branch to remote")
+- **prompt**: JSON string containing the operation and parameters
 
-```
-Task tool invocation:
-- subagent_type: "fractary-repo:repo-manager"
-- description: Brief description of operation
-- prompt: JSON request containing operation and parameters
-```
-
-**Example invocation**:
+**Example Task tool invocation**:
 ```
 Task(
   subagent_type="fractary-repo:repo-manager",
@@ -167,21 +161,12 @@ Task(
     "parameters": {
       "branch": "feature/123-add-export",
       "remote": "origin",
-      "set_upstream": true
+      "set_upstream": true,
+      "force": false
     }
   }'
 )
 ```
-
-**CRITICAL - DO NOT**:
-- ❌ Invoke skills directly (branch-pusher, etc.) - let the agent route
-- ❌ Write declarative text about using the agent - actually invoke it
-
-**The agent will**:
-- Validate the request
-- Route to branch-pusher skill
-- Return the skill's response
-- You display results to user
 
 **Request structure**:
 ```json
@@ -195,6 +180,12 @@ Task(
   }
 }
 ```
+
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to push"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ❌ Invoke skills directly (branch-pusher, etc.)
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 
 ## Supported Operations
 

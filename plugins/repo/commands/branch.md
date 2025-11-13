@@ -198,9 +198,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation
+- **prompt**: JSON string containing the operation and parameters
+
+**Example Task tool invocation** (customize based on the specific operation):
 
 **Request structure**:
 ```json
@@ -224,6 +230,11 @@ The repo-manager agent will:
 - `create-branch` - Create new branch with semantic naming
 - `delete-branch` - Delete branch (local/remote/both)
 - `list-branches` - List branches with filtering
+
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

@@ -84,20 +84,30 @@ Total: 2 worktrees
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-Invoke the fractary-repo:repo-manager agent with a list-worktrees request:
+**CRITICAL**: You MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
-```json
-{
-  "operation": "list-worktrees",
-  "parameters": {}
-}
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: "List active worktrees"
+- **prompt**: JSON string containing the operation and parameters
+
+**Example Task tool invocation**:
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="List active worktrees",
+  prompt='{
+    "operation": "list-worktrees",
+    "parameters": {}
+  }'
+)
 ```
 
-The repo-manager agent will:
-1. Validate the request
-2. Route to worktree-manager skill
-3. Execute the list operation
-4. Return formatted results with worktree details
+**DO NOT**:
+- ❌ Write text like "Invoke the fractary-repo:repo-manager agent with a list-worktrees request"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>
