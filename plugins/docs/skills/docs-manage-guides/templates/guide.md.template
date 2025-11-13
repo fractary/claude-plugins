@@ -1,0 +1,69 @@
+---
+title: "{{title}}"
+type: guide
+audience: {{audience}}
+status: {{status}}
+date: {{date}}
+author: {{author}}
+tags: {{#tags}}{{.}}, {{/tags}}
+related: {{#related}}{{.}}, {{/related}}
+codex_sync: true
+generated: true
+---
+
+# {{title}}
+
+## Purpose
+
+{{purpose}}
+
+## Prerequisites
+
+{{#prerequisites}}
+- {{.}}
+{{/prerequisites}}
+
+## Steps
+
+{{#steps}}
+### Step {{number}}: {{title}}
+
+{{content}}
+
+{{#code_example}}
+```{{language}}
+{{code}}
+```
+{{/code_example}}
+
+{{/steps}}
+
+## Troubleshooting
+
+{{#troubleshooting}}
+### {{issue}}
+
+**Problem**: {{problem}}
+**Solution**: {{solution}}
+
+{{/troubleshooting}}
+
+{{^troubleshooting}}
+*Common issues and solutions will be added as they are discovered.*
+{{/troubleshooting}}
+
+## Next Steps
+
+{{#next_steps}}
+- {{.}}
+{{/next_steps}}
+
+## Related Guides
+
+{{#related}}
+- [{{.}}]({{.}})
+{{/related}}
+
+---
+
+*Generated with fractary-docs plugin*
