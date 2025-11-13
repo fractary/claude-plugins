@@ -41,27 +41,29 @@ This command supports:
 1. **Parse user input**
    - Determine invocation mode based on first argument (direct vs description-based)
    - Extract parameters based on mode (see PARSING_LOGIC)
-   - Parse optional arguments: --base, --prefix, --work-id
+   - Parse optional arguments: --base, --prefix, --work-id, --worktree
    - Validate required arguments are present
 
 2. **Build structured request**
    - Map to "create-branch" operation
    - Package parameters based on mode:
-     - Direct mode: branch_name, base_branch, work_id (optional)
-     - Description mode: description, prefix, base_branch, work_id (optional)
+     - Direct mode: branch_name, base_branch, work_id (optional), create_worktree
+     - Description mode: description, prefix, base_branch, work_id (optional), create_worktree
 
-3. **Invoke repo-manager agent**
-   - Pass the structured request to fractary-repo:repo-manager
+3. **ACTUALLY INVOKE the Task tool**
+   - Use the Task tool with subagent_type="fractary-repo:repo-manager"
+   - Pass the structured JSON request in the prompt parameter
    - The agent will handle:
      - Work plugin detection (if work_id not provided)
      - User prompting (three-option workflow)
      - Issue creation (if user selects Option 1)
      - Branch creation
+     - Worktree creation (if create_worktree is true)
      - URL extraction and display
 
 4. **Return agent response**
-   - Display the agent's output to the user
-   - This includes any prompts, success messages, URLs, and errors
+   - The Task tool returns the agent's output
+   - Display it to the user (prompts, success messages, URLs, errors)
 </WORKFLOW>
 
 <ARGUMENT_SYNTAX>
@@ -220,62 +222,85 @@ For detailed workflow examples, see the Work Tracking Integration section below.
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using declarative syntax:
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
-**Agent**: fractary-repo:repo-manager (or @agent-fractary-repo:repo-manager)
+**How to invoke**:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of what you're doing (e.g., "Create branch for work item 123")
+- **prompt**: JSON string containing the operation and parameters
 
-**Request structure varies by mode**:
+**Example Task tool invocations**:
 
 ### Mode 1: Direct Branch Name
-```json
-{
-  "operation": "create-branch",
-  "parameters": {
-    "mode": "direct",
-    "branch_name": "feature/my-new-feature",
-    "base_branch": "main",
-    "work_id": "123",  // optional
-    "create_worktree": false  // optional
-  }
-}
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Create branch feature/my-new-feature",
+  prompt='{
+    "operation": "create-branch",
+    "parameters": {
+      "mode": "direct",
+      "branch_name": "feature/my-new-feature",
+      "base_branch": "main",
+      "work_id": "123",
+      "create_worktree": false
+    }
+  }'
+)
 ```
 
 ### Mode 2: Description-based Naming
-```json
-{
-  "operation": "create-branch",
-  "parameters": {
-    "mode": "description",
-    "description": "my experimental feature",
-    "prefix": "feat",
-    "base_branch": "main",
-    "work_id": "123",  // optional
-    "create_worktree": false  // optional
-  }
-}
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Create branch from description",
+  prompt='{
+    "operation": "create-branch",
+    "parameters": {
+      "mode": "description",
+      "description": "my experimental feature",
+      "prefix": "feat",
+      "base_branch": "main",
+      "work_id": "123",
+      "create_worktree": false
+    }
+  }'
+)
 ```
 
 ### With Worktree
-```json
-{
-  "operation": "create-branch",
-  "parameters": {
-    "mode": "description",
-    "description": "add CSV export",
-    "prefix": "feat",
-    "work_id": "123",
-    "create_worktree": true
-  }
-}
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Create branch with worktree",
+  prompt='{
+    "operation": "create-branch",
+    "parameters": {
+      "mode": "description",
+      "description": "add CSV export",
+      "prefix": "feat",
+      "work_id": "123",
+      "create_worktree": true
+    }
+  }'
+)
 ```
 
-The repo-manager agent will:
-1. Receive the request with mode indicator
-2. Route to appropriate skill(s) based on mode:
+**What the agent does**:
+1. Receives the request with mode indicator
+2. Routes to appropriate skill(s) based on mode:
    - **Direct**: branch-manager only
-   - **Description**: branch-namer → branch-manager (if work_id provided, includes in branch name)
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
+   - **Description**: branch-namer → branch-manager
+3. Executes platform-specific logic (GitHub/GitLab/Bitbucket)
+4. Returns structured response to you
+5. You display the response to the user
+
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to create a branch"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ❌ Invoke skills directly
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

@@ -47,14 +47,15 @@ Your role is to parse user input and invoke the repo-manager agent to create a p
 
 2. **Build structured request**
    - Map to "create-pr" operation
-   - Package parameters
+   - Package parameters into JSON request
 
-3. **Invoke agent**
+3. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-repo:repo-manager"
    - Pass the structured JSON request in the prompt parameter
+   - Do NOT just describe what should be done - actually call the Task tool
 
 4. **Return response**
-   - The repo-manager agent will handle the operation and return results
+   - The Task tool returns the agent's output
    - Display results to the user
 </WORKFLOW>
 
@@ -134,21 +135,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-After parsing arguments, invoke the repo-manager agent using the Task tool.
-
-**Agent**: fractary-repo:repo-manager
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
 
 **How to invoke**:
-Use the Task tool with the agent as subagent_type:
+Use the Task tool with these parameters:
+- **subagent_type**: "fractary-repo:repo-manager"
+- **description**: Brief description of operation (e.g., "Create pull request")
+- **prompt**: JSON string containing the operation and parameters
 
-```
-Task tool invocation:
-- subagent_type: "fractary-repo:repo-manager"
-- description: Brief description of operation
-- prompt: JSON request containing operation and parameters
-```
-
-**Example invocation**:
+**Example Task tool invocation**:
 ```
 Task(
   subagent_type="fractary-repo:repo-manager",
@@ -159,15 +154,41 @@ Task(
       "title": "Add CSV export feature",
       "body": "Implements user data export to CSV format",
       "base": "main",
-      "head": "feature/123-csv-export"
+      "head": "feature/123-csv-export",
+      "work_id": "123",
+      "draft": false
     }
   }'
 )
 ```
 
-**CRITICAL - DO NOT**:
-- ❌ Invoke skills directly (pr-manager, etc.) - let the agent route
-- ❌ Write declarative text about using the agent - actually invoke it
+**Request structure**:
+```json
+{
+  "operation": "create-pr",
+  "parameters": {
+    "title": "PR title",
+    "body": "PR description",
+    "base": "main",
+    "head": "feature/branch",
+    "work_id": "123",
+    "draft": false
+  }
+}
+```
+
+**What the agent does**:
+1. Receives the request
+2. Routes to pr-creator skill
+3. Executes platform-specific logic
+4. Returns structured response to you
+5. You display results to the user
+
+**DO NOT**:
+- ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to create a PR"
+- ❌ Show the JSON request to the user without actually invoking the Task tool
+- ❌ Invoke skills directly (pr-creator, etc.)
+- ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>
