@@ -21,6 +21,10 @@
             {
               "type": "command",
               "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
+            }, 
+            {
+              "type": "command",
+              "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
             }
           ]
         }
