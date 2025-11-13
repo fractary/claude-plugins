@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Parse arguments
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <issue_id> <related_issue_id> [relationship_type]" >&2
@@ -56,15 +60,27 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Verify source issue exists
-if ! gh issue view "$ISSUE_ID" --json number >/dev/null 2>&1; then
+if ! gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number >/dev/null 2>&1; then
     echo "Error: Issue #$ISSUE_ID not found" >&2
     echo "  Verify issue exists in the repository" >&2
     exit 10
 fi
 
 # Verify related issue exists
-if ! gh issue view "$RELATED_ISSUE_ID" --json number >/dev/null 2>&1; then
+if ! gh issue view "$RELATED_ISSUE_ID" --repo "$REPO_SPEC" --json number >/dev/null 2>&1; then
     echo "Error: Issue #$RELATED_ISSUE_ID not found" >&2
     echo "  Verify issue exists in the repository" >&2
     exit 10
@@ -76,7 +92,7 @@ MESSAGE=""
 case "$RELATIONSHIP_TYPE" in
     relates_to)
         # Simple bidirectional relationship - comment on source only
-        if ! gh issue comment "$ISSUE_ID" --body "Related to #$RELATED_ISSUE_ID" 2>&1; then
+        if ! gh issue comment "$ISSUE_ID" --repo "$REPO_SPEC" --body "Related to #$RELATED_ISSUE_ID" 2>&1; then
             echo "Error: Failed to create relationship comment" >&2
             exit 1
         fi
@@ -85,11 +101,11 @@ case "$RELATIONSHIP_TYPE" in
 
     blocks)
         # Source blocks target - comment on both
-        if ! gh issue comment "$ISSUE_ID" --body "Blocks #$RELATED_ISSUE_ID" 2>&1; then
+        if ! gh issue comment "$ISSUE_ID" --repo "$REPO_SPEC" --body "Blocks #$RELATED_ISSUE_ID" 2>&1; then
             echo "Error: Failed to create 'blocks' comment on #$ISSUE_ID" >&2
             exit 1
         fi
-        if ! gh issue comment "$RELATED_ISSUE_ID" --body "Blocked by #$ISSUE_ID" 2>&1; then
+        if ! gh issue comment "$RELATED_ISSUE_ID" --repo "$REPO_SPEC" --body "Blocked by #$ISSUE_ID" 2>&1; then
             echo "Error: Failed to create 'blocked by' comment on #$RELATED_ISSUE_ID" >&2
             exit 1
         fi
@@ -98,11 +114,11 @@ case "$RELATIONSHIP_TYPE" in
 
     blocked_by)
         # Source blocked by target - comment on both (inverse of blocks)
-        if ! gh issue comment "$ISSUE_ID" --body "Blocked by #$RELATED_ISSUE_ID" 2>&1; then
+        if ! gh issue comment "$ISSUE_ID" --repo "$REPO_SPEC" --body "Blocked by #$RELATED_ISSUE_ID" 2>&1; then
             echo "Error: Failed to create 'blocked by' comment on #$ISSUE_ID" >&2
             exit 1
         fi
-        if ! gh issue comment "$RELATED_ISSUE_ID" --body "Blocks #$ISSUE_ID" 2>&1; then
+        if ! gh issue comment "$RELATED_ISSUE_ID" --repo "$REPO_SPEC" --body "Blocks #$ISSUE_ID" 2>&1; then
             echo "Error: Failed to create 'blocks' comment on #$RELATED_ISSUE_ID" >&2
             exit 1
         fi
@@ -111,7 +127,7 @@ case "$RELATIONSHIP_TYPE" in
 
     duplicates)
         # Source duplicates target - comment on source only
-        if ! gh issue comment "$ISSUE_ID" --body "Duplicate of #$RELATED_ISSUE_ID" 2>&1; then
+        if ! gh issue comment "$ISSUE_ID" --repo "$REPO_SPEC" --body "Duplicate of #$RELATED_ISSUE_ID" 2>&1; then
             echo "Error: Failed to create duplicate comment" >&2
             exit 1
         fi

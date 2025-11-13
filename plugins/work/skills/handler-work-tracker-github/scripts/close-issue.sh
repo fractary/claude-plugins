@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Check arguments
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <issue_id> [close_comment] [work_id]" >&2
@@ -32,6 +36,18 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Format close comment with FABER metadata if work_id provided
 if [ -n "$WORK_ID" ]; then
     FORMATTED_COMMENT="$CLOSE_COMMENT
@@ -43,11 +59,11 @@ else
 fi
 
 # Close the issue
-if ! gh issue close "$ISSUE_ID" --comment "$FORMATTED_COMMENT" 2>/dev/null; then
+if ! gh issue close "$ISSUE_ID" --repo "$REPO_SPEC" --comment "$FORMATTED_COMMENT" 2>/dev/null; then
     # Check if issue exists
-    if gh issue view "$ISSUE_ID" --json number >/dev/null 2>&1; then
+    if gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number >/dev/null 2>&1; then
         # Issue exists but close failed (might already be closed)
-        issue_state=$(gh issue view "$ISSUE_ID" --json state -q '.state' 2>/dev/null)
+        issue_state=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json state -q '.state' 2>/dev/null)
         if [ "$issue_state" = "CLOSED" ]; then
             echo "Warning: Issue #$ISSUE_ID is already closed" >&2
             exit 3
@@ -62,7 +78,7 @@ if ! gh issue close "$ISSUE_ID" --comment "$FORMATTED_COMMENT" 2>/dev/null; then
 fi
 
 # Fetch updated issue to confirm closure
-issue_json=$(gh issue view "$ISSUE_ID" --json number,state,closedAt,url 2>/dev/null)
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,state,closedAt,url 2>/dev/null)
 
 if [ $? -ne 0 ]; then
     echo "Warning: Issue closed but couldn't fetch updated details" >&2

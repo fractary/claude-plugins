@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Check arguments
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <issue_id> [reopen_comment] [work_id]" >&2
@@ -42,12 +46,24 @@ else
     FORMATTED_COMMENT="$REOPEN_COMMENT"
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Reopen the issue
-if ! gh issue reopen "$ISSUE_ID" --comment "$FORMATTED_COMMENT" 2>/dev/null; then
+if ! gh issue reopen "$ISSUE_ID" --repo "$REPO_SPEC" --comment "$FORMATTED_COMMENT" 2>/dev/null; then
     # Check if issue exists
-    if gh issue view "$ISSUE_ID" --json number >/dev/null 2>&1; then
+    if gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number >/dev/null 2>&1; then
         # Issue exists but reopen failed (might already be open)
-        issue_state=$(gh issue view "$ISSUE_ID" --json state -q '.state' 2>/dev/null)
+        issue_state=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json state -q '.state' 2>/dev/null)
         if [ "$issue_state" = "OPEN" ]; then
             echo "Warning: Issue #$ISSUE_ID is already open" >&2
             exit 3
@@ -62,7 +78,7 @@ if ! gh issue reopen "$ISSUE_ID" --comment "$FORMATTED_COMMENT" 2>/dev/null; the
 fi
 
 # Fetch updated issue to confirm reopening
-issue_json=$(gh issue view "$ISSUE_ID" --json number,state,updatedAt,url 2>/dev/null)
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,state,updatedAt,url 2>/dev/null)
 
 if [ $? -ne 0 ]; then
     echo "Warning: Issue reopened but couldn't fetch updated details" >&2

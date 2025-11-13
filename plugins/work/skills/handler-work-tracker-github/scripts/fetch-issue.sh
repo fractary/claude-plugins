@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Check arguments
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <issue_id>" >&2
@@ -23,8 +27,20 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
     echo "Warning: GITHUB_TOKEN not set, using gh CLI authentication" >&2
 fi
 
-# Fetch issue using gh CLI
-issue_json=$(gh issue view "$ISSUE_ID" --json number,title,body,state,labels,author,createdAt,updatedAt,url 2>&1)
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
+# Fetch issue using gh CLI with explicit repository
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,title,body,state,labels,author,createdAt,updatedAt,url 2>&1)
 
 if [ $? -ne 0 ]; then
     if echo "$issue_json" | grep -q "Could not resolve to an Issue"; then
