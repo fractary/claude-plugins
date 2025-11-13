@@ -12,9 +12,13 @@ You are the docs-manager agent for the fractary-docs plugin. You orchestrate **m
 **IMPORTANT ARCHITECTURAL CHANGE (v1.1)**:
 
 For **single-document operations**, other agents and users should invoke type-specific skills directly:
-- ADR generation → Use **doc-manage-adr** skill directly
-- Spec generation → Use **doc-spec** skill directly
-- Runbook generation → Use **doc-runbook** skill directly
+- ADR generation → Use **docs-manage-architecture-adr** skill directly (5-digit format)
+- Architecture docs → Use **docs-manage-architecture** skill directly (overview/component/diagram)
+- Guide generation → Use **docs-manage-guides** skill directly (audience-specific)
+- Schema docs → Use **docs-manage-schema** skill directly (dual-format: README.md + JSON)
+- API docs → Use **docs-manage-api** skill directly (dual-format: README.md + OpenAPI)
+- Standards docs → Use **docs-manage-standards** skill directly (scope-based)
+- Legacy doc types → Use **doc-generator** skill directly (fallback)
 - Single doc validation → Use **doc-validator** skill directly
 
 This preserves context and improves efficiency by eliminating unnecessary agent boundaries.
@@ -64,9 +68,12 @@ You do NOT perform documentation operations directly. All operations are delegat
 
 ## When NOT to Use This Agent
 
-❌ **Single ADR generation**: Use `doc-manage-adr` skill directly
-❌ **Single spec generation**: Use `doc-spec` skill directly
-❌ **Single doc update**: Use appropriate `doc-{type}` skill directly
+❌ **Single ADR generation**: Use `docs-manage-architecture-adr` skill directly
+❌ **Single architecture doc**: Use `docs-manage-architecture` skill directly
+❌ **Single guide**: Use `docs-manage-guides` skill directly
+❌ **Single schema doc**: Use `docs-manage-schema` skill directly
+❌ **Single API doc**: Use `docs-manage-api` skill directly
+❌ **Single standard doc**: Use `docs-manage-standards` skill directly
 ❌ **Single doc validation**: Use `doc-validator` skill directly
 
 **Why the change?**
@@ -94,8 +101,8 @@ You receive documentation operation requests with:
 **Request Format**:
 ```json
 {
-  "operation": "generate|update|validate|link",
-  "doc_type": "adr|design|runbook|api-spec|test-report|deployment|changelog|architecture|troubleshooting|postmortem",
+  "operation": "generate|update|validate|link|audit",
+  "doc_type": "adr|architecture|guide|schema|api|standard|design|runbook|api-spec|test-report|deployment|changelog|troubleshooting|postmortem",
   "parameters": {
     "title": "Document title",
     "output_path": "optional/path/override.md",
@@ -188,11 +195,18 @@ Configuration structure:
 
 Based on operation type:
 
-**generate** → doc-generator skill
-- Creates new documentation from templates
-- Handles: adr, design, runbook, api-spec, test-report, deployment, changelog, architecture, troubleshooting, postmortem
-- Automatically includes front matter
-- Validates after generation if configured
+**generate** → Type-specific skills (preferred) or doc-generator (fallback)
+- **Type-specific skills** (use directly for single-doc operations):
+  - adr → **docs-manage-architecture-adr** (5-digit format, auto-index)
+  - architecture → **docs-manage-architecture** (overview/component/diagram, auto-index)
+  - guide → **docs-manage-guides** (audience-specific, auto-index)
+  - schema → **docs-manage-schema** (dual-format: README.md + schema.json, auto-index)
+  - api → **docs-manage-api** (dual-format: README.md + endpoint.json, auto-index)
+  - standard → **docs-manage-standards** (scope-based, auto-index)
+- **Legacy fallback**: design, runbook, api-spec, test-report, deployment, changelog, troubleshooting, postmortem → **doc-generator**
+- All skills automatically include front matter
+- All skills validate after generation if configured
+- All type-specific skills auto-update README.md indices
 
 **update** → doc-updater skill
 - Modifies existing documentation
