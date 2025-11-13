@@ -75,15 +75,12 @@ EOF
   echo -e "${GREEN}✓ Created .claude/settings.json with statusLine${NC}"
 fi
 
-# Create .gitignore entry for cache
-if [ -f .gitignore ]; then
-  if ! grep -q "^.fractary/plugins/status/last-prompt.json" .gitignore 2>/dev/null; then
-    echo "" >> .gitignore
-    echo "# Fractary status plugin - runtime cache" >> .gitignore
-    echo ".fractary/plugins/status/last-prompt.json" >> .gitignore
-    echo -e "${GREEN}✓ Added cache file to .gitignore${NC}"
-  fi
-fi
+# Create .gitignore in plugin directory for cache
+cat > .fractary/plugins/status/.gitignore <<EOF
+# Fractary status plugin - runtime cache
+last-prompt.json
+EOF
+echo -e "${GREEN}✓ Created .gitignore for cache file${NC}"
 
 # Summary
 echo ""
