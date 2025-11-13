@@ -2,27 +2,6 @@
   "name": "fractary-status",
   "version": "1.0.0",
   "description": "Custom Claude Code status line showing git status, issue numbers, PR numbers, and last prompt",
-  "author": "Fractary",
-  "license": "MIT",
-  "requires": ["fractary-repo"],
-  "commands": [
-    {
-      "name": "install",
-      "description": "Install status line hooks and scripts in the current project",
-      "path": "commands/install.md"
-    }
-  ],
-  "skills": [
-    {
-      "name": "status-line-manager",
-      "description": "Manages status line installation and configuration",
-      "path": "skills/status-line-manager/SKILL.md"
-    }
-  ],
-  "hooks": {
-    "templates": [
-      "hooks/status-line.json",
-      "hooks/user-prompt-submit.json"
-    ]
-  }
+  "commands": "./commands/",
+  "skills": "./skills/"
 }

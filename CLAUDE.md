@@ -46,18 +46,41 @@ Layer 4: Scripts (Deterministic Operations - executed outside LLM context)
 - **Skills** (`skills/*/SKILL.md`): Focused execution units that perform specific tasks by reading workflow steps and executing scripts. Document their work upon completion.
 - **Scripts** (`skills/*/scripts/**/*.sh`): Deterministic operations executed via Bash, outside LLM context.
 
-### Plugin Dependencies
+### Plugin Manifest Format
 
-Plugins declare dependencies in `.claude-plugin/plugin.json`:
+**CRITICAL**: The `.claude-plugin/plugin.json` manifest has a **strict, minimal schema**. Use only these fields:
 
 ```json
 {
-  "name": "fractary-faber",
-  "requires": ["fractary-work", "fractary-repo", "fractary-file"]
+  "name": "fractary-{plugin-name}",
+  "version": "1.0.0",
+  "description": "Brief description",
+  "commands": "./commands/",
+  "agents": ["./agents/{agent-name}.md"],
+  "skills": "./skills/"
 }
 ```
 
-The `faber` plugin orchestrates workflows using the primitive manager plugins (work, repo, file).
+**Required fields**:
+- `name` (string) - Plugin identifier (format: `fractary-{name}`)
+- `version` (string) - Semantic version
+- `description` (string) - Brief description
+
+**Optional fields**:
+- `commands` (string) - Path to commands directory (e.g., `"./commands/"`)
+- `agents` (array) - Array of agent file paths (e.g., `["./agents/manager.md"]`)
+- `skills` (string) - Path to skills directory (e.g., `"./skills/"`)
+
+**DO NOT USE** these fields (they will cause validation errors):
+- ❌ `author` (not part of schema)
+- ❌ `license` (not part of schema)
+- ❌ `requires` (not part of schema)
+- ❌ `hooks` (not part of schema)
+- ❌ Array format for `commands` or `skills` (must be strings pointing to directories)
+
+**Reference template**: `docs/templates/plugin.json.template`
+
+**Common mistake**: Using detailed object arrays for commands/skills instead of simple directory paths. The plugin system auto-discovers files in the specified directories.
 
 ## Directory Structure
 

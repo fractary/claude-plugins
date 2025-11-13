@@ -1,0 +1,8 @@
+{
+  "name": "fractary-{plugin-name}",
+  "version": "1.0.0",
+  "description": "Brief description of what this plugin does",
+  "commands": "./commands/",
+  "agents": ["./agents/{agent-name}.md"],
+  "skills": "./skills/"
+}
