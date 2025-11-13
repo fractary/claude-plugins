@@ -47,8 +47,8 @@ You receive operation requests from focused skills with:
 
 ### fetch-issue
 **Script:** `scripts/fetch-issue.sh <issue_id>`
-**Purpose:** Retrieve complete issue details
-**Returns:** Normalized issue JSON
+**Purpose:** Retrieve complete issue details including comments
+**Returns:** Normalized issue JSON with comments array
 **Exit Codes:** 0=success, 10=not found, 11=auth error
 **Example:**
 ```bash
