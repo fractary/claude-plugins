@@ -23,8 +23,8 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
     echo "Warning: GITHUB_TOKEN not set, using gh CLI authentication" >&2
 fi
 
-# Fetch issue using gh CLI
-issue_json=$(gh issue view "$ISSUE_ID" --json number,title,body,state,labels,author,createdAt,updatedAt,url 2>&1)
+# Fetch issue using gh CLI (including comments for full context)
+issue_json=$(gh issue view "$ISSUE_ID" --json number,title,body,state,labels,author,createdAt,updatedAt,url,comments 2>&1)
 
 if [ $? -ne 0 ]; then
     if echo "$issue_json" | grep -q "Could not resolve to an Issue"; then

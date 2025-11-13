@@ -86,6 +86,18 @@ Handler returns normalized issue JSON matching the universal data model:
   "closedAt": null,
   "url": "https://github.com/owner/repo/issues/123",
   "platform": "github",
+  "comments": [
+    {
+      "id": "1",
+      "author": {
+        "login": "janedoe"
+      },
+      "body": "See spec at docs/specs/mobile-fix.md",
+      "createdAt": "2025-01-29T11:00:00Z",
+      "updatedAt": "2025-01-29T11:00:00Z",
+      "url": "https://github.com/owner/repo/issues/123#issuecomment-1"
+    }
+  ],
   "metadata": {
     "priority": "high",
     "estimate": null,
@@ -108,6 +120,7 @@ Handler returns normalized issue JSON matching the universal data model:
 - `assignees`: Array of assigned users
 - `author`: Issue creator
 - `createdAt`, `updatedAt`, `closedAt`: Timestamps
+- `comments`: Array of comment objects with full details (id, author, body, timestamps, url)
 - `metadata`: Platform-specific additional fields
 </NORMALIZED_RESPONSE>
 
