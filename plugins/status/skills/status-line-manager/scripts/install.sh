@@ -47,24 +47,28 @@ echo -e "${GREEN}✓ Plugin configuration created${NC}"
 echo -e "${CYAN}Configuring status line in .claude/settings.json...${NC}"
 mkdir -p .claude
 
+# Determine the status line script path
+# Use the installed marketplace location
+STATUS_LINE_SCRIPT="$HOME/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
+
 # Create or update settings.json with statusLine configuration
 if [ -f .claude/settings.json ]; then
   # Merge with existing settings.json
-  jq '. + {
+  jq --arg script "$STATUS_LINE_SCRIPT" '. + {
     "statusLine": {
       "type": "command",
-      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
+      "command": $script
     }
   }' .claude/settings.json > .claude/settings.json.tmp && mv .claude/settings.json.tmp .claude/settings.json
   echo -e "${GREEN}✓ StatusLine configured in .claude/settings.json${NC}"
 else
   # Create new settings.json with statusLine
-  cat > .claude/settings.json <<'EOF'
+  cat > .claude/settings.json <<EOF
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "\$schema": "https://json.schemastore.org/claude-code-settings.json",
   "statusLine": {
     "type": "command",
-    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
+    "command": "$STATUS_LINE_SCRIPT"
   }
 }
 EOF
@@ -90,20 +94,19 @@ echo ""
 echo -e "Plugin configuration:"
 echo -e "  ${CYAN}•${NC} Configuration: .fractary/plugins/status/config.json"
 echo -e "  ${CYAN}•${NC} Cache location: .fractary/plugins/status/"
-echo -e "  ${CYAN}•${NC} StatusLine: .claude/settings.json (using \${CLAUDE_PLUGIN_ROOT})"
+echo -e "  ${CYAN}•${NC} StatusLine: .claude/settings.json"
+echo -e "  ${CYAN}•${NC} Script path: $STATUS_LINE_SCRIPT"
 echo ""
 echo -e "${YELLOW}Plugin Components:${NC}"
 echo -e "  ${CYAN}•${NC} StatusLine command (in .claude/settings.json)"
 echo -e "  ${CYAN}•${NC} UserPromptSubmit hook (managed in plugin hooks/hooks.json)"
-echo -e "  ${CYAN}•${NC} Scripts (referenced via \${CLAUDE_PLUGIN_ROOT}/scripts/)"
+echo -e "  ${CYAN}•${NC} Scripts (in ~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/)"
 echo ""
 echo -e "${YELLOW}Note:${NC} Restart Claude Code to activate the status line"
 echo ""
 echo -e "Status line format:"
-echo -e "  ${CYAN}[branch] ${YELLOW}[±files]${NC} ${MAGENTA}[#issue]${NC} ${BLUE}[PR#pr]${NC} ${GREEN}[↑ahead]${NC} ${RED}[↓behind]${NC} last: prompt..."
-echo ""
-echo -e "${CYAN}Scripts are referenced using \${CLAUDE_PLUGIN_ROOT} for portability${NC}"
-echo -e "${CYAN}across different environments and user setups.${NC}"
+echo -e "  Line 1: ${CYAN}[branch] ${YELLOW}[±files]${NC} ${MAGENTA}[#issue]${NC} ${BLUE}[PR#pr]${NC} ${GREEN}[↑ahead]${NC} ${RED}[↓behind]${NC}"
+echo -e "  Line 2: ${NC}last: prompt text (up to 120 chars)..."
 echo ""
 
 exit 0
