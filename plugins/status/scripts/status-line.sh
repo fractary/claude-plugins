@@ -90,7 +90,12 @@ BEHIND=${BEHIND:-0}
 # Get last prompt
 LAST_PROMPT=""
 if [ -f "$PROMPT_CACHE" ]; then
-  LAST_PROMPT=$(jq -r '.prompt_short // ""' "$PROMPT_CACHE" 2>/dev/null || echo "")
+  # Extract the actual user prompt from the nested JSON
+  LAST_PROMPT=$(jq -r '.prompt // "" | fromjson | .prompt // ""' "$PROMPT_CACHE" 2>/dev/null || echo "")
+  # Truncate to 120 characters if longer
+  if [ ${#LAST_PROMPT} -gt 120 ]; then
+    LAST_PROMPT="${LAST_PROMPT:0:120}..."
+  fi
 fi
 
 # Build status line
@@ -124,16 +129,21 @@ if [ "$BEHIND" -gt 0 ]; then
   STATUS_LINE="${STATUS_LINE} ${RED}↓${BEHIND}${NC}"
 fi
 
-# Last prompt (dim)
-if [ -n "$LAST_PROMPT" ]; then
-  STATUS_LINE="${STATUS_LINE} ${DIM}last: ${LAST_PROMPT}${NC}"
-fi
-
-# Output status line (strip color codes if NO_COLOR is set)
+# Output first line (strip color codes if NO_COLOR is set)
 if [ -n "${NO_COLOR:-}" ]; then
   echo "$STATUS_LINE" | sed 's/\x1b\[[0-9;]*m//g'
 else
   echo -e "$STATUS_LINE"
+fi
+
+# Last prompt on second line (dim)
+if [ -n "$LAST_PROMPT" ]; then
+  PROMPT_LINE="${DIM}last: ${LAST_PROMPT}${NC}"
+  if [ -n "${NO_COLOR:-}" ]; then
+    echo "$PROMPT_LINE" | sed 's/\x1b\[[0-9;]*m//g'
+  else
+    echo -e "$PROMPT_LINE"
+  fi
 fi
 
 exit 0
