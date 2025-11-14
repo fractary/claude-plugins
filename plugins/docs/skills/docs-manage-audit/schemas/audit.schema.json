@@ -1,0 +1,454 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/docs/audit.schema.json",
+  "title": "Audit Report Schema",
+  "description": "Schema for audit and health dashboard reports with dual-format support (README.md + audit.json)",
+  "type": "object",
+  "required": ["audit", "summary", "findings", "recommendations"],
+  "properties": {
+    "audit": {
+      "type": "object",
+      "description": "Audit metadata and execution details",
+      "required": ["type", "timestamp", "duration_seconds", "auditor"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type of audit performed",
+          "enum": ["infrastructure", "documentation", "logs", "system", "architecture", "security", "cost", "compliance", "performance", "quality"]
+        },
+        "check_type": {
+          "type": "string",
+          "description": "Specific check type within audit type (e.g., 'config-valid', 'drift', 'full')"
+        },
+        "environment": {
+          "type": "string",
+          "description": "Target environment for infrastructure audits",
+          "enum": ["dev", "staging", "prod", "test", "demo", null]
+        },
+        "project": {
+          "type": "string",
+          "description": "Project or component being audited"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Audit execution timestamp",
+          "format": "date-time"
+        },
+        "duration_seconds": {
+          "type": "number",
+          "description": "Audit execution duration in seconds",
+          "minimum": 0
+        },
+        "auditor": {
+          "type": "object",
+          "description": "Tool that performed the audit",
+          "required": ["plugin", "skill"],
+          "properties": {
+            "plugin": {
+              "type": "string",
+              "description": "Plugin name (e.g., 'fractary-faber-cloud')"
+            },
+            "skill": {
+              "type": "string",
+              "description": "Skill name (e.g., 'infra-auditor')"
+            },
+            "version": {
+              "type": "string",
+              "description": "Auditor version",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            }
+          }
+        },
+        "audit_id": {
+          "type": "string",
+          "description": "Unique audit identifier (typically timestamp-check_type)"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "High-level summary of audit results",
+      "required": ["overall_status", "status_counts"],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "description": "Overall audit status",
+          "enum": ["pass", "warning", "error", "critical", "healthy", "degraded", "unhealthy"]
+        },
+        "status_counts": {
+          "type": "object",
+          "description": "Breakdown of check results",
+          "required": ["passing", "warnings", "failures"],
+          "properties": {
+            "passing": {
+              "type": "integer",
+              "description": "Number of passing checks",
+              "minimum": 0
+            },
+            "warnings": {
+              "type": "integer",
+              "description": "Number of warnings",
+              "minimum": 0
+            },
+            "failures": {
+              "type": "integer",
+              "description": "Number of failures",
+              "minimum": 0
+            },
+            "critical": {
+              "type": "integer",
+              "description": "Number of critical failures",
+              "minimum": 0
+            }
+          }
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "Exit code (0=pass, 1=warning, 2=error, 3=critical)",
+          "enum": [0, 1, 2, 3]
+        },
+        "score": {
+          "type": "number",
+          "description": "Overall audit score (0-100 or 0-10 depending on audit type)",
+          "minimum": 0
+        },
+        "grade": {
+          "type": "string",
+          "description": "Letter grade (A-F) or descriptive grade",
+          "enum": ["A", "B", "C", "D", "F", "Excellent", "Good", "Fair", "Poor"]
+        },
+        "compliance_percentage": {
+          "type": "number",
+          "description": "Compliance percentage (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "findings": {
+      "type": "object",
+      "description": "Detailed audit findings organized by severity and category",
+      "properties": {
+        "categories": {
+          "type": "array",
+          "description": "List of check categories performed",
+          "items": {
+            "type": "object",
+            "required": ["name", "status", "checks_performed"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Category name (e.g., 'Configuration', 'Security', 'Performance')"
+              },
+              "status": {
+                "type": "string",
+                "description": "Category overall status",
+                "enum": ["pass", "warning", "error", "critical"]
+              },
+              "checks_performed": {
+                "type": "integer",
+                "description": "Number of checks in this category",
+                "minimum": 0
+              },
+              "passing": {"type": "integer", "minimum": 0},
+              "warnings": {"type": "integer", "minimum": 0},
+              "failures": {"type": "integer", "minimum": 0}
+            }
+          }
+        },
+        "by_severity": {
+          "type": "object",
+          "description": "Findings organized by severity level",
+          "properties": {
+            "critical": {
+              "type": "array",
+              "description": "Critical findings requiring immediate action",
+              "items": {"$ref": "#/definitions/finding"}
+            },
+            "high": {
+              "type": "array",
+              "description": "High priority findings",
+              "items": {"$ref": "#/definitions/finding"}
+            },
+            "medium": {
+              "type": "array",
+              "description": "Medium priority findings",
+              "items": {"$ref": "#/definitions/finding"}
+            },
+            "low": {
+              "type": "array",
+              "description": "Low priority findings (optimizations)",
+              "items": {"$ref": "#/definitions/finding"}
+            },
+            "info": {
+              "type": "array",
+              "description": "Informational findings",
+              "items": {"$ref": "#/definitions/finding"}
+            }
+          }
+        },
+        "by_category": {
+          "type": "object",
+          "description": "Findings organized by category (domain-specific)",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/finding"}
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Quantifiable measurements (domain-specific)",
+      "additionalProperties": true,
+      "properties": {
+        "resource_count": {
+          "type": "integer",
+          "description": "Number of resources audited",
+          "minimum": 0
+        },
+        "documentation_count": {
+          "type": "integer",
+          "description": "Number of documents audited",
+          "minimum": 0
+        },
+        "coverage_percentage": {
+          "type": "number",
+          "description": "Coverage percentage",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Actionable recommendations organized by priority",
+      "items": {
+        "type": "object",
+        "required": ["priority", "recommendation"],
+        "properties": {
+          "priority": {
+            "type": "string",
+            "description": "Recommendation priority",
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Recommendation category (e.g., 'security', 'cost', 'quality')"
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "The recommendation text"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this recommendation is important"
+          },
+          "impact": {
+            "type": "string",
+            "description": "Expected impact of implementing this recommendation"
+          },
+          "effort_days": {
+            "type": "number",
+            "description": "Estimated effort in person-days",
+            "minimum": 0
+          },
+          "related_finding_ids": {
+            "type": "array",
+            "description": "Related finding IDs",
+            "items": {"type": "string"}
+          },
+          "remediation_spec": {
+            "type": "string",
+            "description": "Path to remediation specification document"
+          }
+        }
+      }
+    },
+    "next_steps": {
+      "type": "array",
+      "description": "Suggested next steps for the user",
+      "items": {
+        "type": "string"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Domain-specific extensions",
+      "properties": {
+        "infrastructure": {
+          "type": "object",
+          "description": "Infrastructure audit extensions",
+          "properties": {
+            "drift_detected": {"type": "boolean"},
+            "drift_resources": {"type": "array", "items": {"type": "string"}},
+            "cost_current": {"type": "string"},
+            "cost_optimized": {"type": "string"},
+            "cost_savings": {"type": "string"},
+            "security_issues": {"type": "integer"},
+            "iam_issues": {"type": "integer"}
+          }
+        },
+        "documentation": {
+          "type": "object",
+          "description": "Documentation audit extensions",
+          "properties": {
+            "frontmatter_coverage": {"type": "number"},
+            "quality_score": {"type": "number"},
+            "gap_categories": {"type": "array", "items": {"type": "string"}},
+            "remediation_spec_path": {"type": "string"},
+            "tracking_issue_url": {"type": "string"}
+          }
+        },
+        "logs": {
+          "type": "object",
+          "description": "Log audit extensions",
+          "properties": {
+            "total_storage_mb": {"type": "number"},
+            "potential_savings_mb": {"type": "number"},
+            "cloud_cost_estimate": {"type": "string"},
+            "vcs_impact_mb": {"type": "number"},
+            "implementation_phases": {"type": "integer"}
+          }
+        },
+        "system": {
+          "type": "object",
+          "description": "System health audit extensions",
+          "properties": {
+            "auto_fix_available": {"type": "boolean"},
+            "auto_fix_results": {"type": "array", "items": {"type": "string"}},
+            "performance_metrics": {"type": "object"},
+            "dependency_status": {"type": "object"}
+          }
+        },
+        "architecture": {
+          "type": "object",
+          "description": "Architecture audit extensions",
+          "properties": {
+            "compliance_score": {"type": "number"},
+            "anti_patterns": {"type": "integer"},
+            "context_optimization_percentage": {"type": "number"},
+            "migration_effort_days": {"type": "number"}
+          }
+        }
+      }
+    },
+    "reports": {
+      "type": "object",
+      "description": "Generated report files",
+      "properties": {
+        "markdown": {
+          "type": "string",
+          "description": "Path to Markdown report"
+        },
+        "json": {
+          "type": "string",
+          "description": "Path to JSON report"
+        },
+        "remediation_spec": {
+          "type": "string",
+          "description": "Path to remediation specification (if generated)"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "work_id": {
+          "type": "string",
+          "description": "Associated work item ID"
+        },
+        "tracking_issue_url": {
+          "type": "string",
+          "description": "GitHub issue URL for tracking remediation",
+          "format": "uri"
+        },
+        "ephemeral": {
+          "type": "boolean",
+          "description": "Whether this audit is ephemeral (subject to retention) or persistent",
+          "default": true
+        },
+        "retention_days": {
+          "type": "integer",
+          "description": "Retention period in days (for ephemeral audits)",
+          "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags for categorization",
+          "items": {"type": "string"}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "required": ["id", "severity", "category", "message"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique finding identifier"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Finding severity",
+          "enum": ["critical", "high", "medium", "low", "info"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Finding category (domain-specific)"
+        },
+        "check": {
+          "type": "string",
+          "description": "Specific check that produced this finding"
+        },
+        "message": {
+          "type": "string",
+          "description": "Finding description"
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed explanation or additional context"
+        },
+        "resource": {
+          "type": "string",
+          "description": "Affected resource/file/component"
+        },
+        "location": {
+          "type": "string",
+          "description": "Location within resource (line number, section, etc.)"
+        },
+        "current_value": {
+          "type": "string",
+          "description": "Current state or value"
+        },
+        "expected_value": {
+          "type": "string",
+          "description": "Expected state or value"
+        },
+        "remediation": {
+          "type": "string",
+          "description": "How to fix this finding"
+        },
+        "auto_fixable": {
+          "type": "boolean",
+          "description": "Whether this finding can be auto-fixed",
+          "default": false
+        },
+        "references": {
+          "type": "array",
+          "description": "Related documentation or reference links",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {"type": "string"},
+              "url": {"type": "string", "format": "uri"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
