@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Check arguments - minimum 1 required (issue_id)
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <issue_id> [limit] [since]" >&2
@@ -40,8 +44,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Fetch comments using gh CLI
-result=$(gh issue view "$ISSUE_ID" --json comments 2>&1)
+result=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json comments 2>&1)
 
 if [ $? -ne 0 ]; then
     if echo "$result" | grep -q "Could not resolve to an Issue"; then

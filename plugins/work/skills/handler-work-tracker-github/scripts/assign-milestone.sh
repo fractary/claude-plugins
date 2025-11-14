@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Parse arguments
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <issue_id> <milestone_id>" >&2
@@ -37,8 +41,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Verify issue exists
-if ! gh issue view "$ISSUE_ID" --json number >/dev/null 2>&1; then
+if ! gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number >/dev/null 2>&1; then
     echo "Error: Issue #$ISSUE_ID not found" >&2
     echo "  Verify issue exists in the repository" >&2
     exit 10
@@ -47,7 +63,7 @@ fi
 # Assign or remove milestone
 if [ "$MILESTONE_ID" = "none" ]; then
     # Remove milestone assignment
-    result=$(gh issue edit "$ISSUE_ID" --milestone "" 2>&1)
+    result=$(gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --milestone "" 2>&1)
     if [ $? -ne 0 ]; then
         echo "Error: Failed to remove milestone from issue #$ISSUE_ID" >&2
         echo "$result" >&2
@@ -56,7 +72,7 @@ if [ "$MILESTONE_ID" = "none" ]; then
 else
     # Verify milestone exists (by trying to fetch it)
     # Note: gh doesn't have a direct milestone view, so we try to assign it
-    result=$(gh issue edit "$ISSUE_ID" --milestone "$MILESTONE_ID" 2>&1)
+    result=$(gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --milestone "$MILESTONE_ID" 2>&1)
     if [ $? -ne 0 ]; then
         if echo "$result" | grep -qi "not found\|does not exist"; then
             echo "Error: Milestone #$MILESTONE_ID not found" >&2
@@ -71,7 +87,7 @@ else
 fi
 
 # Fetch updated issue to get milestone info
-issue_json=$(gh issue view "$ISSUE_ID" --json number,milestone 2>/dev/null)
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,milestone 2>/dev/null)
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to fetch updated issue #$ISSUE_ID" >&2

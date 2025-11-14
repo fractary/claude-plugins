@@ -8,7 +8,12 @@ The `fractary-docs` plugin provides comprehensive documentation management for p
 
 ### Key Features
 
-- **11+ Document Templates**: ADRs, design docs, runbooks, API specs, schemas, test reports, deployments, changelogs, and more
+- **Type-Specific Skills**: Dedicated skills for each major documentation type with specialized workflows
+- **Dual-Format Support**: Generate both human-readable (README.md) and machine-readable (JSON) formats simultaneously
+- **Automatic Index Management**: Auto-update README.md indices after every document operation
+- **5-Digit ADR Numbering**: Support for large ADR repositories (ADR-00001- through ADR-99999-)
+- **Hierarchical Organization**: Support for nested datasets, service grouping, and scope-based standards
+- **11+ Document Templates**: ADRs, architecture docs, guides, schemas, APIs, standards, and more
 - **Document Updating**: Modify existing docs while preserving structure and formatting
 - **Validation**: Markdown linting, front matter validation, required sections checking, link verification
 - **Cross-Reference Management**: Auto-generate indexes, update links, visualize relationships
@@ -19,19 +24,33 @@ The `fractary-docs` plugin provides comprehensive documentation management for p
 
 ## Document Types
 
-| Type | Template | Sections | Use Case |
-|------|----------|----------|----------|
-| **ADR** | adr.md.template | Status, Context, Decision, Consequences | Architecture decisions |
-| **Design** | design.md.template | Overview, Architecture, Implementation | System/feature design |
-| **Runbook** | runbook.md.template | Purpose, Prerequisites, Steps, Troubleshooting | Operational procedures |
-| **API Spec** | api-spec.md.template | Overview, Endpoints, Authentication | API documentation |
-| **Schema** | schema.md.template | Overview, Schema Format, Fields, Validation Rules | Data schemas & dictionaries |
-| **Test Report** | test-report.md.template | Summary, Test Cases, Results, Coverage | Test execution results |
-| **Deployment** | deployment.md.template | Overview, Infrastructure, Steps | Deployment records |
-| **Changelog** | changelog.md.template | Version, Changes, Breaking Changes | Version history |
-| **Architecture** | architecture.md.template | Overview, Components, Patterns | System architecture |
-| **Troubleshooting** | troubleshooting.md.template | Problem, Diagnosis, Solution | Debug guides |
-| **Postmortem** | postmortem.md.template | Incident, Timeline, Root Cause, Actions | Incident reviews |
+### Type-Specific Skills (Recommended)
+
+These document types have dedicated skills with specialized workflows, dual-format support, and automatic index management:
+
+| Type | Skill | Format | Key Features |
+|------|-------|--------|--------------|
+| **ADR** | docs-manage-architecture-adr | Single | 5-digit numbering (ADR-00001-), auto-index, migration tooling |
+| **Architecture** | docs-manage-architecture | Single | Subtypes: overview/component/diagram, auto-index, hierarchical |
+| **Guide** | docs-manage-guides | Single | Audience-specific (dev/user/admin), auto-index by audience |
+| **Schema** | docs-manage-schema | **Dual** | README.md + schema.json, semantic versioning, validation |
+| **API** | docs-manage-api | **Dual** | README.md + endpoint.json (OpenAPI 3.0), service-organized |
+| **Standard** | docs-manage-standards | Single | Scope-based (plugin/repo/org), RFC 2119 levels, machine-readable |
+
+### Legacy Document Types (Fallback)
+
+These types use the generic doc-generator skill:
+
+| Type | Template | Use Case |
+|------|----------|----------|
+| **Design** | design.md.template | System/feature design documents |
+| **Runbook** | runbook.md.template | Operational procedures |
+| **API Spec** | api-spec.md.template | API documentation (legacy format) |
+| **Test Report** | test-report.md.template | Test execution results |
+| **Deployment** | deployment.md.template | Deployment records |
+| **Changelog** | changelog.md.template | Version history |
+| **Troubleshooting** | troubleshooting.md.template | Debug guides |
+| **Postmortem** | postmortem.md.template | Incident reviews |
 
 ## Quick Start
 
@@ -61,21 +80,42 @@ This creates:
 
 ### 2. Generate Documentation
 
+#### Type-Specific Skills (Recommended)
+
 ```bash
-# Generate an ADR
+# Generate an ADR (5-digit format: ADR-00001-)
 /fractary-docs:generate adr "Use PostgreSQL for data storage"
 
-# Generate a design document
+# Generate architecture overview
+/fractary-docs:generate architecture "System Architecture Overview" --status draft
+
+# Generate architecture component
+/fractary-docs:generate architecture "Authentication Service" --tags security,component
+
+# Generate developer guide
+/fractary-docs:generate guide "Getting Started for Developers" --status published
+
+# Generate schema documentation (dual-format: README.md + schema.json)
+/fractary-docs:generate schema "User Profile Schema" --tags user,data
+
+# Generate API endpoint (dual-format: README.md + endpoint.json with OpenAPI)
+/fractary-docs:generate api "POST /api/users" --tags api,users
+
+# Generate plugin standard
+/fractary-docs:generate standard "Plugin Naming Conventions" --status active
+```
+
+#### Legacy Document Types
+
+```bash
+# Generate a design document (legacy)
 /fractary-docs:generate design "User authentication system" --status draft
 
-# Generate a runbook
+# Generate a runbook (legacy)
 /fractary-docs:generate runbook "Emergency database failover"
 
-# Generate API documentation
+# Generate API spec (legacy format)
 /fractary-docs:generate api-spec "User Service API v2"
-
-# Generate schema documentation
-/fractary-docs:generate schema "User API Schema" --version "1.0.0" --schema-format "json-schema"
 ```
 
 ### 3. Update Existing Documentation

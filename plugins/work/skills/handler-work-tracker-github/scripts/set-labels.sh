@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Check arguments - minimum 1 required (issue_id), labels can be empty
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <issue_id> [label1,label2,...]" >&2
@@ -25,8 +29,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # First, get current labels
-current_labels=$(gh issue view "$ISSUE_ID" --json labels 2>&1)
+current_labels=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json labels 2>&1)
 
 if [ $? -ne 0 ]; then
     if echo "$current_labels" | grep -q "Could not resolve to an Issue"; then
@@ -47,7 +63,7 @@ current_label_names=$(echo "$current_labels" | jq -r '.labels[].name')
 if [ -n "$current_label_names" ]; then
     while IFS= read -r label; do
         if [ -n "$label" ]; then
-            gh issue edit "$ISSUE_ID" --remove-label "$label" >/dev/null 2>&1 || true
+            gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$label" >/dev/null 2>&1 || true
         fi
     done <<< "$current_label_names"
 fi
@@ -59,7 +75,7 @@ if [ -n "$LABELS" ]; then
     for label in "${LABEL_ARRAY[@]}"; do
         label_trimmed="$(echo "$label" | xargs)"  # Trim whitespace
         if [ -n "$label_trimmed" ]; then
-            result=$(gh issue edit "$ISSUE_ID" --add-label "$label_trimmed" 2>&1)
+            result=$(gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --add-label "$label_trimmed" 2>&1)
             if [ $? -ne 0 ]; then
                 echo "Error: Failed to add label '$label_trimmed'" >&2
                 echo "$result" >&2

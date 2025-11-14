@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Check arguments
 if [ $# -lt 2 ]; then
     echo "Usage: $0 <issue_id> <target_state>" >&2
@@ -42,14 +46,26 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Check if issue exists
-if ! gh issue view "$ISSUE_ID" --json number >/dev/null 2>&1; then
+if ! gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number >/dev/null 2>&1; then
     echo "Error: Issue #$ISSUE_ID not found" >&2
     exit 10
 fi
 
 # Get current state
-current_gh_state=$(gh issue view "$ISSUE_ID" --json state -q '.state' 2>/dev/null)
+current_gh_state=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json state -q '.state' 2>/dev/null)
 
 # Define state label mappings
 LABEL_IN_PROGRESS="in-progress"
@@ -60,45 +76,45 @@ case "$TARGET_STATE" in
     open)
         # Ensure issue is OPEN, remove progress labels
         if [ "$current_gh_state" = "CLOSED" ]; then
-            gh issue reopen "$ISSUE_ID" 2>/dev/null || true
+            gh issue reopen "$ISSUE_ID" --repo "$REPO_SPEC" 2>/dev/null || true
         fi
         # Remove progress labels if present
-        gh issue edit "$ISSUE_ID" --remove-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
-        gh issue edit "$ISSUE_ID" --remove-label "$LABEL_IN_REVIEW" 2>/dev/null || true
+        gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
+        gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$LABEL_IN_REVIEW" 2>/dev/null || true
         ;;
 
     in_progress)
         # Ensure issue is OPEN with in-progress label
         if [ "$current_gh_state" = "CLOSED" ]; then
-            gh issue reopen "$ISSUE_ID" 2>/dev/null || true
+            gh issue reopen "$ISSUE_ID" --repo "$REPO_SPEC" 2>/dev/null || true
         fi
         # Add in-progress label, remove in-review if present
-        gh issue edit "$ISSUE_ID" --add-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
-        gh issue edit "$ISSUE_ID" --remove-label "$LABEL_IN_REVIEW" 2>/dev/null || true
+        gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --add-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
+        gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$LABEL_IN_REVIEW" 2>/dev/null || true
         ;;
 
     in_review)
         # Ensure issue is OPEN with in-review label
         if [ "$current_gh_state" = "CLOSED" ]; then
-            gh issue reopen "$ISSUE_ID" 2>/dev/null || true
+            gh issue reopen "$ISSUE_ID" --repo "$REPO_SPEC" 2>/dev/null || true
         fi
         # Add in-review label, remove in-progress if present
-        gh issue edit "$ISSUE_ID" --add-label "$LABEL_IN_REVIEW" 2>/dev/null || true
-        gh issue edit "$ISSUE_ID" --remove-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
+        gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --add-label "$LABEL_IN_REVIEW" 2>/dev/null || true
+        gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
         ;;
 
     done|closed)
         # Close the issue, remove progress labels
         if [ "$current_gh_state" = "OPEN" ]; then
-            gh issue edit "$ISSUE_ID" --remove-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
-            gh issue edit "$ISSUE_ID" --remove-label "$LABEL_IN_REVIEW" 2>/dev/null || true
-            gh issue close "$ISSUE_ID" 2>/dev/null || true
+            gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$LABEL_IN_PROGRESS" 2>/dev/null || true
+            gh issue edit "$ISSUE_ID" --repo "$REPO_SPEC" --remove-label "$LABEL_IN_REVIEW" 2>/dev/null || true
+            gh issue close "$ISSUE_ID" --repo "$REPO_SPEC" 2>/dev/null || true
         fi
         ;;
 esac
 
 # Fetch updated issue state
-issue_json=$(gh issue view "$ISSUE_ID" --json number,state,labels,updatedAt,url 2>/dev/null)
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,state,labels,updatedAt,url 2>/dev/null)
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to fetch updated issue state" >&2

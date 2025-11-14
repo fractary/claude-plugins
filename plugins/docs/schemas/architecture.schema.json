@@ -1,0 +1,244 @@
+{
+  "type": "architecture",
+  "display_name": "Architecture Documentation",
+  "description": "Documents system architecture, components, patterns, and design decisions",
+
+  "file_naming": {
+    "pattern": "architecture-{slug}.md or {component}-architecture.md",
+    "auto_number": false,
+    "slug_source": "title",
+    "slug_max_length": 50
+  },
+
+  "storage": {
+    "default_path": "docs/architecture",
+    "config_key": "doc_types.architecture.path"
+  },
+
+  "frontmatter": {
+    "required_fields": ["title", "type", "status", "date"],
+    "optional_fields": [
+      "subtype",
+      "component",
+      "author",
+      "tags",
+      "related",
+      "work_id",
+      "codex_sync",
+      "generated"
+    ],
+    "type_value": "architecture",
+    "defaults": {
+      "type": "architecture",
+      "subtype": "overview",
+      "codex_sync": true,
+      "generated": true
+    }
+  },
+
+  "structure": {
+    "required_sections": [
+      "Overview",
+      "Components",
+      "Patterns"
+    ],
+    "optional_sections": [
+      "System Context",
+      "Technology Stack",
+      "Data Flow",
+      "Deployment Architecture",
+      "Security Considerations",
+      "Scalability & Performance",
+      "Diagrams",
+      "Related Documentation"
+    ],
+    "section_order": [
+      "Overview",
+      "System Context",
+      "Components",
+      "Architectural Patterns",
+      "Technology Stack",
+      "Data Flow",
+      "Deployment Architecture",
+      "Security Considerations",
+      "Scalability & Performance",
+      "Diagrams",
+      "Related Documentation"
+    ]
+  },
+
+  "status": {
+    "allowed_values": ["draft", "review", "approved", "deprecated"],
+    "default": "draft",
+    "description": {
+      "draft": "Document is being written",
+      "review": "Document is under review",
+      "approved": "Document is approved and current",
+      "deprecated": "Document is outdated or superseded"
+    },
+    "transitions": {
+      "draft": ["review", "deprecated"],
+      "review": ["draft", "approved", "deprecated"],
+      "approved": ["deprecated"],
+      "deprecated": []
+    }
+  },
+
+  "subtypes": {
+    "overview": {
+      "description": "High-level system architecture overview",
+      "template": "overview.md.template",
+      "emphasis": ["system_context", "components", "patterns"]
+    },
+    "component": {
+      "description": "Detailed component architecture",
+      "template": "component.md.template",
+      "emphasis": ["responsibilities", "interfaces", "dependencies"]
+    },
+    "diagram": {
+      "description": "Architecture diagram documentation",
+      "template": "diagram.md.template",
+      "emphasis": ["visual", "explanation", "legend"]
+    }
+  },
+
+  "operations": {
+    "create": {
+      "enabled": true,
+      "description": "Create a new architecture document",
+      "required_params": ["title", "overview", "components", "patterns"],
+      "optional_params": [
+        "type",
+        "component_name",
+        "status",
+        "system_context",
+        "technologies",
+        "diagrams",
+        "security",
+        "scalability",
+        "tags",
+        "work_id"
+      ]
+    },
+    "update": {
+      "enabled": true,
+      "description": "Update an existing architecture document",
+      "allowed_updates": ["metadata", "sections", "full_content"]
+    },
+    "list": {
+      "enabled": true,
+      "description": "List all architecture documents",
+      "filters": ["status", "subtype", "tags", "component"]
+    },
+    "validate": {
+      "enabled": true,
+      "description": "Validate architecture document structure"
+    },
+    "reindex": {
+      "enabled": true,
+      "description": "Regenerate README.md index"
+    }
+  },
+
+  "templates": {
+    "default": "overview.md.template",
+    "lookup_paths": [
+      ".templates/docs/architecture.md.template",
+      "~/.config/fractary/docs/templates/architecture.md.template",
+      "${PLUGIN_ROOT}/skills/docs-manage-architecture/templates/overview.md.template"
+    ]
+  },
+
+  "validation": {
+    "min_section_length": {
+      "Overview": 50,
+      "Components": 30,
+      "Patterns": 30
+    },
+    "require_component_descriptions": true,
+    "require_pattern_rationale": true,
+    "custom_rules": [
+      {
+        "rule": "component_documentation",
+        "description": "Each component should have a clear description",
+        "severity": "warning"
+      },
+      {
+        "rule": "pattern_rationale",
+        "description": "Architectural patterns should include rationale",
+        "severity": "warning"
+      },
+      {
+        "rule": "diagram_references",
+        "description": "Architecture docs should reference diagrams",
+        "severity": "info"
+      }
+    ]
+  },
+
+  "auto_index": {
+    "enabled": true,
+    "update_on_create": true,
+    "update_on_update": false,
+    "update_on_delete": true,
+    "index_filename": "README.md",
+    "group_by": "subtype",
+    "sort_by": "date"
+  },
+
+  "examples": {
+    "create_overview": {
+      "title": "E-Commerce Platform Architecture",
+      "overview": "The e-commerce platform is built as a microservices architecture with event-driven communication between services.",
+      "components": [
+        {
+          "name": "API Gateway",
+          "description": "Single entry point for all client requests, handles authentication and routing"
+        },
+        {
+          "name": "Product Service",
+          "description": "Manages product catalog, inventory, and pricing"
+        },
+        {
+          "name": "Order Service",
+          "description": "Handles order processing, payment, and fulfillment"
+        }
+      ],
+      "patterns": [
+        {
+          "name": "API Gateway",
+          "rationale": "Simplifies client interaction and provides centralized authentication"
+        },
+        {
+          "name": "Event Sourcing",
+          "rationale": "Provides complete audit trail and enables event replay"
+        }
+      ],
+      "type": "overview",
+      "status": "draft"
+    },
+    "create_component": {
+      "title": "Payment Service Architecture",
+      "component_name": "payment",
+      "overview": "The Payment Service handles all payment processing, integrating with multiple payment providers and managing transaction lifecycle.",
+      "components": [
+        {
+          "name": "Payment Processor",
+          "description": "Core payment processing logic"
+        },
+        {
+          "name": "Provider Adapters",
+          "description": "Adapters for Stripe, PayPal, etc."
+        }
+      ],
+      "patterns": [
+        {
+          "name": "Adapter Pattern",
+          "rationale": "Isolates provider-specific logic"
+        }
+      ],
+      "type": "component",
+      "status": "draft"
+    }
+  }
+}

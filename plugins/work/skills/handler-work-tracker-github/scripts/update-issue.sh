@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <issue_id> [title] [description]" >&2
     exit 2
@@ -33,8 +37,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Build command
-gh_cmd="gh issue edit \"$ISSUE_ID\""
+gh_cmd="gh issue edit \"$ISSUE_ID\" --repo \"$REPO_SPEC\""
 
 if [ -n "$NEW_TITLE" ]; then
     gh_cmd="$gh_cmd --title \"$NEW_TITLE\""
@@ -51,6 +67,6 @@ if ! eval "$gh_cmd" 2>&1; then
 fi
 
 # Fetch updated issue
-issue_json=$(gh issue view "$ISSUE_ID" --json number,title,body,url 2>/dev/null)
+issue_json=$(gh issue view "$ISSUE_ID" --repo "$REPO_SPEC" --json number,title,body,url 2>/dev/null)
 echo "$issue_json" | jq -c '{id: .number | tostring, identifier: ("#" + (.number | tostring)), title: .title, description: .body, url: .url, platform: "github"}'
 exit 0

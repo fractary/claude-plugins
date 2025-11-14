@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 QUERY_TEXT="${1:-}"
 LIMIT="${2:-20}"
 
@@ -22,8 +26,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Search issues
-issues_json=$(gh issue list --search "$QUERY_TEXT" --json number,title,body,state,labels,url --limit "$LIMIT" 2>&1)
+issues_json=$(gh issue list --repo "$REPO_SPEC" --search "$QUERY_TEXT" --json number,title,body,state,labels,url --limit "$LIMIT" 2>&1)
 
 if [ $? -ne 0 ]; then
     echo "Error: Search failed" >&2

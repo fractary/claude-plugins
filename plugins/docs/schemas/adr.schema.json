@@ -6,14 +6,14 @@
   "file_naming": {
     "pattern": "ADR-{number}-{slug}.md",
     "auto_number": true,
-    "number_format": "{:03d}",
+    "number_format": "{:05d}",
     "number_prefix": "ADR-",
     "slug_source": "title",
     "slug_max_length": 50
   },
 
   "storage": {
-    "default_path": "docs/architecture/adrs",
+    "default_path": "docs/architecture/ADR",
     "config_key": "doc_types.adr.path"
   },
 
@@ -136,7 +136,7 @@
     "lookup_paths": [
       ".templates/docs/adr.md.template",
       "~/.config/fractary/docs/templates/adr.md.template",
-      "${PLUGIN_ROOT}/skills/doc-adr/templates/default.md.template"
+      "${PLUGIN_ROOT}/skills/docs-manage-architecture-adr/templates/default.md.template"
     ]
   },
 

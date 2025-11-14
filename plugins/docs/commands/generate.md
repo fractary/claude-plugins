@@ -26,16 +26,20 @@ Command syntax:
 
 **Positional Arguments**:
 - `doc_type`: Type of document to generate (required)
-  - adr: Architecture Decision Record
-  - design: System/feature design document
-  - runbook: Operational procedure
-  - api-spec: API documentation
-  - test-report: Test execution results
-  - deployment: Deployment record
-  - changelog: Version changes
-  - architecture: System architecture
-  - troubleshooting: Debug guide
-  - postmortem: Incident review
+  - adr: Architecture Decision Record (5-digit format)
+  - architecture: System architecture documentation (overview/component/diagram)
+  - guide: Audience-specific guides (developer/user/admin/contributor)
+  - schema: Data schema documentation (dual-format: README.md + JSON)
+  - api: API endpoint documentation (dual-format: README.md + OpenAPI)
+  - standard: Standards documentation (plugin/repo/org/team scope)
+  - design: System/feature design document (legacy)
+  - runbook: Operational procedure (legacy)
+  - api-spec: API documentation (legacy)
+  - test-report: Test execution results (legacy)
+  - deployment: Deployment record (legacy)
+  - changelog: Version changes (legacy)
+  - troubleshooting: Debug guide (legacy)
+  - postmortem: Incident review (legacy)
 - `title`: Document title (required, quoted if contains spaces)
 
 **Optional Arguments**:
@@ -50,11 +54,33 @@ Command syntax:
 
 Examples:
 ```bash
-# Generate ADR with auto-number
+# === Type-Specific Skills (Recommended) ===
+
+# Generate ADR with auto-number (5-digit format: ADR-00001-)
 /fractary-docs:generate adr "Use PostgreSQL for data storage"
 
 # Generate ADR with specific number and tags
-/fractary-docs:generate adr "API versioning strategy" --number 005 --tags api,versioning
+/fractary-docs:generate adr "API versioning strategy" --number 00005 --tags api,versioning
+
+# Generate architecture overview
+/fractary-docs:generate architecture "System Architecture Overview" --status draft
+
+# Generate architecture component
+/fractary-docs:generate architecture "Authentication Service" --tags security,component
+
+# Generate developer guide
+/fractary-docs:generate guide "Getting Started for Developers" --status published
+
+# Generate schema documentation (dual-format: README.md + schema.json)
+/fractary-docs:generate schema "User Profile Schema" --tags user,data
+
+# Generate API endpoint (dual-format: README.md + endpoint.json)
+/fractary-docs:generate api "POST /api/users" --tags api,users
+
+# Generate plugin standard
+/fractary-docs:generate standard "Plugin Naming Conventions" --status active
+
+# === Legacy Doc Types (Fallback to doc-generator) ===
 
 # Generate design doc with commit
 /fractary-docs:generate design "User authentication system" --status draft --commit
@@ -77,8 +103,13 @@ Examples:
 # Generate postmortem
 /fractary-docs:generate postmortem "API Outage 2025-01-15"
 
+# === Advanced Options ===
+
 # Generate with overwrite
-/fractary-docs:generate adr "Database choice" --number 001 --overwrite
+/fractary-docs:generate adr "Database choice" --number 00001 --overwrite
+
+# Generate with custom output path
+/fractary-docs:generate schema "API Request Schema" --output docs/schemas/custom/request.md
 ```
 </INPUTS>
 
@@ -197,18 +228,21 @@ Merge with `--template-data` if provided.
 
 This preserves context and improves efficiency.
 
-**Skill Routing**:
-- `adr` → doc-adr skill
-- `spec` → doc-spec skill
-- `runbook` → doc-runbook skill
-- `api-spec` → doc-api skill
-- `deployment` → doc-deployment skill
-- Other types → doc-generator skill (fallback)
+**Skill Routing** (Type-Specific Skills):
+- `adr` → docs-manage-architecture-adr skill (5-digit format)
+- `architecture` → docs-manage-architecture skill (overview/component/diagram)
+- `guide` → docs-manage-guides skill (audience-specific)
+- `schema` → docs-manage-schema skill (dual-format: README.md + JSON)
+- `api` → docs-manage-api skill (dual-format: README.md + OpenAPI)
+- `standard` → docs-manage-standards skill (scope-based)
+
+**Legacy Routing** (Fallback to doc-generator):
+- `design`, `runbook`, `api-spec`, `test-report`, `deployment`, `changelog`, `troubleshooting`, `postmortem` → doc-generator skill
 
 **Example for ADR**:
 
 ```markdown
-Use the doc-adr skill to generate an Architecture Decision Record:
+Use the doc-manage-adr skill to generate an Architecture Decision Record:
 {
   "operation": "generate",
   "title": "{title}",
@@ -314,8 +348,9 @@ Common issues:
   • Template not found: Verify doc_type is correct
 
 Available doc types:
-  adr, design, runbook, api-spec, test-report, deployment,
-  changelog, architecture, troubleshooting, postmortem
+  Type-specific: adr, architecture, guide, schema, api, standard
+  Legacy: design, runbook, api-spec, test-report, deployment,
+          changelog, troubleshooting, postmortem
 ```
 
 </WORKFLOW>

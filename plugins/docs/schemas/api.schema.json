@@ -1,0 +1,50 @@
+{
+  "type": "api",
+  "display_name": "API Documentation",
+  "description": "API endpoint documentation with dual-format support (README.md + OpenAPI fragments)",
+  "file_naming": {
+    "directory_pattern": "{service}/{endpoint-slug}",
+    "readme": "README.md",
+    "openapi": "endpoint.json"
+  },
+  "storage": {
+    "default_path": "docs/api",
+    "config_key": "doc_types.api.path",
+    "hierarchical": true
+  },
+  "frontmatter": {
+    "required_fields": ["title", "type", "endpoint", "method", "status", "date"],
+    "optional_fields": ["service", "version", "author", "tags", "related", "codex_sync", "generated"],
+    "type_value": "api",
+    "defaults": {"type": "api", "codex_sync": true, "generated": true}
+  },
+  "structure": {
+    "required_sections": ["Overview", "Endpoints", "Authentication", "Examples", "Error Codes"],
+    "optional_sections": ["Rate Limiting", "Pagination", "Versioning", "Related Endpoints"]
+  },
+  "dual_format": {
+    "enabled": true,
+    "formats": ["readme", "openapi"],
+    "openapi_version": "3.0.3",
+    "validate_both": true
+  },
+  "http_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+  "status": {
+    "allowed_values": ["draft", "review", "published", "deprecated"],
+    "default": "draft"
+  },
+  "auto_index": {
+    "enabled": true,
+    "hierarchical": true,
+    "group_by": "service",
+    "sort_by": "endpoint"
+  },
+  "operations": {
+    "create": {
+      "enabled": true,
+      "description": "Create API endpoint documentation with dual-format",
+      "required_params": ["endpoint", "method", "title", "description", "responses", "examples"],
+      "generates": ["README.md", "endpoint.json"]
+    }
+  }
+}

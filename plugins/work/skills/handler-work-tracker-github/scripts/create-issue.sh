@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <title> [description] [labels] [assignees]" >&2
     exit 2
@@ -32,8 +36,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Build gh issue create command arguments as array
-gh_args=("issue" "create" "--title" "$TITLE")
+gh_args=("issue" "create" "--repo" "$REPO_SPEC" "--title" "$TITLE")
 
 if [ -n "$DESCRIPTION" ]; then
     gh_args+=("--body" "$DESCRIPTION")

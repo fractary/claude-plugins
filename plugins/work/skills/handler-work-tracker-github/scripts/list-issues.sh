@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_COMMON_DIR="$(cd "$SCRIPT_DIR/../../work-common/scripts" && pwd)"
+
 # Parse arguments (all optional)
 STATE="${1:-all}"           # all, open, closed
 LABELS="${2:-}"             # Comma-separated label list
@@ -22,8 +26,20 @@ if ! gh auth status >/dev/null 2>&1; then
     exit 11
 fi
 
+# Load repository info from configuration
+REPO_INFO=$("$WORK_COMMON_DIR/get-repo-info.sh" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load repository configuration" >&2
+    echo "$REPO_INFO" >&2
+    exit 3
+fi
+
+REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner')
+REPO_NAME=$(echo "$REPO_INFO" | jq -r '.repo')
+REPO_SPEC="$REPO_OWNER/$REPO_NAME"
+
 # Build gh issue list command
-gh_cmd="gh issue list --json number,title,body,state,labels,assignees,author,createdAt,updatedAt,url --limit $LIMIT"
+gh_cmd="gh issue list --repo \"$REPO_SPEC\" --json number,title,body,state,labels,assignees,author,createdAt,updatedAt,url --limit $LIMIT"
 
 # Add state filter
 case "$STATE" in
@@ -40,7 +56,8 @@ esac
 if [ -n "$LABELS" ]; then
     # Split comma-separated labels and add each one
     IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
-    for label in "${LABEL_ARRAY[@]}"; then
+    for label in "${LABEL_ARRAY[@]}"
+    do
         label_trimmed="$(echo "$label" | xargs)"  # Trim whitespace
         if [ -n "$label_trimmed" ]; then
             gh_cmd="$gh_cmd --label \"$label_trimmed\""

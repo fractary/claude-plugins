@@ -11,10 +11,45 @@
   "doc_types": {
     "adr": {
       "enabled": true,
-      "path": "docs/architecture/adrs",
+      "path": "docs/architecture/ADR",
       "auto_number": true,
+      "number_format": "%05d",
       "generate_on_architectural_decision": true,
       "enforce_immutability": true
+    },
+    "architecture": {
+      "enabled": true,
+      "path": "docs/architecture",
+      "auto_update_index": true,
+      "types": ["overview", "component", "diagram"]
+    },
+    "guide": {
+      "enabled": true,
+      "path": "docs/guides",
+      "auto_update_index": true,
+      "audiences": ["developer", "user", "admin", "contributor"]
+    },
+    "schema": {
+      "enabled": true,
+      "path": "docs/schema",
+      "dual_format": true,
+      "auto_update_index": true,
+      "generate_json": true,
+      "optional_changelog": true
+    },
+    "api": {
+      "enabled": true,
+      "path": "docs/api",
+      "dual_format": true,
+      "auto_update_index": true,
+      "generate_openapi": true,
+      "http_methods": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    },
+    "standard": {
+      "enabled": true,
+      "path": "docs/standards",
+      "auto_update_index": true,
+      "scopes": ["plugin", "repo", "org", "team"]
     },
     "spec": {
       "enabled": true,
@@ -25,10 +60,6 @@
       "enabled": true,
       "path": "docs/operations/runbooks"
     },
-    "api": {
-      "enabled": true,
-      "path": "docs/api"
-    },
     "deployment": {
       "enabled": true,
       "path": "docs/deployments"
@@ -36,20 +67,18 @@
     "design": {
       "enabled": true,
       "path": "docs/architecture/designs"
-    },
-    "schema": {
-      "enabled": true,
-      "path": "docs/api/schemas"
     }
   },
   "output_paths": {
     "documentation": "docs",
-    "adrs": "docs/architecture/adrs",
+    "adrs": "docs/architecture/ADR",
+    "architecture": "docs/architecture",
     "designs": "docs/architecture/designs",
-    "runbooks": "docs/operations/runbooks",
-    "api_docs": "docs/api",
-    "schemas": "docs/api/schemas",
     "guides": "docs/guides",
+    "schemas": "docs/schema",
+    "api_docs": "docs/api",
+    "standards": "docs/standards",
+    "runbooks": "docs/operations/runbooks",
     "testing": "docs/testing",
     "deployments": "docs/deployments"
   },
@@ -72,16 +101,23 @@
     "project_standards_doc": null,
     "required_sections": {
       "adr": ["Status", "Context", "Decision", "Consequences"],
+      "architecture": ["Overview", "Components", "Patterns"],
+      "guide": ["Purpose", "Prerequisites", "Steps"],
+      "schema": ["Overview", "Schema Format", "Fields", "Validation Rules", "Versioning"],
+      "api": ["Overview", "Endpoints", "Authentication", "Examples", "Error Codes"],
+      "standard": ["Purpose", "Standards", "Enforcement", "Examples"],
       "design": ["Overview", "Architecture", "Implementation"],
       "runbook": ["Purpose", "Prerequisites", "Steps", "Troubleshooting"],
-      "api-spec": ["Overview", "Endpoints", "Authentication"],
-      "schema": ["Overview", "Schema Format", "Fields", "Examples", "Validation Rules"],
       "test-report": ["Summary", "Test Cases", "Results"],
       "deployment": ["Overview", "Infrastructure", "Deployment Steps"]
     },
     "status_values": {
       "adr": ["proposed", "accepted", "deprecated", "superseded"],
-      "schema": ["draft", "review", "approved", "deprecated"]
+      "architecture": ["draft", "review", "approved", "deprecated"],
+      "guide": ["draft", "review", "published", "archived"],
+      "schema": ["draft", "review", "approved", "deprecated"],
+      "api": ["draft", "review", "published", "deprecated"],
+      "standard": ["draft", "review", "active", "deprecated"]
     }
   },
   "linking": {
