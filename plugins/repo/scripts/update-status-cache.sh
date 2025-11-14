@@ -158,14 +158,35 @@ if [ -f "${CACHE_FILE}" ]; then
     CACHED_PR_NUMBER=$(grep '"pr_number"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
 fi
 
-if command -v gh &> /dev/null; then
-    if [ "$BRANCH" != "$CACHED_BRANCH" ]; then
-        # Branch changed - check for PR (network call ~100-200ms)
+# Detect if we need to refresh PR number (branch changed or first run)
+if [ "$BRANCH" != "$CACHED_BRANCH" ]; then
+    # Try gh CLI first (fastest, most reliable)
+    if command -v gh &> /dev/null; then
         PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
-    else
-        # Same branch - reuse cached PR number (fast, no network)
-        PR_NUMBER="$CACHED_PR_NUMBER"
+    # Fallback: use GitHub API directly (for environments without gh, like web IDE)
+    elif command -v curl &> /dev/null; then
+        # Extract GitHub repo from remote URL
+        REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
+        if [[ -n "$REMOTE_URL" ]]; then
+            # Parse owner/repo from various URL formats
+            # Handles: https://github.com/owner/repo.git, git@github.com:owner/repo.git,
+            #          http://proxy@host/git/owner/repo
+            GITHUB_REPO_PATH=$(echo "$REMOTE_URL" | sed -E 's|.*github\.com[:/]([^/]+/[^/]+)(\.git)?$|\1|; s|.*/git/([^/]+/[^/]+)$|\1|')
+
+            if [[ -n "$GITHUB_REPO_PATH" ]] && [[ "$GITHUB_REPO_PATH" =~ ^[^/]+/[^/]+$ ]]; then
+                # Query GitHub API for open PRs on this branch
+                # Format: repos/owner/repo/pulls?head=owner:branch&state=open
+                REPO_OWNER=$(echo "$GITHUB_REPO_PATH" | cut -d/ -f1)
+                API_URL="https://api.github.com/repos/${GITHUB_REPO_PATH}/pulls?head=${REPO_OWNER}:${BRANCH}&state=open"
+
+                # Use timeout to prevent hanging (max 3 seconds)
+                PR_NUMBER=$(timeout 3 curl -s "$API_URL" 2>/dev/null | grep -o '"number":[0-9]*' | head -1 | cut -d: -f2 || echo "")
+            fi
+        fi
     fi
+else
+    # Same branch - reuse cached PR number (fast, no network)
+    PR_NUMBER="$CACHED_PR_NUMBER"
 fi
 
 # Get current timestamp in ISO 8601 format
