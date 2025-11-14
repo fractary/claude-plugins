@@ -17,7 +17,7 @@
     },
     "standalone_specs": {
       "prefix": "SPEC",
-      "digits": 4,
+      "digits": 5,
       "auto_increment": true,
       "start_from": null
     }
