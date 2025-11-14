@@ -75,21 +75,21 @@ Read template file. If not found, fall back to spec-basic.md.template.
 
 ## Step 6: Generate Filename
 
-Use naming pattern from config:
+Use naming pattern from config. For **issue-based specs**, use WORK prefix with 5-digit zero-padding:
 
 **Single spec**:
 ```
-spec-{issue_number}-{slug}.md
+WORK-{issue_number:05d}-{slug}.md
 ```
 
 **Multi-spec** (if phase provided):
 ```
-spec-{issue_number}-phase{phase}-{slug}.md
+WORK-{issue_number:05d}-{phase:02d}-{slug}.md
 ```
 
 Where:
-- `{issue_number}` = issue number (e.g., "123")
-- `{phase}` = phase number (e.g., "1")
+- `{issue_number:05d}` = issue number, zero-padded to 5 digits (e.g., "00123")
+- `{phase:02d}` = phase number, zero-padded to 2 digits (e.g., "01")
 - `{slug}` = kebab-case slug from title or phase title
   - Take first 4-5 words
   - Convert to lowercase
@@ -98,9 +98,26 @@ Where:
   - Example: "User Authentication System" → "user-authentication-system"
 
 **Examples**:
-- Issue 123, no phase: `spec-123-user-authentication.md`
-- Issue 123, phase 1: `spec-123-phase1-user-auth.md`
-- Issue 123, phase 2: `spec-123-phase2-oauth-integration.md`
+- Issue 84, no phase: `WORK-00084-implement-feature.md`
+- Issue 123, no phase: `WORK-00123-user-authentication.md`
+- Issue 123, phase 1: `WORK-00123-01-user-auth.md`
+- Issue 123, phase 2: `WORK-00123-02-oauth-integration.md`
+
+**Implementation**:
+```bash
+# Format issue number with leading zeros (5 digits)
+padded_issue=$(printf "%05d" "$issue_number")
+
+# Build filename
+if [ -n "$phase" ]; then
+  # With phase (zero-pad phase to 2 digits)
+  padded_phase=$(printf "%02d" "$phase")
+  filename="WORK-${padded_issue}-${padded_phase}-${slug}.md"
+else
+  # Without phase
+  filename="WORK-${padded_issue}-${slug}.md"
+fi
+```
 
 ## Step 7: Parse Issue Data
 
@@ -268,19 +285,19 @@ Steps:
   3. ✓ Issue #123 fetched
   4. ✓ Classified as: feature
   5. ✓ Template selected: spec-feature.md.template
-  6. ✓ Filename: spec-123-phase1-user-auth.md
+  6. ✓ Filename: WORK-00123-01-user-auth.md
   7. ✓ Issue data parsed
   8. ✓ Variables prepared
   9. ✓ Template filled
   10. ✓ Frontmatter added
-  11. ✓ Saved to /specs/spec-123-phase1-user-auth.md
+  11. ✓ Saved to /specs/WORK-00123-01-user-auth.md
   12. ✓ GitHub comment added
   13. ✓ Success returned
 
 Output:
   {
     "status": "success",
-    "spec_path": "/specs/spec-123-phase1-user-auth.md",
+    "spec_path": "/specs/WORK-00123-01-user-auth.md",
     "issue_number": "123",
     "template": "feature",
     "github_comment_added": true

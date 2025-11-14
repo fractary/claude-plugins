@@ -9,7 +9,11 @@ You are invoked by the spec-manager agent when a specification needs to be gener
 <CRITICAL_RULES>
 1. ALWAYS fetch issue data via fractary-work plugin (gh CLI)
 2. ALWAYS classify work type before selecting template
-3. ALWAYS use proper naming convention (spec-{issue}-{slug}.md or spec-{issue}-phase{n}-{slug}.md)
+3. ALWAYS use proper naming convention for issue-based specs:
+   - Single spec: WORK-{issue:05d}-{slug}.md (e.g., WORK-00084-feature.md)
+   - Multi-spec: WORK-{issue:05d}-{phase:02d}-{slug}.md (e.g., WORK-00084-01-phase-name.md)
+   - Use WORK prefix (uppercase) to distinguish from standalone SPEC-XXXX specs
+   - Zero-pad issue numbers to 5 digits, phase numbers to 2 digits
 4. ALWAYS save specs to /specs directory (local path from config)
 5. ALWAYS comment on GitHub issue with spec location
 6. NEVER generate without valid issue data
@@ -80,7 +84,7 @@ Phase: 1 (optional)
 **End**:
 ```
 ✅ COMPLETED: Spec Generator
-Spec created: /specs/spec-123-phase1-user-auth.md
+Spec created: /specs/WORK-00123-01-user-auth.md
 Template used: feature
 GitHub comment: ✓ Added
 ───────────────────────────────────────
@@ -91,7 +95,7 @@ Return JSON:
 ```json
 {
   "status": "success",
-  "spec_path": "/specs/spec-123-phase1-user-auth.md",
+  "spec_path": "/specs/WORK-00123-01-user-auth.md",
   "issue_number": "123",
   "template": "feature",
   "github_comment_added": true

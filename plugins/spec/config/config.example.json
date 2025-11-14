@@ -2,15 +2,25 @@
   "schema_version": "1.0",
   "storage": {
     "local_path": "/specs",
-    "cloud_archive_path": "archive/specs/{year}/{issue_number}.md",
+    "cloud_archive_path": "archive/specs/{year}/{spec_id}.md",
     "archive_index": {
       "local_cache": ".fractary/plugins/spec/archive-index.json",
       "cloud_backup": "archive/specs/.archive-index.json"
     }
   },
   "naming": {
-    "pattern": "spec-{issue_number}-{slug}.md",
-    "multi_spec_pattern": "spec-{issue_number}-phase{phase}-{slug}.md"
+    "issue_specs": {
+      "prefix": "WORK",
+      "digits": 5,
+      "phase_format": "numeric",
+      "phase_separator": "-"
+    },
+    "standalone_specs": {
+      "prefix": "SPEC",
+      "digits": 4,
+      "auto_increment": true,
+      "start_from": null
+    }
   },
   "archive": {
     "strategy": "lifecycle",
@@ -36,7 +46,8 @@
     "file_plugin": "fractary-file",
     "link_to_issue": true,
     "update_issue_on_create": true,
-    "update_issue_on_archive": true
+    "update_issue_on_archive": true,
+    "github_link_format": "dual"
   },
   "templates": {
     "default": "spec-basic",
