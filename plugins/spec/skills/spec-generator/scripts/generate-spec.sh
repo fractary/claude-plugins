@@ -2,15 +2,16 @@
 #
 # generate-spec.sh - Generate specification from issue data
 #
-# Usage: generate-spec.sh <issue_json> <template_path> <output_path>
+# Usage: generate-spec.sh <issue_json> <template_path> <output_dir> [phase]
 #
-# Creates spec file from template and issue data
+# Creates spec file from template and issue data with proper WORK-XXXXX naming
 
 set -euo pipefail
 
 ISSUE_JSON="${1:?Issue JSON required}"
 TEMPLATE_PATH="${2:?Template path required}"
-OUTPUT_PATH="${3:?Output path required}"
+OUTPUT_DIR="${3:?Output directory required}"
+PHASE="${4:-}"  # Optional phase number
 
 # Validate template exists
 if [[ ! -f "$TEMPLATE_PATH" ]]; then
@@ -54,8 +55,24 @@ CURRENT_DATE=$(date -u +%Y-%m-%d)
 # Author (from assignees or default)
 AUTHOR="${ISSUE_ASSIGNEES:-Claude Code}"
 
+# Generate filename with WORK prefix and proper padding
+# Format: WORK-XXXXX-slug.md or WORK-XXXXX-YY-slug.md (with phase)
+PADDED_ISSUE=$(printf "%05d" "$ISSUE_NUMBER")  # 5-digit zero-padding for issue
+
+if [[ -n "$PHASE" ]]; then
+    # Multi-spec: WORK-00123-01-slug.md
+    PADDED_PHASE=$(printf "%02d" "$PHASE")  # 2-digit zero-padding for phase
+    SPEC_FILENAME="WORK-${PADDED_ISSUE}-${PADDED_PHASE}-${SLUG}.md"
+else
+    # Single spec: WORK-00123-slug.md
+    SPEC_FILENAME="WORK-${PADDED_ISSUE}-${SLUG}.md"
+fi
+
+# Full output path
+OUTPUT_PATH="${OUTPUT_DIR}/${SPEC_FILENAME}"
+
 # Create output directory if needed
-mkdir -p "$(dirname "$OUTPUT_PATH")"
+mkdir -p "$OUTPUT_DIR"
 
 # Read template
 TEMPLATE_CONTENT=$(cat "$TEMPLATE_PATH")
