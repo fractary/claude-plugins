@@ -45,8 +45,15 @@ create_hyperlink() {
   local text="$2"
   local color="${3:-$NC}"
 
-  # OSC 8 format: \033]8;;URL\033\\TEXT\033]8;;\033\\
-  echo -en "${color}\033]8;;${url}\033\\${text}\033]8;;\033\\${NC}"
+  # Check if we're in Claude Code web IDE (OSC 8 not supported there)
+  if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
+    # Web IDE: use plain URL format (more compatible)
+    echo -en "${color}${text} (${url})${NC}"
+  else
+    # Terminal: use OSC 8 format for clickable links
+    # OSC 8 format: \033]8;;URL\033\\TEXT\033]8;;\033\\
+    echo -en "${color}\033]8;;${url}\033\\${text}\033]8;;\033\\${NC}"
+  fi
 }
 
 # Check if we're in a git repository
@@ -94,8 +101,16 @@ fi
 # Get issue number from cache or branch name
 ISSUE_ID=$(read_git_status issue_id | tr -d '\n')
 if [ -z "$ISSUE_ID" ] || [ "$ISSUE_ID" = "0" ]; then
-  # Try to extract from branch name (e.g., feat/123-description)
-  ISSUE_ID=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1 || echo "")
+  # Fallback: extract from branch name using same pattern as cache update
+  # Supports: feat/123-description, fix/456-bug, etc.
+  if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
+    ISSUE_ID="${BASH_REMATCH[2]}"
+  elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+)- ]]; then
+    # Fallback pattern: any-prefix/123-description (requires dash after number)
+    ISSUE_ID="${BASH_REMATCH[1]}"
+  else
+    ISSUE_ID=""
+  fi
 fi
 
 # Get PR number from cache
