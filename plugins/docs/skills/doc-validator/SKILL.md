@@ -1,10 +1,36 @@
 ---
 name: doc-validator
-description: Validate documentation quality, structure, and compliance with standards
+description: "[DEPRECATED] Validate documentation quality, structure, and compliance with standards"
+deprecated: true
+deprecated_since: "2025-01-15"
+replacement: "docs-manage-generic or type-specific skills"
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS SKILL IS DEPRECATED**
+
+**Deprecated Since**: 2025-01-15
+**Replacement**: Use type-specific skills or `docs-manage-generic` skill
+
+**Why Deprecated**:
+Validation functionality has been consolidated into type-specific skills (docs-manage-api, docs-manage-architecture, etc.) and the generic skill (docs-manage-generic). This provides better type-specific validation rules and follows the full lifecycle pattern.
+
+**Migration Guide**:
+- **For API docs**: Use `docs-manage-api` (operation: "validate")
+- **For ADRs**: Use `docs-manage-architecture-adr` (operation: "validate")
+- **For architecture**: Use `docs-manage-architecture` (operation: "validate")
+- **For guides**: Use `docs-manage-guides` (operation: "validate")
+- **For schemas**: Use `docs-manage-schema` (operation: "validate")
+- **For standards**: Use `docs-manage-standards` (operation: "validate")
+- **For generic docs**: Use `docs-manage-generic` (operation: "validate")
+
+**Timeline**: This skill will be removed in 2 releases. Please migrate to appropriate skills.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the doc-validator skill for the fractary-docs plugin. You validate documentation quality including markdown syntax, front matter compliance, required sections, and link validity.
+
+**⚠️ DEPRECATED**: Use type-specific skills or `docs-manage-generic` for validation operations.
 </CONTEXT>
 
 <CRITICAL_RULES>

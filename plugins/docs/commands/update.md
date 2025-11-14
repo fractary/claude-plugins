@@ -191,22 +191,136 @@ Build parameters based on operation:
 }
 ```
 
-## Step 7: Invoke docs-manager Agent
+## Step 7: Route to Appropriate Skill
 
-Use the @agent-fractary-docs:docs-manager agent to update documentation:
-```json
+**NEW ARCHITECTURE**: Route to type-specific skills when available, fallback to docs-manage-generic.
+
+### Determine Doc Type from File Path
+
+Parse file path to identify doc type:
+- `docs/api/` → api (use docs-manage-api skill)
+- `docs/architecture/adrs/` → adr (use docs-manage-architecture-adr skill)
+- `docs/architecture/` → architecture (use docs-manage-architecture skill)
+- `docs/guides/` → guide (use docs-manage-guides skill)
+- `docs/schemas/` → schema (use docs-manage-schema skill)
+- `docs/standards/` → standard (use docs-manage-standards skill)
+- Others → generic (use docs-manage-generic skill)
+
+### Invoke Type-Specific Skill (if applicable)
+
+Use the Skill tool to invoke directly:
+
+**For API documentation**:
+```
+Skill(skill="docs-manage-api")
+
+Use the docs-manage-api skill to update API endpoint documentation:
 {
   "operation": "update",
-  "parameters": {
-    ... operation-specific parameters ...
-  },
-  "options": {
-    "validate_after": "{validate}",
-    "commit_after": "{commit}",
-    "backup_created": "{backup_path or null}"
-  }
+  "file_path": "{file_path}",
+  "update_type": "{operation_type}",
+  "content": "{content}",
+  "section_heading": "{section_heading if applicable}"
 }
 ```
+
+**For ADR documentation**:
+```
+Skill(skill="docs-manage-architecture-adr")
+
+Use the docs-manage-architecture-adr skill to update ADR:
+{
+  "operation": "update",
+  "file_path": "{file_path}",
+  "update_type": "{operation_type}",
+  "content": "{content}",
+  "section_heading": "{section_heading if applicable}"
+}
+```
+
+**For architecture documentation**:
+```
+Skill(skill="docs-manage-architecture")
+
+Use the docs-manage-architecture skill to update architecture documentation:
+{
+  "operation": "update",
+  "file_path": "{file_path}",
+  "update_type": "{operation_type}",
+  "content": "{content}",
+  "section_heading": "{section_heading if applicable}"
+}
+```
+
+**For guide documentation**:
+```
+Skill(skill="docs-manage-guides")
+
+Use the docs-manage-guides skill to update guide documentation:
+{
+  "operation": "update",
+  "file_path": "{file_path}",
+  "update_type": "{operation_type}",
+  "content": "{content}",
+  "section_heading": "{section_heading if applicable}"
+}
+```
+
+**For schema documentation**:
+```
+Skill(skill="docs-manage-schema")
+
+Use the docs-manage-schema skill to update schema documentation:
+{
+  "operation": "update",
+  "file_path": "{file_path}",
+  "update_type": "{operation_type}",
+  "content": "{content}",
+  "section_heading": "{section_heading if applicable}"
+}
+```
+
+**For standards documentation**:
+```
+Skill(skill="docs-manage-standards")
+
+Use the docs-manage-standards skill to update standards documentation:
+{
+  "operation": "update",
+  "file_path": "{file_path}",
+  "update_type": "{operation_type}",
+  "content": "{content}",
+  "section_heading": "{section_heading if applicable}"
+}
+```
+
+### Invoke Generic Skill (fallback)
+
+For generic doc types (design, runbook, api-spec, test-report, deployment, changelog, troubleshooting, postmortem):
+
+```
+Skill(skill="docs-manage-generic")
+
+Use the docs-manage-generic skill to update documentation:
+{
+  "operation": "update",
+  "file_path": "{file_path}",
+  "operation_type": "{update-section|append-section|update-metadata|replace-content}",
+  "section_heading": "{section_heading if applicable}",
+  "new_content": "{content}",
+  "pattern": "{pattern if replace-content}",
+  "metadata_fields": "{fields if update-metadata}",
+  "validate": "{validate}",
+  "commit": "{commit}",
+  "backup_path": "{backup_path or null}"
+}
+```
+
+**Why this routing?**
+- ✅ Direct skill invocation (no agent hop) for efficiency
+- ✅ Type-specific update logic when available
+- ✅ Fallback to generic for simple template-based docs
+- ✅ Consistent with create/validate operations
 
 ## Step 8: Process Results
 

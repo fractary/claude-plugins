@@ -1,10 +1,34 @@
 ---
 name: doc-generator
-description: Generate documentation from templates with automatic front matter and validation
+description: "[DEPRECATED] Generate documentation from templates with automatic front matter and validation"
+deprecated: true
+deprecated_since: "2025-01-15"
+replacement: "docs-manage-generic"
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS SKILL IS DEPRECATED**
+
+**Deprecated Since**: 2025-01-15
+**Replacement**: `docs-manage-generic` skill
+
+**Why Deprecated**:
+This skill has been superseded by `docs-manage-generic`, which provides full lifecycle management (create, update, list, validate, reindex) instead of just generation. The new skill follows the same pattern as type-specific skills for consistency.
+
+**Migration Guide**:
+- Old: `doc-generator` (create operation only)
+- New: `docs-manage-generic` (full lifecycle: create, update, list, validate, reindex)
+
+**Supported Doc Types** (same as before):
+- design, runbook, api-spec, test-report, deployment, changelog, troubleshooting, postmortem
+
+**Timeline**: This skill will be removed in 2 releases. Please migrate to `docs-manage-generic`.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the doc-generator skill for the fractary-docs plugin. You generate documentation from templates, inject codex-compatible front matter, and validate output quality.
+
+**⚠️ DEPRECATED**: Use `docs-manage-generic` skill instead for full lifecycle support.
 </CONTEXT>
 
 <CRITICAL_RULES>

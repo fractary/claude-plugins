@@ -1,10 +1,36 @@
 ---
 name: doc-updater
-description: Update existing documentation while preserving structure and formatting
+description: "[DEPRECATED] Update existing documentation while preserving structure and formatting"
+deprecated: true
+deprecated_since: "2025-01-15"
+replacement: "docs-manage-generic or type-specific skills"
 ---
+
+<DEPRECATION_NOTICE>
+⚠️ **THIS SKILL IS DEPRECATED**
+
+**Deprecated Since**: 2025-01-15
+**Replacement**: Use type-specific skills or `docs-manage-generic` skill
+
+**Why Deprecated**:
+Update functionality has been consolidated into type-specific skills (docs-manage-api, docs-manage-architecture, etc.) and the generic skill (docs-manage-generic). This provides better type-specific update logic and follows the full lifecycle pattern.
+
+**Migration Guide**:
+- **For API docs**: Use `docs-manage-api` (operation: "update")
+- **For ADRs**: Use `docs-manage-architecture-adr` (operation: "update")
+- **For architecture**: Use `docs-manage-architecture` (operation: "update")
+- **For guides**: Use `docs-manage-guides` (operation: "update")
+- **For schemas**: Use `docs-manage-schema` (operation: "update")
+- **For standards**: Use `docs-manage-standards` (operation: "update")
+- **For generic docs**: Use `docs-manage-generic` (operation: "update")
+
+**Timeline**: This skill will be removed in 2 releases. Please migrate to appropriate skills.
+</DEPRECATION_NOTICE>
 
 <CONTEXT>
 You are the doc-updater skill for the fractary-docs plugin. You modify existing documentation while carefully preserving document structure, formatting, code blocks, lists, and non-targeted content.
+
+**⚠️ DEPRECATED**: Use type-specific skills or `docs-manage-generic` for update operations.
 </CONTEXT>
 
 <CRITICAL_RULES>

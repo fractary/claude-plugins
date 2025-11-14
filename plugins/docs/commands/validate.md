@@ -167,22 +167,128 @@ Build parameters for validation:
 }
 ```
 
-## Step 6: Invoke docs-manager Agent
+## Step 6: Route to Appropriate Skill
 
-Use the @agent-fractary-docs:docs-manager agent to validate documentation:
-```json
+**NEW ARCHITECTURE**: Route to type-specific skills when available, fallback to docs-manage-generic.
+
+### For Single File Validation
+
+Determine doc type from file path or front matter, then route accordingly:
+
+**For API documentation** (`docs/api/`):
+```
+Skill(skill="docs-manage-api")
+
+Use the docs-manage-api skill to validate API endpoint documentation:
 {
   "operation": "validate",
-  "parameters": {
-    ... validation parameters ...
-  },
-  "options": {
-    "verbose": "{verbose}",
-    "fix_issues": "{fix}",
-    "report_path": "{report_path or null}"
-  }
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
 }
 ```
+
+**For ADR documentation** (`docs/architecture/adrs/`):
+```
+Skill(skill="docs-manage-architecture-adr")
+
+Use the docs-manage-architecture-adr skill to validate ADR:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For architecture documentation** (`docs/architecture/`):
+```
+Skill(skill="docs-manage-architecture")
+
+Use the docs-manage-architecture skill to validate architecture documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For guide documentation** (`docs/guides/`):
+```
+Skill(skill="docs-manage-guides")
+
+Use the docs-manage-guides skill to validate guide documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For schema documentation** (`docs/schemas/`):
+```
+Skill(skill="docs-manage-schema")
+
+Use the docs-manage-schema skill to validate schema documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For standards documentation** (`docs/standards/`):
+```
+Skill(skill="docs-manage-standards")
+
+Use the docs-manage-standards skill to validate standards documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For generic documentation** (design, runbook, etc.):
+```
+Skill(skill="docs-manage-generic")
+
+Use the docs-manage-generic skill to validate documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "doc_type": "{doc_type}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}",
+  "verbose": "{verbose}",
+  "report_path": "{report_path or null}"
+}
+```
+
+### For Directory Validation
+
+When validating a directory:
+1. Scan for all .md files
+2. Group files by doc type (based on path or front matter)
+3. Route each group to appropriate skill
+4. Aggregate results from all skills
+
+**Why this routing?**
+- ✅ Direct skill invocation (no agent hop) for efficiency
+- ✅ Type-specific validation rules when available
+- ✅ Fallback to generic for simple template-based docs
+- ✅ Consistent with create/update operations
 
 ## Step 7: Process Results
 
