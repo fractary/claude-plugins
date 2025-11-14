@@ -92,19 +92,18 @@ Validation:
 
 ## Step 3: Invoke docs-manage-api Skill
 
-Invoke the docs-manage-api skill directly with structured request:
+Use the Skill tool to invoke the docs-manage-api skill with the parsed parameters.
 
-```json
-{
-  "operation": "<create|update|list|validate|reindex>",
-  "endpoint": "<endpoint path or null for all>",
-  "project_root": "<current directory>"
-}
+**Invocation syntax**:
+```
+Skill(skill="docs-manage-api")
 ```
 
-**Example for create**:
+Then immediately state the operation request in natural language:
+
+**For create operation**:
 ```
-Use the docs-manage-api skill to create API endpoint documentation:
+Use the docs-manage-api skill to create API endpoint documentation with the following parameters:
 {
   "operation": "create",
   "endpoint": "/users/{id}",
@@ -112,11 +111,41 @@ Use the docs-manage-api skill to create API endpoint documentation:
 }
 ```
 
-**Example for list all**:
+**For list operation**:
 ```
-Use the docs-manage-api skill to list all API endpoint documentation:
+Use the docs-manage-api skill to list API endpoint documentation with the following parameters:
 {
   "operation": "list",
+  "endpoint": null,
+  "project_root": "/path/to/project"
+}
+```
+
+**For update operation**:
+```
+Use the docs-manage-api skill to update API endpoint documentation with the following parameters:
+{
+  "operation": "update",
+  "endpoint": "/users/{id}",
+  "project_root": "/path/to/project"
+}
+```
+
+**For validate operation**:
+```
+Use the docs-manage-api skill to validate API endpoint documentation with the following parameters:
+{
+  "operation": "validate",
+  "endpoint": "/users/{id}",
+  "project_root": "/path/to/project"
+}
+```
+
+**For reindex operation**:
+```
+Use the docs-manage-api skill to reindex API endpoint documentation with the following parameters:
+{
+  "operation": "reindex",
   "project_root": "/path/to/project"
 }
 ```

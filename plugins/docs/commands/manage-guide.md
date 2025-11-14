@@ -92,19 +92,18 @@ Validation:
 
 ## Step 3: Invoke docs-manage-guides Skill
 
-Invoke the docs-manage-guides skill directly with structured request:
+Use the Skill tool to invoke the docs-manage-guides skill with the parsed parameters.
 
-```json
-{
-  "operation": "<create|update|list|validate|reindex>",
-  "title": "<guide title or null for all>",
-  "project_root": "<current directory>"
-}
+**Invocation syntax**:
+```
+Skill(skill="docs-manage-guides")
 ```
 
-**Example for create**:
+Then immediately state the operation request in natural language based on the parsed command:
+
+**For create operation**:
 ```
-Use the docs-manage-guides skill to create guide documentation:
+Use the docs-manage-guides skill to create guide documentation with the following parameters:
 {
   "operation": "create",
   "title": "Getting Started for Developers",
@@ -112,11 +111,41 @@ Use the docs-manage-guides skill to create guide documentation:
 }
 ```
 
-**Example for list all**:
+**For list operation**:
 ```
-Use the docs-manage-guides skill to list all guide documentation:
+Use the docs-manage-guides skill to list guide documentation with the following parameters:
 {
   "operation": "list",
+  "title": null,
+  "project_root": "/path/to/project"
+}
+```
+
+**For update operation**:
+```
+Use the docs-manage-guides skill to update guide documentation with the following parameters:
+{
+  "operation": "update",
+  "title": "Getting Started for Developers",
+  "project_root": "/path/to/project"
+}
+```
+
+**For validate operation**:
+```
+Use the docs-manage-guides skill to validate guide documentation with the following parameters:
+{
+  "operation": "validate",
+  "title": "Getting Started for Developers",
+  "project_root": "/path/to/project"
+}
+```
+
+**For reindex operation**:
+```
+Use the docs-manage-guides skill to reindex guide documentation with the following parameters:
+{
+  "operation": "reindex",
   "project_root": "/path/to/project"
 }
 ```

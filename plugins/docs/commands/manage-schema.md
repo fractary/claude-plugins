@@ -92,19 +92,18 @@ Validation:
 
 ## Step 3: Invoke docs-manage-schema Skill
 
-Invoke the docs-manage-schema skill directly with structured request:
+Use the Skill tool to invoke the docs-manage-schema skill with the parsed parameters.
 
-```json
-{
-  "operation": "<create|update|list|validate|reindex>",
-  "dataset": "<dataset name or null for all>",
-  "project_root": "<current directory>"
-}
+**Invocation syntax**:
+```
+Skill(skill="docs-manage-schema")
 ```
 
-**Example for create**:
+Then immediately state the operation request in natural language based on the parsed command:
+
+**For create operation**:
 ```
-Use the docs-manage-schema skill to create schema documentation:
+Use the docs-manage-schema skill to create schema documentation with the following parameters:
 {
   "operation": "create",
   "dataset": "user/profile",
@@ -112,11 +111,41 @@ Use the docs-manage-schema skill to create schema documentation:
 }
 ```
 
-**Example for list all**:
+**For list operation**:
 ```
-Use the docs-manage-schema skill to list all schema documentation:
+Use the docs-manage-schema skill to list schema documentation with the following parameters:
 {
   "operation": "list",
+  "dataset": null,
+  "project_root": "/path/to/project"
+}
+```
+
+**For update operation**:
+```
+Use the docs-manage-schema skill to update schema documentation with the following parameters:
+{
+  "operation": "update",
+  "dataset": "user/profile",
+  "project_root": "/path/to/project"
+}
+```
+
+**For validate operation**:
+```
+Use the docs-manage-schema skill to validate schema documentation with the following parameters:
+{
+  "operation": "validate",
+  "dataset": "user/profile",
+  "project_root": "/path/to/project"
+}
+```
+
+**For reindex operation**:
+```
+Use the docs-manage-schema skill to reindex schema documentation with the following parameters:
+{
+  "operation": "reindex",
   "project_root": "/path/to/project"
 }
 ```

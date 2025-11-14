@@ -92,19 +92,18 @@ Validation:
 
 ## Step 3: Invoke docs-manage-architecture Skill
 
-Invoke the docs-manage-architecture skill directly with structured request:
+Use the Skill tool to invoke the docs-manage-architecture skill with the parsed parameters.
 
-```json
-{
-  "operation": "<create|update|list|validate|reindex>",
-  "title": "<document title or null for all>",
-  "project_root": "<current directory>"
-}
+**Invocation syntax**:
+```
+Skill(skill="docs-manage-architecture")
 ```
 
-**Example for create**:
+Then immediately state the operation request in natural language based on the parsed command:
+
+**For create operation**:
 ```
-Use the docs-manage-architecture skill to create architecture documentation:
+Use the docs-manage-architecture skill to create architecture documentation with the following parameters:
 {
   "operation": "create",
   "title": "System Architecture Overview",
@@ -112,11 +111,41 @@ Use the docs-manage-architecture skill to create architecture documentation:
 }
 ```
 
-**Example for list all**:
+**For list operation**:
 ```
-Use the docs-manage-architecture skill to list all architecture documentation:
+Use the docs-manage-architecture skill to list architecture documentation with the following parameters:
 {
   "operation": "list",
+  "title": null,
+  "project_root": "/path/to/project"
+}
+```
+
+**For update operation**:
+```
+Use the docs-manage-architecture skill to update architecture documentation with the following parameters:
+{
+  "operation": "update",
+  "title": "System Architecture Overview",
+  "project_root": "/path/to/project"
+}
+```
+
+**For validate operation**:
+```
+Use the docs-manage-architecture skill to validate architecture documentation with the following parameters:
+{
+  "operation": "validate",
+  "title": "System Architecture Overview",
+  "project_root": "/path/to/project"
+}
+```
+
+**For reindex operation**:
+```
+Use the docs-manage-architecture skill to reindex architecture documentation with the following parameters:
+{
+  "operation": "reindex",
   "project_root": "/path/to/project"
 }
 ```
