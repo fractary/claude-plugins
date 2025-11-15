@@ -38,6 +38,14 @@ Your role is to parse user input and invoke the work-manager agent to reopen a c
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
 
+   **IF THE TASK TOOL INVOCATION FAILS:**
+   - STOP IMMEDIATELY - do not attempt any workarounds
+   - Report the exact error message to the user
+   - DO NOT use bash/gh/jq CLI commands as a fallback
+   - DO NOT invoke skills directly
+   - DO NOT try alternative approaches
+   - Wait for user to provide explicit instruction
+
 4. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
