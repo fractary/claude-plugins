@@ -416,75 +416,132 @@ Use the @agent-fractary-logs:logs-manager agent to register audit logs with the 
 
 **Note**: The logs-manager tracks all audit runs over time, allowing you to see compliance trends and history.
 
-### Step 7.4: Generate Final Audit Report
+### Step 7.4: Generate Standardized Audit Report via docs-manage-audit
 
-Create the permanent audit report and clean up temporary files:
+Invoke docs-manage-audit skill to create dual-format audit report:
+
+```
+Skill(skill="docs-manage-audit")
+```
+
+Then provide the audit data:
+
+```
+Use the docs-manage-audit skill to create documentation audit report with the following parameters:
+{
+  "operation": "create",
+  "audit_type": "documentation",
+  "check_type": "full",
+  "audit_data": {
+    "audit": {
+      "type": "documentation",
+      "check_type": "full",
+      "timestamp": "{ISO8601}",
+      "duration_seconds": {duration},
+      "auditor": {
+        "plugin": "fractary-docs",
+        "skill": "doc-auditor"
+      },
+      "audit_id": "{timestamp}-documentation-audit"
+    },
+    "summary": {
+      "overall_status": "pass|warning|error",
+      "status_counts": {
+        "passing": {passing_count},
+        "warnings": {warning_count},
+        "failures": {failure_count}
+      },
+      "exit_code": {0|1|2},
+      "score": {quality_score},
+      "compliance_percentage": {compliance_percentage}
+    },
+    "findings": {
+      "categories": [
+        {
+          "name": "Front Matter",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Structure",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Quality",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        }
+      ],
+      "by_severity": {
+        "high": [
+          {
+            "id": "doc-001",
+            "severity": "high",
+            "category": "frontmatter",
+            "message": "{issue description}",
+            "resource": "{file path}",
+            "remediation": "{how to fix}"
+          }
+        ],
+        "medium": [{finding}],
+        "low": [{finding}]
+      }
+    },
+    "metrics": {
+      "documentation_count": {total_files},
+      "coverage_percentage": {frontmatter_coverage}
+    },
+    "recommendations": [
+      {
+        "priority": "high|medium|low",
+        "category": "documentation",
+        "recommendation": "{action}",
+        "effort_days": {estimated_effort}
+      }
+    ],
+    "extensions": {
+      "documentation": {
+        "frontmatter_coverage": {frontmatter_coverage_percentage},
+        "quality_score": {quality_score},
+        "gap_categories": [{gap_category}],
+        "remediation_spec_path": "specs/spec-{issue_number}-documentation-remediation.md",
+        "tracking_issue_url": "{issue_url}"
+      }
+    }
+  },
+  "output_path": "logs/audits/",
+  "project_root": "{project-root}"
+}
+```
+
+This will generate:
+- **README.md**: Human-readable audit dashboard
+- **audit.json**: Machine-readable audit data
+
+Both files in `logs/audits/{timestamp}-documentation-audit.[md|json]`
+
+**Cleanup temporary files:**
 
 ```bash
 # Read paths from state
-audit_report_path=$(cat .fractary/state/audit-report-path.txt)
 temp_dir=$(cat .fractary/state/audit-temp-dir.txt)
-timestamp=$(cat .fractary/state/audit-timestamp.txt)
-
-# Generate final audit report markdown
-cat > "$audit_report_path" <<EOF
-# Documentation Audit Report
-
-**Date**: $(date -Iseconds)
-**Timestamp**: $timestamp
-**Project**: {project_name}
-
-## Summary
-
-- **Total Files**: {count}
-- **Issues Found**: {total_issues} ({high_count} high, {medium_count} medium, {low_count} low)
-- **Quality Score**: {score}/10
-- **Compliance**: {percentage}%
-- **Estimated Effort**: {hours} hours
-
-## Tracking
-
-- **GitHub Issue**: #{issue_number} - {issue_url}
-- **Remediation Spec**: specs/spec-{issue_number}-documentation-remediation.md
-
-## Discovery Reports
-
-See temporary discovery files (will be cleaned up):
-- $temp_dir/discovery-docs.json
-- $temp_dir/discovery-structure.json
-- $temp_dir/discovery-frontmatter.json
-- $temp_dir/discovery-quality.json
-
-## Key Findings
-
-### High Priority Issues ({high_count})
-{list high priority issues}
-
-### Medium Priority Issues ({medium_count})
-{list medium priority issues}
-
-### Low Priority Issues ({low_count})
-{list low priority issues}
-
-## Next Steps
-
-1. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
-2. Follow implementation plan
-3. Verify with: /fractary-docs:validate
-4. Re-audit to confirm compliance
-
----
-Generated by fractary-docs audit workflow
-EOF
-
-echo "Final audit report: $audit_report_path"
 
 # Clean up temporary discovery files
 echo "Cleaning up temporary files from $temp_dir/"
 rm -f "$temp_dir"/*
 ```
 
-**Final Report**: The permanent audit report is saved to `logs/audits/{timestamp}-audit-report.md` and tracked by logs-manager for historical reference.
+**Integration**: The docs-manage-audit skill standardizes the audit report format and integrates with logs-manager for retention tracking.
 
 ## Step 8: Present Final Summary to User (After Spec Generation)
 

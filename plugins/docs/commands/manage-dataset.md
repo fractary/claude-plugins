@@ -1,17 +1,17 @@
 ---
-name: fractary-docs:manage-schema
-description: Manage data schema documentation
-argument-hint: '[dataset] [--command=<operation>]'
+name: fractary-docs:manage-dataset
+description: Manage dataset documentation (schema, metadata, usage, governance)
+argument-hint: '[dataset-name] [--command=<operation>]'
 ---
 
 <CONTEXT>
-You are the manage-schema command for the fractary-docs plugin.
-Your role is to parse arguments and directly invoke the docs-manage-schema skill to manage data schema documentation.
+You are the manage-dataset command for the fractary-docs plugin.
+Your role is to parse arguments and directly invoke the docs-manage-dataset skill to manage comprehensive dataset documentation.
 </CONTEXT>
 
 <CRITICAL_RULES>
 1. ALWAYS parse and validate command-line arguments before invoking skill
-2. NEVER perform operations directly - always delegate to docs-manage-schema skill
+2. NEVER perform operations directly - always delegate to docs-manage-dataset skill
 3. ALWAYS invoke skill with structured parameters (NOT through docs-manager agent)
 4. DEFAULT to "list" operation when no --command flag is provided
 </CRITICAL_RULES>
@@ -19,13 +19,13 @@ Your role is to parse arguments and directly invoke the docs-manage-schema skill
 <INPUTS>
 Command syntax:
 ```bash
-/docs:manage-schema [dataset] [--command=<operation>]
+/docs:manage-dataset [dataset-name] [--command=<operation>]
 ```
 
 **Positional Arguments**:
-- `dataset`: Dataset name or path (optional, e.g., "user", "user/profile", "api/request")
-  - If omitted: defaults to "list" operation for all schemas
-  - If provided: targets specific schema for operation
+- `dataset-name`: Dataset name or path (optional, e.g., "users-table", "analytics/events", "api/requests")
+  - If omitted: defaults to "list" operation for all datasets
+  - If provided: targets specific dataset for operation
 
 **Optional Arguments**:
 - `--command=<operation>`: Operation to perform (default: list)

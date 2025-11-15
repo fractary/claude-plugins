@@ -1,47 +1,55 @@
 ---
-name: docs-manage-schema
-description: Generate and manage data schema documentation with dual-format support (README.md + schema.json)
-schema: schemas/schema.schema.json
+name: docs-manage-dataset
+description: Generate and manage dataset documentation with dual-format support (README.md + dataset.json) - includes schema, metadata, usage, governance
+schema: schemas/dataset.schema.json
 ---
 
 <CONTEXT>
-You are the schema documentation skill for the fractary-docs plugin. You handle data schema documentation with **dual-format generation**.
+You are the dataset documentation skill for the fractary-docs plugin. You handle comprehensive dataset documentation with **dual-format generation**.
 
-**Doc Type**: Schema Documentation
-**Schema**: `schemas/schema.schema.json`
-**Storage**: Configured in `doc_types.schema.path` (default: `docs/schema`)
-**Directory Pattern**: `docs/schema/{dataset}/`
+**Doc Type**: Dataset Documentation
+**Schema**: `schemas/dataset.schema.json`
+**Storage**: Configured in `doc_types.dataset.path` (default: `docs/datasets`)
+**Directory Pattern**: `docs/datasets/{dataset-name}/`
 **Files Generated**:
-  - `README.md` - Human-readable documentation
-  - `schema.json` - Machine-readable JSON Schema
+  - `README.md` - Human-readable dataset documentation
+  - `dataset.json` - Machine-readable dataset metadata (includes schema definition, access patterns, data quality, governance)
   - `CHANGELOG.md` - Optional version history
 
-**Dual-Format**: This skill generates BOTH README.md and schema.json simultaneously from a single operation.
+**Scope**: Complete dataset documentation including:
+- Schema definition (table structure, columns, types, constraints)
+- Dataset metadata (source, update frequency, size, time range)
+- Access patterns (how to query, common joins, sample queries)
+- Data quality (completeness, freshness, SLAs)
+- Governance (ownership, PII classification, retention policies)
+- Usage examples (sample queries, notebooks, common use cases)
+
+**Dual-Format**: This skill generates BOTH README.md and dataset.json simultaneously from a single operation.
 **Auto-Index**: Automatically maintains hierarchical README.md index.
 </CONTEXT>
 
 <CRITICAL_RULES>
 1. **Dual-Format Generation**
-   - ALWAYS generate both README.md and schema.json together
+   - ALWAYS generate both README.md and dataset.json together
    - ALWAYS validate both formats before returning
    - NEVER generate one without the other (unless explicitly requested)
    - ALWAYS use dual-format-generator.sh shared library
 
 2. **Hierarchical Organization**
    - ALWAYS create dataset subdirectories
-   - ALWAYS support nested datasets (e.g., user/profile, user/settings)
+   - ALWAYS support nested datasets (e.g., analytics/users, analytics/events)
    - ALWAYS maintain hierarchical index
    - NEVER flatten nested structures
 
-3. **JSON Schema Compliance**
-   - ALWAYS generate valid JSON Schema (Draft 7 or 2020-12)
-   - ALWAYS include schema version ($schema field)
-   - ALWAYS validate against JSON Schema spec
+3. **Dataset JSON Compliance**
+   - ALWAYS generate valid dataset.json following dataset.schema.json
+   - ALWAYS include schema definition within dataset.json
+   - ALWAYS validate against dataset schema spec
    - NEVER generate invalid JSON
 
 4. **Version Tracking**
-   - ALWAYS include version in schema.json
-   - ALWAYS update CHANGELOG.md when schema changes
+   - ALWAYS include version in dataset.json
+   - ALWAYS update CHANGELOG.md when dataset changes
    - ALWAYS use semantic versioning
    - NEVER skip version increments
 

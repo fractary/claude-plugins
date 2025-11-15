@@ -231,11 +231,39 @@ Use the docs-manage-guides skill to validate guide documentation:
 }
 ```
 
-**For schema documentation** (`docs/schemas/`):
+**For dataset documentation** (`docs/datasets/`):
 ```
-Skill(skill="docs-manage-schema")
+Skill(skill="docs-manage-dataset")
 
-Use the docs-manage-schema skill to validate schema documentation:
+Use the docs-manage-dataset skill to validate dataset documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For ETL/pipeline documentation** (`docs/etl/` or `docs/pipelines/`):
+```
+Skill(skill="docs-manage-etl")
+
+Use the docs-manage-etl skill to validate ETL/pipeline documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For testing/QA documentation** (`docs/testing/`, `docs/tests/`, or `docs/qa/`):
+```
+Skill(skill="docs-manage-testing")
+
+Use the docs-manage-testing skill to validate testing/QA documentation:
 {
   "operation": "validate",
   "file_path": "{file_path}",
@@ -250,6 +278,34 @@ Use the docs-manage-schema skill to validate schema documentation:
 Skill(skill="docs-manage-standards")
 
 Use the docs-manage-standards skill to validate standards documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For audit documentation** (`docs/audits/`):
+```
+Skill(skill="docs-manage-audit")
+
+Use the docs-manage-audit skill to validate audit documentation:
+{
+  "operation": "validate",
+  "file_path": "{file_path}",
+  "checks": ["frontmatter", "structure", "markdown", "links"],
+  "strict": "{strict}",
+  "fix": "{fix}"
+}
+```
+
+**For infrastructure documentation** (`docs/infrastructure/`):
+```
+Skill(skill="docs-manage-infrastructure")
+
+Use the docs-manage-infrastructure skill to validate infrastructure documentation:
 {
   "operation": "validate",
   "file_path": "{file_path}",

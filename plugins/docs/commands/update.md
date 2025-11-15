@@ -202,8 +202,12 @@ Parse file path to identify doc type:
 - `docs/architecture/adrs/` → adr (use docs-manage-architecture-adr skill)
 - `docs/architecture/` → architecture (use docs-manage-architecture skill)
 - `docs/guides/` → guide (use docs-manage-guides skill)
-- `docs/schemas/` → schema (use docs-manage-schema skill)
+- `docs/datasets/` → dataset (use docs-manage-dataset skill)
+- `docs/etl/` or `docs/pipelines/` → etl (use docs-manage-etl skill)
+- `docs/testing/` or `docs/tests/` or `docs/qa/` → testing (use docs-manage-testing skill)
 - `docs/standards/` → standard (use docs-manage-standards skill)
+- `docs/audits/` → audit (use docs-manage-audit skill)
+- `docs/infrastructure/` → infrastructure (use docs-manage-infrastructure skill)
 - Others → generic (use docs-manage-generic skill)
 
 ### Invoke Type-Specific Skill (if applicable)

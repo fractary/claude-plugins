@@ -8,9 +8,21 @@ You are the generic documentation skill for the fractary-docs plugin. You handle
 
 **Doc Types Supported**: design, runbook, api-spec, test-report, deployment, changelog, troubleshooting, postmortem
 
+**Doc Types with Specialized Skills** (route to these instead):
+- **Datasets** (data schema, metadata, usage, governance) → use `docs-manage-dataset` skill
+- **ETL/Pipelines** (data pipelines, transformations) → use `docs-manage-etl` skill
+- **Testing/QA** (test plans, results, validation, benchmarks) → use `docs-manage-testing` skill
+- **API Endpoints** → use `docs-manage-api` skill
+- **Architecture** → use `docs-manage-architecture` skill
+- **Guides** → use `docs-manage-guides` skill
+- **Standards** → use `docs-manage-standards` skill
+- **ADRs** → use `docs-manage-architecture-adr` skill
+- **Audits** → use `docs-manage-audit` skill
+- **Infrastructure** → use `docs-manage-infrastructure` skill
+
 **Replaces**: doc-generator, doc-updater, doc-validator (consolidated into single skill)
 
-**Pattern**: Follows same full-lifecycle pattern as type-specific skills (docs-manage-api, docs-manage-architecture, etc.)
+**Pattern**: Follows same full-lifecycle pattern as type-specific skills
 </CONTEXT>
 
 <CRITICAL_RULES>
