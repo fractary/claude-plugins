@@ -80,10 +80,10 @@ Your role is to parse user input and invoke the work-manager agent with the appr
      - Merge with any additional `--label` flags into comma-separated string
      - Remove the "type" parameter - only pass "labels" to agent
 
-3. **Invoke agent**
+3. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
-   - Example: Task tool with prompt containing the operation request
+   - Do NOT just describe what should be done - actually call the Task tool
 
 4. **Return response**
    - The work-manager agent will handle the operation and return results
