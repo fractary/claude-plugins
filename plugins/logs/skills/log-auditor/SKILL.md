@@ -184,13 +184,145 @@ Load discovery results and explicitly compare against the standard:
 - **MEDIUM**: Unmanaged logs, scattered directories, no auto-capture
 - **LOW**: Missing categories, optimization opportunities
 
-## Step 6: Generate Audit Report
+## Step 6: Generate Standardized Audit Report via docs-manage-audit
 
-Create comprehensive audit report documenting current state and gaps:
+Invoke docs-manage-audit skill to create dual-format audit report:
 
-**Write to**: `/logs/audits/audit-{timestamp}.md`
+```
+Skill(skill="docs-manage-audit")
+```
 
-Where `{timestamp}` is format: `YYYYMMDD-HHMMSS` (e.g., `20250115-143022`)
+Then provide the audit data:
+
+```
+Use the docs-manage-audit skill to create logs audit report with the following parameters:
+{
+  "operation": "create",
+  "audit_type": "logs",
+  "check_type": "full",
+  "audit_data": {
+    "audit": {
+      "type": "logs",
+      "check_type": "full",
+      "timestamp": "{ISO8601}",
+      "duration_seconds": {duration},
+      "auditor": {
+        "plugin": "fractary-logs",
+        "skill": "log-auditor"
+      },
+      "audit_id": "{timestamp}-logs-audit"
+    },
+    "summary": {
+      "overall_status": "pass|warning|error",
+      "status_counts": {
+        "passing": {passing_count},
+        "warnings": {warning_count},
+        "failures": {failure_count}
+      },
+      "exit_code": {0|1|2},
+      "compliance_percentage": {compliance_percentage}
+    },
+    "findings": {
+      "categories": [
+        {
+          "name": "Configuration",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Structure",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Version Control",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Archival",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Integration",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Storage",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        }
+      ],
+      "by_severity": {
+        "high": [
+          {
+            "id": "log-001",
+            "severity": "high",
+            "category": "version-control",
+            "message": "X GB of logs tracked in version control",
+            "details": "Found {count} log files in Git repository",
+            "remediation": "Exclude logs from Git and archive to cloud"
+          }
+        ],
+        "medium": [{finding}],
+        "low": [{finding}]
+      }
+    },
+    "metrics": {
+      "total_storage_mb": {total_size_mb},
+      "managed_logs": {managed_count},
+      "unmanaged_logs": {unmanaged_count},
+      "vcs_logs": {vcs_count},
+      "vcs_impact_mb": {vcs_size_mb}
+    },
+    "recommendations": [
+      {
+        "priority": "high|medium|low",
+        "category": "logs",
+        "recommendation": "{action}",
+        "impact": "{storage_savings or compliance_improvement}"
+      }
+    ],
+    "extensions": {
+      "logs": {
+        "total_storage_mb": {total_size_mb},
+        "potential_savings_mb": {savings_mb},
+        "cloud_cost_estimate": "{monthly_cost}",
+        "vcs_impact_mb": {vcs_size_mb},
+        "implementation_phases": 4
+      }
+    }
+  },
+  "output_path": "/logs/audits/",
+  "project_root": "{project-root}"
+}
+```
+
+This will generate:
+- **README.md**: Human-readable audit dashboard
+- **audit.json**: Machine-readable audit data
+
+Both files in `/logs/audits/{timestamp}-logs-audit.[md|json]`
 
 **Storage Location**:
 - Stored with logs in `/logs/audits/` (ephemeral)
@@ -198,123 +330,7 @@ Where `{timestamp}` is format: `YYYYMMDD-HHMMSS` (e.g., `20250115-143022`)
 - Can be archived to cloud with other logs
 - Multiple audits create timestamped files (not overwritten)
 
-**Report Structure:**
-```markdown
-# Log Management Audit Report
-
-**Project**: {project_name}
-**Date**: {date}
-**Auditor**: fractary-logs v1.0
-
----
-
-## Executive Summary
-
-This report assesses the current state of log management in the project against fractary-logs standards and identifies gaps that need to be addressed.
-
-### Quick Stats
-- Total Logs: X files (Y GB)
-- Managed: X files (Y GB)
-- Unmanaged: X files (Y GB)
-- In Version Control: X files (Y GB) ⚠️
-- Compliance: X%
-
----
-
-## 1. Current State Assessment
-
-### 1.1 Log Inventory
-[Table showing all discovered logs by type, location, size]
-
-### 1.2 Configuration Status
-- fractary-logs config: [EXISTS | MISSING]
-- fractary-file config: [CONFIGURED | NOT CONFIGURED]
-- Cloud storage: [CONFIGURED | NOT CONFIGURED]
-
-### 1.3 Directory Structure
-[Current directory layout vs standard]
-
-### 1.4 Version Control Status
-[List of logs tracked in Git]
-
-### 1.5 Storage Analysis
-[Breakdown by category, location, total usage]
-
----
-
-## 2. Standard Definition
-
-### 2.1 Target Configuration
-[What the standard configuration looks like]
-
-### 2.2 Target Directory Structure
-[Standard /logs/ structure]
-
-### 2.3 Target Version Control
-[No logs in Git, all .gitignored]
-
-### 2.4 Target Archival
-[Hybrid retention: 30 days local, cloud archived]
-
----
-
-## 3. Gap Analysis
-
-### 3.1 Configuration Gaps
-- **Current**: [what exists now]
-- **Standard**: [what should exist]
-- **Gap**: [difference]
-- **Priority**: HIGH | MEDIUM | LOW
-- **Impact**: [description]
-
-### 3.2 Directory Structure Gaps
-[Similar format]
-
-### 3.3 Version Control Gaps
-[Similar format]
-
-### 3.4 Archival Gaps
-[Similar format]
-
-### 3.5 Integration Gaps
-[Similar format]
-
-### 3.6 Storage Gaps
-[Similar format]
-
----
-
-## 4. Recommendations Summary
-
-### High Priority (Immediate Action Required)
-1. [Gap description] - [Impact]
-2. [Gap description] - [Impact]
-
-### Medium Priority (Address Soon)
-1. [Gap description] - [Impact]
-2. [Gap description] - [Impact]
-
-### Low Priority (Optimization)
-1. [Gap description] - [Impact]
-
----
-
-## 5. Benefits of Remediation
-
-- **Repository Size**: Reduce by X GB
-- **Cloud Storage**: ~$X/month for permanent archival
-- **Compression**: Save X GB through compression
-- **Searchability**: All logs indexed and searchable
-- **Retention**: Never lose logs, 30-day local + cloud archive
-
----
-
-## Next Steps
-
-See remediation specification for detailed implementation plan to address these gaps.
-```
-
-**Important**: This audit report is stored in `/logs/audits/` and is ephemeral (subject to log retention policies). It provides point-in-time assessment.
+**Integration**: The docs-manage-audit skill standardizes the audit report format and integrates with logs-manager for retention tracking.
 
 ## Step 7: Generate Remediation Specification via Spec Manager
 

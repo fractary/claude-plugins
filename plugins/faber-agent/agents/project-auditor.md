@@ -442,21 +442,139 @@ Validating audit completeness...
 
 ## Phase 7: REPORT (Generate and Output Results)
 
-**Purpose:** Generate final audit report in requested format
+**Purpose:** Generate final audit report in requested format and persist via docs-manage-audit
 
 **Execute:**
 
-1. **Generate report:**
-   - If format == "markdown": Use markdown report template
-   - If format == "json": Use JSON structure
-   - If verbose == true: Include code snippets and detailed evidence
-   - If verbose == false: Summary only
+1. **Collect audit data from state:**
+   - Load state.json to gather all phase results
+   - Aggregate anti-patterns, correct patterns, metrics
+   - Calculate overall scores and compliance
 
-2. **Output report:**
-   - If output_file provided: Write to file
-   - If output_file not provided: Display in console
+2. **Generate standardized audit report via docs-manage-audit:**
 
-3. **Generate summary:**
+```
+Skill(skill="docs-manage-audit")
+```
+
+Then provide the architecture audit data:
+
+```
+Use the docs-manage-audit skill to create architecture audit report with the following parameters:
+{
+  "operation": "create",
+  "audit_type": "architecture",
+  "check_type": "project-structure",
+  "audit_data": {
+    "audit": {
+      "type": "architecture",
+      "check_type": "project-structure",
+      "project": "{project_name}",
+      "timestamp": "{ISO8601}",
+      "duration_seconds": {duration},
+      "auditor": {
+        "plugin": "fractary-faber-agent",
+        "skill": "project-auditor"
+      },
+      "audit_id": "{timestamp}-architecture-audit"
+    },
+    "summary": {
+      "overall_status": "pass|warning|error",
+      "status_counts": {
+        "passing": {correct_patterns_count},
+        "warnings": 0,
+        "failures": {anti_patterns_count}
+      },
+      "exit_code": {0|1|2},
+      "score": {compliance_score},
+      "compliance_percentage": {compliance_percentage}
+    },
+    "findings": {
+      "categories": [
+        {
+          "name": "Manager-as-Agent Pattern",
+          "status": "pass|warning|error",
+          "checks_performed": {total_agents},
+          "passing": {compliant_count},
+          "failures": {non_compliant_count}
+        },
+        {
+          "name": "Director-as-Skill Pattern",
+          "status": "pass|warning|error",
+          "checks_performed": {total_skills},
+          "passing": {compliant_count},
+          "failures": {non_compliant_count}
+        },
+        {
+          "name": "Script Abstraction",
+          "status": "pass|warning|error",
+          "checks_performed": {total_checks},
+          "passing": {script_based_count},
+          "failures": {inline_logic_count}
+        }
+      ],
+      "by_severity": {
+        "high": [
+          {
+            "id": "arch-001",
+            "severity": "high",
+            "category": "architecture",
+            "check": "manager-as-skill",
+            "message": "Manager implemented as skill instead of agent",
+            "resource": "{agent_file}",
+            "details": "Found workflow orchestration logic in skill",
+            "remediation": "Convert to Manager-as-Agent pattern",
+            "auto_fixable": false
+          }
+        ],
+        "medium": [{finding}],
+        "low": [{finding}]
+      }
+    },
+    "metrics": {
+      "total_agents": {count},
+      "total_skills": {count},
+      "total_commands": {count},
+      "anti_patterns_detected": {count},
+      "correct_patterns_detected": {count},
+      "context_load_current": {tokens},
+      "context_load_projected": {tokens}
+    },
+    "recommendations": [
+      {
+        "priority": "high|medium|low",
+        "category": "architecture",
+        "recommendation": "{migration_action}",
+        "rationale": "{why_important}",
+        "impact": "{context_reduction_percentage}% context reduction",
+        "effort_days": {estimated_days}
+      }
+    ],
+    "extensions": {
+      "architecture": {
+        "compliance_score": {score_out_of_10},
+        "anti_patterns": {count},
+        "context_optimization_percentage": {percentage},
+        "migration_effort_days": {total_days}
+      }
+    }
+  },
+  "output_path": "logs/audits/",
+  "project_root": "{project-root}"
+}
+```
+
+This generates:
+- **README.md**: Human-readable architecture audit dashboard
+- **audit.json**: Machine-readable audit data
+
+Both files in `logs/audits/{timestamp}-architecture-audit.[md|json]`
+
+3. **Additional output (if requested):**
+   - If output_file provided: Also write to custom location
+   - If verbose == true: Include detailed code snippets in custom output
+
+4. **Generate summary:**
 
 **Output:**
 ```
@@ -468,10 +586,13 @@ Audit Summary:
   Context Reduction: {percentage}%
   Migration Effort: {days} days
 
-Report Location: {output_file or "console output"}
+Reports Generated:
+- Dashboard: logs/audits/{timestamp}-architecture-audit.md
+- Data: logs/audits/{timestamp}-architecture-audit.json
+{Custom output: {output_file}}
 
 Next Steps:
-1. Review detailed findings in report
+1. Review detailed findings in dashboard
 2. Prioritize migrations based on recommendations
 3. Use /fractary-faber-agent:generate-conversion-spec for migration specs
 4. Use /fractary-faber-agent:create-workflow to create Manager agents

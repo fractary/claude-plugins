@@ -22,10 +22,14 @@ Request format:
     "verbose": false,
     "fix": false,
     "format": "text|json",
+    "persist": false,
     "cache_path": "codex"
   }
 }
 ```
+
+**New Parameter**:
+- `persist`: Boolean (default: false) - If true, generate persistent audit report via docs-manage-audit skill
 </INPUTS>
 
 <WORKFLOW>
@@ -82,6 +86,12 @@ Request format:
    - Summary statistics
    - Recommendations
    - Fixes applied (if any)
+
+9. **Persist Audit (if --persist)**
+   - Invoke docs-manage-audit skill
+   - Store audit report in logs/health/
+   - Create dual-format report (README.md + audit.json)
+   - Enable historical trend analysis
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
@@ -147,6 +157,159 @@ Summary:
 }
 ```
 </OUTPUTS>
+
+<DOCS_MANAGE_AUDIT_INTEGRATION>
+## Step 9: Persist Audit Report (if --persist flag)
+
+When the --persist flag is provided, invoke docs-manage-audit to create a persistent audit report:
+
+```
+Skill(skill="docs-manage-audit")
+```
+
+Then provide the health check data:
+
+```
+Use the docs-manage-audit skill to create system health audit report with the following parameters:
+{
+  "operation": "create",
+  "audit_type": "system",
+  "check_type": "cache-health",
+  "audit_data": {
+    "audit": {
+      "type": "system",
+      "check_type": "cache-health",
+      "timestamp": "{ISO8601}",
+      "duration_seconds": {duration},
+      "auditor": {
+        "plugin": "fractary-codex",
+        "skill": "cache-health"
+      },
+      "audit_id": "{timestamp}-cache-health"
+    },
+    "summary": {
+      "overall_status": "healthy|warning|error|critical",
+      "status_counts": {
+        "passing": {checks_passed},
+        "warnings": {warnings},
+        "failures": {errors}
+      },
+      "exit_code": {0|1|2|3}
+    },
+    "findings": {
+      "categories": [
+        {
+          "name": "Cache",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Configuration",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Performance",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "Storage",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        },
+        {
+          "name": "System",
+          "status": "pass|warning|error",
+          "checks_performed": {count},
+          "passing": {count},
+          "warnings": {count},
+          "failures": {count}
+        }
+      ],
+      "by_severity": {
+        "critical": [
+          {
+            "id": "cache-001",
+            "severity": "critical",
+            "category": "storage",
+            "check": "disk_space",
+            "message": "Disk space critically low",
+            "details": "< 100MB available",
+            "remediation": "Free up disk space or expand storage"
+          }
+        ],
+        "high": [{finding}],
+        "medium": [{finding}],
+        "low": [{finding}]
+      }
+    },
+    "metrics": {
+      "cache_hit_rate": {percentage},
+      "avg_fetch_time_ms": {time},
+      "failed_fetch_rate": {percentage},
+      "cache_size_mb": {size},
+      "disk_free_mb": {free_space},
+      "documents_total": {count},
+      "documents_expired": {count}
+    },
+    "recommendations": [
+      {
+        "priority": "critical|high|medium|low",
+        "category": "system",
+        "recommendation": "{action}",
+        "impact": "{description}"
+      }
+    ],
+    "extensions": {
+      "system": {
+        "auto_fix_available": {boolean},
+        "auto_fix_results": [{fix_applied}],
+        "performance_metrics": {
+          "cache_hit_rate": {percentage},
+          "avg_fetch_time_ms": {time},
+          "failed_fetch_rate": {percentage}
+        },
+        "dependency_status": {
+          "git": "installed|missing",
+          "jq": "installed|missing",
+          "network": "available|unavailable"
+        }
+      }
+    }
+  },
+  "output_path": "logs/health/",
+  "project_root": "{project-root}"
+}
+```
+
+This will generate:
+- **README.md**: Human-readable health dashboard
+- **audit.json**: Machine-readable health data
+
+Both files in `logs/health/{timestamp}-cache-health.[md|json]`
+
+**Benefits of Persistence**:
+- Historical health trend analysis
+- Compare health over time
+- Track fixes applied
+- Identify recurring issues
+- Audit trail for debugging
+
+**Default Behavior**: Without --persist, health checks remain real-time diagnostics (displayed but not saved).
+</DOCS_MANAGE_AUDIT_INTEGRATION>
 
 <SCRIPTS>
 Use the following script for health checks:
