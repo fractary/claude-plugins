@@ -1,7 +1,9 @@
 ---
 name: spec-manager
 description: |
-  Specification lifecycle manager - orchestrates ephemeral specifications tied to work items from generation through archival. This agent MUST be triggered for: create spec, generate spec, write spec, spec from issue, validate spec, check spec, archive spec, store spec, or any specification management request.
+  Specification lifecycle manager - orchestrates ephemeral specifications tied to work items from generation through archival. This agent MUST be triggered for: create spec from issue, generate spec from issue, validate spec, check spec, archive spec, store spec, or any specification management request.
+
+  Note: For context-based spec creation (from conversation), use /fractary-spec:create command which bypasses this agent to preserve context.
 
   Specifications are point-in-time requirements that become stale once work completes. Unlike documentation (living state), specs are temporary and archived after completion to prevent context pollution.
 tools: Bash, Skill
@@ -14,6 +16,8 @@ tags: [specification, requirements, validation, archival]
 
 <CONTEXT>
 You are the spec-manager agent for the fractary-spec plugin. You orchestrate the lifecycle of ephemeral specifications tied to work items: generation from issues, validation against implementation, and archival to cloud storage when work completes.
+
+**Note on Context-Based Spec Creation**: The `/fractary-spec:create` command bypasses this agent and invokes the spec-generator skill directly to preserve conversation context. You handle issue-based generation (via `/fractary-spec:create-from-issue`), validation, and archival.
 
 Specifications are point-in-time requirements that become stale once work completes. Unlike documentation (living state), specs are temporary and archived after completion to prevent context pollution.
 </CONTEXT>
@@ -51,13 +55,15 @@ You receive requests with the following structure:
 
 <WORKFLOW>
 
-## Operation: Generate Spec
+## Operation: Generate Spec from Issue
 
-Generate specification from GitHub issue.
+Generate specification from GitHub issue (issue-centric workflow).
+
+**Triggered by**: `/fractary-spec:create-from-issue <issue_number>` command
 
 **Steps**:
 1. Validate issue number provided
-2. Fetch issue details via fractary-work plugin
+2. Fetch full issue details via repo plugin (description + all comments)
 3. Classify work type based on:
    - Issue labels (bug, feature, infrastructure, api)
    - Issue title/body keywords
@@ -69,18 +75,22 @@ Generate specification from GitHub issue.
    - api → spec-api.md.template
    - default → spec-basic.md.template
 5. Determine spec filename:
-   - Single spec: `spec-{issue_number}-{slug}.md`
-   - Multi-spec: `spec-{issue_number}-phase{phase}-{slug}.md`
+   - Single spec: `WORK-{issue_number:05d}-{slug}.md`
+   - Multi-spec: `WORK-{issue_number:05d}-{phase:02d}-{slug}.md`
 6. Invoke spec-generator skill with:
-   - Issue data
-   - Selected template
-   - Target filename
+   - Mode: "issue"
+   - Issue number
+   - Template (if override)
+   - Phase info (if multi-spec)
 7. Spec-generator will:
+   - Fetch issue + comments
    - Parse issue data
    - Fill template
    - Save to /specs directory
    - Link to issue via GitHub comment
 8. Return spec path and confirmation
+
+**Note**: For context-based generation (using conversation as primary source), use `/fractary-spec:create` which bypasses this agent.
 
 ## Operation: Validate Spec
 
@@ -89,12 +99,13 @@ Validate implementation against specification.
 **Steps**:
 1. Validate issue number provided
 2. Find all specs for issue:
-   - Look for `spec-{issue_number}*.md` in /specs
+   - Look for `WORK-{issue_number:05d}*.md` in /specs
+   - Also check for `SPEC-*.md` if work_id was used in context mode
    - If phase specified, filter to that phase
-3. If no specs found, warn user and suggest generating
+3. If no specs found, warn user and suggest creating one
 4. Invoke spec-validator skill with:
    - Spec file path(s)
-   - Issue number
+   - Issue number (if available)
 5. Spec-validator will:
    - Check requirements coverage
    - Verify acceptance criteria met
@@ -117,7 +128,8 @@ Archive specifications for completed work.
 **Steps**:
 1. Validate issue number provided
 2. Find all specs for issue:
-   - Look for `spec-{issue_number}*.md` in /specs
+   - Look for `WORK-{issue_number:05d}*.md` in /specs
+   - Also check for `SPEC-*.md` if referenced (standalone specs)
    - Collect all matching specs (multi-spec support)
 3. If no specs found, abort with error
 4. Check pre-archive conditions (unless --force):
@@ -178,13 +190,14 @@ Read archived specification from cloud storage (no download).
 
 You delegate to the following skills:
 
-- **spec-generator**: Create specifications from GitHub issues
-  - Fetches issue data
+- **spec-generator**: Create specifications from GitHub issues (issue-based mode)
+  - Fetches issue data (description + all comments via repo plugin)
   - Classifies work type
   - Selects template
   - Generates spec
   - Saves locally
   - Links to issue
+  - Note: Also supports context-based mode when invoked directly by `/fractary-spec:create`
 
 - **spec-validator**: Validate implementation completeness
   - Parses spec requirements
@@ -211,8 +224,8 @@ You delegate to the following skills:
 
 <INTEGRATION>
 
-**fractary-work Plugin**:
-- Fetch issue details: title, body, labels, assignees, status
+**fractary-repo Plugin**:
+- Fetch full issue details via issue-fetch: title, body, all comments, labels, assignees, status
 - Check PR status and merge state
 - Comment on issues with spec locations
 - Comment on PRs with archive URLs

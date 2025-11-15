@@ -13,11 +13,45 @@ The fractary-spec plugin manages point-in-time specifications tied to work items
 
 Keeping old specs in the workspace pollutes context. This plugin archives completed specs to cloud storage and removes them locally, keeping only active specifications in the workspace.
 
+## Two Creation Modes
+
+### Context-Based Creation (`/fractary-spec:create`)
+
+**When to use**:
+- After planning discussions with Claude
+- Rich design conversations about architecture, approach, tradeoffs
+- Want to capture the full planning context, not just issue text
+- Exploratory work (standalone specs)
+
+**How it works**:
+- Uses full conversation context as primary source
+- Optionally enriches with issue data via `--work-id`
+- Directly invokes skill to preserve context
+- Auto-detects template from conversation
+- Naming: `WORK-*` (with work-id) or `SPEC-*` (standalone)
+
+### Issue-Based Creation (`/fractary-spec:create-from-issue`)
+
+**When to use**:
+- Issue has complete requirements in description/comments
+- Straightforward implementation from issue data
+- Multi-phase work (supports `--phase` flag)
+- Traditional workflow
+
+**How it works**:
+- Fetches full issue data (description + all comments)
+- Uses issue content as primary source
+- Goes through agent (standard pattern)
+- Auto-detects template from labels/title
+- Naming: `WORK-*` with zero-padded issue numbers
+
 ## Features
 
-- ✅ **Issue-Centric**: Specs tied to GitHub issues
+- ✅ **Dual Creation Modes**: From issues OR conversation context
+- ✅ **Context Preservation**: Direct skill invocation preserves planning discussions
+- ✅ **Issue Enrichment**: Fetches full issue data (description + all comments)
 - ✅ **Multi-Spec Support**: Multiple specs per issue (phases)
-- ✅ **Smart Templates**: Auto-selects template based on work type
+- ✅ **Smart Templates**: Auto-selects template based on work type or context
 - ✅ **Validation**: Checks implementation completeness
 - ✅ **Lifecycle Archival**: Archives when issue closes or PR merges
 - ✅ **Cloud Storage**: Uses fractary-file for archival
@@ -29,7 +63,7 @@ Keeping old specs in the workspace pollutes context. This plugin archives comple
 
 ### Prerequisites
 
-- `fractary-work` plugin (GitHub integration)
+- `fractary-repo` plugin (GitHub integration, issue fetching)
 - `fractary-file` plugin (cloud storage)
 
 ### Initialize
@@ -45,13 +79,39 @@ Creates:
 
 ## Quick Start
 
-### 1. Generate Spec from Issue
+### Two Ways to Create Specs
+
+#### Option A: From Conversation Context (Recommended for Planning Sessions)
+
+After a planning discussion:
 
 ```bash
-/fractary-spec:generate 123
+/fractary-spec:create --work-id 123
 ```
 
-Creates `/specs/spec-123-feature.md` and comments on issue.
+- Uses full conversation context as primary source
+- Enriches with issue data (description + all comments)
+- Preserves all planning decisions discussed
+- Creates `/specs/WORK-00123-feature.md`
+- Comments on issue
+
+**Standalone spec** (no issue):
+```bash
+/fractary-spec:create
+```
+
+Creates `/specs/SPEC-20250115143000-feature.md` (no GitHub linking).
+
+#### Option B: From GitHub Issue (Traditional)
+
+```bash
+/fractary-spec:create-from-issue 123
+```
+
+- Fetches issue data (description + all comments)
+- Creates spec primarily from issue content
+- Creates `/specs/WORK-00123-feature.md`
+- Comments on issue
 
 ### 2. Implement Following Spec
 
@@ -95,10 +155,22 @@ Streams from cloud without local download.
 | Command | Description |
 |---------|-------------|
 | `/fractary-spec:init` | Initialize plugin |
-| `/fractary-spec:generate <issue>` | Generate spec from issue |
+| `/fractary-spec:create [--work-id <id>]` | Create spec from conversation context (optional issue enrichment) |
+| `/fractary-spec:create-from-issue <issue>` | Create spec from GitHub issue data |
 | `/fractary-spec:validate <issue>` | Validate implementation |
 | `/fractary-spec:archive <issue>` | Archive to cloud |
 | `/fractary-spec:read <issue>` | Read archived spec |
+
+### Command Comparison
+
+| Aspect | `create` | `create-from-issue` |
+|--------|----------|---------------------|
+| Primary Source | Conversation context | Issue data |
+| Context Preserved | ✓ Yes | ✗ No |
+| Issue Fetch | Optional (with `--work-id`) | Required |
+| Use Case | Planning discussions | Issue-driven work |
+| Naming (no issue) | `SPEC-{timestamp}-*` | N/A |
+| Naming (with issue) | `WORK-{id:05d}-*` | `WORK-{id:05d}-*` |
 
 See `commands/*.md` for detailed usage.
 
@@ -125,18 +197,20 @@ Override with `--template` option.
 
 ## Multi-Spec Support
 
-For large issues, create multiple specs:
+For large issues, create multiple specs (issue-based mode only):
 
 ```bash
-/fractary-spec:generate 123 --phase 1 --title "Authentication"
-/fractary-spec:generate 123 --phase 2 --title "OAuth Integration"
+/fractary-spec:create-from-issue 123 --phase 1 --title "Authentication"
+/fractary-spec:create-from-issue 123 --phase 2 --title "OAuth Integration"
 ```
 
 Creates:
-- `spec-123-phase1-authentication.md`
-- `spec-123-phase2-oauth-integration.md`
+- `WORK-00123-01-authentication.md`
+- `WORK-00123-02-oauth-integration.md`
 
 All archived together when issue completes.
+
+**Note**: Multi-spec with phases only supported in `create-from-issue` mode. For context-based creation, use multiple calls to `/fractary-spec:create` with different context.
 
 ## Validation
 
@@ -229,6 +303,7 @@ In `.faber.config.toml`:
 [workflow.architect]
 generate_spec = true
 spec_plugin = "fractary-spec"
+spec_command = "create"  # or "create-from-issue" for issue-centric
 
 [workflow.evaluate]
 validate_spec = true
@@ -239,9 +314,23 @@ archive_spec = true
 
 ### Phases
 
-- **Architect**: Generate spec from issue
+- **Architect**: Generate spec (from context or issue)
 - **Evaluate**: Validate implementation
 - **Release**: Archive to cloud
+
+### Command Options
+
+**Context-based** (recommended for planning sessions):
+```toml
+spec_command = "create"
+```
+Uses conversation context with optional issue enrichment.
+
+**Issue-based** (traditional):
+```toml
+spec_command = "create-from-issue"
+```
+Uses issue data as primary source.
 
 No manual commands needed in FABER workflow!
 
@@ -253,7 +342,9 @@ No manual commands needed in FABER workflow!
 📋 Specification Created
 
 Specification generated for this issue:
-- [spec-123-feature.md](/specs/spec-123-feature.md)
+- [WORK-00123-feature.md](/specs/WORK-00123-feature.md)
+
+Source: Conversation context + Issue data
 
 This spec will guide implementation and be validated before archival.
 ```
@@ -310,7 +401,8 @@ plugins/spec/
 │   └── spec-manager.md
 ├── commands/
 │   ├── init.md
-│   ├── generate.md
+│   ├── create.md              # Context-based creation
+│   ├── create-from-issue.md   # Issue-based creation
 │   ├── validate.md
 │   ├── archive.md
 │   └── read.md
@@ -319,6 +411,8 @@ plugins/spec/
 │   │   ├── SKILL.md
 │   │   ├── templates/
 │   │   ├── workflow/
+│   │   │   ├── generate-from-issue.md      # Issue-based workflow
+│   │   │   └── generate-from-context.md    # Context-based workflow
 │   │   ├── scripts/
 │   │   └── docs/
 │   ├── spec-validator/
@@ -333,21 +427,59 @@ plugins/spec/
 
 ### Required
 
-- **fractary-work**: GitHub integration (issue fetch, comments)
+- **fractary-repo**: GitHub integration (issue fetch with comments, PR operations, issue comments)
 - **fractary-file**: Cloud storage (upload, read)
 
 ### Optional
 
 - **faber**: Automatic workflow integration
 
-## Workflow Example
+## Workflow Examples
+
+### Example 1: Context-Based (Planning Session)
 
 ```bash
 # 1. Initialize
 /fractary-spec:init
 
-# 2. Generate spec from issue
-/fractary-spec:generate 123
+# 2. Have planning discussion with Claude
+# User: "Let's design a user authentication system with OAuth2..."
+# Claude: [discusses requirements, architecture, approach...]
+
+# 3. Create spec from conversation context
+/fractary-spec:create --work-id 123
+
+# Output: /specs/WORK-00123-user-auth-oauth.md
+# - Captures full planning discussion
+# - Enriched with issue #123 data
+# - GitHub comment added
+
+# 4. Implement following spec
+# ... development work ...
+
+# 5. Validate implementation
+/fractary-spec:validate 123
+
+# 6. Archive when complete
+/fractary-spec:archive 123
+
+# 7. Later: read archived spec
+/fractary-spec:read 123
+```
+
+### Example 2: Issue-Based (Traditional)
+
+```bash
+# 1. Initialize
+/fractary-spec:init
+
+# 2. Create spec from issue data
+/fractary-spec:create-from-issue 123
+
+# Output: /specs/WORK-00123-feature-name.md
+# - Uses issue description + all comments
+# - Auto-detects template from labels
+# - GitHub comment added
 
 # 3. Implement following spec
 # ... development work ...
@@ -362,14 +494,32 @@ plugins/spec/
 /fractary-spec:read 123
 ```
 
+### Example 3: Standalone Exploratory Spec
+
+```bash
+# After design discussion (no work item yet)
+/fractary-spec:create
+
+# Output: /specs/SPEC-20250115143000-api-design.md
+# - Standalone spec
+# - No GitHub linking
+# - For reference/planning
+```
+
 ## Best Practices
 
 ### Spec Generation
 
+**Choosing the Right Mode**:
+- Use `/fractary-spec:create` after planning discussions to capture rich context
+- Use `/fractary-spec:create-from-issue` for straightforward issue-driven work
+- Add `--work-id` to context-based specs to link them to issues
+
+**General Tips**:
 - Generate specs early (Architect phase)
-- Use multi-spec for large issues
+- Use multi-spec for large issues (issue-based mode only)
 - Let auto-classification choose template
-- Override template if needed
+- Override template if needed with `--template`
 
 ### During Development
 
