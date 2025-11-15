@@ -211,7 +211,7 @@ For Mustache-style templates, use simple string replacement for now:
 Ensure frontmatter is at top:
 ```yaml
 ---
-spec_id: spec-123-user-auth
+spec_id: WORK-00123-user-auth
 issue_number: 123
 issue_url: https://github.com/org/repo/issues/123
 title: Implement user authentication
@@ -231,7 +231,7 @@ Write spec to `{local_path}/{filename}`:
 - Write file with UTF-8 encoding
 - Set appropriate permissions
 
-Full path example: `/specs/spec-123-phase1-user-auth.md`
+Full path example: `/specs/WORK-00123-01-user-auth.md`
 
 ## Step 12: Link to GitHub Issue
 
@@ -242,7 +242,7 @@ Comment on GitHub issue:
 📋 Specification Created
 
 Specification generated for this issue:
-- [spec-123-phase1-user-auth.md](/specs/spec-123-phase1-user-auth.md)
+- [WORK-00123-01-user-auth.md](/specs/WORK-00123-01-user-auth.md)
 
 This spec will guide implementation and be validated before archival.
 ```

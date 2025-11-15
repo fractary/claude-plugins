@@ -7,12 +7,14 @@ This workflow describes the detailed steps for archiving specifications when wor
 Search for all specs matching the issue number:
 
 ```bash
-find /specs -type f -name "spec-${ISSUE_NUMBER}*.md" 2>/dev/null
+# Format issue number with leading zeros (5 digits)
+PADDED_ISSUE=$(printf "%05d" "$ISSUE_NUMBER")
+find /specs -type f -name "WORK-${PADDED_ISSUE}*.md" 2>/dev/null
 ```
 
 Results can include:
-- Single spec: `spec-123-feature.md`
-- Multi-spec: `spec-123-phase1-auth.md`, `spec-123-phase2-oauth.md`
+- Single spec: `WORK-00123-feature.md`
+- Multi-spec: `WORK-00123-01-auth.md`, `WORK-00123-02-oauth.md`
 
 If no specs found:
 - Return error
@@ -199,8 +201,8 @@ Add new entry:
   "archived_by": "Claude Code",
   "specs": [
     {
-      "filename": "spec-123-phase1-auth.md",
-      "local_path": "/specs/spec-123-phase1-auth.md",
+      "filename": "WORK-00123-01-auth.md",
+      "local_path": "/specs/WORK-00123-01-auth.md",
       "cloud_url": "s3://bucket/archive/specs/2025/123-phase1.md",
       "public_url": "https://storage.example.com/specs/2025/123-phase1.md",
       "size_bytes": 15420,
@@ -209,8 +211,8 @@ Add new entry:
       "created": "2025-01-10T09:00:00Z"
     },
     {
-      "filename": "spec-123-phase2-oauth.md",
-      "local_path": "/specs/spec-123-phase2-oauth.md",
+      "filename": "WORK-00123-02-oauth.md",
+      "local_path": "/specs/WORK-00123-02-oauth.md",
       "cloud_url": "s3://bucket/archive/specs/2025/123-phase2.md",
       "public_url": "https://storage.example.com/specs/2025/123-phase2.md",
       "size_bytes": 18920,
@@ -272,8 +274,8 @@ If PR linked to issue, comment there too:
 📦 Specifications Archived
 
 Specifications for this PR have been archived:
-- [spec-123-phase1-auth.md](https://storage.example.com/specs/2025/123-phase1.md)
-- [spec-123-phase2-oauth.md](https://storage.example.com/specs/2025/123-phase2.md)
+- [WORK-00123-01-auth.md](https://storage.example.com/specs/2025/123-phase1.md)
+- [WORK-00123-02-oauth.md](https://storage.example.com/specs/2025/123-phase2.md)
 
 See issue #123 for complete archive details.
 ```
@@ -389,9 +391,9 @@ Steps:
      - Docs updated: ⚠ (warning)
      - Validation: ✓
   5. → User prompted, selected "Archive anyway"
-  6. ✓ Uploaded spec-123-phase1-auth.md
+  6. ✓ Uploaded WORK-00123-01-auth.md
         → https://storage.example.com/specs/2025/123-phase1.md
-     ✓ Uploaded spec-123-phase2-oauth.md
+     ✓ Uploaded WORK-00123-02-oauth.md
         → https://storage.example.com/specs/2025/123-phase2.md
   7. ✓ Archive index updated
   8. ✓ Issue #123 commented

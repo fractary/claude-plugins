@@ -68,7 +68,7 @@ Validates all specs for issue #123.
 
 ```
 🎯 STARTING: Spec Validator
-Spec: /specs/spec-123-feature.md
+Spec: /specs/WORK-00123-feature.md
 Issue: #123
 ───────────────────────────────────────
 

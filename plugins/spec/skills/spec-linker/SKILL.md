@@ -21,7 +21,7 @@ You receive:
 {
   "operation": "link_creation|link_archive",
   "issue_number": "123",
-  "spec_path": "/specs/spec-123-feature.md",
+  "spec_path": "/specs/WORK-00123-feature.md",
   "specs": [...],        // For archive operation
   "pr_number": "456"     // Optional, for archive operation
 }
@@ -65,7 +65,7 @@ Output structured messages:
 🎯 STARTING: Spec Linker
 Operation: link_creation
 Issue: #123
-Spec: /specs/spec-123-feature.md
+Spec: /specs/WORK-00123-feature.md
 ───────────────────────────────────────
 ```
 

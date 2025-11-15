@@ -69,8 +69,8 @@ Output structured messages:
 🎯 STARTING: Spec Archiver
 Issue: #123
 Specs found: 2
-  - spec-123-phase1-auth.md
-  - spec-123-phase2-oauth.md
+  - WORK-00123-01-auth.md
+  - WORK-00123-02-oauth.md
 ───────────────────────────────────────
 ```
 
@@ -106,12 +106,12 @@ Return JSON:
   "archived_at": "2025-01-15T14:30:00Z",
   "specs_archived": [
     {
-      "filename": "spec-123-phase1-auth.md",
+      "filename": "WORK-00123-01-auth.md",
       "cloud_url": "https://storage.example.com/specs/2025/123-phase1.md",
       "size_bytes": 15420
     },
     {
-      "filename": "spec-123-phase2-oauth.md",
+      "filename": "WORK-00123-02-oauth.md",
       "cloud_url": "https://storage.example.com/specs/2025/123-phase2.md",
       "size_bytes": 18920
     }
