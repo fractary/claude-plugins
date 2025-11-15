@@ -1,0 +1,39 @@
+{
+  "type": "guide",
+  "display_name": "Guide Documentation",
+  "description": "Audience-specific guides for developers, users, and administrators",
+  "file_naming": {
+    "pattern": "{audience}-{slug}.md",
+    "auto_number": false,
+    "slug_source": "title"
+  },
+  "storage": {
+    "default_path": "docs/guides",
+    "config_key": "doc_types.guide.path"
+  },
+  "frontmatter": {
+    "required_fields": ["title", "type", "audience", "status", "date"],
+    "optional_fields": ["author", "tags", "related", "work_id", "codex_sync", "generated"],
+    "type_value": "guide",
+    "defaults": {"type": "guide", "codex_sync": true, "generated": true}
+  },
+  "structure": {
+    "required_sections": ["Purpose", "Prerequisites", "Steps"],
+    "optional_sections": ["Troubleshooting", "Next Steps", "Related Guides"]
+  },
+  "audiences": {
+    "developer": {"description": "Technical guides for developers", "technical_level": "high"},
+    "user": {"description": "End-user guides", "technical_level": "low"},
+    "admin": {"description": "System administrator guides", "technical_level": "medium"},
+    "contributor": {"description": "Guides for project contributors", "technical_level": "medium"}
+  },
+  "status": {
+    "allowed_values": ["draft", "review", "published", "archived"],
+    "default": "draft"
+  },
+  "auto_index": {
+    "enabled": true,
+    "group_by": "audience",
+    "index_filename": "README.md"
+  }
+}

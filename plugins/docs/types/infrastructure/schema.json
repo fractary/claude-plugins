@@ -1,0 +1,429 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/docs/infrastructure.schema.json",
+  "title": "Infrastructure Documentation Schema",
+  "description": "Schema for infrastructure operational documentation with dual-format support (README.md + infrastructure.json)",
+  "type": "object",
+  "required": ["resource_name", "version", "environment", "resource_inventory", "procedures"],
+  "properties": {
+    "resource_name": {
+      "type": "string",
+      "description": "Name of the infrastructure resource or component (e.g., 'api-backend', 'database-cluster')",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the infrastructure documentation",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "environment": {
+      "type": "string",
+      "description": "Deployment environment",
+      "enum": ["dev", "staging", "prod", "test", "demo"],
+      "default": "prod"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the infrastructure component",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "resource_inventory": {
+      "type": "object",
+      "description": "Inventory of deployed resources (populated from faber-cloud registry.json)",
+      "required": ["resources"],
+      "properties": {
+        "resources": {
+          "type": "array",
+          "description": "List of deployed resources",
+          "items": {
+            "type": "object",
+            "required": ["type", "name", "arn"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "AWS resource type (e.g., 'AWS::RDS::DBInstance', 'AWS::Lambda::Function')"
+              },
+              "name": {
+                "type": "string",
+                "description": "Resource name or identifier"
+              },
+              "arn": {
+                "type": "string",
+                "description": "AWS ARN or unique identifier"
+              },
+              "console_url": {
+                "type": "string",
+                "description": "AWS Console URL for the resource",
+                "format": "uri"
+              },
+              "created": {
+                "type": "string",
+                "description": "Creation timestamp",
+                "format": "date-time"
+              },
+              "tags": {
+                "type": "object",
+                "description": "Resource tags",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Resource dependencies",
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "relationship"],
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "Source resource name"
+              },
+              "to": {
+                "type": "string",
+                "description": "Target resource name"
+              },
+              "relationship": {
+                "type": "string",
+                "enum": ["depends_on", "uses", "connects_to", "stores_in"]
+              }
+            }
+          }
+        },
+        "outputs": {
+          "type": "object",
+          "description": "Infrastructure outputs (endpoints, URLs, etc.)",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
+        }
+      }
+    },
+    "architecture_decisions": {
+      "type": "array",
+      "description": "Architecture Decision Records for infrastructure choices",
+      "items": {
+        "type": "object",
+        "required": ["decision", "rationale"],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "description": "The decision made (e.g., 'Use RDS PostgreSQL instead of DynamoDB')"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this decision was made"
+          },
+          "alternatives": {
+            "type": "array",
+            "description": "Alternatives considered",
+            "items": {
+              "type": "string"
+            }
+          },
+          "consequences": {
+            "type": "object",
+            "properties": {
+              "positive": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "negative": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "procedures": {
+      "type": "array",
+      "description": "Operational procedures (runbook content)",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "severity", "steps"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Procedure identifier (e.g., 'backup', 'restore', 'scale-up')",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable procedure title"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this procedure does"
+          },
+          "severity": {
+            "type": "string",
+            "description": "Severity/urgency of this procedure",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "prerequisites": {
+            "type": "array",
+            "description": "Prerequisites before running procedure",
+            "items": {"type": "string"}
+          },
+          "steps": {
+            "type": "array",
+            "description": "Step-by-step instructions",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["step", "action"],
+              "properties": {
+                "step": {
+                  "type": "integer",
+                  "description": "Step number"
+                },
+                "action": {
+                  "type": "string",
+                  "description": "Action to perform"
+                },
+                "command": {
+                  "type": "string",
+                  "description": "CLI command to execute (optional)"
+                },
+                "expected_result": {
+                  "type": "string",
+                  "description": "What to expect when step completes"
+                }
+              }
+            }
+          },
+          "rollback": {
+            "type": "array",
+            "description": "Rollback steps if procedure fails",
+            "items": {"type": "string"}
+          },
+          "estimated_time": {
+            "type": "string",
+            "description": "Estimated time to complete (e.g., '5 minutes', '30 seconds')"
+          },
+          "estimated_downtime": {
+            "type": "string",
+            "description": "Expected downtime (e.g., 'none', '30 seconds', '5 minutes')"
+          },
+          "automation_script": {
+            "type": "string",
+            "description": "Path to automation script (optional)"
+          },
+          "validation": {
+            "type": "array",
+            "description": "How to verify procedure succeeded",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "description": "Monitoring and alerting configuration",
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "description": "Key metrics to monitor",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Metric name (e.g., 'CPUUtilization', 'RequestCount')"
+              },
+              "description": {
+                "type": "string",
+                "description": "What this metric measures"
+              },
+              "threshold": {
+                "type": "object",
+                "properties": {
+                  "warning": {"type": "number"},
+                  "critical": {"type": "number"}
+                }
+              },
+              "unit": {
+                "type": "string",
+                "description": "Metric unit (e.g., 'Percent', 'Count', 'Seconds')"
+              }
+            }
+          }
+        },
+        "alarms": {
+          "type": "array",
+          "description": "CloudWatch alarms or equivalent",
+          "items": {
+            "type": "object",
+            "required": ["name", "metric", "threshold"],
+            "properties": {
+              "name": {"type": "string"},
+              "metric": {"type": "string"},
+              "threshold": {"type": "number"},
+              "action": {"type": "string"}
+            }
+          }
+        },
+        "dashboards": {
+          "type": "array",
+          "description": "Monitoring dashboards",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "url": {"type": "string", "format": "uri"}
+            }
+          }
+        },
+        "logs": {
+          "type": "object",
+          "description": "Log locations and access",
+          "properties": {
+            "cloudwatch_log_groups": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "retention_days": {"type": "integer"}
+          }
+        }
+      }
+    },
+    "troubleshooting": {
+      "type": "array",
+      "description": "Common issues and solutions",
+      "items": {
+        "type": "object",
+        "required": ["symptom", "diagnosis", "solution"],
+        "properties": {
+          "symptom": {
+            "type": "string",
+            "description": "Observable symptom or error"
+          },
+          "diagnosis": {
+            "type": "string",
+            "description": "How to diagnose the root cause"
+          },
+          "solution": {
+            "type": "string",
+            "description": "How to fix the issue"
+          },
+          "prevention": {
+            "type": "string",
+            "description": "How to prevent this issue"
+          },
+          "related_procedure": {
+            "type": "string",
+            "description": "Related procedure ID"
+          }
+        }
+      }
+    },
+    "disaster_recovery": {
+      "type": "object",
+      "description": "Disaster recovery procedures and requirements",
+      "properties": {
+        "rto": {
+          "type": "string",
+          "description": "Recovery Time Objective (e.g., '4 hours', '24 hours')"
+        },
+        "rpo": {
+          "type": "string",
+          "description": "Recovery Point Objective (e.g., '1 hour', '24 hours')"
+        },
+        "backup_strategy": {
+          "type": "object",
+          "properties": {
+            "frequency": {"type": "string"},
+            "retention": {"type": "string"},
+            "location": {"type": "string"},
+            "procedure_id": {"type": "string"}
+          }
+        },
+        "recovery_procedures": {
+          "type": "array",
+          "description": "Recovery procedure IDs",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "description": "Cost information and optimization",
+      "properties": {
+        "monthly_estimate": {
+          "type": "string",
+          "description": "Estimated monthly cost (e.g., '$450', '$1200')"
+        },
+        "breakdown": {
+          "type": "object",
+          "description": "Cost breakdown by resource",
+          "additionalProperties": {"type": "string"}
+        },
+        "optimization_opportunities": {
+          "type": "array",
+          "description": "Ways to reduce costs",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "contacts": {
+      "type": "object",
+      "description": "Contact information for support",
+      "properties": {
+        "on_call": {"type": "string"},
+        "team": {"type": "string"},
+        "escalation": {"type": "string"}
+      }
+    },
+    "references": {
+      "type": "array",
+      "description": "Related documentation and references",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "url": {"type": "string", "format": "uri"},
+          "type": {
+            "type": "string",
+            "enum": ["design-doc", "adr", "terraform", "aws-docs", "internal-wiki"]
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "description": "Documentation status",
+      "enum": ["draft", "review", "approved", "active", "deprecated"],
+      "default": "draft"
+    },
+    "work_id": {
+      "type": "string",
+      "description": "Associated work item ID"
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags for categorization",
+      "items": {"type": "string"}
+    },
+    "created": {
+      "type": "string",
+      "description": "Creation timestamp",
+      "format": "date-time"
+    },
+    "updated": {
+      "type": "string",
+      "description": "Last update timestamp",
+      "format": "date-time"
+    }
+  }
+}
