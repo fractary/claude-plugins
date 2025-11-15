@@ -1,0 +1,8 @@
+{
+  "index_file": "docs/testing/README.md",
+  "organization": "hierarchical",
+  "group_by": ["test_type"],
+  "sort_by": "test_suite_name",
+  "entry_template": "- [**{{test_suite_name}}**]({{relative_path}}) - {{component}}",
+  "section_template": "## {{test_type}} Tests"
+}

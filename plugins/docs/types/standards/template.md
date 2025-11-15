@@ -1,0 +1,136 @@
+---
+title: "{{title}}"
+fractary_doc_type: standard
+scope: {{scope}}
+status: {{status}}
+date: {{date}}
+author: {{author}}
+applies_to: {{applies_to}}
+tags: {{#tags}}{{.}}, {{/tags}}
+related: {{#related}}{{.}}, {{/related}}
+codex_sync: true
+generated: true
+---
+
+# {{title}}
+
+**Scope**: {{scope}}
+**Status**: {{status}}
+**Applies To**: {{applies_to}}
+
+## Purpose
+
+{{purpose}}
+
+## Standards
+
+{{#standards}}
+### {{rule}}
+
+**Requirement Level**: {{requirement}} (RFC 2119)
+
+**Rationale**: {{rationale}}
+
+{{#format}}
+**Format**: `{{format}}`
+{{/format}}
+
+{{#validation}}
+**Validation**: {{validation}}
+{{/validation}}
+
+{{#details}}
+{{details}}
+{{/details}}
+
+---
+
+{{/standards}}
+
+## Enforcement
+
+### Automated Enforcement
+
+{{#enforcement.automated}}
+- {{.}}
+{{/enforcement.automated}}
+
+{{^enforcement.automated}}
+*No automated enforcement configured.*
+{{/enforcement.automated}}
+
+### Manual Enforcement
+
+{{#enforcement.manual}}
+- {{.}}
+{{/enforcement.manual}}
+
+{{^enforcement.manual}}
+*No manual enforcement specified.*
+{{/enforcement.manual}}
+
+### Consequences
+
+{{enforcement.consequences}}
+
+## Examples
+
+### Compliant Examples
+
+{{#examples.compliant}}
+```
+{{.}}
+```
+
+{{/examples.compliant}}
+
+### Non-Compliant Examples
+
+{{#examples.non_compliant}}
+```
+{{.}}
+```
+
+{{/examples.non_compliant}}
+
+## Tools
+
+{{#tools}}
+- [**{{name}}**]({{url}}) - {{description}}
+{{/tools}}
+
+{{^tools}}
+*No specific tools recommended.*
+{{/tools}}
+
+## Exceptions
+
+{{#exceptions}}
+### {{scenario}}
+
+{{rationale}}
+
+**Approval Required**: {{approval_required}}
+
+{{/exceptions}}
+
+{{^exceptions}}
+No exceptions to this standard are permitted.
+{{/exceptions}}
+
+## Related Standards
+
+{{#related}}
+- [{{.}}]({{.}})
+{{/related}}
+
+## References
+
+{{#references}}
+- [{{title}}]({{url}})
+{{/references}}
+
+---
+
+*Generated with fractary-docs plugin*
+*This standard is {{status}} and applies to {{applies_to}}.*

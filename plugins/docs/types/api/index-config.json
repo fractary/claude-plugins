@@ -1,0 +1,8 @@
+{
+  "index_file": "docs/api/README.md",
+  "organization": "hierarchical",
+  "group_by": ["service", "version"],
+  "sort_by": "endpoint",
+  "entry_template": "- [**{{method}} {{endpoint}}**]({{relative_path}}) - {{title}}",
+  "section_template": "## {{service}} ({{version}})"
+}

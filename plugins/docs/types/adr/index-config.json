@@ -1,0 +1,9 @@
+{
+  "index_file": "docs/architecture/adr/README.md",
+  "organization": "flat",
+  "group_by": [],
+  "sort_by": "created",
+  "sort_order": "desc",
+  "entry_template": "- [**ADR-{{adr_number}}**: {{title}}]({{relative_path}}) - {{status}}",
+  "section_template": ""
+}

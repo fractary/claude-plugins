@@ -1,0 +1,8 @@
+{
+  "index_file": "docs/etl/README.md",
+  "organization": "hierarchical",
+  "group_by": ["etl_type"],
+  "sort_by": "etl_name",
+  "entry_template": "- [**{{etl_name}}**]({{relative_path}}) - {{description_short}}",
+  "section_template": "## {{etl_type}} Pipelines"
+}

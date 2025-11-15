@@ -1,0 +1,8 @@
+{
+  "index_file": "docs/infrastructure/README.md",
+  "organization": "hierarchical",
+  "group_by": ["environment"],
+  "sort_by": "resource_name",
+  "entry_template": "- [**{{resource_name}}**]({{relative_path}}) - {{status}}",
+  "section_template": "## {{environment}} Environment"
+}

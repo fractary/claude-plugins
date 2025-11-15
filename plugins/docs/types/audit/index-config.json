@@ -1,0 +1,9 @@
+{
+  "index_file": "docs/audits/README.md",
+  "organization": "hierarchical",
+  "group_by": ["audit_type"],
+  "sort_by": "audit_date",
+  "sort_order": "desc",
+  "entry_template": "- [**{{audit_date}}**]({{relative_path}}) - {{overall_status}} ({{summary.score}}/100)",
+  "section_template": "## {{audit_type}} Audits"
+}
