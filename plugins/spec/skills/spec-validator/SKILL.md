@@ -21,7 +21,7 @@ You are invoked by the spec-manager agent when validation is requested before ar
 You receive:
 ```json
 {
-  "spec_path": "/specs/spec-123-feature.md",
+  "spec_path": "/specs/WORK-00123-feature.md",
   "issue_number": "123"
 }
 ```
@@ -60,7 +60,7 @@ Output structured messages:
 **Start**:
 ```
 🎯 STARTING: Spec Validator
-Spec: /specs/spec-123-feature.md
+Spec: /specs/WORK-00123-feature.md
 Issue: #123
 ───────────────────────────────────────
 ```

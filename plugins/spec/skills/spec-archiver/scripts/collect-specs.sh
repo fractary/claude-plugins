@@ -11,8 +11,11 @@ set -euo pipefail
 ISSUE_NUMBER="${1:?Issue number required}"
 SPECS_DIR="${2:-/specs}"
 
-# Find all specs for issue
-SPECS=$(find "$SPECS_DIR" -type f -name "spec-${ISSUE_NUMBER}*.md" 2>/dev/null || true)
+# Format issue number with leading zeros (5 digits) to match WORK-XXXXX naming
+PADDED_ISSUE=$(printf "%05d" "$ISSUE_NUMBER")
+
+# Find all specs for issue using WORK-XXXXX naming pattern
+SPECS=$(find "$SPECS_DIR" -type f -name "WORK-${PADDED_ISSUE}*.md" 2>/dev/null || true)
 
 if [[ -z "$SPECS" ]]; then
     echo '{"error": "No specs found for issue #'"$ISSUE_NUMBER"'"}' >&2

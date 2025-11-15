@@ -211,7 +211,7 @@ For Mustache-style templates, use simple string replacement for now:
 Ensure frontmatter is at top:
 ```yaml
 ---
-spec_id: spec-123-user-auth
+spec_id: WORK-00123-user-auth
 issue_number: 123
 issue_url: https://github.com/org/repo/issues/123
 title: Implement user authentication

@@ -8,7 +8,7 @@ All specs must include YAML frontmatter:
 
 ```yaml
 ---
-spec_id: spec-123-user-auth          # Unique identifier
+spec_id: WORK-00123-user-auth        # Unique identifier (WORK-{issue:05d}-{slug})
 issue_number: 123                     # GitHub issue number
 issue_url: https://github.com/.../123 # Link to issue
 title: Implement user authentication  # Spec title
@@ -22,19 +22,27 @@ validated: false                      # Validation status
 
 ## Naming Conventions
 
-### Single Spec
-```
-spec-{issue_number}-{slug}.md
-```
-Example: `spec-123-user-authentication.md`
+### Issue-Based Specs
 
-### Multi-Spec (Phases)
+**Single Spec**:
 ```
-spec-{issue_number}-phase{phase}-{slug}.md
+WORK-{issue_number:05d}-{slug}.md
+```
+Example: `WORK-00123-user-authentication.md`
+
+**Multi-Spec (Phases)**:
+```
+WORK-{issue_number:05d}-{phase:02d}-{slug}.md
 ```
 Examples:
-- `spec-123-phase1-user-auth.md`
-- `spec-123-phase2-oauth-integration.md`
+- `WORK-00123-01-user-auth.md`
+- `WORK-00123-02-oauth-integration.md`
+
+**Format Rules**:
+- `WORK` prefix (uppercase) for issue-based specs
+- Issue number zero-padded to 5 digits (e.g., `00123`)
+- Phase number zero-padded to 2 digits (e.g., `01`)
+- Distinguishes from standalone `SPEC-XXXX-` docs in `docs/specs/`
 
 ### Slug Generation
 - Take first 4-5 words of title
@@ -260,10 +268,10 @@ For large issues, create multiple specs:
 Issue #123: Implement Complete Auth System
 
 Specs:
-- spec-123-phase1-user-registration.md
-- spec-123-phase2-login-logout.md
-- spec-123-phase3-password-reset.md
-- spec-123-phase4-oauth-integration.md
+- WORK-00123-01-user-registration.md
+- WORK-00123-02-login-logout.md
+- WORK-00123-03-password-reset.md
+- WORK-00123-04-oauth-integration.md
 ```
 
 Each spec should:

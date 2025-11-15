@@ -276,7 +276,7 @@ Comment on GitHub with all archive locations.
 ```
 Fetching issue #123...
 Generating specification...
-✓ Spec created: /specs/spec-123-feature.md
+✓ Spec created: /specs/WORK-00123-feature.md
 ✓ GitHub comment added
 → Proceeding to Build
 ```
@@ -317,7 +317,7 @@ Updating documentation...
 ✓ Docs updated
 
 Archiving specifications...
-✓ spec-123-feature.md → cloud storage
+✓ WORK-00123-feature.md → cloud storage
 ✓ Archive index updated
 ✓ GitHub comments added
 ✓ Local cleanup complete
@@ -488,7 +488,7 @@ Shows current phase and spec status:
 Workflow Status: Issue #123
 
 Phase: Architect
-  ✓ Spec generated: /specs/spec-123-feature.md
+  ✓ Spec generated: /specs/WORK-00123-feature.md
 
 Phase: Build
   → In progress
@@ -526,7 +526,7 @@ Test full workflow:
 /faber run 123 --autonomy guarded
 
 # 3. Verify spec lifecycle
-ls /specs/spec-123-*.md  # Should be archived (not exist)
+ls /specs/WORK-00123-*.md  # Should be archived (not exist)
 /fractary-spec:read 123  # Should read from cloud
 
 # 4. Check GitHub
