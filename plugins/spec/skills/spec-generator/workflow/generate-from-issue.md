@@ -231,7 +231,7 @@ Write spec to `{local_path}/{filename}`:
 - Write file with UTF-8 encoding
 - Set appropriate permissions
 
-Full path example: `/specs/spec-123-phase1-user-auth.md`
+Full path example: `/specs/WORK-00123-01-user-auth.md`
 
 ## Step 12: Link to GitHub Issue
 
@@ -242,7 +242,7 @@ Comment on GitHub issue:
 📋 Specification Created
 
 Specification generated for this issue:
-- [spec-123-phase1-user-auth.md](/specs/spec-123-phase1-user-auth.md)
+- [WORK-00123-01-user-auth.md](/specs/WORK-00123-01-user-auth.md)
 
 This spec will guide implementation and be validated before archival.
 ```

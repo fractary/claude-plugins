@@ -69,8 +69,8 @@ Generate specification from GitHub issue.
    - api → spec-api.md.template
    - default → spec-basic.md.template
 5. Determine spec filename:
-   - Single spec: `spec-{issue_number}-{slug}.md`
-   - Multi-spec: `spec-{issue_number}-phase{phase}-{slug}.md`
+   - Single spec: `WORK-{issue_number:05d}-{slug}.md` (e.g., `WORK-00123-slug.md`)
+   - Multi-spec: `WORK-{issue_number:05d}-{phase:02d}-{slug}.md` (e.g., `WORK-00123-01-slug.md`)
 6. Invoke spec-generator skill with:
    - Issue data
    - Selected template
@@ -89,7 +89,7 @@ Validate implementation against specification.
 **Steps**:
 1. Validate issue number provided
 2. Find all specs for issue:
-   - Look for `spec-{issue_number}*.md` in /specs
+   - Look for `WORK-{issue_number:05d}*.md` in /specs (e.g., `WORK-00123*.md`)
    - If phase specified, filter to that phase
 3. If no specs found, warn user and suggest generating
 4. Invoke spec-validator skill with:
@@ -117,7 +117,7 @@ Archive specifications for completed work.
 **Steps**:
 1. Validate issue number provided
 2. Find all specs for issue:
-   - Look for `spec-{issue_number}*.md` in /specs
+   - Look for `WORK-{issue_number:05d}*.md` in /specs (e.g., `WORK-00123*.md`)
    - Collect all matching specs (multi-spec support)
 3. If no specs found, abort with error
 4. Check pre-archive conditions (unless --force):
@@ -272,7 +272,7 @@ Return structured output for each operation:
 {
   "status": "success",
   "operation": "generate",
-  "spec_path": "/specs/spec-123-feature.md",
+  "spec_path": "/specs/WORK-00123-feature.md",
   "issue_number": "123",
   "issue_url": "https://github.com/org/repo/issues/123",
   "template": "feature",
@@ -286,7 +286,7 @@ Return structured output for each operation:
   "status": "success",
   "operation": "validate",
   "issue_number": "123",
-  "specs_validated": ["spec-123-phase1.md", "spec-123-phase2.md"],
+  "specs_validated": ["WORK-00123-01-phase1.md", "WORK-00123-02-phase2.md"],
   "results": {
     "requirements": {"completed": 8, "total": 8},
     "acceptance_criteria": {"met": 5, "total": 5},
@@ -308,12 +308,12 @@ Return structured output for each operation:
   "archived_at": "2025-01-15T14:30:00Z",
   "specs_archived": [
     {
-      "filename": "spec-123-phase1.md",
+      "filename": "WORK-00123-01-phase1.md",
       "cloud_url": "https://storage.example.com/specs/2025/123-phase1.md",
       "size_bytes": 15420
     },
     {
-      "filename": "spec-123-phase2.md",
+      "filename": "WORK-00123-02-phase2.md",
       "cloud_url": "https://storage.example.com/specs/2025/123-phase2.md",
       "size_bytes": 18920
     }
@@ -334,7 +334,7 @@ Return structured output for each operation:
   "status": "success",
   "operation": "read",
   "issue_number": "123",
-  "spec_filename": "spec-123-phase1.md",
+  "spec_filename": "WORK-00123-01-phase1.md",
   "cloud_url": "https://storage.example.com/specs/2025/123-phase1.md",
   "content": "... spec content ..."
 }
