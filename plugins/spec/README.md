@@ -51,7 +51,7 @@ Creates:
 /fractary-spec:generate 123
 ```
 
-Creates `/specs/spec-123-feature.md` and comments on issue.
+Creates `/specs/WORK-00123-feature.md` and comments on issue.
 
 ### 2. Implement Following Spec
 
@@ -133,8 +133,8 @@ For large issues, create multiple specs:
 ```
 
 Creates:
-- `spec-123-phase1-authentication.md`
-- `spec-123-phase2-oauth-integration.md`
+- `WORK-00123-01-authentication.md`
+- `WORK-00123-02-oauth-integration.md`
 
 All archived together when issue completes.
 
@@ -253,7 +253,7 @@ No manual commands needed in FABER workflow!
 📋 Specification Created
 
 Specification generated for this issue:
-- [spec-123-feature.md](/specs/spec-123-feature.md)
+- [WORK-00123-feature.md](/specs/WORK-00123-feature.md)
 
 This spec will guide implementation and be validated before archival.
 ```

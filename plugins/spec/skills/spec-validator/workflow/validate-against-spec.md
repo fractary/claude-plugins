@@ -16,7 +16,7 @@ Validate file exists and is readable.
 Extract frontmatter (YAML between `---` markers):
 ```yaml
 ---
-spec_id: spec-123-feature
+spec_id: WORK-00123-feature
 issue_number: 123
 title: Implement user authentication
 type: feature
@@ -228,7 +228,7 @@ Update the spec file with validation results:
 
 ```yaml
 ---
-spec_id: spec-123-feature
+spec_id: WORK-00123-feature
 issue_number: 123
 title: Implement user authentication
 type: feature
@@ -250,7 +250,7 @@ Update fields:
 Create detailed report:
 
 ```markdown
-Validation Report: spec-123-feature.md
+Validation Report: WORK-00123-feature.md
 Issue: #123
 
 Requirements: ✓ 8/8 implemented
@@ -309,7 +309,7 @@ Handle errors gracefully:
 
 ```
 Input:
-  spec_path: /specs/spec-123-feature.md
+  spec_path: /specs/WORK-00123-feature.md
   issue_number: 123
 
 Steps:

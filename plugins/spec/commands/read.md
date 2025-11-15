@@ -68,7 +68,7 @@ Found 2 specs:
 Select phase [1-2] or 'all': 1
 
 ───────────────────────────────────────
-Spec: spec-123-phase1-authentication.md
+Spec: WORK-00123-01-authentication.md
 Archived: 2025-01-15
 Cloud URL: https://storage.example.com/specs/2025/123-phase1.md
 ───────────────────────────────────────
@@ -87,7 +87,7 @@ If issue has only one spec:
 🎯 Reading archived spec for issue #123...
 
 ───────────────────────────────────────
-Spec: spec-123-feature.md
+Spec: WORK-00123-feature.md
 Archived: 2025-01-15
 Cloud URL: https://storage.example.com/specs/2025/123.md
 ───────────────────────────────────────
@@ -139,7 +139,7 @@ Looks up in `.fractary/plugins/spec/archive-index.json`:
       "issue_number": "123",
       "specs": [
         {
-          "filename": "spec-123-phase1-auth.md",
+          "filename": "WORK-00123-01-auth.md",
           "cloud_url": "https://storage.example.com/specs/2025/123-phase1.md",
           "public_url": "https://storage.example.com/specs/2025/123-phase1.md"
         }
@@ -173,7 +173,7 @@ Default: displays content in terminal with formatting.
 ### Save to File (Temporary)
 
 ```bash
-/fractary-spec:read 123 > /tmp/spec-123.md
+/fractary-spec:read 123 > /tmp/WORK-00123.md
 ```
 
 Note: Better to use the command directly rather than maintaining local copies.

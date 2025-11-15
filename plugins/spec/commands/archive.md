@@ -106,8 +106,8 @@ Enter selection [1-3]:
 🎯 STARTING: Spec Archiver
 Issue: #123
 Specs found: 2
-  - spec-123-phase1-auth.md
-  - spec-123-phase2-oauth.md
+  - WORK-00123-01-auth.md
+  - WORK-00123-02-oauth.md
 ───────────────────────────────────────
 
 Checking pre-archive conditions...
@@ -117,8 +117,8 @@ Checking pre-archive conditions...
 ✓ Validation complete
 
 Uploading to cloud...
-✓ spec-123-phase1-auth.md → https://storage.example.com/specs/2025/123-phase1.md
-✓ spec-123-phase2-oauth.md → https://storage.example.com/specs/2025/123-phase2.md
+✓ WORK-00123-01-auth.md → https://storage.example.com/specs/2025/123-phase1.md
+✓ WORK-00123-02-oauth.md → https://storage.example.com/specs/2025/123-phase2.md
 
 Updating archive index...
 ✓ Archive index updated
@@ -163,8 +163,8 @@ These specifications are permanently stored in cloud archive for future referenc
 📦 Specifications Archived
 
 Specifications for this PR have been archived:
-- [spec-123-phase1-auth.md](https://storage.example.com/specs/2025/123-phase1.md)
-- [spec-123-phase2-oauth.md](https://storage.example.com/specs/2025/123-phase2.md)
+- [WORK-00123-01-auth.md](https://storage.example.com/specs/2025/123-phase1.md)
+- [WORK-00123-02-oauth.md](https://storage.example.com/specs/2025/123-phase2.md)
 
 See issue #123 for complete archive details.
 ```
@@ -180,7 +180,7 @@ Entry added to `.fractary/plugins/spec/archive-index.json`:
   "archived_at": "2025-01-15T14:30:00Z",
   "specs": [
     {
-      "filename": "spec-123-phase1-auth.md",
+      "filename": "WORK-00123-01-auth.md",
       "cloud_url": "https://storage.example.com/specs/2025/123-phase1.md",
       "size_bytes": 15420
     }

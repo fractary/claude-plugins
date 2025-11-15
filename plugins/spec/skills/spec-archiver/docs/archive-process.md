@@ -145,7 +145,7 @@ Variables:
 **Single spec**:
 ```
 Issue: 123
-Local: /specs/spec-123-feature.md
+Local: /specs/WORK-00123-feature.md
 Cloud: archive/specs/2025/123.md
 URL: https://storage.example.com/specs/2025/123.md
 ```
@@ -153,11 +153,11 @@ URL: https://storage.example.com/specs/2025/123.md
 **Multi-spec**:
 ```
 Issue: 123
-Local: /specs/spec-123-phase1-auth.md
+Local: /specs/WORK-00123-01-auth.md
 Cloud: archive/specs/2025/123-phase1.md
 URL: https://storage.example.com/specs/2025/123-phase1.md
 
-Local: /specs/spec-123-phase2-oauth.md
+Local: /specs/WORK-00123-02-oauth.md
 Cloud: archive/specs/2025/123-phase2.md
 URL: https://storage.example.com/specs/2025/123-phase2.md
 ```
@@ -186,8 +186,8 @@ URL: https://storage.example.com/specs/2025/123-phase2.md
       "archived_by": "Claude Code",
       "specs": [
         {
-          "filename": "spec-123-phase1-auth.md",
-          "local_path": "/specs/spec-123-phase1-auth.md",
+          "filename": "WORK-00123-01-auth.md",
+          "local_path": "/specs/WORK-00123-01-auth.md",
           "cloud_url": "s3://bucket/archive/specs/2025/123-phase1.md",
           "public_url": "https://storage.example.com/specs/2025/123-phase1.md",
           "size_bytes": 15420,
@@ -239,8 +239,8 @@ If PR linked to issue, comment added there too:
 📦 Specifications Archived
 
 Specifications for this PR have been archived:
-- [spec-123-phase1-auth.md](https://storage.example.com/specs/2025/123-phase1.md)
-- [spec-123-phase2-oauth.md](https://storage.example.com/specs/2025/123-phase2.md)
+- [WORK-00123-01-auth.md](https://storage.example.com/specs/2025/123-phase1.md)
+- [WORK-00123-02-oauth.md](https://storage.example.com/specs/2025/123-phase2.md)
 
 See issue #123 for complete archive details.
 ```
@@ -251,14 +251,14 @@ After successful upload and index update:
 
 1. **Remove spec files**:
    ```bash
-   rm /specs/spec-123-phase1-auth.md
-   rm /specs/spec-123-phase2-oauth.md
+   rm /specs/WORK-00123-01-auth.md
+   rm /specs/WORK-00123-02-oauth.md
    ```
 
 2. **Git remove**:
    ```bash
-   git rm /specs/spec-123-phase1-auth.md
-   git rm /specs/spec-123-phase2-oauth.md
+   git rm /specs/WORK-00123-01-auth.md
+   git rm /specs/WORK-00123-02-oauth.md
    ```
 
 3. **Git add index**:

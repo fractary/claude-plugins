@@ -146,7 +146,7 @@ Combine individual checks into overall status:
 
 ```
 🎯 STARTING: Spec Validator
-Spec: /specs/spec-123-feature.md
+Spec: /specs/WORK-00123-feature.md
 Issue: #123
 ───────────────────────────────────────
 
@@ -220,7 +220,7 @@ After validation, spec frontmatter is updated:
 **Before**:
 ```yaml
 ---
-spec_id: spec-123-feature
+spec_id: WORK-00123-feature
 issue_number: 123
 title: Implement user authentication
 type: feature
@@ -232,7 +232,7 @@ validated: false
 **After (Complete)**:
 ```yaml
 ---
-spec_id: spec-123-feature
+spec_id: WORK-00123-feature
 issue_number: 123
 title: Implement user authentication
 type: feature
@@ -245,7 +245,7 @@ validation_date: "2025-01-15"
 **After (Partial)**:
 ```yaml
 ---
-spec_id: spec-123-feature
+spec_id: WORK-00123-feature
 issue_number: 123
 title: Implement user authentication
 type: feature
@@ -259,7 +259,7 @@ validation_notes: "Tests incomplete, docs needed"
 **After (Incomplete)**:
 ```yaml
 ---
-spec_id: spec-123-feature
+spec_id: WORK-00123-feature
 issue_number: 123
 title: Implement user authentication
 type: feature

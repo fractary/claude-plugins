@@ -32,7 +32,7 @@ This command fetches issue details, classifies the work type, selects an appropr
 /fractary-spec:generate 123
 ```
 
-Generates: `/specs/spec-123-<slug>.md`
+Generates: `/specs/WORK-00123-<slug>.md`
 
 ### Multi-Spec (Phases)
 
@@ -42,8 +42,8 @@ Generates: `/specs/spec-123-<slug>.md`
 ```
 
 Generates:
-- `/specs/spec-123-phase1-user-authentication.md`
-- `/specs/spec-123-phase2-oauth-integration.md`
+- `/specs/WORK-00123-01-user-authentication.md`
+- `/specs/WORK-00123-02-oauth-integration.md`
 
 ### Template Override
 
@@ -94,11 +94,11 @@ Template: feature
 Fetching issue #123...
 Classifying work type: feature
 Selecting template: spec-feature.md.template
-Generating spec: spec-123-implement-auth.md
+Generating spec: WORK-00123-implement-auth.md
 Linking to issue #123...
 
 ✅ COMPLETED: Spec Generator
-Spec created: /specs/spec-123-implement-auth.md
+Spec created: /specs/WORK-00123-implement-auth.md
 Template used: feature
 GitHub comment: ✓ Added
 ───────────────────────────────────────
@@ -113,7 +113,7 @@ A comment is added to the issue:
 📋 Specification Created
 
 Specification generated for this issue:
-- [spec-123-implement-auth.md](/specs/spec-123-implement-auth.md)
+- [WORK-00123-implement-auth.md](/specs/WORK-00123-implement-auth.md)
 
 This spec will guide implementation and be validated before archival.
 ```
