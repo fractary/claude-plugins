@@ -1,7 +1,7 @@
 {
   "name": "fractary-docs",
-  "version": "1.0.0",
-  "description": "Living documentation management with template-based generation, updating, validation, and linking",
+  "version": "2.0.0",
+  "description": "Type-agnostic documentation system with operation-specific skills and data-driven type context (93% less code duplication)",
   "agents": ["./agents/docs-manager.md"],
   "skills": "./skills/",
   "commands": "./commands/"
