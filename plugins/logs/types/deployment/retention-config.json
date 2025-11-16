@@ -1,0 +1,33 @@
+{
+  "log_type": "deployment",
+  "local_retention_days": 30,
+  "cloud_retention_policy": "forever",
+  "priority": "critical",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": false,
+  "metadata": {
+    "description": "Deployment and release logs",
+    "typical_size_mb": 2,
+    "typical_duration_minutes": 15,
+    "value": "Critical - audit trail, compliance, rollback reference"
+  },
+  "archive_triggers": {
+    "age_days": 30,
+    "size_mb": null,
+    "status": ["success", "failure", "rolled_back"]
+  },
+  "retention_exceptions": {
+    "keep_if_linked_to_open_issue": true,
+    "keep_if_referenced_in_docs": true,
+    "keep_recent_n": 20,
+    "never_delete_production": true
+  },
+  "validation": {
+    "require_summary": true,
+    "require_redaction_check": true,
+    "require_health_checks_for_production": true,
+    "require_rollback_plan_for_production": true
+  }
+}

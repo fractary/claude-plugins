@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Session Log Schema",
+  "description": "Schema for Claude Code session log frontmatter",
+  "properties": {
+    "log_type": {
+      "const": "session",
+      "description": "Log type identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Session title or summary"
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Unique session identifier (UUID format)"
+    },
+    "issue_number": {
+      "type": ["string", "number", "null"],
+      "description": "Associated work item/issue number"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Session start date/time"
+    },
+    "status": {
+      "enum": ["active", "stopped", "archived", "error"],
+      "description": "Session status"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Claude Code conversation identifier"
+    },
+    "repository": {
+      "type": "string",
+      "description": "Repository path or name"
+    },
+    "branch": {
+      "type": "string",
+      "description": "Git branch name"
+    },
+    "model": {
+      "type": "string",
+      "description": "AI model used (e.g., claude-sonnet-4-5)"
+    },
+    "token_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total tokens used in session"
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Session duration in seconds"
+    }
+  },
+  "required": [
+    "log_type",
+    "title",
+    "session_id",
+    "date",
+    "status"
+  ],
+  "additionalProperties": true
+}

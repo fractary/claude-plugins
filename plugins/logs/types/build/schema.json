@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Build Log Schema",
+  "description": "Schema for build process log frontmatter",
+  "properties": {
+    "log_type": {
+      "const": "build",
+      "description": "Log type identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Build title or identifier"
+    },
+    "build_id": {
+      "type": "string",
+      "description": "Unique build identifier"
+    },
+    "issue_number": {
+      "type": ["string", "number", "null"],
+      "description": "Associated work item/issue number"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Build start date/time"
+    },
+    "status": {
+      "enum": ["pending", "running", "success", "failure", "cancelled", "archived"],
+      "description": "Build status"
+    },
+    "repository": {
+      "type": "string",
+      "description": "Repository path or name"
+    },
+    "branch": {
+      "type": "string",
+      "description": "Git branch name"
+    },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$",
+      "description": "Git commit SHA"
+    },
+    "build_tool": {
+      "type": "string",
+      "description": "Build tool used (npm, make, cargo, etc.)"
+    },
+    "exit_code": {
+      "type": "integer",
+      "description": "Build process exit code"
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Build duration in seconds"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Paths to build artifacts"
+    }
+  },
+  "required": [
+    "log_type",
+    "title",
+    "build_id",
+    "date",
+    "status"
+  ],
+  "additionalProperties": true
+}

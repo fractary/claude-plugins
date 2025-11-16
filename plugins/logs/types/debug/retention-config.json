@@ -1,0 +1,16 @@
+{
+  "log_type": "debug",
+  "local_retention_days": 7,
+  "cloud_retention_policy": "30_days",
+  "priority": "medium",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": true,
+  "metadata": {
+    "description": "Debug session logs",
+    "typical_size_mb": 3,
+    "typical_duration_minutes": 20,
+    "value": "Medium - useful for issue investigation"
+  }
+}
