@@ -1,17 +1,17 @@
 ---
-name: fractary-spec:generate
-description: Generate specification from GitHub issue
+name: fractary-spec:create-from-issue
+description: Create specification from GitHub issue data
 argument-hint: <issue_number> [--phase <n>] [--title "<title>"] [--template <type>]
 ---
 
-Generate a specification from a GitHub issue.
+Create a specification from a GitHub issue.
 
-This command fetches issue details, classifies the work type, selects an appropriate template, and creates a structured specification document.
+This command fetches full issue data (including description and all comments via repo plugin), classifies the work type, selects an appropriate template, and creates a structured specification document.
 
 ## Usage
 
 ```bash
-/fractary-spec:generate <issue_number> [options]
+/fractary-spec:create-from-issue <issue_number> [options]
 ```
 
 ## Arguments
@@ -29,7 +29,7 @@ This command fetches issue details, classifies the work type, selects an appropr
 ### Basic Usage
 
 ```bash
-/fractary-spec:generate 123
+/fractary-spec:create-from-issue 123
 ```
 
 Generates: `/specs/WORK-00123-<slug>.md`
@@ -37,8 +37,8 @@ Generates: `/specs/WORK-00123-<slug>.md`
 ### Multi-Spec (Phases)
 
 ```bash
-/fractary-spec:generate 123 --phase 1 --title "User Authentication"
-/fractary-spec:generate 123 --phase 2 --title "OAuth Integration"
+/fractary-spec:create-from-issue 123 --phase 1 --title "User Authentication"
+/fractary-spec:create-from-issue 123 --phase 2 --title "OAuth Integration"
 ```
 
 Generates:
@@ -48,17 +48,17 @@ Generates:
 ### Template Override
 
 ```bash
-/fractary-spec:generate 123 --template infrastructure
+/fractary-spec:create-from-issue 123 --template infrastructure
 ```
 
 Forces infrastructure template instead of auto-detection.
 
 ## What It Does
 
-1. **Fetch Issue**: Gets issue details from GitHub
-2. **Classify**: Determines work type from labels and title
+1. **Fetch Issue**: Gets full issue data from GitHub (description + all comments via repo plugin)
+2. **Classify**: Determines work type from labels, title, and content
 3. **Select Template**: Chooses appropriate spec template
-4. **Parse Data**: Extracts requirements, criteria, files
+4. **Parse Data**: Extracts requirements, criteria, files from issue and comments
 5. **Generate Spec**: Fills template with issue data
 6. **Save Local**: Writes to `/specs` directory
 7. **Link to Issue**: Comments on GitHub with spec location
@@ -91,7 +91,7 @@ Issue: #123
 Template: feature
 ───────────────────────────────────────
 
-Fetching issue #123...
+Fetching issue #123 (with comments)...
 Classifying work type: feature
 Selecting template: spec-feature.md.template
 Generating spec: WORK-00123-implement-auth.md
