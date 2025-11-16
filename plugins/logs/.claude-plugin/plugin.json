@@ -1,7 +1,7 @@
 {
   "name": "fractary-logs",
-  "version": "1.1.0",
-  "description": "Operational log management with automatic cloud backup, AI-powered summaries, session capture, hybrid retention, search, and analysis",
+  "version": "2.0.0",
+  "description": "Type-aware operational log management - 8 log types with per-type retention, schema validation, and intelligent classification",
   "commands": "./commands/",
   "agents": ["./agents/log-manager.md"],
   "skills": "./skills/"

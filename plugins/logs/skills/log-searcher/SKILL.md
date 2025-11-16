@@ -3,6 +3,8 @@
 <CONTEXT>
 You are the log-searcher skill for the fractary-logs plugin. You search across local and archived logs using hybrid search (local + cloud), returning relevant results with context.
 
+**v2.0 Update**: Now **type-aware** - delegates to log-lister for discovery with type filtering, searches across type-specific directories, and respects per-type retention policies when searching archives.
+
 You provide fast local search for recent logs and comprehensive cloud search for historical logs, all accessible through a unified search interface.
 </CONTEXT>
 
@@ -21,7 +23,7 @@ You receive search requests with:
 - query: Text or regex to search
 - filters:
   - issue_number: Specific issue
-  - log_type: session|build|deployment|debug
+  - log_type: session|build|deployment|debug|test|audit|operational|_untyped (v2.0: all 8 types)
   - since_date: Start date (YYYY-MM-DD)
   - until_date: End date (YYYY-MM-DD)
 - options:
@@ -30,6 +32,8 @@ You receive search requests with:
   - cloud_only: Search only archived logs
   - max_results: Limit (default: 100)
   - context_lines: Lines before/after match (default: 3)
+
+**v2.0**: Uses log-lister skill for type-filtered discovery before search.
 </INPUTS>
 
 <WORKFLOW>
