@@ -47,8 +47,10 @@ create_hyperlink() {
 
   # Check if we're in Claude Code web IDE (OSC 8 not supported there)
   if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
-    # Web IDE: use plain URL format (more compatible)
-    echo -en "${color}${text} (${url})${NC}"
+    # Web IDE: output plain URL only for auto-linking
+    # The URL itself is clickable and self-documenting
+    # Format: "https://github.com/owner/repo/issues/123"
+    echo -en "${color}${url}${NC}"
   else
     # Terminal: use OSC 8 format for clickable links
     # OSC 8 format: \033]8;;URL\033\\TEXT\033]8;;\033\\
@@ -174,8 +176,14 @@ if [ -n "$ISSUE_ID" ]; then
   if [ -n "$GITHUB_REPO" ]; then
     # Create clickable link to GitHub issue
     ISSUE_URL="${GITHUB_REPO}/issues/${ISSUE_ID}"
-    ISSUE_LINK=$(create_hyperlink "$ISSUE_URL" "issue #${ISSUE_ID}" "$MAGENTA")
-    STATUS_LINE="${STATUS_LINE} ${ISSUE_LINK}"
+    if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
+      # Web IDE: show label + plain URL (URL will be auto-clickable)
+      STATUS_LINE="${STATUS_LINE} ${MAGENTA}#${ISSUE_ID}${NC} ${MAGENTA}${ISSUE_URL}${NC}"
+    else
+      # Terminal: use OSC 8 for embedded clickable link
+      ISSUE_LINK=$(create_hyperlink "$ISSUE_URL" "issue #${ISSUE_ID}" "$MAGENTA")
+      STATUS_LINE="${STATUS_LINE} ${ISSUE_LINK}"
+    fi
   else
     # Fallback: non-clickable
     STATUS_LINE="${STATUS_LINE} ${MAGENTA}issue #${ISSUE_ID}${NC}"
@@ -187,8 +195,14 @@ if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
   if [ -n "$GITHUB_REPO" ]; then
     # Create clickable link to GitHub PR
     PR_URL="${GITHUB_REPO}/pull/${PR_NUMBER}"
-    PR_LINK=$(create_hyperlink "$PR_URL" "PR#${PR_NUMBER}" "$BLUE")
-    STATUS_LINE="${STATUS_LINE} ${PR_LINK}"
+    if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
+      # Web IDE: show label + plain URL (URL will be auto-clickable)
+      STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC} ${BLUE}${PR_URL}${NC}"
+    else
+      # Terminal: use OSC 8 for embedded clickable link
+      PR_LINK=$(create_hyperlink "$PR_URL" "PR#${PR_NUMBER}" "$BLUE")
+      STATUS_LINE="${STATUS_LINE} ${PR_LINK}"
+    fi
   else
     # Fallback: non-clickable
     STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
