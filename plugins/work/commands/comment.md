@@ -57,8 +57,18 @@ Your role is to parse user input and invoke the work-manager agent with the appr
    - Map subcommand to operation name
    - Package parameters
 
-3. **Invoke agent**
-   - Invoke fractary-work:work-manager agent with the request
+3. **ACTUALLY INVOKE the Task tool**
+   - Use the Task tool with subagent_type="fractary-work:work-manager"
+   - Pass the structured JSON request in the prompt parameter
+   - Do NOT just describe what should be done - actually call the Task tool
+
+   **IF THE TASK TOOL INVOCATION FAILS:**
+   - STOP IMMEDIATELY - do not attempt any workarounds
+   - Report the exact error message to the user
+   - DO NOT use bash/gh/jq CLI commands as a fallback
+   - DO NOT invoke skills directly
+   - DO NOT try alternative approaches
+   - Wait for user to provide explicit instruction
 
 4. **Return response**
    - The work-manager agent will handle the operation and return results
