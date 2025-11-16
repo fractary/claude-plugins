@@ -12,33 +12,61 @@ This workflow is designed to preserve the full planning discussion context when 
 
 ## Step 1: Auto-Detect Work ID (If Not Provided)
 
-If `work_id` is not provided in the input, attempt to auto-detect from current branch:
+If `work_id` is not provided in the input, attempt to auto-detect from current branch via repo plugin cache.
 
-1. Check if repo plugin is available (check for repo cache script)
-2. Read repo plugin's git status cache:
-   ```bash
-   ~/.fractary/plugins/repo/scripts/read-status-cache.sh issue_id
-   ```
-3. If issue_id is non-empty and numeric, use it as `work_id`
-4. If not found or invalid, proceed without work_id (standalone spec)
+**Prerequisites**: This step requires the `fractary-repo` plugin to be installed and active. If not available, skip auto-detection and proceed with standalone spec creation.
+
+**Process**:
+1. Check if repo plugin cache exists
+2. Read `issue_id` from the cache
+3. If valid (non-empty and numeric), use it as `work_id`
+4. If not found or invalid, proceed without work_id (creates standalone spec)
 
 **Implementation**:
 ```bash
 # Check if work_id provided in input
 if [ -z "$WORK_ID" ]; then
     # Try to auto-detect from repo cache
-    REPO_CACHE_SCRIPT="${HOME}/.fractary/plugins/repo/scripts/read-status-cache.sh"
-    if [ -f "$REPO_CACHE_SCRIPT" ]; then
+    # The repo plugin stores cache at ~/.fractary/repo/status-*.cache
+    # Try multiple locations to find the read-status-cache.sh script
+
+    REPO_SCRIPT_PATHS=(
+        "${FRACTARY_REPO_PLUGIN_ROOT}/scripts/read-status-cache.sh"  # If env var set
+        "${HOME}/.fractary/plugins/repo/scripts/read-status-cache.sh" # User installation
+        "$(which read-status-cache.sh 2>/dev/null)"  # If in PATH
+    )
+
+    REPO_CACHE_SCRIPT=""
+    for path in "${REPO_SCRIPT_PATHS[@]}"; do
+        if [[ -n "$path" && -f "$path" ]]; then
+            REPO_CACHE_SCRIPT="$path"
+            break
+        fi
+    done
+
+    if [[ -n "$REPO_CACHE_SCRIPT" ]]; then
+        # Repo plugin found - attempt auto-detection
         DETECTED_ISSUE_ID=$("$REPO_CACHE_SCRIPT" issue_id 2>/dev/null | tr -d '[:space:]')
         if [[ "$DETECTED_ISSUE_ID" =~ ^[0-9]+$ ]]; then
             WORK_ID="$DETECTED_ISSUE_ID"
-            echo "Auto-detected issue #${WORK_ID} from branch"
+            echo "✓ Auto-detected issue #${WORK_ID} from branch (via repo plugin)"
+        else
+            echo "ℹ No issue detected from current branch - creating standalone spec"
         fi
+    else
+        # Repo plugin not available - graceful fallback
+        echo "ℹ Repo plugin not found - auto-detection disabled"
+        echo "  Install fractary-repo plugin for automatic issue detection from branch names"
+        echo "  Continuing with standalone spec creation..."
     fi
 fi
 ```
 
-**Note**: The repo plugin's status cache is maintained by hooks (UserPromptSubmit, Stop) and extracts issue IDs from branch names like `feat/123-description`.
+**Notes**:
+- The repo plugin's status cache is maintained by hooks (UserPromptSubmit, Stop)
+- Issue IDs are extracted from branch patterns like `feat/123-description` → `123`
+- Graceful degradation: If repo plugin not installed, creates standalone spec without error
+- Cache location: `~/.fractary/repo/status-{REPO_ID}.cache`
 
 ## Step 2: Validate Inputs
 

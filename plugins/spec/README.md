@@ -394,14 +394,31 @@ plugins/spec/
 
 ## Dependencies
 
-### Required
+### Required for Core Functionality
 
-- **fractary-repo**: GitHub integration (issue fetch with comments, PR operations, issue comments)
-- **fractary-file**: Cloud storage (upload, read)
+- **fractary-file**: Cloud storage for archival (upload, read from cloud)
+
+### Required for Full Features
+
+- **fractary-repo**: Enables GitHub integration and auto-detection
+  - **Auto-detection**: Detects issue ID from branch names (e.g., `feat/123-name` → #123)
+  - **Issue enrichment**: Fetches issue description + all comments
+  - **GitHub linking**: Posts spec location comments on issues/PRs
+  - **Without repo plugin**: Manual `--work-id` required, no auto-detection, standalone specs only
 
 ### Optional
 
-- **faber**: Automatic workflow integration
+- **faber**: Automatic workflow integration (Architect/Evaluate/Release phases)
+
+### Graceful Degradation
+
+If `fractary-repo` is not installed:
+- ✓ Spec creation still works (from conversation context)
+- ✓ Standalone specs (SPEC-{timestamp}-* naming)
+- ✗ No auto-detection of issue IDs from branch
+- ✗ Must use `--work-id` explicitly to link to issues
+- ✗ No GitHub comments on issues
+- ℹ Info message shown: "Repo plugin not found - auto-detection disabled"
 
 ## Workflow Examples
 

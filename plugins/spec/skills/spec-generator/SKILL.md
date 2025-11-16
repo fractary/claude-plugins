@@ -1,97 +1,61 @@
 # Spec Generator Skill
 
 <CONTEXT>
-You are the spec-generator skill. You create ephemeral specifications from two sources:
+You are the spec-generator skill. You create ephemeral specifications from conversation context, optionally enriched with GitHub issue data.
 
-1. **From GitHub Issues** (via spec-manager agent): Fetches issue data, classifies work type, generates spec
-2. **From Conversation Context** (direct invocation): Uses conversation as primary source, optionally enriched with issue data
-
-The second mode is invoked directly by the `/fractary-spec:create` command to preserve conversation context.
+You are invoked directly by the `/fractary-spec:create` command to preserve full conversation context. This bypasses the agent layer to ensure planning discussions are captured in specs.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. ALWAYS determine which workflow to use:
-   - Issue-based: Follow `workflow/generate-from-issue.md`
-   - Context-based: Follow `workflow/generate-from-context.md`
-2. For issue-based workflow:
-   - ALWAYS fetch issue data via repo plugin (issue-fetch to get issue + all comments)
-   - ALWAYS use WORK-{issue:05d}-{slug}.md naming
-   - ALWAYS comment on GitHub issue
-3. For context-based workflow:
-   - ALWAYS use full conversation context as primary source
-   - If work_id provided: fetch issue via repo plugin and merge contexts
-   - Naming: WORK-{issue:05d}-{slug}.md (if work_id) OR SPEC-{timestamp}-{slug}.md (if no work_id)
-   - ALWAYS comment on GitHub issue if work_id provided
+1. ALWAYS follow the `workflow/generate-from-context.md` workflow
+2. ALWAYS use full conversation context as primary source
+3. If work_id provided or auto-detected: fetch issue via repo plugin and merge contexts
 4. ALWAYS classify work type before selecting template
 5. ALWAYS use proper naming conventions:
-   - Issue-linked (single): WORK-{issue:05d}-{slug}.md (e.g., WORK-00084-feature.md)
-   - Issue-linked (multi-spec): WORK-{issue:05d}-{phase:02d}-{slug}.md (e.g., WORK-00084-01-phase-name.md)
+   - Issue-linked: WORK-{issue:05d}-{slug}.md (e.g., WORK-00084-feature.md)
    - Standalone: SPEC-{timestamp}-{slug}.md (e.g., SPEC-20250115143000-feature.md)
-   - Zero-pad issue numbers to 5 digits, phase numbers to 2 digits
+   - Zero-pad issue numbers to 5 digits
 6. ALWAYS save specs to /specs directory (local path from config)
 7. ALWAYS include frontmatter with metadata
-8. ALWAYS link spec back to issue when work_id provided
+8. ALWAYS link spec back to issue when work_id provided or auto-detected
+9. If repo plugin not found: gracefully degrade to standalone spec creation
 </CRITICAL_RULES>
 
 <INPUTS>
-You receive one of two input formats:
+You receive input in the following format:
 
-**Issue-Based Generation** (from spec-manager agent):
 ```json
 {
-  "mode": "issue",
-  "issue_number": "123",
-  "template": "basic|feature|infrastructure|api|bug",  // Optional: override auto-detection
-  "phase": 1,              // Optional: for multi-spec support
-  "title": "Phase Title"   // Optional: for multi-spec naming
-}
-```
-
-**Context-Based Generation** (direct from command):
-```json
-{
-  "mode": "context",
   "work_id": "123",        // Optional: link to issue and enrich with issue data (auto-detected from branch if omitted)
   "template": "basic|feature|infrastructure|api|bug",  // Optional: override auto-detection
   "context": "Explicit additional context"  // Optional: extra context to consider
 }
 ```
 
-**Auto-Detection**: If `work_id` is not provided in context mode, automatically read from repo plugin's git status cache (`~/.fractary/repo/status-*.cache`) to detect issue ID from current branch name.
+**Auto-Detection**: If `work_id` is not provided, automatically attempt to read from repo plugin's git status cache to detect issue ID from current branch name (e.g., `feat/123-name` → `123`). If repo plugin not found or no issue detected, creates standalone spec.
 
-If `mode` is not specified, infer from presence of `issue_number` (issue mode) or absence (context mode).
+**Graceful Degradation**: Missing `work_id` + no repo plugin = standalone spec (SPEC-{timestamp}-* naming).
 </INPUTS>
 
 <WORKFLOW>
 
-**Determine which workflow to follow**:
+Follow `workflow/generate-from-context.md` for detailed step-by-step instructions.
 
-1. **Issue-Based Mode** (`mode: "issue"` or `issue_number` present):
-   - Follow `workflow/generate-from-issue.md`
-   - Primary source: GitHub issue data
-   - Requires: issue_number
-   - Output: WORK-{issue:05d}-{slug}.md
-
-2. **Context-Based Mode** (`mode: "context"` or neither issue_number nor mode present):
-   - Follow `workflow/generate-from-context.md`
-   - Primary source: Conversation context
-   - Optional: work_id to enrich with issue data
-   - Output: WORK-{issue:05d}-{slug}.md (if work_id) OR SPEC-{timestamp}-{slug}.md
-
-**High-level process (both modes)**:
-1. Validate inputs and determine mode
-2. Extract/fetch source data (conversation, issue, or both)
-3. Classify work type from source data
-4. Select appropriate template
-5. Generate spec filename (based on mode and presence of work_id)
-6. Parse source data into template variables
-7. Fill template
-8. Add frontmatter
-9. Save spec to /specs directory
-10. Link to GitHub issue (if work_id/issue_number present)
-11. Return confirmation
-
-See individual workflow files for detailed step-by-step instructions.
+**High-level process**:
+1. Auto-detect work_id from branch (if not provided and repo plugin available)
+2. Validate inputs
+3. Load configuration
+4. Extract conversation context (primary source)
+5. Fetch issue data (if work_id detected or provided)
+6. Merge contexts (conversation + issue if available)
+7. Auto-detect template from merged context
+8. Generate spec filename (WORK-* or SPEC-* based on work_id presence)
+9. Parse merged context into template variables
+10. Select and fill template
+11. Add frontmatter with metadata
+12. Save spec to /specs directory
+13. Link to GitHub issue (if work_id present)
+14. Return confirmation
 
 </WORKFLOW>
 
@@ -115,43 +79,25 @@ You are complete when:
 
 Output structured messages:
 
-**Start (Issue-Based Mode)**:
+**Start**:
 ```
-🎯 STARTING: Spec Generator (Issue Mode)
-Issue: #123
-Template: feature
-Phase: 1 (optional)
-───────────────────────────────────────
-```
-
-**Start (Context-Based Mode)**:
-```
-🎯 STARTING: Spec Generator (Context Mode)
-Work ID: #123 (auto-detected from branch: feat/123-name) OR (optional)
-Template: feature
+🎯 STARTING: Spec Generator
+Work ID: #123 (auto-detected from branch: feat/123-name) [or "not detected" or "provided"]
+Template: feature (auto-detected) [or "override: feature"]
 ───────────────────────────────────────
 ```
 
 **During execution**, log key steps:
-- Context extracted / Issue data fetched
-- Contexts merged (if applicable)
-- Work type classified
-- Template selected
-- Spec generated
-- GitHub comment added (if applicable)
+- ✓ Auto-detected issue #123 from branch (or ℹ No issue detected)
+- ✓ Conversation context extracted
+- ✓ Issue data fetched (if work_id)
+- ✓ Contexts merged (if applicable)
+- ✓ Work type classified: feature
+- ✓ Template selected: spec-feature.md.template
+- ✓ Spec generated
+- ✓ GitHub comment added (if applicable)
 
-**End (Issue-Based)**:
-```
-✅ COMPLETED: Spec Generator
-Spec created: /specs/WORK-00123-01-user-auth.md
-Template used: feature
-Source: Issue #123
-GitHub comment: ✓ Added
-───────────────────────────────────────
-Next: Begin implementation using spec as guide
-```
-
-**End (Context-Based, with work_id)**:
+**End (with work_id)**:
 ```
 ✅ COMPLETED: Spec Generator
 Spec created: /specs/WORK-00123-user-auth.md
@@ -162,7 +108,7 @@ GitHub comment: ✓ Added
 Next: Begin implementation using spec as guide
 ```
 
-**End (Context-Based, standalone)**:
+**End (standalone)**:
 ```
 ✅ COMPLETED: Spec Generator
 Spec created: /specs/SPEC-20250115143000-user-auth.md
@@ -172,19 +118,7 @@ Source: Conversation context
 Next: Begin implementation using spec as guide
 ```
 
-Return JSON (Issue-Based):
-```json
-{
-  "status": "success",
-  "spec_path": "/specs/WORK-00123-01-user-auth.md",
-  "issue_number": "123",
-  "template": "feature",
-  "source": "issue",
-  "github_comment_added": true
-}
-```
-
-Return JSON (Context-Based with work_id):
+Return JSON (with work_id):
 ```json
 {
   "status": "success",
@@ -197,7 +131,7 @@ Return JSON (Context-Based with work_id):
 }
 ```
 
-Return JSON (Context-Based standalone):
+Return JSON (standalone):
 ```json
 {
   "status": "success",
@@ -212,19 +146,19 @@ Return JSON (Context-Based standalone):
 
 <ERROR_HANDLING>
 Handle errors:
-1. **Issue Not Found** (when work_id/issue_number provided): Report error, suggest checking issue number
-2. **Template Not Found**: Fall back to spec-basic.md.template
-3. **File Write Failed**: Report error, check permissions
-4. **GitHub Comment Failed**: Log warning, continue (non-critical)
-5. **Insufficient Context** (context mode): Warn but continue, use what's available
-6. **Template Auto-Detection Failed** (context mode): Fall back to spec-basic.md.template
-7. **Slug Generation Failed**: Fall back to timestamp-only naming
+1. **Repo Plugin Not Found**: Info message, continue with standalone spec
+2. **Issue Not Found** (when work_id provided or auto-detected): Report error, suggest checking issue number
+3. **Template Not Found**: Fall back to spec-basic.md.template
+4. **File Write Failed**: Report error, check permissions
+5. **GitHub Comment Failed**: Log warning, continue (non-critical)
+6. **Insufficient Context**: Warn but continue, use what's available
+7. **Template Auto-Detection Failed**: Fall back to spec-basic.md.template
+8. **Slug Generation Failed**: Fall back to timestamp-only naming
 
 Return error:
 ```json
 {
   "status": "error",
-  "mode": "issue|context",
   "error": "Description",
   "suggestion": "What to do",
   "can_retry": true
