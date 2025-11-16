@@ -1,0 +1,31 @@
+{
+  "log_type": "build",
+  "local_retention_days": 3,
+  "cloud_retention_policy": "30_days",
+  "priority": "medium",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": true,
+  "metadata": {
+    "description": "Build process logs (compile, link, package)",
+    "typical_size_mb": 5,
+    "typical_duration_minutes": 10,
+    "value": "Medium - useful for debugging but short-term relevance"
+  },
+  "archive_triggers": {
+    "age_days": 3,
+    "size_mb": null,
+    "status": ["success", "failure", "cancelled"]
+  },
+  "retention_exceptions": {
+    "keep_if_linked_to_open_issue": true,
+    "keep_if_referenced_in_docs": false,
+    "keep_recent_n": 5
+  },
+  "validation": {
+    "require_summary": true,
+    "require_redaction_check": true,
+    "warn_if_no_errors_on_failure": true
+  }
+}

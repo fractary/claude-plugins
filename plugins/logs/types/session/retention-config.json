@@ -1,0 +1,31 @@
+{
+  "log_type": "session",
+  "local_retention_days": 7,
+  "cloud_retention_policy": "forever",
+  "priority": "high",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": false,
+  "metadata": {
+    "description": "Claude Code conversation session logs",
+    "typical_size_mb": 1,
+    "typical_duration_minutes": 30,
+    "value": "High - contains decisions, context, and implementation details"
+  },
+  "archive_triggers": {
+    "age_days": 7,
+    "size_mb": null,
+    "status": ["stopped", "error"]
+  },
+  "retention_exceptions": {
+    "keep_if_linked_to_open_issue": true,
+    "keep_if_referenced_in_docs": true,
+    "keep_recent_n": 10
+  },
+  "validation": {
+    "require_summary": true,
+    "require_redaction_check": true,
+    "warn_if_no_decisions": true
+  }
+}
