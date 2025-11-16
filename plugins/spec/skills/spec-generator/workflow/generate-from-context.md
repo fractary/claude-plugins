@@ -10,16 +10,46 @@ This workflow describes the detailed steps for generating a specification from c
 
 This workflow is designed to preserve the full planning discussion context when creating specifications.
 
-## Step 1: Validate Inputs
+## Step 1: Auto-Detect Work ID (If Not Provided)
+
+If `work_id` is not provided in the input, attempt to auto-detect from current branch:
+
+1. Check if repo plugin is available (check for repo cache script)
+2. Read repo plugin's git status cache:
+   ```bash
+   ~/.fractary/plugins/repo/scripts/read-status-cache.sh issue_id
+   ```
+3. If issue_id is non-empty and numeric, use it as `work_id`
+4. If not found or invalid, proceed without work_id (standalone spec)
+
+**Implementation**:
+```bash
+# Check if work_id provided in input
+if [ -z "$WORK_ID" ]; then
+    # Try to auto-detect from repo cache
+    REPO_CACHE_SCRIPT="${HOME}/.fractary/plugins/repo/scripts/read-status-cache.sh"
+    if [ -f "$REPO_CACHE_SCRIPT" ]; then
+        DETECTED_ISSUE_ID=$("$REPO_CACHE_SCRIPT" issue_id 2>/dev/null | tr -d '[:space:]')
+        if [[ "$DETECTED_ISSUE_ID" =~ ^[0-9]+$ ]]; then
+            WORK_ID="$DETECTED_ISSUE_ID"
+            echo "Auto-detected issue #${WORK_ID} from branch"
+        fi
+    fi
+fi
+```
+
+**Note**: The repo plugin's status cache is maintained by hooks (UserPromptSubmit, Stop) and extracts issue IDs from branch names like `feat/123-description`.
+
+## Step 2: Validate Inputs
 
 Check that inputs are valid:
-- If `work_id` provided, it's valid (numeric)
+- If `work_id` provided or detected, it's valid (numeric)
 - If `template` provided, it's one of: basic, feature, infrastructure, api, bug
 - `context` (explicit) is optional string
 
 Validation is minimal - work_id and template are both optional.
 
-## Step 2: Load Configuration
+## Step 3: Load Configuration
 
 Load plugin configuration from `.fractary/plugins/spec/config.json`:
 - Get `storage.local_path` (default: /specs)
@@ -27,7 +57,7 @@ Load plugin configuration from `.fractary/plugins/spec/config.json`:
 - Get `templates.default` (default: spec-basic)
 - Get `integration` settings
 
-## Step 3: Extract Conversation Context
+## Step 4: Extract Conversation Context
 
 **This is the primary data source.**
 
@@ -47,9 +77,9 @@ The skill has access to the full conversation. Read through it comprehensively t
 - What constraints exist?
 - What are the success criteria?
 
-## Step 4: Fetch Issue Data (If `work_id` Provided)
+## Step 5: Fetch Issue Data (If `work_id` Provided or Detected)
 
-If `work_id` is provided, fetch full issue data including all comments:
+If `work_id` is provided or was auto-detected, fetch full issue data including all comments:
 
 Use the **repo plugin's issue-fetch** operation:
 
@@ -79,7 +109,7 @@ Extract from issue data:
 
 If issue not found, return error.
 
-## Step 5: Merge Contexts
+## Step 6: Merge Contexts
 
 Create merged context combining all sources:
 
@@ -118,7 +148,7 @@ Merged:
 - Acceptance Criteria: From issue description
 ```
 
-## Step 6: Auto-Detect Template
+## Step 7: Auto-Detect Template
 
 Infer template from merged context based on keywords and patterns.
 
@@ -158,7 +188,7 @@ If no clear match, use basic template.
 **Template override**:
 If `--template` parameter provided, use that instead of auto-detection.
 
-## Step 7: Generate Filename
+## Step 8: Generate Filename
 
 Determine naming pattern based on whether `work_id` is provided.
 
@@ -204,7 +234,7 @@ filename="SPEC-${timestamp}-${slug}.md"
 - Timestamp 20250115143000, slug "user-auth": `SPEC-20250115143000-user-auth.md`
 - Timestamp 20250115150000, slug "api-design": `SPEC-20250115150000-api-design.md`
 
-## Step 8: Parse Merged Context
+## Step 9: Parse Merged Context
 
 Extract structured data from the merged context:
 
@@ -263,7 +293,7 @@ Look for success criteria:
 - Open questions
 - Concerns raised
 
-## Step 9: Prepare Template Variables
+## Step 10: Prepare Template Variables
 
 Create variable map for template:
 
@@ -291,7 +321,7 @@ Create variable map for template:
 }
 ```
 
-## Step 10: Select Template
+## Step 11: Select Template
 
 Map work type to template file:
 - bug → `templates/spec-bug.md.template`
@@ -302,7 +332,7 @@ Map work type to template file:
 
 Read template file. If not found, fall back to spec-basic.md.template.
 
-## Step 11: Fill Template
+## Step 12: Fill Template
 
 Replace template variables:
 - `{{variable}}` → simple replacement
@@ -316,7 +346,7 @@ For Mustache-style templates, use simple string replacement:
 - Handle arrays by repeating template section
 - Handle conditionals by including/excluding sections
 
-## Step 12: Add Frontmatter
+## Step 13: Add Frontmatter
 
 Ensure frontmatter is at top:
 
@@ -350,7 +380,7 @@ source: conversation
 ---
 ```
 
-## Step 13: Save Spec File
+## Step 14: Save Spec File
 
 Write spec to `{local_path}/{filename}`:
 - Use `storage.local_path` from config (e.g., `/specs`)
@@ -362,7 +392,7 @@ Write spec to `{local_path}/{filename}`:
 - With work_id: `/specs/WORK-00123-user-auth-oauth.md`
 - Without work_id: `/specs/SPEC-20250115143000-user-auth.md`
 
-## Step 14: Link to GitHub Issue (If `work_id` Provided)
+## Step 15: Link to GitHub Issue (If `work_id` Provided or Detected)
 
 If `work_id` is provided AND `integration.update_issue_on_create` is true in config:
 
@@ -385,7 +415,7 @@ gh issue comment $WORK_ID --body "..."
 
 If comment fails, log warning but continue (non-critical).
 
-## Step 15: Return Confirmation
+## Step 16: Return Confirmation
 
 Output success message with:
 - Spec file path
@@ -441,26 +471,27 @@ Output:
   }
 ```
 
-### Example 2: Context + Issue Enrichment
+### Example 2: Context + Auto-Detected Issue
 
 ```
 Input:
-  work_id: 123
+  (no work_id - will auto-detect from branch)
   (no template - will auto-detect)
   conversation: "We should use JWT tokens for the auth system..."
+  current branch: feat/123-jwt-auth
 
 Steps:
-  1. ✓ Inputs valid
-  2. ✓ Config loaded
-  3. ✓ Conversation context extracted
-  4. ✓ Issue #123 fetched (with comments) via repo plugin
-  5. ✓ Contexts merged (conversation + issue)
-  6. ✓ Auto-detected: feature (from merged context)
-  7. ✓ Template selected: spec-feature.md.template
+  1. ✓ Auto-detected issue #123 from branch (via repo cache)
+  2. ✓ Inputs validated
+  3. ✓ Config loaded
+  4. ✓ Conversation context extracted
+  5. ✓ Issue #123 fetched (with comments) via repo plugin
+  6. ✓ Contexts merged (conversation + issue)
+  7. ✓ Auto-detected: feature (from merged context)
   8. ✓ Filename: WORK-00123-jwt-auth-system.md
   9. ✓ Merged context parsed
   10. ✓ Variables prepared
-  11. ✓ Template selected
+  11. ✓ Template selected: spec-feature.md.template
   12. ✓ Template filled
   13. ✓ Frontmatter added
   14. ✓ Saved to /specs/WORK-00123-jwt-auth-system.md

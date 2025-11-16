@@ -51,11 +51,13 @@ You receive one of two input formats:
 ```json
 {
   "mode": "context",
-  "work_id": "123",        // Optional: link to issue and enrich with issue data
+  "work_id": "123",        // Optional: link to issue and enrich with issue data (auto-detected from branch if omitted)
   "template": "basic|feature|infrastructure|api|bug",  // Optional: override auto-detection
   "context": "Explicit additional context"  // Optional: extra context to consider
 }
 ```
+
+**Auto-Detection**: If `work_id` is not provided in context mode, automatically read from repo plugin's git status cache (`~/.fractary/repo/status-*.cache`) to detect issue ID from current branch name.
 
 If `mode` is not specified, infer from presence of `issue_number` (issue mode) or absence (context mode).
 </INPUTS>
@@ -125,7 +127,7 @@ Phase: 1 (optional)
 **Start (Context-Based Mode)**:
 ```
 🎯 STARTING: Spec Generator (Context Mode)
-Work ID: #123 (optional)
+Work ID: #123 (auto-detected from branch: feat/123-name) OR (optional)
 Template: feature
 ───────────────────────────────────────
 ```

@@ -8,7 +8,9 @@ Create a specification from current conversation context.
 
 This command uses the full conversation context as the primary source for generating a specification. Optionally enrich with GitHub issue data by providing `--work-id`.
 
-**Key Feature**: This command directly invokes the spec-generator skill to preserve conversation context, bypassing the agent layer.
+**Key Features**:
+- **Context Preservation**: Directly invokes the spec-generator skill to preserve conversation context, bypassing the agent layer
+- **Auto-Detection**: Automatically detects the current issue ID from your branch name (via repo plugin cache) if `--work-id` is not provided
 
 ## Usage
 
@@ -18,15 +20,29 @@ This command uses the full conversation context as the primary source for genera
 
 ## Options
 
-- `--work-id <id>`: Optional - Link to issue and enrich with issue data (description + all comments)
+- `--work-id <id>`: Optional - Link to issue and enrich with issue data (description + all comments). If omitted, automatically detects issue ID from current branch name (e.g., `feat/123-description` → `123`)
 - `--template <type>`: Optional - Override auto-detection (basic|feature|infrastructure|api|bug)
 - `--context "<text>"`: Optional - Additional explicit context to consider
 
+## Auto-Detection Behavior
+
+When `--work-id` is not provided:
+1. Reads repo plugin's git status cache (`~/.fractary/repo/status-*.cache`)
+2. Extracts `issue_id` from current branch name
+3. If found, automatically uses it as `--work-id`
+4. If not found, creates standalone spec with `SPEC-{timestamp}-*` naming
+
+**Branch patterns supported** (via repo plugin):
+- `feat/123-description` → issue #123
+- `fix/456-bug-name` → issue #456
+- `chore/789-task` → issue #789
+- Any `{prefix}/{number}-{description}` pattern
+
 ## Examples
 
-### Basic Usage (Context Only)
+### Basic Usage (Context Only, No Branch Tie)
 
-After a planning discussion in the current session:
+After a planning discussion in the current session (on `main` or non-issue branch):
 
 ```bash
 /fractary-spec:create
@@ -35,10 +51,27 @@ After a planning discussion in the current session:
 Generates: `/specs/SPEC-20250115143000-<slug>.md`
 - Uses full conversation context
 - Auto-detects template from discussion
-- No GitHub linking
+- No GitHub linking (no branch tie detected)
 - Standalone specification
 
-### With Work Item (Context + Issue Enrichment)
+### Auto-Detected Work Item (On Issue Branch)
+
+After refining approach while on branch `feat/123-user-auth`:
+
+```bash
+/fractary-spec:create
+```
+
+Generates: `/specs/WORK-00123-<slug>.md`
+- Auto-detects issue #123 from branch name
+- Uses conversation context as primary source
+- Fetches issue #123 (description + all comments via repo plugin)
+- Merges conversation + issue data
+- Links to issue #123 (GitHub comment added)
+
+**Note**: This is the recommended workflow - branch already indicates the issue, no need to specify `--work-id` manually.
+
+### With Explicit Work Item (Context + Issue Enrichment)
 
 After refining approach for issue #123:
 
@@ -79,15 +112,16 @@ Generates: `/specs/WORK-00123-<slug>.md`
 
 ## What It Does
 
-1. **Extract Conversation Context**: Uses full conversation history as primary source
-2. **Fetch Issue (if `--work-id`)**: Gets issue description + all comments via repo plugin
-3. **Merge Contexts**: Combines conversation + explicit context + issue data (if provided)
-4. **Auto-Detect Template**: Infers appropriate template from merged context
-5. **Generate Spec**: Creates specification from merged context
-6. **Save Local**: Writes to `/specs` directory
-   - With `--work-id`: `WORK-{id:05d}-{slug}.md`
+1. **Auto-Detect Work ID**: If `--work-id` not provided, reads repo plugin cache to detect issue ID from current branch
+2. **Extract Conversation Context**: Uses full conversation history as primary source
+3. **Fetch Issue (if work_id detected or provided)**: Gets issue description + all comments via repo plugin
+4. **Merge Contexts**: Combines conversation + explicit context + issue data (if available)
+5. **Auto-Detect Template**: Infers appropriate template from merged context
+6. **Generate Spec**: Creates specification from merged context
+7. **Save Local**: Writes to `/specs` directory
+   - With work_id: `WORK-{id:05d}-{slug}.md`
    - Without: `SPEC-{timestamp}-{slug}.md`
-7. **Link to Issue (if `--work-id`)**: Comments on GitHub with spec location
+8. **Link to Issue (if work_id present)**: Comments on GitHub with spec location
 
 ## Template Auto-Detection
 
@@ -229,17 +263,29 @@ After discussing phase 1 of a complex feature:
 /fractary-spec:create --work-id 123 --context "Phase 1: User Authentication"
 ```
 
-## Comparison with `/fractary-spec:create-from-issue`
+## Recommended Workflow
 
-| Aspect | `create` | `create-from-issue` |
-|--------|----------|---------------------|
-| Primary Source | Conversation context | Issue data |
-| Context Preserved | ✓ Yes (direct to skill) | ✗ No (goes through agent) |
-| Issue Fetch | Optional (with `--work-id`) | Required (argument) |
-| Use Case | Planning discussions | Issue-driven work |
-| Work ID | Optional flag | Required argument |
-| Naming (no issue) | `SPEC-{timestamp}-*` | N/A (requires issue) |
-| Naming (with issue) | `WORK-{id:05d}-*` | `WORK-{id:05d}-*` |
+**Best Practice**: Work on issue-tied branches and let auto-detection handle linking:
+
+```bash
+# 1. Create/checkout issue branch (via repo plugin or manually)
+/repo:branch-create "implement feature" --work-id 123
+
+# 2. Discuss and plan in Claude Code session
+# ... conversation about approach, design, requirements ...
+
+# 3. Create spec (auto-detects issue #123 from branch)
+/fractary-spec:create
+
+# Result: WORK-00123-implement-feature.md
+# - Full conversation context captured
+# - Issue data merged automatically
+# - GitHub comment added to issue
+```
+
+**Override when needed**:
+- Use `--work-id` explicitly if you want to link to a different issue
+- Omit `--work-id` on issue branches if you want standalone specs
 
 ## Troubleshooting
 
