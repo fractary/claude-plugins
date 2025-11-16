@@ -4,25 +4,39 @@ Custom Claude Code status line showing git status, issue numbers, PR numbers, an
 
 ## Features
 
+- **Project Name**: Repository name in square brackets (cyan)
 - **Branch Name**: Current git branch in cyan
 - **File Changes**: Count of uncommitted files (±N) - yellow if dirty, green if clean
 - **Sync Status**: Commits ahead (↑N) in green, commits behind (↓N) in red (displayed after file changes)
-- **Issue Number**: Extracted from branch name (#N) in magenta
-- **PR Number**: Current PR for branch (PR#N) in blue
-- **Last Prompt**: Your most recent command/question (truncated to 40 chars) in dim text
+- **Issue Number**: Extracted from branch name (#N) in magenta, clickable in web IDE
+- **PR Number**: Current PR for branch (PR#N) in blue, clickable in web IDE
+- **Last Prompt**: Your most recent command/question (truncated to 120 chars) in dim text
 
 ## Status Line Format
 
 ```
-[branch] [±files] [↑ahead ↓behind] [#issue] [PR#pr] last: prompt...
+[project] branch ±files [↑ahead ↓behind] [#issue | issue-url] [PR#pr | pr-url]
+last: prompt...
 ```
 
 ### Examples
 
+**Terminal (OSC 8 hyperlinks):**
 ```
-feat/99-new-status-plugin ±4 ↑2 #99 last: update spec accordingly
-main ±0 last: /fractary-spec:generate 99
-fix/bug-authentication ±2 ↑1 ↓3 #87 PR#91 last: fix login validation
+[claude-plugins] feat/99-new-feature ±4 ↑2 #99
+last: update spec accordingly
+```
+
+**Web IDE (plain URLs):**
+```
+[claude-plugins] feat/99-new-feature ±4 ↑2 #99 https://github.com/owner/repo/issues/99
+last: update spec accordingly
+```
+
+**Without clickable links:**
+```
+[my-project] main ±0
+last: /fractary-spec:generate 99
 ```
 
 ## Installation
@@ -97,7 +111,7 @@ If you prefer manual installation:
 1. **UserPromptSubmit Hook**: Captures your prompt each time you submit
    - Runs `capture-prompt.sh` on every prompt
    - Stores prompt in `.fractary/plugins/status/last-prompt.json`
-   - Truncates to 40 characters for display
+   - Truncates to 120 characters for display
    - Non-blocking (<10ms execution time)
 
 2. **StatusLine Hook**: Generates status line display
@@ -129,6 +143,27 @@ PR numbers are retrieved from:
 1. Git status cache (preferred)
 2. Local git branch metadata
 3. GitHub API via gh CLI (fallback, cached to avoid rate limits)
+
+### Clickable Links
+
+The status line supports clickable issue and PR links in both terminal and web IDE environments:
+
+**Terminal (OSC 8 hyperlinks):**
+- Uses OSC 8 escape sequences for embedded clickable links
+- The issue/PR label itself is clickable (e.g., "#123" or "PR#456")
+- Supported by modern terminals: iTerm2, VSCode terminal, Hyper, etc.
+- Click opens the issue/PR in your default browser
+
+**Web IDE (plain URLs):**
+- Displays label followed by plain URL (e.g., "#123 https://github.com/...")
+- Web IDE automatically makes URLs clickable
+- Click opens the issue/PR in your default browser
+- Provides better compatibility with web-based interfaces
+
+**GitHub Detection:**
+- Automatically detects GitHub repository from git remote URL
+- Supports both HTTPS and SSH remote formats
+- Falls back to non-clickable labels for non-GitHub repositories
 
 ## Configuration
 
@@ -315,12 +350,20 @@ For issues or questions:
 
 ## Changelog
 
+### v1.1.0 (2025-11-16)
+- Added clickable links for issue and PR numbers
+- Support for both terminal (OSC 8) and web IDE (plain URL) environments
+- Improved link formatting and display
+- Standardized label format (#123 for issues, PR#123 for PRs)
+- Added project name display
+- Updated documentation with clickable link examples
+
 ### v1.0.0 (2025-11-12)
 - Initial release
 - StatusLine hook integration
 - UserPromptSubmit hook integration
 - Git status cache integration
 - Issue/PR number detection
-- Last prompt display
+- Last prompt display (truncated to 120 chars)
 - Installation command
 - Full documentation
