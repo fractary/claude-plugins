@@ -243,8 +243,8 @@
       {
         "name": "fractary-docs",
         "source": "./plugins/docs",
-        "description": "Living documentation management with template-based generation, updating, validation, and linking",
-        "version": "1.0.0",
+        "description": "Type-agnostic documentation system with operation-specific skills and data-driven type context (93% less code duplication)",
+        "version": "2.0.0",
         "author": {
           "name": "The Fractary",
           "url": "https://github.com/fractary"
@@ -264,11 +264,10 @@
         "category": "development",
         "strict": true,
         "commands": [
-          "./commands/init.md",
-          "./commands/generate.md",
-          "./commands/update.md",
+          "./commands/write.md",
           "./commands/validate.md",
-          "./commands/link.md"
+          "./commands/list.md",
+          "./commands/audit.md"
         ],
         "agents": [
           "./agents/docs-manager.md"
