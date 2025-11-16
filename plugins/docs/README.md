@@ -1,269 +1,648 @@
 # Fractary Docs Plugin
 
-Living documentation management with template-based generation, updating, validation, and cross-reference linking.
+Type-agnostic documentation system with operation-specific skills and data-driven type context.
+
+**Version**: 2.0.0 | **Architecture**: Operation-focused with 93% less code duplication
 
 ## Overview
 
-The `fractary-docs` plugin provides comprehensive documentation management for projects with support for multiple document types, automatic front matter generation for codex integration, validation, and cross-reference management.
+The `fractary-docs` plugin provides a flexible, type-agnostic documentation management system. Instead of maintaining separate skills for each document type, v2.0 uses **operation-specific skills** that load type-specific behavior from data files.
+
+### What's New in v2.0
+
+**Architecture Transformation**:
+- ✅ **93% less code duplication** - From ~7,000 to ~2,500 lines
+- ✅ **Type-agnostic operations** - Single `doc-writer` handles all types
+- ✅ **Data-driven behavior** - Type context in `types/{doc_type}/` directories
+- ✅ **Simplified coordination** - Unified manager for all document types
+- ✅ **Auto-indexing** - Configurable flat/hierarchical organization per type
+
+**Migration from v1.x**:
+- Old: 11 type-specific skills (`docs-manage-api`, `docs-manage-adr`, etc.)
+- New: 4 operation skills (`doc-writer`, `doc-validator`, `doc-classifier`, `doc-lister`)
+- Frontmatter change: `type:` → `fractary_doc_type:`
 
 ### Key Features
 
-- **Type-Specific Skills**: Dedicated skills for each major documentation type with specialized workflows
-- **Dual-Format Support**: Generate both human-readable (README.md) and machine-readable (JSON) formats simultaneously
-- **Automatic Index Management**: Auto-update README.md indices after every document operation
-- **5-Digit ADR Numbering**: Support for large ADR repositories (ADR-00001- through ADR-99999-)
-- **Hierarchical Organization**: Support for nested datasets, service grouping, and scope-based standards
-- **11+ Document Templates**: ADRs, architecture docs, guides, schemas, APIs, standards, and more
-- **Document Updating**: Modify existing docs while preserving structure and formatting
-- **Validation**: Markdown linting, front matter validation, required sections checking, link verification
-- **Cross-Reference Management**: Auto-generate indexes, update links, visualize relationships
-- **Codex Integration**: Automatic front matter for knowledge management
-- **Configuration-Driven**: Customize paths, templates, and validation rules
-- **Git-Friendly**: Version control integration with atomic commits
-- **Template Extensibility**: Support for custom project-specific templates
-
-## Document Types
-
-### Type-Specific Skills (Recommended)
-
-These document types have dedicated skills with specialized workflows, dual-format support, and automatic index management:
-
-| Type | Skill | Format | Key Features |
-|------|-------|--------|--------------|
-| **ADR** | docs-manage-architecture-adr | Single | 5-digit numbering (ADR-00001-), auto-index, migration tooling |
-| **Architecture** | docs-manage-architecture | Single | Subtypes: overview/component/diagram, auto-index, hierarchical |
-| **Guide** | docs-manage-guides | Single | Audience-specific (dev/user/admin), auto-index by audience |
-| **Schema** | docs-manage-schema | **Dual** | README.md + schema.json, semantic versioning, validation |
-| **API** | docs-manage-api | **Dual** | README.md + endpoint.json (OpenAPI 3.0), service-organized |
-| **Standard** | docs-manage-standards | Single | Scope-based (plugin/repo/org), RFC 2119 levels, machine-readable |
-
-### Legacy Document Types (Fallback)
-
-These types use the generic doc-generator skill:
-
-| Type | Template | Use Case |
-|------|----------|----------|
-| **Design** | design.md.template | System/feature design documents |
-| **Runbook** | runbook.md.template | Operational procedures |
-| **API Spec** | api-spec.md.template | API documentation (legacy format) |
-| **Test Report** | test-report.md.template | Test execution results |
-| **Deployment** | deployment.md.template | Deployment records |
-| **Changelog** | changelog.md.template | Version history |
-| **Troubleshooting** | troubleshooting.md.template | Debug guides |
-| **Postmortem** | postmortem.md.template | Incident reviews |
+- **Operation-Specific Skills**: `doc-writer`, `doc-validator`, `doc-classifier`, `doc-lister` handle ANY doc type
+- **Type Context System**: 5 files per type (schema, template, standards, validation-rules, index-config)
+- **Dual-Format Support**: Generate both README.md and JSON formats simultaneously
+- **Automatic Index Management**: Configurable flat or hierarchical organization
+- **11 Document Types**: ADR, architecture, dataset, ETL, testing, API, guides, standards, infrastructure, audit, and generic
+- **Coordination Pipeline**: Automatic write → validate → index workflow
+- **Batch Operations**: Process multiple documents with parallel execution
+- **Codex Integration**: Automatic frontmatter for knowledge management
+- **Configuration-Driven**: Customize behavior per document type
+- **Git-Friendly**: Version control integration
 
 ## Quick Start
 
-**New to fractary-docs?** Start with:
-1. 📘 [Quick Start Guide](./docs/quick-start.md) - Get up and running in 5 minutes
-2. 📂 [Sample Documentation](./samples/) - Real-world examples
-3. 🧪 [Integration Testing](./docs/integration-testing.md) - Test the plugin
-4. 🔧 [Troubleshooting Guide](./docs/troubleshooting.md) - Common issues and solutions
-
-### 1. Initialize Plugin
+### 1. Create Documentation
 
 ```bash
-# Initialize with defaults (docs/ directory)
-/fractary-docs:init
+# Create API documentation
+/docs:write api
 
-# Initialize with custom location
-/fractary-docs:init --docs-root documentation/
+# Create ADR
+/docs:write adr
 
-# Initialize globally
-/fractary-docs:init --global
+# Create dataset documentation
+/docs:write dataset
+
+# Batch create multiple docs
+/docs:write api docs/api/**/*.md --batch
 ```
 
-This creates:
-- Configuration file: `.fractary/plugins/docs/config.json`
-- Documentation directories: `docs/architecture/`, `docs/operations/`, `docs/api/`, etc.
-- Initial index: `docs/README.md`
-
-### 2. Generate Documentation
-
-#### Type-Specific Skills (Recommended)
-
-```bash
-# Generate an ADR (5-digit format: ADR-00001-)
-/fractary-docs:generate adr "Use PostgreSQL for data storage"
-
-# Generate architecture overview
-/fractary-docs:generate architecture "System Architecture Overview" --status draft
-
-# Generate architecture component
-/fractary-docs:generate architecture "Authentication Service" --tags security,component
-
-# Generate developer guide
-/fractary-docs:generate guide "Getting Started for Developers" --status published
-
-# Generate schema documentation (dual-format: README.md + schema.json)
-/fractary-docs:generate schema "User Profile Schema" --tags user,data
-
-# Generate API endpoint (dual-format: README.md + endpoint.json with OpenAPI)
-/fractary-docs:generate api "POST /api/users" --tags api,users
-
-# Generate plugin standard
-/fractary-docs:generate standard "Plugin Naming Conventions" --status active
-```
-
-#### Legacy Document Types
-
-```bash
-# Generate a design document (legacy)
-/fractary-docs:generate design "User authentication system" --status draft
-
-# Generate a runbook (legacy)
-/fractary-docs:generate runbook "Emergency database failover"
-
-# Generate API spec (legacy format)
-/fractary-docs:generate api-spec "User Service API v2"
-```
-
-### 3. Update Existing Documentation
-
-```bash
-# Update specific section
-/fractary-docs:update docs/architecture/adrs/ADR-001.md --section "Status" --content "Accepted"
-
-# Append new section
-/fractary-docs:update docs/guides/setup.md --append-section "Troubleshooting" --content "Common issues..."
-
-# Update front matter
-/fractary-docs:update docs/api/user-api.md --status approved
-```
-
-### 4. Validate Documentation
+### 2. Validate Documentation
 
 ```bash
 # Validate all documentation
-/fractary-docs:validate
+/docs:validate
 
 # Validate specific file
-/fractary-docs:validate docs/architecture/adrs/ADR-001.md
+/docs:validate docs/api/user-api/README.md
 
-# Validate and fix issues
-/fractary-docs:validate docs/ --fix
+# Validate specific type
+/docs:validate --doc-type api
+
+# Validate and fix
+/docs:validate docs/ --fix
 ```
 
-### 5. Manage Links and Cross-References
+### 3. List Documentation
 
 ```bash
-# Create/update documentation index
-/fractary-docs:link index
+# List all documentation
+/docs:list
 
-# Check for broken links
-/fractary-docs:link check
+# List API docs only
+/docs:list --doc-type api
 
-# Fix broken links automatically
-/fractary-docs:link check --fix
+# List draft documents
+/docs:list --status draft
 
-# Generate documentation relationship graph
-/fractary-docs:link graph
+# Output as JSON
+/docs:list --format json
+
+# Output as markdown
+/docs:list --format markdown
+```
+
+### 4. Audit Documentation
+
+```bash
+# Audit all documentation
+/docs:audit
+
+# Audit specific directory
+/docs:audit docs/api
+
+# Audit specific type
+/docs:audit --doc-type dataset
 ```
 
 ## Architecture
 
-The plugin uses a **three-layer architecture** for context efficiency and maintainability:
+The plugin uses a **three-layer architecture** optimized for context efficiency:
 
 ```
-┌─────────────────────────────────────┐
-│  Layer 1: docs-manager Agent       │  ← Workflow orchestration
-│  (agents/docs-manager.md)          │
-└──────────────┬──────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────┐
-│  Layer 2: Documentation Skills      │  ← Focused execution
-│  (skills/doc-*)                     │
-│  - doc-generator                    │  ← Template-based generation
-│  - doc-updater                      │  ← Structure-preserving updates
-│  - doc-validator                    │  ← Quality assurance
-│  - doc-linker                       │  ← Cross-reference management
-└──────────────┬──────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────┐
-│  Scripts (Pure Execution)           │  ← NOT in LLM context
-│  (skills/*/scripts/)                │
-│  - render-template.sh               │
-│  - update-section.sh                │
-│  - lint-markdown.sh                 │
-│  - create-index.sh                  │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Layer 1: Commands (Entry Points)                      │
+│  /docs:write, /docs:validate, /docs:list, /docs:audit  │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│  Layer 2: Coordination (Decision & Routing)             │
+│  ┌──────────────────┐  ┌──────────────────────────┐    │
+│  │ docs-manager     │  │ docs-director-skill      │    │
+│  │ (single doc)     │  │ (multi-doc + parallel)   │    │
+│  └──────────────────┘  └──────────────────────────┘    │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│  Layer 3: Operations (Type-Agnostic Execution)          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
+│  │ doc-     │ │ doc-     │ │ doc-     │ │ doc-     │  │
+│  │ writer   │ │ validator│ │ classifier│ │ lister   │  │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│  Type Context (Data-Driven Behavior)                    │
+│  types/{doc_type}/                                      │
+│    ├─ schema.json           (structure validation)     │
+│    ├─ template.md           (content template)         │
+│    ├─ standards.md          (writing guidelines)       │
+│    ├─ validation-rules.md   (quality checks)           │
+│    └─ index-config.json     (index organization)       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Benefits**:
-- **Context efficiency**: Scripts kept outside LLM context
-- **Modular design**: Each skill handles one concern
-- **Easy to extend**: Add new templates or validation rules without changing agent
-- **Clear separation**: Decision logic vs execution
+### Architecture Benefits
+
+| Aspect | v1.x (Type-Specific) | v2.0 (Operation-Specific) |
+|--------|---------------------|--------------------------|
+| **Code Duplication** | 93% duplicated | <7% duplicated |
+| **Lines of Code** | ~7,000 lines | ~2,500 lines |
+| **Skills per Type** | 11 type skills + 3 operation skills | 4 operation skills (universal) |
+| **Adding New Type** | Create new skill (500+ lines) | Add 5 data files (~200 lines) |
+| **Maintenance** | Change in 11+ places | Change in 1-4 places |
+| **Context Usage** | Higher (separate skills) | Lower (shared operations) |
+
+## Document Types
+
+All document types use the same operation skills but with different type context:
+
+| Type | Use Case | Index Organization |
+|------|----------|-------------------|
+| **api** | API endpoints and services | Hierarchical (service → version) |
+| **adr** | Architecture Decision Records | Flat (by date) |
+| **architecture** | System architecture docs | Hierarchical (component → layer) |
+| **dataset** | Data schema and structure | Hierarchical (source → format) |
+| **etl** | ETL pipelines and transformations | Hierarchical (source → target) |
+| **testing** | Test plans and strategies | Hierarchical (type → scope) |
+| **guides** | User and developer guides | Hierarchical (audience → topic) |
+| **standards** | Development standards | Hierarchical (scope → category) |
+| **infrastructure** | Infrastructure docs | Hierarchical (provider → service) |
+| **audit** | Audit reports and findings | Flat (by date) |
+| **_untyped** | Generic/unclassified docs | Flat |
+
+## Type Context System
+
+Each document type is defined by 5 files in `types/{doc_type}/`:
+
+### 1. `schema.json`
+
+Defines the structure and validation rules:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "API Documentation Schema",
+  "properties": {
+    "fractary_doc_type": {"const": "api"},
+    "endpoint": {"type": "string", "pattern": "^/.*"},
+    "method": {"enum": ["GET", "POST", "PUT", "DELETE", "PATCH"]},
+    "service": {"type": "string"},
+    "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "status": {"enum": ["draft", "published", "deprecated"]}
+  },
+  "required": ["fractary_doc_type", "endpoint", "method", "service", "version"]
+}
+```
+
+### 2. `template.md`
+
+Mustache template for generating documents:
+
+```markdown
+---
+title: "{{title}}"
+fractary_doc_type: api
+endpoint: {{endpoint}}
+method: {{method}}
+service: {{service}}
+version: {{version}}
+status: {{status}}
+date: {{date}}
+---
+
+# {{title}}
+
+**Endpoint**: `{{method}} {{endpoint}}`
+**Service**: {{service}}
+**Version**: {{version}}
+
+## Overview
+
+{{overview}}
+
+## Request
+
+{{request_details}}
+
+## Response
+
+{{response_details}}
+
+## Examples
+
+{{examples}}
+```
+
+### 3. `standards.md`
+
+Writing guidelines and best practices:
+
+```markdown
+# API Documentation Standards
+
+## Required Sections
+- Overview (purpose and high-level behavior)
+- Request (parameters, headers, body schema)
+- Response (status codes, body schema)
+- Examples (request/response pairs)
+
+## Naming Conventions
+- Endpoint paths use kebab-case
+- Service names use PascalCase
+- Version follows semantic versioning
+
+## Best Practices
+- Include authentication requirements
+- Document all error codes
+- Provide cURL examples
+- Show request/response schemas in JSON Schema format
+```
+
+### 4. `validation-rules.md`
+
+Type-specific validation checks:
+
+```markdown
+# API Documentation Validation Rules
+
+## Frontmatter Validation
+- ✅ `endpoint` must start with `/`
+- ✅ `method` must be GET, POST, PUT, DELETE, or PATCH
+- ✅ `service` must be non-empty
+- ✅ `version` must follow semver (x.y.z)
+
+## Content Validation
+- ✅ Must have Request section
+- ✅ Must have Response section
+- ✅ Must have Examples section
+- ✅ Examples must include cURL or equivalent
+
+## Link Validation
+- ✅ Related API endpoints must exist
+- ✅ Service documentation must be linked
+```
+
+### 5. `index-config.json`
+
+Index generation configuration:
+
+```json
+{
+  "index_file": "docs/api/README.md",
+  "organization": "hierarchical",
+  "group_by": ["service", "version"],
+  "sort_by": "endpoint",
+  "sort_order": "asc",
+  "entry_template": "- [**{{method}} {{endpoint}}**]({{relative_path}}) - {{title}}",
+  "section_template": "## {{group_name}}"
+}
+```
+
+**Index organization modes**:
+- **flat**: Simple list sorted by `sort_by` field
+- **hierarchical**: Multi-level grouping using `group_by` array
+
+**Template variables**: All frontmatter fields plus:
+- `{{relative_path}}` - Relative path to document
+- `{{filename}}` - File name
+- `{{group_name}}` - Current group value (hierarchical only)
+- `{{description_short}}` - Truncated description (100 chars)
 
 ## Operations
 
-### Generate (doc-generator skill)
+### Write Operation (doc-writer)
 
-Create new documentation from templates with automatic front matter.
+Create or update documentation with automatic validation and indexing.
 
-**Supported Operations**:
-- generate-adr: Architecture Decision Records
-- generate-design: System/feature design documents
-- generate-runbook: Operational procedures
-- generate-api-spec: API documentation
-- generate-test-report: Test execution results
-- generate-deployment: Deployment records
-- generate-changelog: Version changelogs
-- generate-architecture: System architecture docs
-- generate-troubleshooting: Debug guides
-- generate-postmortem: Incident reviews
+**Single document**:
+```bash
+/docs:write api
+```
+
+**Batch operation**:
+```bash
+/docs:write api docs/api/**/*.md --batch
+```
+
+**Pipeline**:
+1. Classify doc_type (if not provided)
+2. Load type context (5 files)
+3. Render template with context
+4. Validate document (unless `--skip-validation`)
+5. Update index (unless `--skip-index`)
+
+### Validate Operation (doc-validator)
+
+Validate documentation against schema and quality rules.
+
+**Validation checks**:
+- Frontmatter structure (JSON Schema validation)
+- Required sections (per standards.md)
+- Custom rules (per validation-rules.md)
+- Link validity (internal references)
+- Markdown linting (optional)
 
 **Example**:
 ```bash
-/fractary-docs:generate adr "Use PostgreSQL for data storage" --number 001 --status proposed
+/docs:validate docs/api/user-login/README.md
 ```
 
-### Update (doc-updater skill)
+### Classify Operation (doc-classifier)
 
-Modify existing documentation while preserving structure and formatting.
+Auto-detect document type from path or content.
 
-**Supported Operations**:
-- update-section: Update specific section by heading
-- append-section: Add new section to document
-- update-metadata: Modify front matter only
-- replace-content: Pattern-based replacement
+**Classification methods**:
+1. **Path-based**: `docs/{doc_type}/` → detect from directory
+2. **Content-based**: Read frontmatter `fractary_doc_type` field
+3. **Fallback**: `_untyped` if unable to determine
 
 **Example**:
 ```bash
-/fractary-docs:update docs/architecture/adrs/ADR-001.md --section "Status" --content "Accepted"
+# Automatically detects "api" from path
+/docs:write docs/api/new-endpoint/README.md
 ```
 
-### Validate (doc-validator skill)
+### List Operation (doc-lister)
 
-Check documentation quality and compliance with standards.
+List and filter documentation with various output formats.
 
-**Validation Checks**:
-- markdown-lint: Markdown syntax and style
-- frontmatter: YAML structure and required fields
-- structure: Required sections per document type
-- links: Internal and external link validity
+**Output formats**:
+- **table**: ASCII table (default)
+- **json**: Structured JSON
+- **markdown**: Formatted markdown with links
+
+**Filters**:
+- `--doc-type <type>`: Filter by document type
+- `--status <status>`: Filter by status (draft, published, deprecated)
+- `--limit <n>`: Limit results
 
 **Example**:
 ```bash
-/fractary-docs:validate docs/ --markdown-lint --frontmatter --structure
+/docs:list --doc-type api --status published --format markdown
 ```
 
-### Link (doc-linker skill)
+### Audit Operation (docs-director)
 
-Manage cross-references and documentation relationships.
+Analyze documentation across project to identify issues and gaps.
 
-**Supported Operations**:
-- create-index: Generate documentation catalog
-- update-references: Update cross-references after file moves
-- find-broken-links: Identify dead links
-- generate-graph: Visualize documentation relationships
+**Analysis**:
+- Count documents by type and status
+- Identify missing indices
+- Find validation issues
+- Detect missing `fractary_doc_type` fields
+
+**Output**:
+```
+═══════════════════════════════════════
+DOCUMENTATION AUDIT REPORT
+═══════════════════════════════════════
+
+Summary:
+  Total Documents: 156
+  Document Types: 8
+  Missing Indices: 2
+  Validation Issues: 5
+
+By Type:
+  api             45 documents
+  adr             32 documents
+  dataset         18 documents
+  ...
+
+Issues Found:
+  ⚠️  docs/api/deprecated/: Missing index
+  ❌ docs/dataset/metrics.md: Missing fractary_doc_type
+```
+
+## Coordination Skills
+
+### docs-manager-skill (Single Document)
+
+Orchestrates write → validate → index pipeline for single documents.
+
+**Operations**:
+- `write`: Create/update document with validation and indexing
+- `validate`: Validate single document
+- `index`: Update index for document's directory
+
+**Example invocation**:
+```
+Use the @agent-fractary-docs:docs-manager agent with:
+{
+  "operation": "write",
+  "file_path": "docs/api/user-login/README.md",
+  "doc_type": "api",
+  "context": {
+    "title": "User Login",
+    "endpoint": "/api/auth/login",
+    "method": "POST",
+    "service": "AuthService",
+    "version": "1.0.0"
+  }
+}
+```
+
+### docs-director-skill (Multi-Document)
+
+Handles batch operations with pattern matching and parallel execution.
+
+**Operations**:
+- `write-batch`: Create/update multiple documents in parallel
+- `validate-batch`: Validate multiple documents
+- `audit-docs`: Analyze documentation across project
+
+**Parallel execution**:
+- Concurrent processing (configurable max 10)
+- File locking for safe concurrent access
+- Aggregated results reporting
 
 **Example**:
 ```bash
-/fractary-docs:link index --output docs/README.md
+/docs:write api docs/api/**/README.md --batch
 ```
+
+## Agent Invocation
+
+Use declarative invocation to interact with the docs-manager agent:
+
+```
+Use the @agent-fractary-docs:docs-manager agent to write API documentation:
+{
+  "operation": "write",
+  "doc_type": "api",
+  "parameters": {
+    "title": "User Login Endpoint",
+    "endpoint": "/api/auth/login",
+    "method": "POST",
+    "service": "AuthService",
+    "version": "1.0.0",
+    "status": "draft",
+    "overview": "Authenticates users with email/password credentials",
+    "request_details": "...",
+    "response_details": "...",
+    "examples": "..."
+  },
+  "options": {
+    "validate_after": true,
+    "update_index": true
+  }
+}
+```
+
+## Adding New Document Types
+
+To add a new document type (e.g., `changelog`):
+
+### 1. Create type directory
+
+```bash
+mkdir -p plugins/docs/types/changelog
+```
+
+### 2. Create 5 type context files
+
+**schema.json**:
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "fractary_doc_type": {"const": "changelog"},
+    "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "release_date": {"type": "string", "format": "date"},
+    "status": {"enum": ["draft", "released"]}
+  },
+  "required": ["fractary_doc_type", "version", "release_date"]
+}
+```
+
+**template.md**:
+```markdown
+---
+title: "{{title}}"
+fractary_doc_type: changelog
+version: {{version}}
+release_date: {{release_date}}
+status: {{status}}
+---
+
+# {{title}}
+
+## Version {{version}} - {{release_date}}
+
+### Added
+{{added}}
+
+### Changed
+{{changed}}
+
+### Fixed
+{{fixed}}
+
+### Deprecated
+{{deprecated}}
+```
+
+**standards.md**:
+```markdown
+# Changelog Standards
+
+## Format
+Follow Keep a Changelog format (keepachangelog.com)
+
+## Sections
+- Added (new features)
+- Changed (changes to existing)
+- Fixed (bug fixes)
+- Deprecated (soon-to-be removed)
+- Removed (removed features)
+- Security (security fixes)
+
+## Versioning
+Use semantic versioning (semver.org)
+```
+
+**validation-rules.md**:
+```markdown
+# Changelog Validation Rules
+
+## Frontmatter
+- version must follow semver
+- release_date must be valid date
+
+## Content
+- Must have at least one of: Added, Changed, Fixed
+- Each section must have bullet points
+- Links to issues/PRs encouraged
+```
+
+**index-config.json**:
+```json
+{
+  "index_file": "docs/changelog/README.md",
+  "organization": "flat",
+  "group_by": [],
+  "sort_by": "version",
+  "sort_order": "desc",
+  "entry_template": "- [**{{version}}**]({{relative_path}}) - {{release_date}}",
+  "section_template": "## {{group_name}}"
+}
+```
+
+### 3. Use immediately
+
+```bash
+/docs:write changelog
+```
+
+No skill changes needed! The operation skills automatically load the new type context.
+
+## Migration from v1.x
+
+### Frontmatter Field Change
+
+**v1.x** (deprecated):
+```yaml
+---
+type: api
+---
+```
+
+**v2.0** (current):
+```yaml
+---
+fractary_doc_type: api
+---
+```
+
+### Command Changes
+
+**v1.x**:
+```bash
+/fractary-docs:generate api "..."
+/fractary-docs:manage-api "..."
+```
+
+**v2.0**:
+```bash
+/docs:write api
+/docs:validate --doc-type api
+```
+
+### Skill Changes
+
+**v1.x**: Type-specific skills
+- `docs-manage-api` (500+ lines)
+- `docs-manage-adr` (500+ lines)
+- `docs-manage-architecture` (500+ lines)
+- ... (11 skills total)
+
+**v2.0**: Operation skills
+- `doc-writer` (universal)
+- `doc-validator` (universal)
+- `doc-classifier` (universal)
+- `doc-lister` (universal)
 
 ## Configuration
 
@@ -273,472 +652,239 @@ Configuration is stored in `.fractary/plugins/docs/config.json` (project) or `~/
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "output_paths": {
     "documentation": "docs",
-    "adrs": "docs/architecture/adrs",
-    "designs": "docs/architecture/designs",
-    "runbooks": "docs/operations/runbooks",
-    "api_docs": "docs/api",
-    "guides": "docs/guides",
-    "testing": "docs/testing",
-    "deployments": "docs/deployments"
+    "api": "docs/api",
+    "adr": "docs/architecture/adrs",
+    "dataset": "docs/datasets",
+    "etl": "docs/etl",
+    "testing": "docs/testing"
   },
-  "templates": {
-    "custom_template_dir": null,
-    "use_project_templates": true
+  "validation": {
+    "auto_validate": true,
+    "lint_markdown": true,
+    "check_links": true
+  },
+  "indexing": {
+    "auto_update": true,
+    "parallel_execution": true,
+    "max_concurrent": 10
   },
   "frontmatter": {
-    "always_include": true,
     "codex_sync": true,
-    "default_fields": {
-      "author": "Claude Code",
-      "generated": true
-    }
-  },
-  "validation": {
-    "lint_on_generate": true,
-    "required_sections": {
-      "adr": ["Status", "Context", "Decision", "Consequences"],
-      "design": ["Overview", "Architecture", "Implementation"],
-      "runbook": ["Purpose", "Prerequisites", "Steps", "Troubleshooting"]
-    }
-  },
-  "linking": {
-    "auto_update_index": true,
-    "check_broken_links": true,
-    "generate_graph": true
+    "default_status": "draft"
   }
 }
 ```
 
-### Configuration Options
+## Frontmatter Schema
 
-**output_paths**: Customize where different document types are stored
-
-**templates**: Use built-in templates or specify custom template directory
-
-**frontmatter**: Control front matter generation and codex sync
-
-**validation**: Configure validation rules per document type
-
-**linking**: Enable auto-index updates and broken link checking
-
-## Hooks
-
-Hooks allow projects to extend fractary-docs with custom logic while using the standard plugin. Hooks are shell scripts that execute at specific points in documentation workflows.
-
-### Hook Types
-
-```json
-{
-  "hooks": {
-    "pre_generate": "./scripts/pre-generate.sh",
-    "post_generate": "./scripts/post-generate.sh",
-    "pre_validate": "./scripts/validate-custom.sh",
-    "post_validate": null,
-    "pre_update": null,
-    "post_update": "./scripts/update-index.sh"
-  },
-  "validation": {
-    "custom_rules_script": "./scripts/validate-custom.sh",
-    "project_standards_doc": "./docs/DOCUMENTATION-STANDARDS.md"
-  }
-}
-```
-
-### When Hooks Execute
-
-- **pre_generate**: Before generating a new document
-- **post_generate**: After successfully generating a document
-- **pre_validate**: Before running validation checks (for custom validation rules)
-- **post_validate**: After validation completes
-- **pre_update**: Before updating an existing document
-- **post_update**: After successfully updating a document
-
-### Hook Script Interface
-
-Hooks receive context via environment variables:
-
-```bash
-#!/usr/bin/env bash
-# Example post_generate hook
-
-# Available variables:
-# - DOC_TYPE: Type of document (adr, design, runbook, etc.)
-# - FILE_PATH: Path to the document
-# - OPERATION: Operation being performed (generate, update, validate)
-
-# Example: Auto-generate table of contents
-if [[ "$DOC_TYPE" == "design" ]]; then
-  markdown-toc -i "$FILE_PATH"
-fi
-```
-
-### Common Hook Use Cases
-
-**1. Auto-generate TOC** (post_generate):
-```bash
-#!/usr/bin/env bash
-# scripts/post-generate.sh
-markdown-toc -i "$FILE_PATH"
-```
-
-**2. Custom validation** (pre_validate):
-```bash
-#!/usr/bin/env bash
-# scripts/validate-custom.sh
-
-# Validate API specs have language examples
-if [[ "$DOC_TYPE" == "api-spec" ]]; then
-  for lang in python typescript go; do
-    if ! grep -q "\`\`\`$lang" "$FILE_PATH"; then
-      echo "ERROR: API spec missing $lang example"
-      exit 1
-    fi
-  done
-fi
-```
-
-**3. Update documentation index** (post_update):
-```bash
-#!/usr/bin/env bash
-# scripts/update-index.sh
-/fractary-docs:link index
-```
-
-**4. Notify team** (post_generate):
-```bash
-#!/usr/bin/env bash
-# scripts/notify-team.sh
-if [[ "$DOC_TYPE" == "adr" ]]; then
-  curl -X POST "$SLACK_WEBHOOK" \
-    -d "{\"text\": \"New ADR created: $FILE_PATH\"}"
-fi
-```
-
-### Project-Specific Standards
-
-The `project_standards_doc` configuration points to a markdown file documenting project-specific documentation requirements:
-
-```markdown
-# Documentation Standards
-
-## API Documentation
-All API specs must include code examples in:
-- Python
-- TypeScript
-- Go
-
-## Naming Conventions
-- Features: `feature-name-YYYYMMDD.md`
-- ADRs: `ADR-NNN-short-title.md`
-
-## Custom Requirements
-- Security-related docs must be reviewed by security team
-- API changes require migration guide section
-```
-
-This document is referenced during validation and audit workflows.
-
-### Schema Documentation Customization
-
-Schema documentation supports extensive customization via project-specific standards and validation scripts. See the complete reference implementation in `examples/schema-standards/`.
-
-**Example: Custom Schema Validation**
-
-Create a custom validation script to enforce project-specific requirements:
-
-```bash
-# .fractary/plugins/docs/scripts/validate-schema-docs.sh
-#!/usr/bin/env bash
-
-# Check naming conventions
-# Check field documentation completeness
-# Validate semantic versioning
-# Verify code generation sections
-# Check PII security annotations
-
-# Return structured JSON with errors/warnings
-```
-
-**Example: Schema-Specific Hooks**
-
-```bash
-# .fractary/plugins/docs/hooks/post-generate.sh
-#!/usr/bin/env bash
-
-if [[ "$DOC_TYPE" == "schema" ]]; then
-  # Auto-generate code from schema
-  case "$SCHEMA_FORMAT" in
-    json-schema)
-      npx quicktype "$FILE_PATH" -o "src/types/$(basename "$FILE_PATH" .md).ts"
-      ;;
-    openapi)
-      openapi-generator generate -i "$FILE_PATH" -g typescript-axios -o ./generated/api
-      ;;
-  esac
-
-  # Update schema registry
-  echo "Updating schema index..."
-fi
-```
-
-**Example Configuration**:
-
-```json
-{
-  "validation": {
-    "custom_rules_script": "./.fractary/plugins/docs/scripts/validate-schema-docs.sh",
-    "project_standards_doc": "./docs/standards/PROJECT-SCHEMA-STANDARDS.md",
-    "required_sections": {
-      "schema": [
-        "Overview",
-        "Schema Format",
-        "Fields",
-        "Examples",
-        "Validation Rules",
-        "Versioning",
-        "Code Generation"
-      ]
-    }
-  },
-  "hooks": {
-    "pre_validate": "./.fractary/plugins/docs/hooks/pre-validate.sh",
-    "post_generate": "./.fractary/plugins/docs/hooks/post-generate.sh"
-  }
-}
-```
-
-**Complete Example**: See `examples/schema-standards/` for:
-- Project-specific schema standards document
-- Custom validation script with 10+ checks
-- Pre-validate and post-generate hooks
-- Example configuration
-- Setup instructions and best practices
-
-## Front Matter Schema
-
-All generated documents include codex-compatible front matter:
+All documents use this standard frontmatter format:
 
 ```yaml
 ---
-title: "ADR-001: Use PostgreSQL for data storage"
-type: adr
-status: proposed
+title: "Document Title"
+fractary_doc_type: api
+status: draft
 date: 2025-01-15
+updated: 2025-01-16
 author: Claude Code
-tags: [database, infrastructure]
-related: ["/docs/architecture/designs/database-schema.md"]
+tags: [api, authentication]
+version: 1.0.0
 codex_sync: true
-generated: true
+# Type-specific fields (e.g., for API docs):
+endpoint: /api/auth/login
+method: POST
+service: AuthService
 ---
 ```
 
-**Standard Fields**:
-- `title`: Document title
-- `type`: Document type (adr, design, runbook, etc.)
-- `status`: Document status (proposed, draft, review, approved, deprecated)
-- `date`: Creation date
+**Standard fields**:
+- `title`: Document title (required)
+- `fractary_doc_type`: Document type (required)
+- `status`: draft | published | deprecated (required)
+- `date`: Creation date (auto-generated)
 - `updated`: Last update date (auto-maintained)
+- `version`: Semantic version (required for some types)
 - `author`: Author name
 - `tags`: Array of tags for categorization
-- `related`: Array of related document paths
-- `codex_sync`: Enable/disable codex synchronization
-- `generated`: Indicates auto-generated document
+- `codex_sync`: Enable codex synchronization
 
-## Agent Invocation
+**Type-specific fields**: Defined in each type's `schema.json`
 
-Use declarative invocation to interact with the docs-manager agent:
+## Commands
 
-```
-Use the @agent-fractary-docs:docs-manager agent to generate ADR:
-{
-  "operation": "generate",
-  "doc_type": "adr",
-  "parameters": {
-    "title": "Use PostgreSQL for data storage",
-    "number": "001",
-    "status": "proposed",
-    "context": "We need a reliable database with ACID guarantees...",
-    "decision": "We will use PostgreSQL 15 as our primary data store...",
-    "consequences": {
-      "positive": ["Strong ACID compliance", "Rich query capabilities"],
-      "negative": ["Additional operational overhead"]
-    }
-  },
-  "options": {
-    "validate_after": true,
-    "commit_after": false
-  }
-}
-```
+- `/docs:write <doc_type>` - Create or update documentation
+- `/docs:validate [path]` - Validate documentation
+- `/docs:list [options]` - List and filter documentation
+- `/docs:audit [directory]` - Audit documentation quality
+
+See individual command files in `commands/` for detailed usage.
 
 ## Integration
 
 ### With fractary-codex
 
-All generated documents include front matter with `codex_sync: true`, enabling automatic synchronization with the codex knowledge base.
+All documents include `codex_sync: true` in frontmatter, enabling automatic synchronization with the codex knowledge base.
 
 ### With FABER Workflows
 
-FABER workflows can use doc-generator to create workflow documentation:
+FABER workflows use docs plugin for:
 - Specifications (Architect phase)
 - Test reports (Evaluate phase)
 - Deployment records (Release phase)
 
 ### With fractary-repo
 
-Documentation changes can be automatically committed to version control using the `--commit` flag or via fractary-repo agent.
-
-## Commands
-
-- `/fractary-docs:init` - Initialize plugin configuration
-- `/fractary-docs:generate` - Generate documentation from templates
-- `/fractary-docs:update` - Update existing documentation
-- `/fractary-docs:validate` - Validate documentation quality
-- `/fractary-docs:link` - Manage cross-references and indexes
-
-See individual command files in `commands/` for detailed usage.
+Documentation changes can be automatically committed using fractary-repo plugin integration.
 
 ## Best Practices
 
-1. **Always include front matter**: Enables codex sync and metadata tracking
-2. **Use semantic doc types**: Choose appropriate template for content
-3. **Validate before commit**: Catch errors early with `--validate`
-4. **Update index regularly**: Keep documentation discoverable
-5. **Follow naming conventions**: Use consistent file naming (ADR-NNN-title.md)
-6. **Link related docs**: Use front matter "related" field
-7. **Update timestamps**: Keep "updated" field current when modifying
-8. **Use status fields**: Track document lifecycle (draft → review → approved)
-9. **Store in git**: All documentation should be version controlled
-10. **Keep docs current**: Update documentation when implementation changes
-
-## File Naming Conventions
-
-- **ADRs**: `ADR-NNN-short-title.md` (e.g., `ADR-001-api-choice.md`)
-- **Design Docs**: `design-feature-name.md` (e.g., `design-user-auth.md`)
-- **Runbooks**: `runbook-process-name.md` (e.g., `runbook-deployment.md`)
-- **API Specs**: `api-service-name.md` (e.g., `api-user-service.md`)
-- **Test Reports**: `test-report-YYYY-MM-DD.md`
-- **Deployments**: `deployment-YYYY-MM-DD.md`
-- **Changelogs**: `CHANGELOG.md` (standard)
-- **Postmortems**: `postmortem-YYYY-MM-DD-incident.md`
+1. **Always use `fractary_doc_type`**: Required field (not `type`)
+2. **Let classification happen**: Path-based detection works for `docs/{doc_type}/`
+3. **Use batch operations**: Process multiple docs efficiently with `--batch`
+4. **Leverage auto-indexing**: Indices update automatically after write operations
+5. **Validate before commit**: Catch errors early
+6. **Follow type standards**: Read `types/{doc_type}/standards.md` for guidelines
+7. **Use hierarchical indices**: Configure in `index-config.json` for better organization
+8. **Version control everything**: All docs and indices should be in git
+9. **Keep type context updated**: Modify 5 files to change type behavior
+10. **Use semantic versioning**: For schema, API, and other versioned docs
 
 ## Troubleshooting
 
-### Configuration not found
+### "Missing fractary_doc_type field"
 
-Run `/fractary-docs:init` to create default configuration.
+Ensure frontmatter includes:
+```yaml
+fractary_doc_type: api
+```
+
+Not `type: api` (deprecated v1.x format).
+
+### "Type context not found"
+
+Verify the type directory exists:
+```bash
+ls plugins/docs/types/{doc_type}/
+# Should show: schema.json, template.md, standards.md, validation-rules.md, index-config.json
+```
 
 ### Validation failing
 
-Check specific validation errors and use `--fix` to auto-fix simple issues:
+Check specific errors and ensure document follows type standards:
 ```bash
-/fractary-docs:validate docs/ --fix
+cat plugins/docs/types/{doc_type}/standards.md
+cat plugins/docs/types/{doc_type}/validation-rules.md
 ```
 
-### Broken links
+### Index not updating
 
-Find and fix broken links:
+Verify `index-config.json` exists and is valid JSON:
 ```bash
-/fractary-docs:link check --fix
+cat plugins/docs/types/{doc_type}/index-config.json | jq .
 ```
 
-### Permission denied
-
-Ensure documentation directories are writable:
-```bash
-chmod -R u+w docs/
-```
-
-### Template not found
-
-Verify doc_type is correct and templates exist in `skills/doc-generator/templates/` or your custom template directory.
-
-## Examples
-
-The `samples/` directory contains a complete documentation set demonstrating all plugin features:
-
-### Sample Documentation Set
+## File Structure
 
 ```
-samples/
-├── adrs/
-│   └── ADR-001-postgresql.md          # Architecture decision record
-├── designs/
-│   └── database-architecture.md        # System design document
-└── runbooks/
-    ├── database-failover.md            # Emergency procedures
-    └── database-maintenance.md         # Regular maintenance
+plugins/docs/
+├── .claude-plugin/
+│   └── plugin.json                    # Plugin manifest (v2.0.0)
+├── agents/
+│   └── docs-manager.md                # Main coordination agent
+├── skills/
+│   ├── doc-writer/                    # CREATE + UPDATE operation
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── write-doc.sh
+│   │       ├── render-template.sh
+│   │       └── version-bump.sh
+│   ├── doc-validator/                 # VALIDATE operation
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── validate-frontmatter.sh
+│   │       └── validate-structure.sh
+│   ├── doc-classifier/                # CLASSIFY operation
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── classify-by-path.sh
+│   │       └── classify-by-content.sh
+│   ├── doc-lister/                    # LIST operation
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       └── list-docs.sh
+│   ├── docs-manager-skill/            # Single-doc coordinator
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── coordinate-write.sh
+│   │       ├── coordinate-validate.sh
+│   │       └── coordinate-index.sh
+│   ├── docs-director-skill/           # Multi-doc coordinator
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       ├── batch-write.sh
+│   │       ├── audit-docs.sh
+│   │       └── pattern-expand.sh
+│   └── _shared/
+│       └── lib/
+│           ├── index-updater.sh       # README.md index generation
+│           └── dual-format-generator.sh # README + JSON generation
+├── types/                             # Type context (data-driven)
+│   ├── api/
+│   │   ├── schema.json
+│   │   ├── template.md
+│   │   ├── standards.md
+│   │   ├── validation-rules.md
+│   │   └── index-config.json
+│   ├── adr/
+│   ├── architecture/
+│   ├── dataset/
+│   ├── etl/
+│   ├── testing/
+│   ├── guides/
+│   ├── standards/
+│   ├── infrastructure/
+│   ├── audit/
+│   └── _untyped/
+└── commands/
+    ├── write.md                       # /docs:write
+    ├── validate.md                    # /docs:validate
+    ├── list.md                        # /docs:list
+    └── audit.md                       # /docs:audit
 ```
-
-**Features demonstrated**:
-- ✅ Proper front matter with all required fields
-- ✅ Document relationships using `related[]` arrays
-- ✅ Complete sections per document type
-- ✅ Valid markdown and internal links
-- ✅ Tags for categorization
-- ✅ Real-world content and structure
-
-### Try the Samples
-
-```bash
-# Validate samples
-/fractary-docs:validate samples/
-
-# Generate index
-/fractary-docs:create-index samples/ --output samples/README.md
-
-# Check links
-/fractary-docs:link-check samples/
-
-# Generate relationship graph
-/fractary-docs:generate-graph samples/ --output samples/GRAPH.md
-```
-
-### Example Workflows
-
-See the [Integration Testing Guide](./docs/integration-testing.md) for complete workflows including:
-- Creating documentation sets (ADR → Design → Runbook)
-- Updating existing documents
-- Validation and link checking
-- Index and graph generation
-- Error handling and recovery
-
-## Documentation
-
-- **[Quick Start Guide](./docs/quick-start.md)** - Get started in 5 minutes
-- **[Integration Testing](./docs/integration-testing.md)** - Complete test suite and workflows
-- **[Troubleshooting Guide](./docs/troubleshooting.md)** - Common issues and solutions
-- **[Template Guide](./skills/doc-generator/docs/template-guide.md)** - Template reference
-- **[Validation Rules](./skills/doc-validator/docs/validation-rules.md)** - Validation details
-- **[Linking Conventions](./skills/doc-linker/docs/linking-conventions.md)** - Best practices for linking
-- **[Front Matter Schema](./skills/doc-generator/docs/frontmatter-schema.md)** - Metadata reference
-
-## Contributing
-
-To add a new document template:
-
-1. Create template file in `skills/doc-generator/templates/{type}.md.template`
-2. Use Mustache-style syntax for variables: `{{variable_name}}`
-3. Include front matter template with required fields
-4. Define required sections in configuration
-5. Add validation rules for the new doc type
-6. Document the template in `skills/doc-generator/docs/template-guide.md`
-
-## License
-
-Part of the Fractary Claude Code Plugins repository.
 
 ## Version
 
-1.0.0 - Initial release
+**2.0.0** - Architecture refactor (operation-specific skills with data-driven type context)
+
+**Breaking changes from 1.x**:
+- Frontmatter field: `type:` → `fractary_doc_type:`
+- Commands: `/fractary-docs:*` → `/docs:*`
+- Skills: Type-specific → Operation-specific
+
+## Contributing
+
+To contribute:
+
+1. **Add new document type**: Create 5 files in `types/{doc_type}/`
+2. **Enhance operation**: Modify operation skill (doc-writer, doc-validator, etc.)
+3. **Improve coordination**: Update manager or director skills
+4. **Test thoroughly**: Validate against all 11 existing types
+
+## See Also
+
+- **[SPEC-docs-plugin-refactor.md](../../docs/specs/SPEC-docs-plugin-refactor.md)** - Detailed architecture specification
+- **[CLAUDE.md](../../CLAUDE.md)** - Plugin development standards
+- **[fractary-codex](../codex/)** - Knowledge management integration
+- **[fractary-repo](../repo/)** - Source control integration
 
 ---
 
-For more information, see:
-- Plugin configuration: `config/config.example.json`
+For more information:
+- Plugin manifest: `.claude-plugin/plugin.json`
 - Agent specification: `agents/docs-manager.md`
-- Skill documentation: `skills/*/docs/`
-- Command reference: `commands/*.md`
+- Operation skills: `skills/doc-*/`
+- Type context: `types/*/`
+- Commands: `commands/*.md`

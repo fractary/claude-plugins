@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # Dual Format Generator - Generate both README.md and JSON files simultaneously
-# Usage: dual-format-generator.sh <output_dir> <readme_template> <json_template> <template_data_json>
-# Example: dual-format-generator.sh docs/schema/user readme.md.template schema.json.template data.json
+# Usage: dual-format-generator.sh <output_dir> <doc_type> <template_data_json>
+# Example: dual-format-generator.sh docs/api/user-login api '{"title":"User Login","endpoint":"/api/auth/login"}'
+#
+# Automatically loads template.md from plugins/docs/types/{doc_type}/
+# JSON file generation is optional (only for types that define dual-format schemas)
 
 set -euo pipefail
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_DIR="$(dirname "$SCRIPT_DIR")"
+PLUGIN_ROOT="$(cd "$SHARED_DIR/../.." && pwd)"
 
 # Source required libraries
 source "$SHARED_DIR/lib/config-resolver.sh"
@@ -23,25 +27,26 @@ render_template() {
         return 1
     fi
 
-    # Simple variable substitution using jq for JSON data
-    # This is a simplified Mustache-style renderer
+    # Read template content
     local content
     content=$(cat "$template_file")
 
-    # Extract all variables from JSON data and substitute
-    while IFS= read -r key; do
-        local value
-        value=$(echo "$data_json" | jq -r ".${key}")
+    # Extract all {{variables}} from template
+    local vars=$(echo "$content" | grep -oP '\{\{[^}]+\}\}' | sort -u || true)
 
-        # Handle arrays (simple list rendering)
-        if [[ "$value" == "["* ]]; then
-            # For arrays, create comma-separated list
-            value=$(echo "$value" | jq -r 'join(", ")')
-        fi
+    # Replace each variable
+    for var_with_braces in $vars; do
+        local var=$(echo "$var_with_braces" | sed 's/{{//; s/}}//')
 
-        # Substitute {{key}} with value
-        content="${content//\{\{${key}\}\}/$value}"
-    done < <(echo "$data_json" | jq -r 'keys[]')
+        # Get value from JSON (handle null gracefully)
+        local value=$(echo "$data_json" | jq -r --arg var "$var" '.[$var] // ""')
+
+        # Escape special chars for sed
+        local escaped_value=$(echo "$value" | sed 's/[\/&]/\\&/g')
+
+        # Replace in content
+        content=$(echo "$content" | sed "s|{{$var}}|$escaped_value|g")
+    done
 
     # Write rendered content
     echo "$content" > "$output_file"
@@ -94,25 +99,37 @@ validate_json() {
     return 0
 }
 
-# Generate both formats simultaneously
+# Generate both formats simultaneously (enhanced with doc_type support)
 generate_dual_format() {
     local output_dir="$1"
-    local readme_template="$2"
-    local json_template="$3"
-    local template_data_json="$4"
+    local doc_type="$2"
+    local template_data_json="$3"
+
+    # Determine template paths from doc_type
+    local type_dir="$PLUGIN_ROOT/types/$doc_type"
+    local readme_template="$type_dir/template.md"
+
+    if [[ ! -f "$readme_template" ]]; then
+        echo "ERROR: Template not found for doc_type '$doc_type' at: $readme_template" >&2
+        return 1
+    fi
 
     # Create output directory if it doesn't exist
     mkdir -p "$output_dir"
 
     local readme_file="$output_dir/README.md"
-    local json_file="$output_dir/$(basename "$json_template" .template)"
 
-    echo "📝 Generating dual-format documentation..."
+    echo "📝 Generating documentation from type context..."
+    echo "   Doc type: $doc_type"
     echo "   Output directory: $output_dir"
 
+    # Add fractary_doc_type to template data if not present
+    local enhanced_data
+    enhanced_data=$(echo "$template_data_json" | jq --arg type "$doc_type" '. + {fractary_doc_type: $type}')
+
     # Generate README.md
-    echo "   Rendering README.md..."
-    if ! render_template "$readme_template" "$template_data_json" "$readme_file"; then
+    echo "   Rendering README.md from template..."
+    if ! render_template "$readme_template" "$enhanced_data" "$readme_file"; then
         echo "ERROR: Failed to render README.md" >&2
         return 1
     fi
@@ -124,52 +141,89 @@ generate_dual_format() {
     fi
     echo "   ✅ README.md generated and validated"
 
-    # Generate JSON file
-    echo "   Rendering JSON file..."
-    if ! render_template "$json_template" "$template_data_json" "$json_file"; then
-        echo "ERROR: Failed to render JSON file" >&2
-        return 1
-    fi
+    # Check if this doc type supports dual-format (JSON companion file)
+    # Types like 'api', 'dataset', 'etl' may have JSON schemas
+    local json_file=""
+    local json_generated=false
 
-    # Validate JSON file
-    if ! validate_json "$json_file"; then
-        echo "ERROR: JSON validation failed" >&2
-        return 1
+    # Determine JSON filename from doc_type or template data
+    local json_filename=$(echo "$enhanced_data" | jq -r '.json_filename // ""')
+
+    if [[ -n "$json_filename" && "$json_filename" != "null" ]]; then
+        json_file="$output_dir/$json_filename"
+
+        echo "   Generating companion JSON file: $json_filename"
+
+        # Generate JSON file (just the structured data)
+        echo "$enhanced_data" | jq '.' > "$json_file"
+
+        # Validate JSON file
+        if ! validate_json "$json_file"; then
+            echo "ERROR: JSON validation failed" >&2
+            return 1
+        fi
+        echo "   ✅ JSON file generated and validated"
+        json_generated=true
     fi
-    echo "   ✅ JSON file generated and validated"
 
     # Return file paths as JSON
-    cat <<EOF
+    if $json_generated; then
+        cat <<EOF
 {
   "readme_path": "$readme_file",
   "json_path": "$json_file",
-  "output_dir": "$output_dir"
+  "output_dir": "$output_dir",
+  "doc_type": "$doc_type"
 }
 EOF
+    else
+        cat <<EOF
+{
+  "readme_path": "$readme_file",
+  "output_dir": "$output_dir",
+  "doc_type": "$doc_type"
+}
+EOF
+    fi
 
     return 0
 }
 
 # Main execution
 main() {
-    if [[ $# -lt 4 ]]; then
+    if [[ $# -lt 3 ]]; then
         cat >&2 <<EOF
-Usage: $0 <output_dir> <readme_template> <json_template> <template_data_json>
+Usage: $0 <output_dir> <doc_type> <template_data_json>
 
 Description:
-  Generate both README.md and JSON files simultaneously from templates.
+  Generate documentation files from type-specific templates.
+  Automatically loads template.md from plugins/docs/types/{doc_type}/.
+  Optionally generates companion JSON file for dual-format types.
 
 Arguments:
   output_dir         - Directory where files will be created
-  readme_template    - Path to README.md template file
-  json_template      - Path to JSON template file
-  template_data_json - JSON string or file containing template variables
+  doc_type           - Document type (api, adr, guide, dataset, etc.)
+  template_data_json - JSON string containing template variables
 
 Example:
-  $0 docs/schema/user \\
-     templates/schema-readme.md.template \\
-     templates/schema.json.template \\
-     '{"title": "User Schema", "version": "1.0.0"}'
+  $0 docs/api/user-login api \\
+     '{"title": "User Login", "endpoint": "/api/auth/login", "method": "POST"}'
+
+  $0 docs/datasets/user-metrics dataset \\
+     '{"title": "User Metrics", "source": "analytics", "format": "parquet"}'
+
+Features:
+  - Loads template from plugins/docs/types/{doc_type}/template.md
+  - Automatically adds fractary_doc_type to frontmatter
+  - Generates companion JSON file if json_filename is in template data
+  - Validates both markdown structure and JSON syntax
+
+Template Variables:
+  All variables in template.md ({{variable}}) will be replaced with values
+  from template_data_json. Common variables include:
+  - title, description, status, version
+  - Type-specific fields (endpoint, method, service for API)
+  - json_filename (optional, triggers JSON companion file generation)
 
 EOF
         return 1

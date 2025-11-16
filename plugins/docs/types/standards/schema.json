@@ -1,0 +1,48 @@
+{
+  "type": "standard",
+  "display_name": "Standards Documentation",
+  "description": "Standards documentation for both human and agent consumption",
+  "file_naming": {
+    "pattern": "{scope}-{slug}.md",
+    "scopes": ["plugin", "repo", "org", "team"]
+  },
+  "storage": {
+    "default_path": "docs/standards",
+    "config_key": "doc_types.standard.path"
+  },
+  "frontmatter": {
+    "required_fields": ["title", "type", "scope", "status", "date"],
+    "optional_fields": ["author", "tags", "related", "applies_to", "codex_sync", "generated"],
+    "type_value": "standard",
+    "defaults": {"type": "standard", "codex_sync": true, "generated": true}
+  },
+  "structure": {
+    "required_sections": ["Purpose", "Standards", "Enforcement", "Examples"],
+    "optional_sections": ["Tools", "References", "Related Standards", "Exceptions"]
+  },
+  "scopes": {
+    "plugin": {"description": "Standards for plugin development", "audience": "plugin developers"},
+    "repo": {"description": "Standards for repository/project", "audience": "project contributors"},
+    "org": {"description": "Organization-wide standards", "audience": "all organization members"},
+    "team": {"description": "Team-specific standards", "audience": "team members"}
+  },
+  "requirement_levels": {
+    "values": ["must", "should", "may"],
+    "based_on": "RFC 2119"
+  },
+  "status": {
+    "allowed_values": ["draft", "review", "active", "deprecated"],
+    "default": "draft",
+    "description": {
+      "draft": "Standard is being developed",
+      "review": "Standard is under review",
+      "active": "Standard is in effect",
+      "deprecated": "Standard is no longer in use"
+    }
+  },
+  "auto_index": {
+    "enabled": true,
+    "group_by": "scope",
+    "sort_by": "title"
+  }
+}

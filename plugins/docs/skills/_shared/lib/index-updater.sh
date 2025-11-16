@@ -1,13 +1,34 @@
 #!/usr/bin/env bash
-# Index Updater - Automatically update README.md index files
-# Usage: index-updater.sh <doc_directory> <doc_type> <index_template> [title]
-# Example: index-updater.sh docs/architecture/ADR adr templates/README.md.template "Architecture Decision Records"
+# Index Updater - Automatically update README.md index files with type-specific configuration
+# Usage: index-updater.sh <doc_directory> <doc_type>
+# Example: index-updater.sh docs/api api
+#
+# Reads index-config.json from plugins/docs/types/{doc_type}/ to determine:
+# - Organization mode (hierarchical vs flat)
+# - Grouping fields (group_by array)
+# - Entry/section templates (entry_template, section_template)
+# - Sorting (sort_by, sort_order)
 
 set -euo pipefail
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_DIR="$(dirname "$SCRIPT_DIR")"
+PLUGIN_ROOT="$(cd "$SHARED_DIR/../.." && pwd)"
+
+# Load index configuration from types/{doc_type}/index-config.json
+load_index_config() {
+    local doc_type="$1"
+    local config_file="$PLUGIN_ROOT/types/$doc_type/index-config.json"
+
+    if [[ ! -f "$config_file" ]]; then
+        # Return default flat configuration
+        echo '{"organization":"flat","group_by":[],"sort_by":"title","sort_order":"asc","entry_template":"- [**{{title}}**]({{relative_path}})","section_template":"## {{group_name}}"}'
+        return 0
+    fi
+
+    cat "$config_file"
+}
 
 # Extract frontmatter field from markdown file
 extract_frontmatter_field() {
@@ -82,7 +103,7 @@ extract_first_heading() {
     echo ""
 }
 
-# Scan directory and collect document metadata
+# Scan directory and collect document metadata (enhanced to extract all frontmatter fields)
 collect_documents() {
     local directory="$1"
 
@@ -103,11 +124,25 @@ collect_documents() {
         # Skip README.md itself
         [[ "$filename" == "README.md" ]] && continue
 
-        # Extract metadata from frontmatter
+        # Extract comprehensive metadata from frontmatter
         local title=$(extract_frontmatter_field "$file" "title")
         local status=$(extract_frontmatter_field "$file" "status")
         local date=$(extract_frontmatter_field "$file" "date")
         local description=$(extract_frontmatter_field "$file" "description")
+        local version=$(extract_frontmatter_field "$file" "version")
+        local doc_type=$(extract_frontmatter_field "$file" "fractary_doc_type")
+
+        # Type-specific fields for grouping (API example)
+        local endpoint=$(extract_frontmatter_field "$file" "endpoint")
+        local method=$(extract_frontmatter_field "$file" "method")
+        local service=$(extract_frontmatter_field "$file" "service")
+
+        # Type-specific fields (ADR example)
+        local adr_status=$(extract_frontmatter_field "$file" "adr_status")
+
+        # Type-specific fields (Dataset example)
+        local source=$(extract_frontmatter_field "$file" "source")
+        local format=$(extract_frontmatter_field "$file" "format")
 
         # Fallback to first heading if no title in frontmatter
         if [[ -z "$title" ]]; then
@@ -117,26 +152,52 @@ collect_documents() {
         # Default values
         [[ -z "$title" ]] && title="$filename"
         [[ -z "$status" ]] && status="unknown"
-        [[ -z "$date" ]] && date="unknown"
-        [[ -z "$description" ]] && description=""
+        [[ -z "$version" ]] && version="1.0.0"
 
-        # Build JSON entry
+        # Calculate relative path from directory
+        local relative_path="./$filename"
+
+        # Build JSON entry with all fields (for template rendering)
         if ! $first; then
             documents_json+=","
         fi
         first=false
 
-        documents_json+=$(cat <<EOF
-{
-  "filename": "$filename",
-  "path": "./$filename",
-  "title": "$title",
-  "status": "$status",
-  "date": "$date",
-  "description": "$description"
-}
-EOF
-)
+        # Build comprehensive JSON object
+        documents_json+=$(jq -n \
+            --arg filename "$filename" \
+            --arg path "$relative_path" \
+            --arg relative_path "$relative_path" \
+            --arg title "$title" \
+            --arg status "$status" \
+            --arg date "$date" \
+            --arg description "$description" \
+            --arg version "$version" \
+            --arg doc_type "$doc_type" \
+            --arg endpoint "$endpoint" \
+            --arg method "$method" \
+            --arg service "$service" \
+            --arg adr_status "$adr_status" \
+            --arg source "$source" \
+            --arg format "$format" \
+            '{
+                filename: $filename,
+                path: $path,
+                relative_path: $relative_path,
+                title: $title,
+                status: $status,
+                date: $date,
+                description: $description,
+                description_short: ($description | if length > 100 then .[0:100] + "..." else . end),
+                version: $version,
+                fractary_doc_type: $doc_type,
+                endpoint: $endpoint,
+                method: $method,
+                service: $service,
+                adr_status: $adr_status,
+                source: $source,
+                format: $format
+            }')
 
     done < <(find "$directory" -maxdepth 1 -type f -name "*.md" | sort)
 
@@ -145,46 +206,169 @@ EOF
     echo "$documents_json"
 }
 
-# Generate index content
+# Render template with variable substitution (simple Mustache-like)
+render_template() {
+    local template="$1"
+    local variables_json="$2"
+
+    local rendered="$template"
+
+    # Extract all {{variables}} from template
+    local vars=$(echo "$template" | grep -oP '\{\{[^}]+\}\}' | sort -u || true)
+
+    # Replace each variable
+    for var_with_braces in $vars; do
+        local var=$(echo "$var_with_braces" | sed 's/{{//; s/}}//')
+
+        # Get value from JSON (handle null gracefully)
+        local value=$(echo "$variables_json" | jq -r --arg var "$var" '.[$var] // ""')
+
+        # Replace in template (escape special chars for sed)
+        local escaped_value=$(echo "$value" | sed 's/[\/&]/\\&/g')
+        rendered=$(echo "$rendered" | sed "s|{{$var}}|$escaped_value|g")
+    done
+
+    echo "$rendered"
+}
+
+# Sort documents array by field and order
+sort_documents() {
+    local documents_json="$1"
+    local sort_by="${2:-title}"
+    local sort_order="${3:-asc}"
+
+    if [[ "$sort_order" == "desc" ]]; then
+        echo "$documents_json" | jq --arg field "$sort_by" 'sort_by(.[$field]) | reverse'
+    else
+        echo "$documents_json" | jq --arg field "$sort_by" 'sort_by(.[$field])'
+    fi
+}
+
+# Generate flat index (simple list)
+generate_flat_index() {
+    local documents_json="$1"
+    local entry_template="$2"
+    local count="$3"
+
+    if [[ $count -eq 0 ]]; then
+        echo "*No documents yet.*"
+        return 0
+    fi
+
+    local output=""
+    local i=0
+    while [[ $i -lt $count ]]; do
+        local doc=$(echo "$documents_json" | jq -c ".[$i]")
+        local entry=$(render_template "$entry_template" "$doc")
+        output+="$entry"$'\n'
+        ((i++))
+    done
+
+    echo "$output"
+}
+
+# Generate hierarchical index (grouped by fields)
+generate_hierarchical_index() {
+    local documents_json="$1"
+    local group_by_json="$2"
+    local entry_template="$3"
+    local section_template="$4"
+
+    local output=""
+
+    # Get group_by fields as array
+    local group_count=$(echo "$group_by_json" | jq 'length')
+
+    if [[ $group_count -eq 0 ]]; then
+        # No grouping - fall back to flat
+        local count=$(echo "$documents_json" | jq 'length')
+        generate_flat_index "$documents_json" "$entry_template" "$count"
+        return 0
+    fi
+
+    # Group by first field
+    local first_group_field=$(echo "$group_by_json" | jq -r '.[0]')
+
+    # Get unique values for first grouping field
+    local unique_values=$(echo "$documents_json" | jq -r ".[] | .${first_group_field}" | sort -u)
+
+    while IFS= read -r group_value; do
+        [[ -z "$group_value" || "$group_value" == "null" ]] && continue
+
+        # Filter documents for this group
+        local group_docs=$(echo "$documents_json" | jq --arg field "$first_group_field" --arg val "$group_value" \
+            '[.[] | select(.[$field] == $val)]')
+
+        local group_count=$(echo "$group_docs" | jq 'length')
+        [[ $group_count -eq 0 ]] && continue
+
+        # Render section header
+        local section_vars=$(jq -n --arg group_name "$group_value" '{"group_name": $group_name}')
+        local section_header=$(render_template "$section_template" "$section_vars")
+        output+="$section_header"$'\n'$'\n'
+
+        # If multi-level grouping, recurse with remaining fields
+        if [[ $group_count -gt 1 ]]; then
+            local remaining_groups=$(echo "$group_by_json" | jq '.[1:]')
+            local remaining_count=$(echo "$remaining_groups" | jq 'length')
+
+            if [[ $remaining_count -gt 0 ]]; then
+                # Recursive grouping
+                local nested=$(generate_hierarchical_index "$group_docs" "$remaining_groups" "$entry_template" "$section_template")
+                output+="$nested"$'\n'
+            else
+                # Leaf level - render entries
+                local i=0
+                while [[ $i -lt $group_count ]]; do
+                    local doc=$(echo "$group_docs" | jq -c ".[$i]")
+                    local entry=$(render_template "$entry_template" "$doc")
+                    output+="$entry"$'\n'
+                    ((i++))
+                done
+            fi
+        else
+            # Single document in group
+            local doc=$(echo "$group_docs" | jq -c '.[0]')
+            local entry=$(render_template "$entry_template" "$doc")
+            output+="$entry"$'\n'
+        fi
+
+        output+=$'\n'
+
+    done <<< "$unique_values"
+
+    echo "$output"
+}
+
+# Generate index content using index-config.json
 generate_index_content() {
     local doc_type="$1"
     local title="$2"
     local documents_json="$3"
+    local config_json="$4"
 
-    # Generate markdown list from documents
+    local count=$(echo "$documents_json" | jq 'length')
+
+    # Extract configuration
+    local organization=$(echo "$config_json" | jq -r '.organization // "flat"')
+    local group_by=$(echo "$config_json" | jq -c '.group_by // []')
+    local sort_by=$(echo "$config_json" | jq -r '.sort_by // "title"')
+    local sort_order=$(echo "$config_json" | jq -r '.sort_order // "asc"')
+    local entry_template=$(echo "$config_json" | jq -r '.entry_template // "- [**{{title}}**]({{relative_path}})"')
+    local section_template=$(echo "$config_json" | jq -r '.section_template // "## {{group_name}}"')
+
+    # Sort documents
+    local sorted_docs=$(sort_documents "$documents_json" "$sort_by" "$sort_order")
+
+    # Generate document list based on organization mode
     local doc_list=""
-    local count=0
-
-    # Parse JSON array and create markdown list
-    count=$(echo "$documents_json" | jq 'length')
-
-    if [[ $count -eq 0 ]]; then
-        doc_list="*No documents yet. Create your first $doc_type document to get started.*"
+    if [[ "$organization" == "hierarchical" ]]; then
+        doc_list=$(generate_hierarchical_index "$sorted_docs" "$group_by" "$entry_template" "$section_template")
     else
-        local i=0
-        while [[ $i -lt $count ]]; do
-            local doc_title=$(echo "$documents_json" | jq -r ".[$i].title")
-            local doc_path=$(echo "$documents_json" | jq -r ".[$i].path")
-            local doc_status=$(echo "$documents_json" | jq -r ".[$i].status")
-            local doc_description=$(echo "$documents_json" | jq -r ".[$i].description")
-
-            doc_list+="- [**$doc_title**]($doc_path)"
-
-            if [[ -n "$doc_description" && "$doc_description" != "null" ]]; then
-                doc_list+=" - $doc_description"
-            fi
-
-            if [[ "$doc_status" != "unknown" && "$doc_status" != "null" ]]; then
-                doc_list+=" *(Status: $doc_status)*"
-            fi
-
-            doc_list+=$'\n'
-
-            ((i++))
-        done
+        doc_list=$(generate_flat_index "$sorted_docs" "$entry_template" "$count")
     fi
 
-    # Generate index content
+    # Generate complete index
     cat <<EOF
 # $title
 
@@ -199,9 +383,9 @@ $doc_list
 ## Contributing
 
 To add a new $doc_type document:
-1. Use the appropriate skill command to generate the document
+1. Use the appropriate command: \`/docs:write $doc_type\`
 2. Follow the standard template and include all required sections
-3. Ensure frontmatter is complete with title, status, and date
+3. Ensure frontmatter is complete with all required fields
 4. The index will automatically update after document creation
 
 ---
@@ -211,14 +395,20 @@ To add a new $doc_type document:
 EOF
 }
 
-# Update index file with atomic write
+# Update index file with atomic write (enhanced with index-config.json support)
 update_index() {
     local doc_directory="$1"
     local doc_type="$2"
-    local index_template="${3:-}"
-    local title="${4:-${doc_type^} Documentation}"
+    local title="${3:-${doc_type^} Documentation}"
 
     echo "📚 Updating index for: $doc_directory"
+
+    # Load index configuration
+    local config_json
+    config_json=$(load_index_config "$doc_type")
+
+    local organization=$(echo "$config_json" | jq -r '.organization // "flat"')
+    echo "   Organization mode: $organization"
 
     # Collect all documents in directory
     local documents_json
@@ -228,19 +418,15 @@ update_index() {
     count=$(echo "$documents_json" | jq 'length')
     echo "   Found $count document(s)"
 
-    # Generate index content
+    # Generate index content with configuration
     local index_content
-    if [[ -n "$index_template" && -f "$index_template" ]]; then
-        # Use template if provided (future enhancement)
-        echo "   Using template: $index_template"
-        index_content=$(generate_index_content "$doc_type" "$title" "$documents_json")
-    else
-        # Generate default index
-        index_content=$(generate_index_content "$doc_type" "$title" "$documents_json")
-    fi
+    index_content=$(generate_index_content "$doc_type" "$title" "$documents_json" "$config_json")
+
+    # Always use doc_directory/README.md (ignore index_file from config)
+    # The index_file in config is for documentation purposes only
+    local index_file="$doc_directory/README.md"
 
     # Atomic write to README.md
-    local index_file="$doc_directory/README.md"
     local temp_file="$index_file.tmp.$$"
 
     echo "$index_content" > "$temp_file"
@@ -257,26 +443,39 @@ update_index() {
 main() {
     if [[ $# -lt 2 ]]; then
         cat >&2 <<EOF
-Usage: $0 <doc_directory> <doc_type> [index_template] [title]
+Usage: $0 <doc_directory> <doc_type> [title]
 
 Description:
   Automatically generate or update README.md index for a documentation directory.
+  Uses index-config.json from plugins/docs/types/{doc_type}/ for configuration.
 
 Arguments:
   doc_directory  - Directory containing documentation files
-  doc_type       - Type of documents (adr, guide, schema, etc.)
-  index_template - Optional: Path to custom README template
+  doc_type       - Type of documents (api, adr, guide, dataset, etc.)
   title          - Optional: Title for the index (default: "{Type} Documentation")
 
 Example:
-  $0 docs/architecture/ADR adr "" "Architecture Decision Records"
-  $0 docs/guides guide templates/guide-index.md.template
+  $0 docs/api api "API Documentation"
+  $0 docs/architecture/ADR adr "Architecture Decision Records"
 
 Features:
+  - Loads type-specific configuration from index-config.json
+  - Supports flat and hierarchical organization modes
+  - Multi-level grouping (e.g., by service → version)
+  - Configurable entry and section templates
+  - Configurable sorting (field and order)
   - Scans directory for all .md files except README.md
-  - Extracts metadata from frontmatter (title, status, date)
-  - Generates sorted list with links
+  - Extracts comprehensive metadata from frontmatter
   - Updates README.md atomically (safe for concurrent access)
+
+Configuration (index-config.json):
+  - organization: "flat" | "hierarchical"
+  - group_by: Array of fields for hierarchical grouping
+  - sort_by: Field name to sort documents by
+  - sort_order: "asc" | "desc"
+  - entry_template: Mustache template for document entries
+  - section_template: Mustache template for section headers
+  - index_file: Target file path (default: {doc_directory}/README.md)
 
 EOF
         return 1

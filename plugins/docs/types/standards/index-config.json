@@ -1,0 +1,8 @@
+{
+  "index_file": "docs/standards/README.md",
+  "organization": "flat",
+  "group_by": [],
+  "sort_by": "title",
+  "entry_template": "- [**{{title}}**]({{relative_path}}) - {{scope}}",
+  "section_template": ""
+}

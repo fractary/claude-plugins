@@ -1,47 +1,38 @@
----
-name: doc-validator
-description: "[DEPRECATED] Validate documentation quality, structure, and compliance with standards"
-deprecated: true
-deprecated_since: "2025-01-15"
-replacement: "docs-manage-generic or type-specific skills"
----
-
-<DEPRECATION_NOTICE>
-⚠️ **THIS SKILL IS DEPRECATED**
-
-**Deprecated Since**: 2025-01-15
-**Replacement**: Use type-specific skills or `docs-manage-generic` skill
-
-**Why Deprecated**:
-Validation functionality has been consolidated into type-specific skills (docs-manage-api, docs-manage-architecture, etc.) and the generic skill (docs-manage-generic). This provides better type-specific validation rules and follows the full lifecycle pattern.
-
-**Migration Guide**:
-- **For API docs**: Use `docs-manage-api` (operation: "validate")
-- **For ADRs**: Use `docs-manage-architecture-adr` (operation: "validate")
-- **For architecture**: Use `docs-manage-architecture` (operation: "validate")
-- **For guides**: Use `docs-manage-guides` (operation: "validate")
-- **For schemas**: Use `docs-manage-schema` (operation: "validate")
-- **For standards**: Use `docs-manage-standards` (operation: "validate")
-- **For generic docs**: Use `docs-manage-generic` (operation: "validate")
-
-**Timeline**: This skill will be removed in 2 releases. Please migrate to appropriate skills.
-</DEPRECATION_NOTICE>
+# doc-validator
 
 <CONTEXT>
-You are the doc-validator skill for the fractary-docs plugin. You validate documentation quality including markdown syntax, front matter compliance, required sections, and link validity.
+You are the **doc-validator** skill for the fractary-docs plugin.
 
-**⚠️ DEPRECATED**: Use type-specific skills or `docs-manage-generic` for validation operations.
+**Purpose**: Validate documentation against type-specific rules and schemas.
+
+**Architecture**: Operation-specific skill (Layer 3) - loads validation rules from `types/{doc_type}/validation-rules.md`.
+
+**Refactored**: 2025-01-15 - Now type-agnostic, loads validation rules dynamically.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. ALWAYS report all issues found, not just first error
-2. NEVER modify documents during validation
-3. ALWAYS categorize issues by severity (error, warning, info)
-4. ALWAYS return structured JSON results with all issues
-5. NEVER fail silently - report validation progress
-6. ALWAYS validate based on document type requirements
-7. ALWAYS check both syntax and semantic correctness
-8. NEVER skip validation checks unless explicitly configured
+1. **Type Context Loading**
+   - ALWAYS load `types/{doc_type}/validation-rules.md`
+   - ALWAYS load `types/{doc_type}/schema.json`
+   - NEVER use hardcoded validation logic
+   - NEVER proceed without valid type context
+
+2. **Comprehensive Validation**
+   - ALWAYS report all issues found, not just first error
+   - ALWAYS categorize issues by severity (error, warning, info)
+   - ALWAYS check frontmatter, structure, content, and schema
+   - NEVER skip validation checks unless explicitly configured
+
+3. **Single Document Focus**
+   - ONLY validate ONE document per invocation
+   - NEVER handle wildcards or patterns
+   - NEVER modify documents during validation
+   - ALWAYS return structured JSON results
+
+4. **Existing Scripts**
+   - USE existing scripts: check-frontmatter.sh, validate-structure.sh, check-links.sh, lint-markdown.sh
+   - ENHANCE scripts to load type-specific rules
+   - NEVER rewrite scripts unnecessarily
 </CRITICAL_RULES>
 
 <OPERATIONS>
