@@ -40,6 +40,8 @@ NC='\033[0m' # No Color
 
 # OSC 8 hyperlink format (for clickable terminal links)
 # Usage: create_hyperlink "URL" "TEXT" "COLOR"
+# Note: In web IDE mode (CLAUDE_CODE_REMOTE), the TEXT parameter is ignored
+#       and only the URL is output for auto-linking
 create_hyperlink() {
   local url="$1"
   local text="$2"
@@ -50,11 +52,29 @@ create_hyperlink() {
     # Web IDE: output plain URL only for auto-linking
     # The URL itself is clickable and self-documenting
     # Format: "https://github.com/owner/repo/issues/123"
-    echo -en "${color}${url}${NC}"
+    echo -en "${url}"
   else
     # Terminal: use OSC 8 format for clickable links
     # OSC 8 format: \033]8;;URL\033\\TEXT\033]8;;\033\\
     echo -en "${color}\033]8;;${url}\033\\${text}\033]8;;\033\\${NC}"
+  fi
+}
+
+# Format a status link with label and URL
+# Usage: format_status_link "LABEL" "URL" "COLOR"
+# Web IDE: outputs "LABEL URL" (URL auto-clickable)
+# Terminal: outputs clickable link with LABEL as text
+format_status_link() {
+  local label="$1"
+  local url="$2"
+  local color="$3"
+
+  if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
+    # Web IDE: show label + plain URL (URL will be auto-clickable)
+    echo -en " ${color}${label}${NC} $(create_hyperlink "$url" "$label" "$color")"
+  else
+    # Terminal: use OSC 8 for embedded clickable link
+    echo -en " $(create_hyperlink "$url" "$label" "$color")"
   fi
 }
 
@@ -176,17 +196,10 @@ if [ -n "$ISSUE_ID" ]; then
   if [ -n "$GITHUB_REPO" ]; then
     # Create clickable link to GitHub issue
     ISSUE_URL="${GITHUB_REPO}/issues/${ISSUE_ID}"
-    if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
-      # Web IDE: show label + plain URL (URL will be auto-clickable)
-      STATUS_LINE="${STATUS_LINE} ${MAGENTA}#${ISSUE_ID}${NC} ${MAGENTA}${ISSUE_URL}${NC}"
-    else
-      # Terminal: use OSC 8 for embedded clickable link
-      ISSUE_LINK=$(create_hyperlink "$ISSUE_URL" "issue #${ISSUE_ID}" "$MAGENTA")
-      STATUS_LINE="${STATUS_LINE} ${ISSUE_LINK}"
-    fi
+    STATUS_LINE="${STATUS_LINE}$(format_status_link "#${ISSUE_ID}" "$ISSUE_URL" "$MAGENTA")"
   else
     # Fallback: non-clickable
-    STATUS_LINE="${STATUS_LINE} ${MAGENTA}issue #${ISSUE_ID}${NC}"
+    STATUS_LINE="${STATUS_LINE} ${MAGENTA}#${ISSUE_ID}${NC}"
   fi
 fi
 
@@ -195,14 +208,7 @@ if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
   if [ -n "$GITHUB_REPO" ]; then
     # Create clickable link to GitHub PR
     PR_URL="${GITHUB_REPO}/pull/${PR_NUMBER}"
-    if [ -n "${CLAUDE_CODE_REMOTE:-}" ]; then
-      # Web IDE: show label + plain URL (URL will be auto-clickable)
-      STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC} ${BLUE}${PR_URL}${NC}"
-    else
-      # Terminal: use OSC 8 for embedded clickable link
-      PR_LINK=$(create_hyperlink "$PR_URL" "PR#${PR_NUMBER}" "$BLUE")
-      STATUS_LINE="${STATUS_LINE} ${PR_LINK}"
-    fi
+    STATUS_LINE="${STATUS_LINE}$(format_status_link "PR#${PR_NUMBER}" "$PR_URL" "$BLUE")"
   else
     # Fallback: non-clickable
     STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
