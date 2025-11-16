@@ -1,0 +1,21 @@
+{
+  "log_type": "operational",
+  "local_retention_days": 14,
+  "cloud_retention_policy": "90_days",
+  "priority": "medium",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": true,
+  "metadata": {
+    "description": "Routine operations, maintenance, backups, and system tasks",
+    "typical_size_mb": 10,
+    "typical_duration_minutes": 30,
+    "value": "Medium - operational history, troubleshooting, capacity planning"
+  },
+  "retention_exceptions": {
+    "keep_failed_operations_longer": true,
+    "keep_migration_logs_90_days": true,
+    "keep_backup_verification_logs": true
+  }
+}

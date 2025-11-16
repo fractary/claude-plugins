@@ -1,0 +1,16 @@
+{
+  "log_type": "test",
+  "local_retention_days": 3,
+  "cloud_retention_policy": "7_days",
+  "priority": "low",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": true,
+  "metadata": {
+    "description": "Test execution logs",
+    "typical_size_mb": 2,
+    "typical_duration_minutes": 5,
+    "value": "Low - short-term relevance for debugging test failures"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "log_type": "audit",
+  "local_retention_days": 90,
+  "cloud_retention_policy": "forever",
+  "priority": "critical",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": false,
+  "metadata": {
+    "description": "Security, compliance, and access audit trails",
+    "typical_size_mb": 5,
+    "typical_duration_minutes": null,
+    "value": "Critical - regulatory compliance, security forensics, legal requirements"
+  },
+  "retention_exceptions": {
+    "never_delete_security_incidents": true,
+    "never_delete_compliance_audits": true,
+    "keep_critical_severity_forever": true,
+    "regulatory_hold": {
+      "enabled": true,
+      "frameworks": ["SOC2", "HIPAA", "GDPR", "PCI-DSS"]
+    }
+  },
+  "validation": {
+    "require_immutability": true,
+    "require_sequential_audit_trail": true,
+    "require_security_context_for_security_type": true,
+    "require_changes_section_for_change_type": true,
+    "require_compliance_tags_for_compliance_type": true
+  },
+  "archival": {
+    "archive_format": "append_only",
+    "encrypt_at_rest": true,
+    "tamper_detection": true,
+    "backup_redundancy": 3
+  }
+}

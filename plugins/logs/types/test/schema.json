@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Test Log Schema",
+  "properties": {
+    "log_type": {"const": "test"},
+    "title": {"type": "string"},
+    "test_id": {"type": "string"},
+    "issue_number": {"type": ["string", "number", "null"]},
+    "date": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["pending", "running", "passed", "failed", "skipped", "archived"]},
+    "test_suite": {"type": "string"},
+    "test_framework": {"type": "string"},
+    "total_tests": {"type": "integer", "minimum": 0},
+    "passed_tests": {"type": "integer", "minimum": 0},
+    "failed_tests": {"type": "integer", "minimum": 0},
+    "duration_seconds": {"type": "integer", "minimum": 0}
+  },
+  "required": ["log_type", "title", "test_id", "date", "status"]
+}

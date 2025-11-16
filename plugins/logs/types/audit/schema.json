@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Audit Log Schema",
+  "properties": {
+    "log_type": {"const": "audit"},
+    "title": {"type": "string"},
+    "audit_id": {"type": "string"},
+    "date": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["active", "completed", "archived"]},
+    "audit_type": {"enum": ["security", "compliance", "performance", "access", "change"]},
+    "severity": {"enum": ["info", "warning", "critical"]},
+    "user": {"type": "string"},
+    "action": {"type": "string"},
+    "resource": {"type": "string"}
+  },
+  "required": ["log_type", "title", "audit_id", "date", "status", "audit_type"]
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Untyped Log Schema",
+  "description": "Fallback schema for logs without explicit type classification",
+  "properties": {
+    "log_type": {"const": "_untyped"},
+    "title": {"type": "string"},
+    "log_id": {"type": "string"},
+    "date": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["active", "completed", "archived"]},
+    "source": {"type": "string"},
+    "category": {"type": "string"}
+  },
+  "required": ["log_type", "title", "log_id", "date", "status"]
+}

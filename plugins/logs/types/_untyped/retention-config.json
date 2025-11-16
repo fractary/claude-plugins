@@ -1,0 +1,27 @@
+{
+  "log_type": "_untyped",
+  "local_retention_days": 7,
+  "cloud_retention_policy": "30_days",
+  "priority": "low",
+  "auto_archive": true,
+  "compression": true,
+  "compression_format": "gzip",
+  "cleanup_after_archive": true,
+  "metadata": {
+    "description": "Unclassified logs and ad-hoc captures",
+    "typical_size_mb": 1,
+    "typical_duration_minutes": null,
+    "value": "Low - should be reviewed and reclassified when possible"
+  },
+  "review_policy": {
+    "enabled": true,
+    "review_interval_days": 7,
+    "suggest_classification": true,
+    "auto_classify_patterns": {
+      "session_keywords": ["conversation", "claude", "session_id", "user_prompt"],
+      "build_keywords": ["build", "compile", "webpack", "maven", "gradle"],
+      "deployment_keywords": ["deploy", "release", "production", "staging"],
+      "test_keywords": ["test", "jest", "pytest", "mocha", "suite"]
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Deployment Log Schema",
+  "description": "Schema for deployment/release log frontmatter",
+  "properties": {
+    "log_type": {
+      "const": "deployment",
+      "description": "Log type identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Deployment title"
+    },
+    "deployment_id": {
+      "type": "string",
+      "description": "Unique deployment identifier"
+    },
+    "issue_number": {
+      "type": ["string", "number", "null"],
+      "description": "Associated work item/issue number"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Deployment start date/time"
+    },
+    "status": {
+      "enum": ["pending", "deploying", "success", "failure", "rolled_back", "archived"],
+      "description": "Deployment status"
+    },
+    "environment": {
+      "enum": ["development", "staging", "production", "test"],
+      "description": "Target environment"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Version being deployed (semver)"
+    },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$",
+      "description": "Git commit SHA being deployed"
+    },
+    "deployment_tool": {
+      "type": "string",
+      "description": "Deployment tool used"
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Deployment duration in seconds"
+    }
+  },
+  "required": [
+    "log_type",
+    "title",
+    "deployment_id",
+    "date",
+    "status",
+    "environment"
+  ],
+  "additionalProperties": true
+}
