@@ -230,7 +230,8 @@
         "strict": true,
         "commands": [
           "./commands/init.md",
-          "./commands/generate.md",
+          "./commands/create.md",
+          "./commands/create-from-issue.md",
           "./commands/validate.md",
           "./commands/archive.md",
           "./commands/read.md"
