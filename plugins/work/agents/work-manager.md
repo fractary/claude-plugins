@@ -566,7 +566,7 @@ If branch creation fails:
    ⚠️ Branch creation failed: [error message]
 
    You can create a branch manually with:
-   /fractary-repo:branch-create --work_id {issue_id}
+   /fractary-repo:branch-create --work-id {issue_id}
    ```
 
 ### Complete Example Workflows
