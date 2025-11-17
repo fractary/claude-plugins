@@ -533,7 +533,10 @@ Result: `my-project-core-test-database`
 Each environment can have:
 - `auto_approve`: Whether to auto-approve (false for safety)
 - `cost_threshold`: Monthly cost limit ($)
-- `require_confirmation`: Extra confirmation required (true for prod)
+- `require_confirmation`: Production safety confirmation protocol
+  - `true`: Requires 2-step user confirmation before deployment (recommended for prod)
+  - `false`: No confirmation required (use for test/dev environments)
+  - See [SECURITY.md](../SECURITY.md#production-deployment-safety) for full details on the confirmation protocol
 
 ---
 
