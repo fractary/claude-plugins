@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-create
 description: Create a new work item
-argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>]'
+argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create]'
 ---
 
 <CONTEXT>
@@ -35,12 +35,13 @@ Your role is to parse user input and invoke the work-manager agent to create a n
 <WORKFLOW>
 1. **Parse user input**
    - Extract title (required)
-   - Parse optional arguments: --type, --body, --label, --milestone, --assignee
+   - Parse optional arguments: --type, --body, --label, --milestone, --assignee, --branch-create
    - Validate required arguments are present
 
 2. **Build structured request**
    - Convert `--type` to label format (e.g., "type: feature")
    - Merge type label with any additional --label flags
+   - Set `branch_create` to true if --branch-create flag is provided
    - Package all parameters
 
 3. **ACTUALLY INVOKE the Task tool**
@@ -107,6 +108,7 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 - `--label`: Additional labels (can be repeated, space-separated values not allowed)
 - `--milestone`: Milestone name or number
 - `--assignee`: User to assign (use @me for yourself)
+- `--branch-create`: Automatically create a Git branch for this issue (requires fractary-repo plugin)
 
 **Maps to**: create-issue operation
 
@@ -128,6 +130,9 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 # Create with milestone and assignee
 /work:issue-create "Implement auth" --type feature --milestone "v1.0 Release" --assignee @me
+
+# Create and automatically create branch
+/work:issue-create "Add dark mode" --type feature --branch-create
 ```
 </EXAMPLES>
 
@@ -145,10 +150,13 @@ Invoke the fractary-work:work-manager agent with the following request:
     "description": "Optional description",
     "labels": "type: feature,label1,label2",
     "milestone": "Optional milestone",
-    "assignee": "Optional assignee"
+    "assignee": "Optional assignee",
+    "branch_create": false
   }
 }
 ```
+
+**Note**: Set `branch_create` to `true` if the `--branch-create` flag is provided. This will automatically create a Git branch after the issue is created (requires fractary-repo plugin to be configured).
 
 The work-manager agent will:
 1. Validate the request
