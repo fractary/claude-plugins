@@ -33,3 +33,6 @@ node_modules
 
 # Status plugin test installation artifacts
 .claude/status/
+
+
+/.tmp/
