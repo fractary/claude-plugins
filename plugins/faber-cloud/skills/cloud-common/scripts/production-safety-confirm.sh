@@ -7,7 +7,7 @@
 # Usage: production-safety-confirm.sh <environment> <operation> [plan_summary]
 #
 # Arguments:
-#   environment    - Target environment (prod, production, etc.)
+#   environment    - Target environment (prod, production, live, etc.)
 #   operation      - Operation being performed (deploy, apply, etc.)
 #   plan_summary   - Optional: Path to file containing plan summary
 #
@@ -16,11 +16,22 @@
 #   1 - User declined or invalid response, abort operation
 #   2 - Invalid arguments or configuration error
 #
-# Environment Variables (optional):
-#   DEVOPS_AUTO_APPROVE - If "true", skip confirmations (NOT recommended for production)
-#   CI                  - If set, indicates CI/CD environment (requires explicit bypass)
+# Environment Variables:
+#   DEVOPS_REQUIRE_CONFIRMATION - Set by config-loader.sh from environments.{env}.require_confirmation
+#   DEVOPS_AUTO_APPROVE        - If "true", bypass interactive confirmation (CI/CD use)
+#   CI                         - If set, indicates CI/CD environment (requires explicit bypass)
+#
+# Variable Distinction:
+#   DEVOPS_REQUIRE_CONFIRMATION - Configuration setting (should confirmation be required?)
+#   DEVOPS_AUTO_APPROVE         - Runtime override (bypass confirmation in CI/CD)
+#
+# Audit Logging:
+#   All confirmation attempts are logged to stderr with timestamp and decision
 
 set -euo pipefail
+
+# Timeouts (in seconds)
+readonly CONFIRMATION_TIMEOUT=300  # 5 minutes per question
 
 # Colors for output
 RED='\033[0;31m'
@@ -32,6 +43,30 @@ NC='\033[0m' # No Color
 
 # Script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Max plan summary size to display (1MB)
+readonly MAX_PLAN_SIZE=$((1024 * 1024))
+
+# Audit log function
+audit_log() {
+  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  local message="$*"
+  echo "[AUDIT] [$timestamp] $message" >&2
+}
+
+# Signal handler for graceful exit
+handle_signal() {
+  local signal=$1
+  audit_log "Received signal $signal - aborting confirmation"
+  echo ""
+  log_error "Confirmation interrupted by signal $signal"
+  display_abort_message "User interrupted confirmation (signal $signal)"
+  exit 1
+}
+
+# Set up signal handlers
+trap 'handle_signal SIGINT' INT
+trap 'handle_signal SIGTERM' TERM
 
 # Function: Display usage
 usage() {
@@ -89,32 +124,43 @@ display_warning_banner() {
   echo -e "${YELLOW}Target Environment:${NC} ${RED}${BOLD}${environment^^}${NC}"
   echo -e "${YELLOW}Operation:${NC}          ${operation}"
   echo ""
-  echo -e "${RED}${BOLD}This will affect the PRODUCTION environment.${NC}"
+  echo -e "${RED}${BOLD}This will affect the ${environment^^} environment.${NC}"
   echo ""
 }
 
-# Function: Ask yes/no question
+# Function: Ask yes/no question with timeout
 ask_yes_no() {
   local question="$1"
   local response
 
   echo -e "${YELLOW}${question}${NC}"
-  read -r -p "Answer (yes/no): " response
 
-  # Normalize response
-  response=$(echo "$response" | tr '[:upper:]' '[:lower:]' | xargs)
+  # Use read with timeout
+  if read -r -t "$CONFIRMATION_TIMEOUT" -p "Answer (yes/no): " response; then
+    # Normalize response
+    response=$(echo "$response" | tr '[:upper:]' '[:lower:]' | xargs)
 
-  if [[ "$response" == "yes" || "$response" == "y" ]]; then
-    return 0
-  elif [[ "$response" == "no" || "$response" == "n" ]]; then
-    return 1
+    if [[ "$response" == "yes" || "$response" == "y" ]]; then
+      audit_log "User answered: yes"
+      return 0
+    elif [[ "$response" == "no" || "$response" == "n" ]]; then
+      audit_log "User answered: no"
+      return 1
+    else
+      audit_log "Invalid response: $response"
+      log_error "Invalid response: '$response' (expected: yes/no)"
+      return 1
+    fi
   else
-    log_error "Invalid response: '$response' (expected: yes/no)"
+    # Timeout occurred
+    audit_log "Timeout waiting for user response ($CONFIRMATION_TIMEOUT seconds)"
+    echo ""
+    log_error "Timeout waiting for response ($CONFIRMATION_TIMEOUT seconds)"
     return 1
   fi
 }
 
-# Function: Ask for typed confirmation
+# Function: Ask for typed confirmation with timeout
 ask_typed_confirmation() {
   local expected="$1"
   local prompt="$2"
@@ -122,12 +168,22 @@ ask_typed_confirmation() {
 
   echo ""
   echo -e "${YELLOW}${prompt}${NC}"
-  read -r -p "Type exactly: " response
 
-  if [[ "$response" == "$expected" ]]; then
-    return 0
+  # Use read with timeout
+  if read -r -t "$CONFIRMATION_TIMEOUT" -p "Type exactly: " response; then
+    if [[ "$response" == "$expected" ]]; then
+      audit_log "Typed confirmation successful: $expected"
+      return 0
+    else
+      audit_log "Typed confirmation failed: expected '$expected', got '$response'"
+      log_error "Confirmation failed. Expected '${expected}', got '${response}'"
+      return 1
+    fi
   else
-    log_error "Confirmation failed. Expected '${expected}', got '${response}'"
+    # Timeout occurred
+    audit_log "Timeout waiting for typed confirmation ($CONFIRMATION_TIMEOUT seconds)"
+    echo ""
+    log_error "Timeout waiting for confirmation ($CONFIRMATION_TIMEOUT seconds)"
     return 1
   fi
 }
@@ -141,18 +197,43 @@ display_plan_summary() {
     return 0
   fi
 
-  echo ""
-  echo "─────────────────────────────────────────────────────────────"
-  echo -e "${BLUE}Deployment Plan Summary:${NC}"
-  echo "─────────────────────────────────────────────────────────────"
-  cat "$plan_file"
-  echo "─────────────────────────────────────────────────────────────"
-  echo ""
+  # Check if file is readable
+  if [[ ! -r "$plan_file" ]]; then
+    log_warning "Plan summary file exists but is not readable: $plan_file"
+    return 0
+  fi
+
+  # Check file size
+  local file_size=$(stat -f%z "$plan_file" 2>/dev/null || stat -c%s "$plan_file" 2>/dev/null || echo "0")
+
+  if [[ "$file_size" -gt "$MAX_PLAN_SIZE" ]]; then
+    log_warning "Plan summary is too large to display (${file_size} bytes > ${MAX_PLAN_SIZE} bytes)"
+    log_info "Showing first 100 lines only..."
+    echo ""
+    echo "─────────────────────────────────────────────────────────────"
+    echo -e "${BLUE}Deployment Plan Summary (truncated):${NC}"
+    echo "─────────────────────────────────────────────────────────────"
+    head -n 100 "$plan_file" || log_error "Failed to read plan file"
+    echo "..."
+    echo "(Plan truncated - file too large)"
+    echo "─────────────────────────────────────────────────────────────"
+    echo ""
+  else
+    echo ""
+    echo "─────────────────────────────────────────────────────────────"
+    echo -e "${BLUE}Deployment Plan Summary:${NC}"
+    echo "─────────────────────────────────────────────────────────────"
+    cat "$plan_file" || log_error "Failed to read plan file"
+    echo "─────────────────────────────────────────────────────────────"
+    echo ""
+  fi
 }
 
 # Function: Display abort message
 display_abort_message() {
   local reason="$1"
+
+  audit_log "DEPLOYMENT ABORTED: $reason"
 
   echo ""
   echo -e "${RED}╔═══════════════════════════════════════════════════════════════╗${NC}"
@@ -201,6 +282,8 @@ execute_confirmation_protocol() {
   local operation="$2"
   local plan_summary="${3:-}"
 
+  audit_log "Starting confirmation protocol for environment=$environment operation=$operation"
+
   # Display warning banner
   display_warning_banner "$environment" "$operation"
 
@@ -214,7 +297,7 @@ execute_confirmation_protocol() {
   echo -e "${BOLD}CONFIRMATION 1 of 2${NC}"
   echo ""
 
-  if ! ask_yes_no "Have you validated this deployment in TEST environment and are ready to deploy to PRODUCTION?"; then
+  if ! ask_yes_no "Have you validated this deployment in TEST environment and are ready to deploy to ${environment^^}?"; then
     display_abort_message "User declined at initial confirmation"
     return 1
   fi
@@ -231,7 +314,7 @@ execute_confirmation_protocol() {
   echo -e "${BOLD}CONFIRMATION 2 of 2${NC}"
   echo ""
   echo -e "${YELLOW}Final confirmation required.${NC}"
-  echo -e "${YELLOW}This deployment will affect live production systems.${NC}"
+  echo -e "${YELLOW}This deployment will affect live ${environment^^} systems.${NC}"
   echo ""
 
   local env_lower=$(echo "$environment" | tr '[:upper:]' '[:lower:]')
@@ -242,6 +325,7 @@ execute_confirmation_protocol() {
 
   echo ""
   log_success "Production deployment confirmed"
+  audit_log "DEPLOYMENT APPROVED: environment=$environment operation=$operation"
   echo ""
 
   return 0
@@ -258,18 +342,29 @@ main() {
   local operation="$2"
   local plan_summary="${3:-}"
 
+  audit_log "Script invoked: environment=$environment operation=$operation plan_summary=${plan_summary:-none} user=${USER:-unknown} pwd=$PWD"
+
   # Normalize environment name
   local env_lower=$(echo "$environment" | tr '[:upper:]' '[:lower:]')
 
-  # Check if this is actually a production environment
-  if [[ "$env_lower" != "prod" && "$env_lower" != "production" ]]; then
-    log_error "This script is for production environments only"
-    log_error "Environment '$environment' does not appear to be production"
-    exit 2
-  fi
+  # NOTE: We accept ANY environment name. The calling skill (infra-deployer) is responsible
+  # for determining whether confirmation is required based on the require_confirmation config.
+  # This script assumes it's being called for an environment that needs confirmation.
+
+  # Log common production environment names if detected
+  case "$env_lower" in
+    prod|production|live|prd)
+      log_info "Detected common production environment name: $environment"
+      ;;
+    *)
+      log_warning "Environment name '$environment' - ensure this is correct"
+      log_warning "This confirmation protocol is intended for production environments"
+      ;;
+  esac
 
   # Check for CI/CD environment bypass
   if check_ci_environment; then
+    audit_log "DEPLOYMENT APPROVED: CI/CD bypass via DEVOPS_AUTO_APPROVE=true"
     log_success "Production deployment approved via CI/CD configuration"
     exit 0
   fi

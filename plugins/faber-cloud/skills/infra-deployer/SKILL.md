@@ -77,8 +77,11 @@ AWS Profile: {profile}
    - If validation fails (exit code 1): STOP deployment, show errors
    - If validation passes (exit code 0): Continue to step 3
 3. **Check production safety confirmation requirement:**
-   - Check if `DEVOPS_REQUIRE_CONFIRMATION` is "true" (loaded from config)
-   - If true and environment is production, mark that confirmation will be required after plan generation
+   - Configuration is loaded by sourcing cloud-common/scripts/config-loader.sh
+   - config-loader.sh reads `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+   - It sets `DEVOPS_REQUIRE_CONFIRMATION` from `environments.{env}.require_confirmation`
+   - Example: If config has `"prod": {"require_confirmation": true}`, then `DEVOPS_REQUIRE_CONFIRMATION="true"`
+   - If "true", mark that confirmation will be required after plan generation (step 9)
    - Continue to step 4
 4. Run legacy validation (validate-plan.sh) for profile/backend checks
 5. Validate AWS profile separation
@@ -201,8 +204,13 @@ Before deployment (step 2):
 **When production deployment confirmation is required:**
 
 The production safety confirmation protocol is triggered when:
-- Environment is "prod" or "production"
 - Configuration has `environments.{env}.require_confirmation: true`
+- This sets `DEVOPS_REQUIRE_CONFIRMATION="true"` (loaded by config-loader.sh)
+- Works with any environment name (prod, production, live, prd, prod-us, etc.)
+
+**Environment Variable Distinction:**
+- `DEVOPS_REQUIRE_CONFIRMATION` - From config, indicates if confirmation is required
+- `DEVOPS_AUTO_APPROVE` - Runtime override to bypass interactive confirmation (CI/CD use)
 
 **Two-Question Confirmation Protocol:**
 
@@ -233,6 +241,13 @@ The production safety confirmation protocol is triggered when:
 - If user declines or fails confirmation, deployment stops immediately
 - Clear message displayed with recommended next steps
 - User can retry deployment after addressing concerns
+
+**Safety Features:**
+- 5-minute timeout on each confirmation question
+- Graceful handling of SIGINT/SIGTERM (Ctrl+C)
+- Plan summary size limit (1MB, shows first 100 lines if larger)
+- Comprehensive audit logging to stderr
+- Works with any environment name (not limited to "prod"/"production")
 
 **Integration Point:**
 Execute after plan generation (step 9) but before pre-deploy hooks (step 10).
