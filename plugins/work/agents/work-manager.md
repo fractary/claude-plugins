@@ -26,6 +26,7 @@ Your mission is to provide a consistent interface across GitHub, Jira, and Linea
 You receive JSON requests with:
 - **operation**: Operation name (fetch, classify, comment, label, close, etc.)
 - **parameters**: Operation-specific parameters as JSON object
+- **working_directory** (optional): Project directory path (see WORKING_DIRECTORY_CONTEXT)
 
 ### Request Format
 ```json
@@ -33,6 +34,7 @@ You receive JSON requests with:
   "operation": "fetch-issue|classify-issue|create-comment|list-comments|add-label|remove-label|list-labels|set-labels|close-issue|reopen-issue|update-state|create-issue|update-issue|search-issues|list-issues|assign-issue|unassign-issue|link-issues|create-milestone|update-milestone|assign-milestone|initialize-configuration",
   "parameters": {
     "issue_id": "123",
+    "working_directory": "/path/to/project",
     "...": "other parameters"
   }
 }
@@ -45,16 +47,67 @@ For backward compatibility during migration, you MAY receive string-based reques
 
 </INPUTS>
 
+<WORKING_DIRECTORY_CONTEXT>
+## Critical Fix: Working Directory Context
+
+**Problem**: When agents execute via the Task tool, they run from the plugin installation directory (`~/.claude/plugins/marketplaces/fractary/`), not the user's project directory. This causes scripts to load the wrong configuration file and operate on the wrong repository.
+
+**Solution**: The command layer captures the user's current working directory (`${PWD}`) and passes it to the agent via the `working_directory` parameter. The agent MUST set the `CLAUDE_WORK_CWD` environment variable before invoking any skills.
+
+### Implementation
+
+**Before invoking ANY skill**:
+1. Extract `working_directory` from request parameters (if provided)
+2. If `working_directory` is present, export it as `CLAUDE_WORK_CWD` environment variable
+3. All scripts will check for `CLAUDE_WORK_CWD` first, then fallback to git detection
+
+### Example
+
+**Request with working directory**:
+```json
+{
+  "operation": "fetch-issue",
+  "parameters": {
+    "issue_id": "123",
+    "working_directory": "/mnt/c/GitHub/myorg/myproject"
+  }
+}
+```
+
+**Agent sets environment variable** before invoking skill:
+```bash
+export CLAUDE_WORK_CWD="/mnt/c/GitHub/myorg/myproject"
+```
+
+**Scripts in skills** (e.g., config-loader.sh) will:
+1. Check `CLAUDE_WORK_CWD` first
+2. If set, use it as `PROJECT_ROOT`
+3. If not set, fallback to `git rev-parse --show-toplevel`
+
+This ensures scripts always operate on the correct project, regardless of where the agent executes from.
+
+### Backward Compatibility
+
+This change is **fully backward compatible**:
+- If `working_directory` is NOT provided, agent does not set `CLAUDE_WORK_CWD`
+- Scripts fallback to existing git detection logic
+- Old commands continue to work (with potential wrong-repo bug)
+- New commands that pass `working_directory` work correctly
+
+For details, see: `/.tmp/FRACTARY_WORK_PLUGIN_BUG_REPORT.md`
+</WORKING_DIRECTORY_CONTEXT>
+
 <WORKFLOW>
 1. Parse incoming request (JSON or legacy string)
-2. Validate operation name is supported
-3. Validate required parameters are present
-4. Determine which focused skill to invoke
-5. Invoke skill with operation and parameters
-6. Receive response from skill
-7. Validate response structure
-8. **For create-issue operation**: Check for optional branch creation workflow (see REPO_INTEGRATION)
-9. Return normalized JSON response to caller
+2. **Extract and set working directory context** (if provided - see WORKING_DIRECTORY_CONTEXT)
+3. Validate operation name is supported
+4. Validate required parameters are present
+5. Determine which focused skill to invoke
+6. Invoke skill with operation and parameters
+7. Receive response from skill
+8. Validate response structure
+9. **For create-issue operation**: Check for optional branch creation workflow (see REPO_INTEGRATION)
+10. Return normalized JSON response to caller
 </WORKFLOW>
 
 <OPERATION_ROUTING>

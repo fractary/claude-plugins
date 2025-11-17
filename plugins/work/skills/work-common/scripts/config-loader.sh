@@ -6,10 +6,18 @@ set -euo pipefail
 
 # Find project root by locating .git directory
 # This ensures we can find config regardless of current working directory
-if command -v git >/dev/null 2>&1; then
+#
+# CRITICAL FIX: Check for CLAUDE_WORK_CWD environment variable first
+# This solves the agent execution context bug where agents run from plugin directory
+# instead of user's project directory. See: FRACTARY_WORK_PLUGIN_BUG_REPORT.md
+if [ -n "${CLAUDE_WORK_CWD:-}" ]; then
+    # Use working directory provided by command layer
+    PROJECT_ROOT="$CLAUDE_WORK_CWD"
+elif command -v git >/dev/null 2>&1; then
+    # Fallback: Use git to find repository root
     PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 else
-    # If git not available, try to find .fractary directory in parent directories
+    # Fallback: Try to find .fractary directory in parent directories
     PROJECT_ROOT="$(pwd)"
     while [ "$PROJECT_ROOT" != "/" ]; do
         if [ -d "$PROJECT_ROOT/.fractary" ] || [ -d "$PROJECT_ROOT/.git" ]; then

@@ -38,12 +38,18 @@ Your role is to parse user input and invoke the work-manager agent to create a n
    - Parse optional arguments: --type, --body, --label, --milestone, --assignee
    - Validate required arguments are present
 
-2. **Build structured request**
+2. **Capture working directory context**
+   - Capture current directory: `WORK_CWD="${PWD}"`
+   - This ensures operations execute in the correct repository
+   - Critical fix for agent execution context bug
+
+3. **Build structured request**
    - Convert `--type` to label format (e.g., "type: feature")
    - Merge type label with any additional --label flags
    - Package all parameters
+   - Include working_directory in parameters
 
-3. **ACTUALLY INVOKE the Task tool**
+4. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
@@ -56,7 +62,7 @@ Your role is to parse user input and invoke the work-manager agent to create a n
    - DO NOT try alternative approaches
    - Wait for user to provide explicit instruction
 
-4. **Return response**
+5. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
@@ -136,6 +142,8 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 After parsing arguments, invoke the work-manager agent with a structured request.
 
+**CRITICAL**: Capture the current working directory and pass it to the agent to ensure operations execute in the correct repository.
+
 Invoke the fractary-work:work-manager agent with the following request:
 ```json
 {
@@ -145,16 +153,21 @@ Invoke the fractary-work:work-manager agent with the following request:
     "description": "Optional description",
     "labels": "type: feature,label1,label2",
     "milestone": "Optional milestone",
-    "assignee": "Optional assignee"
+    "assignee": "Optional assignee",
+    "working_directory": "${PWD}"
   }
 }
 ```
 
 The work-manager agent will:
-1. Validate the request
-2. Route to the appropriate skill (issue-creator)
-3. Execute the platform-specific operation (GitHub/Jira/Linear)
-4. Return structured results
+1. Set `CLAUDE_WORK_CWD` environment variable from `working_directory`
+2. Validate the request
+3. Route to the appropriate skill (issue-creator)
+4. Execute the platform-specific operation (GitHub/Jira/Linear)
+5. Return structured results
+
+**Why working_directory is required**:
+When agents execute via Task tool, they run from the plugin directory, not the user's project directory. Passing `working_directory` ensures scripts load the correct configuration and create the issue in the correct repository. See: `/.tmp/FRACTARY_WORK_PLUGIN_BUG_REPORT.md`
 
 ## Type Conversion
 
