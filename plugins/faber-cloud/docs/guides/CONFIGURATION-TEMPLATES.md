@@ -636,7 +636,7 @@ Handlers define provider-specific settings:
 ```
 
 - **approval**: Require manual approval for specific environments
-- **validation**: Enhanced validation checks (see SPEC-0030-02)
+- **validation**: Enhanced validation checks (see SPEC-00030-02)
 - **rollback**: Rollback behavior on failures
 
 ### Template-Specific Fields
@@ -1008,6 +1008,6 @@ After understanding configuration templates:
 
 - [HOOKS.md](./HOOKS.md) - Comprehensive hook system guide with 11+ examples
 - [MIGRATION-FROM-CUSTOM-AGENTS.md](./MIGRATION-FROM-CUSTOM-AGENTS.md) - Migrate from custom scripts
-- [SPEC-0030-01](../../specs/SPEC-0030-01-faber-cloud-adoption-migration.md) - Adoption specification
-- [SPEC-0030-02](../../specs/SPEC-0030-02-enhanced-environment-validation.md) - Environment validation specification
+- [SPEC-00030-01](../../specs/SPEC-00030-01-faber-cloud-adoption-migration.md) - Adoption specification
+- [SPEC-00030-02](../../specs/SPEC-00030-02-enhanced-environment-validation.md) - Environment validation specification
 - [adopt command](../../commands/adopt.md) - Adoption command documentation

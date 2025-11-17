@@ -710,7 +710,7 @@ done
 - Consistent with familiar tools
 - Clear when quotes are needed
 
-See [SPEC-0014: CLI Argument Standards](../specs/SPEC-0014-cli-argument-standards.md) for detailed analysis.
+See [SPEC-00014: CLI Argument Standards](../specs/SPEC-00014-cli-argument-standards.md) for detailed analysis.
 
 ### Agent Invocation Syntax
 

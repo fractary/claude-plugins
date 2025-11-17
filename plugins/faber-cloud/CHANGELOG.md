@@ -107,4 +107,4 @@ All commands now use space-separated syntax:
 - **Better Parsing**: More reliable for Claude Code
 - **Consistent**: All Fractary plugins now use the same syntax
 
-See [SPEC-0014: CLI Argument Standards](../../docs/specs/SPEC-0014-cli-argument-standards.md) for detailed analysis.
+See [SPEC-00014: CLI Argument Standards](../../specs/SPEC-00014-cli-argument-standards.md) for detailed analysis.

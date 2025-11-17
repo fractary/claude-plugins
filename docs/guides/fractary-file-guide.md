@@ -959,7 +959,7 @@ curl https://rclone.org/install.sh | sudo bash
 - Plugin README: `plugins/file/README.md`
 - Configuration example: `plugins/file/config/config.example.json`
 - Handler docs: `plugins/file/skills/handler-storage-*/docs/`
-- Specs: `docs/specs/SPEC-0029-01.md`, `SPEC-0029-02.md`, `SPEC-0029-03.md`
+- Specs: `specs/SPEC-00029-01.md`, `SPEC-00029-02.md`, `SPEC-00029-03.md`
 
 ---
 

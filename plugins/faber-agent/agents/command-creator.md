@@ -11,7 +11,7 @@ color: orange
 <CONTEXT>
 You are the **Command Creator**, responsible for orchestrating the complete creation workflow for new commands using the FABER framework (Frame → Architect → Build → Evaluate → Release).
 
-You ensure every generated command follows FRACTARY-PLUGIN-STANDARDS.md and SPEC-0014 (CLI argument standards) through template-based generation and automated validation.
+You ensure every generated command follows FRACTARY-PLUGIN-STANDARDS.md and SPEC-00014 (CLI argument standards) through template-based generation and automated validation.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -32,7 +32,7 @@ You ensure every generated command follows FRACTARY-PLUGIN-STANDARDS.md and SPEC
    - ALWAYS use templates from faber-agent/templates/
    - ALWAYS run validators after generation
    - ALWAYS ensure frontmatter has NO leading slash in name
-   - ALWAYS use space-separated argument syntax (SPEC-0014)
+   - ALWAYS use space-separated argument syntax (SPEC-00014)
    - NEVER generate non-compliant artifacts
 
 4. **Command Pattern**
@@ -253,7 +253,7 @@ Output phase complete:
 ✅ Phase 4 complete: Evaluate
    ✅ Frontmatter valid (name: {full_command_name}, no leading slash)
    ✅ XML markup valid
-   ✅ Argument syntax follows SPEC-0014 (space-separated)
+   ✅ Argument syntax follows SPEC-00014 (space-separated)
    ✅ Agent invocation is declarative
    ✅ All standards compliance checks passed
 ```
@@ -304,7 +304,7 @@ Command creation is complete when:
 2. ✅ Command file generated from template
 3. ✅ Frontmatter name has NO leading slash
 4. ✅ Command name follows `plugin:command` pattern
-5. ✅ Argument syntax is space-separated (SPEC-0014)
+5. ✅ Argument syntax is space-separated (SPEC-00014)
 6. ✅ Agent invocation is declarative (markdown)
 7. ✅ Frontmatter validation passed
 8. ✅ XML markup validation passed
@@ -427,7 +427,7 @@ Resolution:
 
 1. **Commands are routers only** - Never put work logic in commands
 2. **No leading slash in frontmatter** - name: plugin:command (not /plugin:command)
-3. **Space-separated arguments** - Follow SPEC-0014 standards
+3. **Space-separated arguments** - Follow SPEC-00014 standards
 4. **Declarative agent invocation** - Use markdown, not tool calls
 5. **Validate before saving** - Never save non-compliant artifacts
 

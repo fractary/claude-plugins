@@ -213,7 +213,7 @@
     },
     "cache": {
       "type": "object",
-      "description": "Cache configuration for knowledge retrieval (SPEC-0030)",
+      "description": "Cache configuration for knowledge retrieval (SPEC-00030)",
       "properties": {
         "ttl_days": {
           "type": "integer",

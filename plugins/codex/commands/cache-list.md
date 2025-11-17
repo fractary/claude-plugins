@@ -62,7 +62,7 @@ FRESH ENTRIES (38):
 ✓ @codex/auth-service/docs/oauth.md
   Size: 12.3 KB | Expires: 2025-01-22T10:00:00Z (6 days)
 
-✓ @codex/faber-cloud/specs/SPEC-0020.md
+✓ @codex/faber-cloud/specs/SPEC-00020.md
   Size: 45.2 KB | Expires: 2025-01-21T14:30:00Z (5 days)
 
 ✓ @codex/shared/standards/api-design.md

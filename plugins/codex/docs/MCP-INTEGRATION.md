@@ -82,7 +82,7 @@ codex://{project}/{path}
 
 Examples:
   codex://auth-service/docs/oauth.md
-  codex://faber-cloud/specs/SPEC-0020.md
+  codex://faber-cloud/specs/SPEC-00020.md
   codex://shared/standards/api-design.md
 ```
 
@@ -99,7 +99,7 @@ In Claude Code:
 ```
 Can you explain the OAuth flow described in codex://auth-service/docs/oauth.md?
 
-Based on codex://faber-cloud/specs/SPEC-0020.md, how should I implement...?
+Based on codex://faber-cloud/specs/SPEC-00020.md, how should I implement...?
 ```
 
 Claude automatically loads and uses the referenced content.
@@ -339,7 +339,7 @@ Claude uses:
 ```
 Review the FABER architecture spec and suggest improvements.
 
-Claude loads: codex://faber-cloud/specs/SPEC-0020.md
+Claude loads: codex://faber-cloud/specs/SPEC-00020.md
 ```
 
 ## Next Steps

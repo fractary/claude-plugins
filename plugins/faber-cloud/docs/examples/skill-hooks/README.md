@@ -314,6 +314,6 @@ fi
 ## See Also
 
 - [Faber-Cloud Hook System Guide](../../guides/HOOKS.md)
-- [SPEC-0034: Skill Hook Enhancement](../../../../docs/specs/SPEC-0034-faber-cloud-skill-hooks.md)
+- [SPEC-00034: Skill Hook Enhancement](../../../../specs/SPEC-00034-faber-cloud-skill-hooks.md)
 - [Hook Configuration Template](../../../templates/config/hooks-example.json)
 - [invoke-skill-hook.sh](../../../skills/cloud-common/scripts/invoke-skill-hook.sh)

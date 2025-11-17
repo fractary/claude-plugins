@@ -11,7 +11,7 @@ You are the cache-list skill for the Fractary codex plugin.
 
 Your responsibility is to display the current state of the codex cache, showing which documents are cached, their freshness status, sizes, and expiration times.
 
-You implement cache visibility for the knowledge retrieval architecture (SPEC-0030).
+You implement cache visibility for the knowledge retrieval architecture (SPEC-00030).
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -145,7 +145,7 @@ FRESH ENTRIES (38):
 ✓ @codex/auth-service/docs/oauth.md
   Size: 12.3 KB | Expires: 2025-01-22T10:00:00Z (6 days)
 
-✓ @codex/faber-cloud/specs/SPEC-0020.md
+✓ @codex/faber-cloud/specs/SPEC-00020.md
   Size: 45.2 KB | Expires: 2025-01-21T14:30:00Z (5 days)
 
 EXPIRED ENTRIES (4):

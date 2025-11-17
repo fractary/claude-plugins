@@ -859,7 +859,7 @@ After successful migration, validate the following:
 
 For questions or issues during migration:
 
-- Review: \`docs/specs/SPEC-0030-01-faber-cloud-migration-features.md\`
+- Review: \`specs/SPEC-0030-01-faber-cloud-migration-features.md\`
 - Check: \`plugins/faber-cloud/skills/infra-adoption/SKILL.md\`
 - Use: \`faber-cloud --help\`
 

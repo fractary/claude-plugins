@@ -215,7 +215,7 @@ Invokes: feature-creator agent
 
 This command follows the Fractary command pattern:
 - **Commands are routers** - Parse and delegate, never do work
-- **Space-separated arguments** - Following SPEC-0014 CLI standards
+- **Space-separated arguments** - Following SPEC-00014 CLI standards
 - **Declarative agent invocation** - Use markdown, not tool calls
 - **Standards enforcement** - command-creator ensures compliance
 

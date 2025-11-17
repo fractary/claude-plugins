@@ -52,4 +52,4 @@ All 4 commands now use space-separated syntax:
 - **Consistency**: Aligns with all other Fractary plugins
 - **Better UX**: More intuitive for developers familiar with standard CLI tools
 
-See [SPEC-0014: CLI Argument Standards](../../docs/specs/SPEC-0014-cli-argument-standards.md) for detailed analysis.
+See [SPEC-00014: CLI Argument Standards](../../specs/SPEC-00014-cli-argument-standards.md) for detailed analysis.

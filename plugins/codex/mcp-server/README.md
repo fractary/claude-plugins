@@ -84,7 +84,7 @@ codex://{project}/{path}
 
 Examples:
   codex://auth-service/docs/oauth.md
-  codex://faber-cloud/specs/SPEC-0020.md
+  codex://faber-cloud/specs/SPEC-00020.md
   codex://shared/standards/api-design.md
 ```
 
@@ -174,7 +174,7 @@ The server is stateless and reads directly from the filesystem cache.
 
 ## Related Documentation
 
-- [SPEC-0030-04: MCP Integration](../../../docs/specs/SPEC-0030-04-phase3-mcp-integration.md)
+- [SPEC-00030-04: MCP Integration](../../../specs/SPEC-00030-04-phase3-mcp-integration.md)
 - [MCP Protocol Documentation](https://modelcontextprotocol.io)
 - [Codex Plugin README](../README.md)
 

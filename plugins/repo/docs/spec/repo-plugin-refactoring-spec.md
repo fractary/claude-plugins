@@ -1868,7 +1868,7 @@ Test integration with FABER workflow:
 ### References
 
 - **FRACTARY Plugin Standards**: `docs/standards/FRACTARY-PLUGIN-STANDARDS.md`
-- **FABER Architecture**: `docs/specs/SPEC-0002-faber-architecture.md`
+- **FABER Architecture**: `specs/SPEC-00002-faber-architecture.md`
 - **Handler Pattern Reference**: `plugins/faber-cloud/` (reference implementation)
 - **3-Layer Architecture**: `docs/conversations/2025-10-22-cli-tool-reorganization-faber-details.md`
 

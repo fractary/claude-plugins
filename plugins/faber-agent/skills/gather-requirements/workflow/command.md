@@ -87,7 +87,7 @@ Enter argument hint:
 - Can be empty if command takes no arguments
 - Should use angle brackets < > for required
 - Should use square brackets [ ] for optional
-- Should use space-separated syntax (SPEC-0014)
+- Should use space-separated syntax (SPEC-00014)
 - Examples: `<name>`, `<file> [--format <type>]`
 
 ### 4. Prompt for Plugin Name (if not provided)
@@ -124,7 +124,7 @@ This command will be invoked as:
 Note: The frontmatter will have NO leading slash:
   name: {plugin_name}:{command_name}
 
-This follows SPEC-0014 CLI argument standards.
+This follows SPEC-00014 CLI argument standards.
 ```
 
 ### 6. Prompt for Optional Information
@@ -270,7 +270,7 @@ Return `{"status": "error", "error": "Agent name is required for command creatio
 
 ## Key Standards
 
-### SPEC-0014: CLI Argument Standards
+### SPEC-00014: CLI Argument Standards
 
 Commands MUST follow these patterns:
 

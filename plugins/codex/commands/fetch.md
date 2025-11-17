@@ -4,7 +4,7 @@ description: Fetch a document from codex knowledge base by reference
 usage: /fractary-codex:fetch <reference> [--force-refresh] [--ttl <days>]
 examples:
   - /fractary-codex:fetch @codex/auth-service/docs/oauth.md
-  - /fractary-codex:fetch @codex/faber-cloud/specs/SPEC-0020.md --force-refresh
+  - /fractary-codex:fetch @codex/faber-cloud/specs/SPEC-00020.md --force-refresh
   - /fractary-codex:fetch @codex/shared/standards/api-design.md --ttl 14
 ---
 
@@ -23,7 +23,7 @@ Fetch a document from the codex knowledge base using `@codex/` reference syntax.
 **Required:**
 - `<reference>`: Document reference in format `@codex/{project}/{path}`
   - Example: `@codex/auth-service/docs/oauth.md`
-  - Example: `@codex/faber-cloud/specs/SPEC-0020.md`
+  - Example: `@codex/faber-cloud/specs/SPEC-00020.md`
 
 **Optional:**
 - `--force-refresh`: Bypass cache and fetch fresh from source

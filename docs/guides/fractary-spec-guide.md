@@ -780,7 +780,7 @@ git clone https://github.com/org/repo
 - Plugin README: `plugins/spec/README.md`
 - Configuration example: `plugins/spec/config/config.example.json`
 - Templates: `plugins/spec/skills/spec-generator/templates/`
-- Specs: `docs/specs/SPEC-0029-08.md` through `SPEC-0029-11.md`
+- Specs: `specs/SPEC-00029-08.md` through `SPEC-00029-11.md`
 
 ---
 

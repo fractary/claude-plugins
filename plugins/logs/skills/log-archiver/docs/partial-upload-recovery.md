@@ -263,4 +263,4 @@ jq '.archives[] | select(.issue_number == "123") | .logs[] | select(.local_path 
 
 - [Archive Process](archive-process.md)
 - [Archive Issue Logs Workflow](../workflow/archive-issue-logs.md)
-- [SPEC-0029-14: Log Archive Workflow](../../../../docs/specs/SPEC-0029-14-log-archive-workflow.md)
+- [SPEC-00029-14: Log Archive Workflow](../../../../specs/SPEC-00029-14-log-archive-workflow.md)

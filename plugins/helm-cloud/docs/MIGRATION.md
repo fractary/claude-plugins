@@ -375,7 +375,7 @@ Once helm-cloud is stable, the next phase introduces:
 ### Documentation
 - [README.md](./README.md) - Helm-cloud overview and commands
 - [SKILLS.md](./SKILLS.md) - Detailed skill documentation
-- Specifications: `docs/specs/SPEC-0008-faber-helm-architecture.md`
+- Specifications: `specs/SPEC-00008-faber-helm-architecture.md`
 
 ### Support
 - Check troubleshooting section above

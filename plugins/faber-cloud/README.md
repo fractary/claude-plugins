@@ -9,7 +9,7 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 
 ---
 
-## What's New in v2.3.0 (SPEC-0030)
+## What's New in v2.3.0 (SPEC-00030)
 
 **Infrastructure Adoption & Migration**: Comprehensive support for adopting existing infrastructure into faber-cloud
 
@@ -21,13 +21,13 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
   - Assesses complexity and migration timeline
   - Creates comprehensive migration reports
 
-**Enhanced Environment Validation** (SPEC-0030-02):
+**Enhanced Environment Validation** (SPEC-00030-02):
 - Multi-signal validation (AWS profile, state file, workspace, directory)
 - Prevents cross-environment deployments
 - Production safety through multiple validation layers
 - Configurable validation rules per template
 
-**Lifecycle Hook System** (SPEC-0030-01, SPEC-0034):
+**Lifecycle Hook System** (SPEC-00030-01, SPEC-00034):
 - Pre/post hooks at 6 lifecycle points (plan, deploy, destroy)
 - **Script hooks** for shell commands and build steps
 - **Skill hooks** for reusable Claude Code skills (NEW in v2.3.1)
@@ -58,7 +58,7 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 
 ---
 
-## What's New in v2.2.0 (SPEC-0013)
+## What's New in v2.2.0 (SPEC-00013)
 
 **Command Reorganization**: Commands renamed for clarity and FABER phase alignment
 - `architect` (was `design` - aligns with FABER Architect phase)
@@ -95,7 +95,7 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 
 ## Migration from v2.1
 
-**Command Name Changes (v2.2.0 - SPEC-0013):**
+**Command Name Changes (v2.2.0 - SPEC-00013):**
 - `/fractary-faber-cloud:design` → `/fractary-faber-cloud:architect`
 - `/fractary-faber-cloud:configure` → `/fractary-faber-cloud:engineer`
 - `/fractary-faber-cloud:deploy-execute` → `/fractary-faber-cloud:deploy-apply`
@@ -794,14 +794,14 @@ git clone https://github.com/fractary/claude-plugins.git
 
 ## Version History
 
-**2.3.1 (SPEC-0034 Complete - Skill-Based Hooks):**
+**2.3.1 (SPEC-00034 Complete - Skill-Based Hooks):**
 - **Skill hooks** - Invoke Claude Code skills at lifecycle points
 - Structured WorkflowContext/WorkflowResult interfaces
 - Backward compatible (script hooks still work)
 - Example skills for dataset validation
 - Complete testing suite (14/14 tests passing)
 
-**2.3.0 (SPEC-0030 Complete - Adoption & Migration):**
+**2.3.0 (SPEC-00030 Complete - Adoption & Migration):**
 - Infrastructure adoption and discovery (adopt command)
 - Enhanced environment validation (multi-signal validation)
 - Lifecycle hook system (6 hook types with script support)
@@ -812,7 +812,7 @@ git clone https://github.com/fractary/claude-plugins.git
 - Migration reporting with risk analysis
 - Configuration generation and validation
 
-**2.2.0 (SPEC-0013 Complete - Command Reorganization):**
+**2.2.0 (SPEC-00013 Complete - Command Reorganization):**
 - Command renaming for FABER phase alignment
 - Audit command for infrastructure observability
 - Automated error fixing with --complete flag

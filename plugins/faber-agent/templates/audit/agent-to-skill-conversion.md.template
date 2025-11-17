@@ -589,7 +589,7 @@ Conversion is successful when:
 - [Manager-as-Agent Pattern Guide](../../docs/patterns/manager-as-agent.md)
 - [Agentic Control Plane Standards](../../docs/standards/agentic-control-plane-standards-2.md)
 - [Agent-to-Skill Migration Guide](../../docs/standards/agent-to-skill-migration.md)
-- [SPEC-025 Full Specification](../../docs/specs/SPEC-025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md)
+- [SPEC-0025 Full Specification](../../specs/SPEC-0025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md)
 
 ---
 

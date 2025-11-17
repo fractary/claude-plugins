@@ -1,6 +1,6 @@
 # /fractary-codex:migrate
 
-Migrate configuration from SPEC-0012 (v2.0 push-based sync) to SPEC-0030 (v3.0 pull-based retrieval).
+Migrate configuration from SPEC-00012 (v2.0 push-based sync) to SPEC-00030 (v3.0 pull-based retrieval).
 
 ## Usage
 

@@ -736,7 +736,7 @@ git filter-branch --tree-filter 'rm -f SPEC-*.md' HEAD
 For help:
 - **Plugin docs**: See `plugins/*/README.md`
 - **Troubleshooting**: See `docs/guides/troubleshooting.md`
-- **Specs**: See `docs/specs/SPEC-0029-*.md`
+- **Specs**: See `specs/SPEC-00029-*.md`
 - **Issues**: Report on GitHub
 
 ## Learn More

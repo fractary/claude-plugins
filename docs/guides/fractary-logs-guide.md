@@ -806,7 +806,7 @@ Send analysis results to monitoring:
 - Archive process: `plugins/logs/skills/log-archiver/docs/archive-process.md`
 - Search syntax: `plugins/logs/skills/log-searcher/docs/search-syntax.md`
 - Analysis types: `plugins/logs/skills/log-analyzer/docs/analysis-types.md`
-- Specs: `docs/specs/SPEC-0029-12.md` through `SPEC-0029-16.md`
+- Specs: `specs/SPEC-00029-12.md` through `SPEC-00029-16.md`
 
 ---
 

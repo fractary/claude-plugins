@@ -1168,7 +1168,7 @@ aws s3api put-bucket-lifecycle-configuration \
    - `docs/guides/fractary-logs-guide.md`
 
 3. **Specifications**:
-   - `docs/specs/SPEC-0029-*.md` (full specifications)
+   - `specs/SPEC-00029-*.md` (full specifications)
 
 4. **Examples**:
    - `docs/examples/` (sample workflows)

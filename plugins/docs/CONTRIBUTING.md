@@ -573,7 +573,7 @@ cat types/your-type/schema.json | jq .
 - **Questions**: Open a discussion in GitHub
 - **Bugs**: Open an issue with reproduction steps
 - **Ideas**: Open an issue with "enhancement" label
-- **Docs**: Read `README.md` and `docs/specs/SPEC-docs-plugin-refactor.md`
+- **Docs**: Read `README.md` and `specs/SPEC-00032-docs-plugin-refactor.md`
 
 ## License
 

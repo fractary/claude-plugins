@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "storage": {
+    "local_path": "/specs",
+    "cloud_archive_path": "archive/specs/{year}/{spec_id}.md",
+    "archive_index": {
+      "local_cache": ".fractary/plugins/spec/archive-index.json",
+      "cloud_backup": "archive/specs/.archive-index.json"
+    }
+  },
+  "naming": {
+    "issue_specs": {
+      "prefix": "WORK",
+      "digits": 5,
+      "phase_format": "numeric",
+      "phase_separator": "-"
+    },
+    "standalone_specs": {
+      "prefix": "SPEC",
+      "digits": 4,
+      "auto_increment": true,
+      "start_from": null
+    }
+  },
+  "archive": {
+    "strategy": "lifecycle",
+    "auto_archive_on": {
+      "issue_close": true,
+      "pr_merge": true,
+      "faber_release": true
+    },
+    "pre_archive": {
+      "check_docs_updated": "warn",
+      "prompt_user": true,
+      "require_validation": false
+    },
+    "post_archive": {
+      "update_archive_index": true,
+      "comment_on_issue": true,
+      "comment_on_pr": true,
+      "remove_from_local": true
+    }
+  },
+  "integration": {
+    "work_plugin": "fractary-work",
+    "file_plugin": "fractary-file",
+    "link_to_issue": true,
+    "update_issue_on_create": true,
+    "update_issue_on_archive": true,
+    "github_link_format": "dual"
+  },
+  "templates": {
+    "default": "spec-basic",
+    "custom_template_dir": null
+  }
+}

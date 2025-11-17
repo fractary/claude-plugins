@@ -615,7 +615,7 @@ See `plugins/docs/samples/` for complete example documentation sets demonstratin
 - Template guide: `plugins/docs/skills/doc-generator/docs/template-guide.md`
 - Validation rules: `plugins/docs/skills/doc-validator/docs/validation-rules.md`
 - Linking conventions: `plugins/docs/skills/doc-linker/docs/linking-conventions.md`
-- Specs: `docs/specs/SPEC-0029-04.md` through `SPEC-0029-07.md`
+- Specs: `specs/SPEC-00029-04.md` through `SPEC-00029-07.md`
 
 ---
 

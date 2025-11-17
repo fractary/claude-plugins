@@ -436,7 +436,7 @@ All directories are created automatically if missing.
 - **[User Guide](./docs/USER-GUIDE.md)** - Complete command reference and workflows
 - **[Architecture](./docs/ARCHITECTURE.md)** - System design and components
 - **[Skills Reference](./docs/SKILLS-REFERENCE.md)** - Detailed skill documentation
-- **[Original Spec](../../docs/specs/SPEC-0011-faber-article-plugin.md)** - System specification
+- **[Original Spec](../../specs/SPEC-00011-faber-article-plugin.md)** - System specification
 
 ---
 

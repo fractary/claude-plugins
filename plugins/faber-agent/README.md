@@ -415,8 +415,8 @@ Located in `validators/`:
 ## Documentation
 
 ### Specifications
-- `/docs/specs/SPEC-0015-faber-agent-plugin-specification.md` - Original spec
-- `/docs/specs/SPEC-025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md` - SPEC-025 implementation
+- `/specs/SPEC-00015-faber-agent-plugin-specification.md` - Original spec
+- `/specs/SPEC-00025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md` - SPEC-00025 implementation
 
 ### Standards
 - `/docs/standards/FRACTARY-PLUGIN-STANDARDS.md` - Plugin development standards
@@ -486,7 +486,7 @@ Located in `validators/`:
 
 ## Contributing
 
-See `/docs/specs/SPEC-0015-faber-agent-plugin-specification.md` and `/docs/specs/SPEC-025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md` for implementation details.
+See `/specs/SPEC-00015-faber-agent-plugin-specification.md` and `/specs/SPEC-00025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md` for implementation details.
 
 ---
 

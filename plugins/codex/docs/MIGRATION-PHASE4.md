@@ -1,6 +1,6 @@
-# Migration Guide: SPEC-0012 to SPEC-0030 (Phase 4)
+# Migration Guide: SPEC-00012 to SPEC-00030 (Phase 4)
 
-This guide helps you migrate from the **push-based sync system** (SPEC-0012, Codex v2.0) to the **pull-based knowledge retrieval system** (SPEC-0030, Codex v3.0).
+This guide helps you migrate from the **push-based sync system** (SPEC-00012, Codex v2.0) to the **pull-based knowledge retrieval system** (SPEC-00030, Codex v3.0).
 
 ## Table of Contents
 
@@ -166,8 +166,8 @@ Use the migration script to automatically convert your configuration:
 ```
 
 The script will:
-1. Detect your current SPEC-0012 configuration
-2. Convert to SPEC-0030 format
+1. Detect your current SPEC-00012 configuration
+2. Convert to SPEC-00030 format
 3. Preserve all settings
 4. Create backup of old config
 5. Test new configuration
@@ -590,7 +590,7 @@ After successful migration:
 
 - [README.md](../README.md) - Full v3.0 documentation
 - [MCP-INTEGRATION.md](./MCP-INTEGRATION.md) - MCP server setup
-- [SPEC-0030](./specs/SPEC-0030-01-overview.md) - Technical specification
+- [SPEC-00030](./specs/SPEC-00030-01-overview.md) - Technical specification
 
 ## Support
 

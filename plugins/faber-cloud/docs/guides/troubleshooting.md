@@ -1225,9 +1225,9 @@ bash plugins/faber-cloud/skills/infra-validator/scripts/validate-environment.sh 
 
 ### Check Specifications
 
-- [SPEC-0030-01](../../specs/SPEC-0030-01-faber-cloud-adoption-migration.md) - Adoption specification
-- [SPEC-0030-02](../../specs/SPEC-0030-02-enhanced-environment-validation.md) - Validation specification
-- [SPEC-0030-03](../../specs/SPEC-0030-03-infrastructure-discovery.md) - Discovery specification
+- [SPEC-00030-01](../../specs/SPEC-00030-01-faber-cloud-adoption-migration.md) - Adoption specification
+- [SPEC-00030-02](../../specs/SPEC-00030-02-enhanced-environment-validation.md) - Validation specification
+- [SPEC-00030-03](../../specs/SPEC-00030-03-infrastructure-discovery.md) - Discovery specification
 
 ### Debug Mode
 

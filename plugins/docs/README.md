@@ -875,7 +875,7 @@ To contribute:
 
 ## See Also
 
-- **[SPEC-docs-plugin-refactor.md](../../docs/specs/SPEC-docs-plugin-refactor.md)** - Detailed architecture specification
+- **[SPEC-00032-docs-plugin-refactor.md](../../specs/SPEC-00032-docs-plugin-refactor.md)** - Detailed architecture specification
 - **[CLAUDE.md](../../CLAUDE.md)** - Plugin development standards
 - **[fractary-codex](../codex/)** - Knowledge management integration
 - **[fractary-repo](../repo/)** - Source control integration

@@ -497,7 +497,7 @@ plugins/fractary-faber-cloud/
 │   ├── engineer.md               (Phase 1)
 │   ├── validate.md               (Phase 1)
 │   ├── test.md                   (Phase 2)
-│   ├── audit.md                  (SPEC-0013)
+│   ├── audit.md                  (SPEC-00013)
 │   ├── deploy-plan.md            (Phase 1)
 │   ├── deploy-apply.md           (Phase 1)
 │   ├── teardown.md               (Phase 2)

@@ -218,7 +218,7 @@ Documentation: plugins/faber-data/docs/agents/data-analyzer.md
 
 This command follows the Fractary command pattern:
 - **Commands are routers** - Parse and delegate, never do work
-- **Space-separated arguments** - Following SPEC-0014 CLI standards
+- **Space-separated arguments** - Following SPEC-00014 CLI standards
 - **Declarative agent invocation** - Use markdown, not tool calls
 - **Standards enforcement** - Agent-creator ensures compliance
 
@@ -232,7 +232,7 @@ This command integrates with:
 ## See Also
 
 For detailed documentation, see:
-- `/docs/specs/SPEC-0015-faber-agent-plugin-specification.md`
+- `/specs/SPEC-00015-faber-agent-plugin-specification.md`
 - `/docs/standards/FRACTARY-PLUGIN-STANDARDS.md`
 
 Related commands:

@@ -223,7 +223,7 @@ Each document type defined by exactly 5 files:
 
 ## References
 
-- **Specification**: `docs/specs/SPEC-docs-plugin-refactor.md`
+- **Specification**: `specs/SPEC-00032-docs-plugin-refactor.md`
 - **Implementation Issue**: https://github.com/fractary/claude-plugins/issues/XXX
 - **Migration Guide**: `plugins/docs/README.md#migration-from-v1x`
 - **Plugin Standards**: `docs/standards/FRACTARY-PLUGIN-STANDARDS.md`

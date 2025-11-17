@@ -6,7 +6,7 @@ argument-hint: [project-name] [--to-codex|--from-codex|--bidirectional] [--dry-r
 
 # ⚠️ DEPRECATION WARNING - Legacy Command
 
-**This command is part of the legacy push-based sync system (SPEC-0012, Codex v2.0) and is deprecated.**
+**This command is part of the legacy push-based sync system (SPEC-00012, Codex v2.0) and is deprecated.**
 
 ## Migration Required
 

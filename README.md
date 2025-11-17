@@ -140,7 +140,7 @@ See [Version Control Guide](docs/VERSION-CONTROL-GUIDE.md) for best practices.
 ### Getting Started
 
 - [Plugin Standards](docs/standards/FRACTARY-PLUGIN-STANDARDS.md) - Development patterns and guidelines
-- [FABER Architecture](docs/specs/SPEC-0002-faber-architecture.md) - Workflow framework specification
+- [FABER Architecture](specs/SPEC-00002-faber-architecture.md) - Workflow framework specification
 - [Version Control Guide](docs/VERSION-CONTROL-GUIDE.md) - Configuration best practices
 
 ### Plugin Documentation

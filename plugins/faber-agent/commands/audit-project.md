@@ -363,7 +363,7 @@ Next: Review recommendations and prioritize migrations
 
 This command follows the Fractary command pattern:
 - **Commands are routers** - Parse and delegate, never do work
-- **Space-separated arguments** - Following SPEC-0014 CLI standards
+- **Space-separated arguments** - Following SPEC-00014 CLI standards
 - **Declarative agent invocation** - Use markdown, not tool calls
 - **Agent orchestrates workflow** - project-auditor handles all logic
 
@@ -418,7 +418,7 @@ This command integrates with:
 ## See Also
 
 For detailed documentation, see:
-- `/docs/specs/SPEC-025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md`
+- `/specs/SPEC-00025-FABER-AGENT-COMPREHENSIVE-ENHANCEMENT.md`
 - `/docs/standards/agentic-control-plane-standards-2.md`
 - `/docs/standards/manager-as-agent-pattern.md`
 - `/docs/standards/agent-to-skill-migration.md`

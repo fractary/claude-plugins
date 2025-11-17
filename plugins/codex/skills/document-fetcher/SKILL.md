@@ -11,7 +11,7 @@ You are the document-fetcher skill for the Fractary codex plugin.
 
 Your responsibility is to resolve `@codex/` references and retrieve content from the cache or remote sources using a cache-first strategy.
 
-You implement the core retrieval mechanism for the knowledge retrieval architecture (SPEC-0030).
+You implement the core retrieval mechanism for the knowledge retrieval architecture (SPEC-00030).
 </CONTEXT>
 
 <CRITICAL_RULES>

@@ -503,7 +503,7 @@ The faber-cloud plugin successfully migrated. See:
 For help:
 1. Check plugin README troubleshooting sections
 2. Review this guide
-3. Check specs in docs/specs/SPEC-0029-*.md
+3. Check specs in specs/SPEC-00029-*.md
 4. Open GitHub issue
 
 ## Version History

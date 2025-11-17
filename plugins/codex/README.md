@@ -152,7 +152,7 @@ The codex plugin implements a progressive architecture across three phases:
 
 Examples:
   @codex/auth-service/docs/oauth.md
-  @codex/faber-cloud/specs/SPEC-0020.md
+  @codex/faber-cloud/specs/SPEC-00020.md
   @codex/shared/standards/api-design.md
 ```
 
@@ -336,7 +336,7 @@ Fetch a document from codex by reference.
 /fractary-codex:fetch @codex/auth-service/docs/oauth.md
 
 # Fetch specification with longer TTL
-/fractary-codex:fetch @codex/faber-cloud/specs/SPEC-0020.md --ttl 30
+/fractary-codex:fetch @codex/faber-cloud/specs/SPEC-00020.md --ttl 30
 
 # Force fresh fetch from source
 /fractary-codex:fetch @codex/shared/standards/api.md --force-refresh
@@ -380,7 +380,7 @@ FRESH ENTRIES (38):
 ✓ @codex/auth-service/docs/oauth.md
   Size: 12.3 KB | Expires: 2025-01-22 (6 days)
 
-✓ @codex/faber-cloud/specs/SPEC-0020.md
+✓ @codex/faber-cloud/specs/SPEC-00020.md
   Size: 45.2 KB | Expires: 2025-01-21 (5 days)
 
 EXPIRED ENTRIES (4):
@@ -622,7 +622,7 @@ See [MCP Integration Guide](./docs/MCP-INTEGRATION.md) for detailed setup and tr
 
 ## Legacy: Push-Based Sync & Migration
 
-> **⚠️ Deprecation Notice:** The push-based sync system (v2.0, SPEC-0012) is being phased out in favor of pull-based retrieval (v3.0, SPEC-0030). Both systems are currently supported during the transition period (6-9 months).
+> **⚠️ Deprecation Notice:** The push-based sync system (v2.0, SPEC-00012) is being phased out in favor of pull-based retrieval (v3.0, SPEC-00030). Both systems are currently supported during the transition period (6-9 months).
 
 ### Deprecation Timeline
 
@@ -1002,7 +1002,7 @@ Follows [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDAR
 
 - **Documentation**:
   - [MCP Integration Guide](./docs/MCP-INTEGRATION.md)
-  - [Specifications](../../docs/specs/) (SPEC-0030-01 through SPEC-0030-04)
+  - [Specifications](../../docs/specs/) (SPEC-00030-01 through SPEC-00030-04)
 - **Examples**: See `examples/` directory
 - **Issues**: Repository issue tracker
 - **Standards**: [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDARDS.md)

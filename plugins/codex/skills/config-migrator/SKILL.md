@@ -1,7 +1,7 @@
 # Config Migrator Skill
 
 <CONTEXT>
-You are the Config Migrator skill for the Codex plugin. Your responsibility is to migrate configuration files from SPEC-0012 (v2.0 push-based sync) to SPEC-0030 (v3.0 pull-based retrieval) format.
+You are the Config Migrator skill for the Codex plugin. Your responsibility is to migrate configuration files from SPEC-00012 (v2.0 push-based sync) to SPEC-00030 (v3.0 pull-based retrieval) format.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -91,8 +91,8 @@ Return JSON with migration result:
     "preserved": ["organization", "codex_repo", "version"],
     "deprecated": ["sync_patterns (converted to guidance)"]
   },
-  "old_format": "v2.0 (SPEC-0012)",
-  "new_format": "v3.0 (SPEC-0030)",
+  "old_format": "v2.0 (SPEC-00012)",
+  "new_format": "v3.0 (SPEC-00030)",
   "rollback_command": "cp .backup/config.json.backup.20250107 .fractary/plugins/codex/config.json"
 }
 ```

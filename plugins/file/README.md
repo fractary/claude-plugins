@@ -877,9 +877,9 @@ Use @agent-fractary-file:file-manager to delete:
 **Current Version**: 2.0.0
 
 **Implementation Status**:
-- ✅ SPEC-0029-01 (Architecture): 100% Complete
-- ✅ SPEC-0029-02 (Handlers): 100% Complete
-- ⏸️ SPEC-0029-03 (Init Command): Deferred (manual setup documented)
+- ✅ SPEC-00029-01 (Architecture): 100% Complete
+- ✅ SPEC-00029-02 (Handlers): 100% Complete
+- ⏸️ SPEC-00029-03 (Init Command): Deferred (manual setup documented)
 
 **All Core Features Complete!**
 
@@ -897,7 +897,7 @@ Use @agent-fractary-file:file-manager to delete:
 For issues or questions:
 1. Check troubleshooting section above
 2. Review handler-specific documentation
-3. Check specifications in `docs/specs/SPEC-0029-*.md`
+3. Check specifications in `specs/SPEC-00029-*.md`
 4. Report issues on GitHub
 
 ## License

@@ -460,5 +460,5 @@ export OPENAI_API_KEY="sk-..."
 
 - [User Guide](./USER-GUIDE.md) - How to use all commands
 - [Skills Reference](./SKILLS-REFERENCE.md) - Detailed skill documentation
-- [SPEC-0011](../../docs/specs/SPEC-0011-faber-article-plugin.md) - Original specification
+- [SPEC-00011](../../specs/SPEC-00011-faber-article-plugin.md) - Original specification
 - [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDARDS.md) - Development guidelines

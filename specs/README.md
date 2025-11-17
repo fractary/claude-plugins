@@ -28,16 +28,16 @@ Examples:
 - Phase number zero-padded to 2 digits (e.g., `01`)
 - Distinguishes from standalone `SPEC-XXXX-` documentation in `docs/specs/`
 
-### Legacy Specs (spec-XXX)
+### Legacy Specs (SPEC-XXXX)
 
-The following specs use the **old naming convention** (pre-standardization):
+The following specs use the **old naming convention** (standalone SPEC format, now migrated to standard format):
 
-- `spec-84-auto-install-fractary-plugins-on-startup.md`
-- `spec-92-add-git-worktree-support.md`
-- `spec-99-new-status-plugin.md`
-- `spec-106-expand-doc-types-custom-skills.md`
+- `SPEC-00084-auto-install-fractary-plugins-on-startup.md`
+- `SPEC-00092-add-git-worktree-support.md`
+- `SPEC-00099-new-status-plugin.md`
+- `SPEC-00106-expand-doc-types-custom-skills.md`
 
-**These files are kept for backward compatibility.** Once the associated work is completed and the specs are archived, they will be removed. New specs should not use this format.
+**These files have been renamed to follow the SPEC-NNNN standard.** Once the associated work is completed and the specs are archived, they will be removed. New specs should use the `WORK-XXXXX` format instead.
 
 ## Lifecycle
 
