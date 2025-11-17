@@ -625,17 +625,36 @@ Example: `{project}-{subsystem}-{environment}-{resource}` → `my-project-core-t
 
 ### Production Protection
 
-**Multiple levels of confirmation:**
-- Command level: Checks for prod flag
-- Manager level: Requires explicit confirmation
-- Skill level: Validates environment
-- Handler level: Profile separation enforcement
+**Production Safety Confirmation Protocol:**
 
-**Production deployments:**
-- Always show full preview
-- Require typed "yes" confirmation
-- Cannot skip with `--auto-approve`
-- Extra validation steps
+When `require_confirmation: true` in environment configuration:
+- **2-step confirmation process** before production deployments
+- Question 1: Validate deployment readiness
+- Question 2: Typed confirmation (must type environment name exactly)
+- Deployment aborted if user declines at any step
+- See [SECURITY.md](docs/SECURITY.md#production-deployment-safety) for full details
+
+**Configuration:**
+```json
+{
+  "environments": {
+    "prod": {
+      "require_confirmation": true  // Enables safety protocol
+    }
+  }
+}
+```
+
+**Additional Safety Layers:**
+- Environment validation (tfvars, workspace, state file consistency)
+- Profile separation enforcement (test-deploy vs prod-deploy)
+- Production-specific checks (destructive changes, high change count)
+- Pre-deployment hooks for custom validation
+
+**CI/CD Integration:**
+- Set `DEVOPS_AUTO_APPROVE=true` to bypass interactive confirmation
+- Should only be used with proper approval gates
+- See [SECURITY.md](docs/SECURITY.md#cicd-integration) for best practices
 
 ### Permission Management
 
