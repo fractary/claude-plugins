@@ -481,7 +481,8 @@ This provides a seamless workflow from issue creation to development start.
 Handle branch creation if:
 1. The create-issue operation completed successfully (status: "success")
 2. The fractary-repo plugin is configured (`.fractary/plugins/repo/config.json` exists)
-3. The user invoked the operation via a command (not from an automated workflow like FABER)
+
+**Note**: FABER workflows and other automation should manage their own branch creation workflow and typically won't trigger this integration.
 
 ### Detection Logic
 
@@ -534,6 +535,8 @@ Would you like to create a branch for this issue? (yes/no)
 
 ### Branch Creation Flow
 
+**IMPORTANT**: Use the SlashCommand tool to invoke the branch-create command. This is the proper way to invoke commands within the plugin system. **DO NOT** use direct bash/git/gh CLI commands as a workaround.
+
 #### For Automatic Mode (branch_create = true):
 
 1. Use the SlashCommand tool to invoke: `/fractary-repo:branch-create --work-id {issue_id}`
@@ -561,9 +564,15 @@ If branch creation fails:
 1. **DO NOT** fail the entire operation (issue was already created successfully)
 2. Display the issue creation success
 3. Show the branch creation error separately
-4. Inform user they can manually create branch later:
+4. Inform user they can manually create branch later with troubleshooting guidance:
    ```
    ⚠️ Branch creation failed: [error message]
+
+   Common causes:
+   - Repo plugin not properly configured (run /fractary-repo:init)
+   - Missing permissions for the repository
+   - Branch already exists with this work ID
+   - Network connectivity issues
 
    You can create a branch manually with:
    /fractary-repo:branch-create --work-id {issue_id}
@@ -621,8 +630,9 @@ If branch creation fails:
 Skip the branch creation offer if:
 - The create-issue operation failed
 - Repo plugin is not configured (config file doesn't exist)
-- The operation was invoked from an automated workflow (FABER)
-- User responds "no" or "n"
+- User responds "no" or "n" (in interactive mode)
+
+**Note**: Automated workflows like FABER should handle branch creation in their own workflow and won't rely on this integration.
 
 </REPO_INTEGRATION>
 
