@@ -39,11 +39,16 @@ Your role is to parse user input and invoke the work-manager agent to assign an 
    - Validate required arguments are present
    - Handle @me shortcut for current user
 
-2. **Build structured request**
+2. **Capture working directory context**
+   - Capture current directory: `WORK_CWD="${PWD}"`
+   - This ensures operations execute in the correct repository
+
+3. **Build structured request**
    - Package issue_number and assignee parameters
    - Convert @me to "current_user" for agent
+   - Include working_directory in parameters
 
-3. **ACTUALLY INVOKE the Task tool**
+4. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
@@ -56,7 +61,7 @@ Your role is to parse user input and invoke the work-manager agent to assign an 
    - DO NOT try alternative approaches
    - Wait for user to provide explicit instruction
 
-4. **Return response**
+5. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
