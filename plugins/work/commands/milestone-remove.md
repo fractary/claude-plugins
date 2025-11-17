@@ -29,10 +29,15 @@ Your role is to parse user input and invoke the work-manager agent to remove a m
    - Extract issue number (required)
    - Validate required arguments are present
 
-2. **Build structured request**
-   - Package issue_number parameter
+2. **Capture working directory context**
+   - Capture current directory: `WORK_CWD="${PWD}"`
+   - This ensures operations execute in the correct repository
 
-3. **ACTUALLY INVOKE the Task tool**
+3. **Build structured request**
+   - Package issue_number parameter
+   - Include working_directory in parameters
+
+4. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
@@ -45,7 +50,7 @@ Your role is to parse user input and invoke the work-manager agent to remove a m
    - DO NOT try alternative approaches
    - Wait for user to provide explicit instruction
 
-4. **Return response**
+5. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
