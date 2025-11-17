@@ -1,0 +1,93 @@
+{
+  "$comment": "Fractary Repo Plugin Configuration",
+  "version": "2.0.0",
+
+  "handlers": {
+    "source_control": {
+      "active": "github",
+      "github": {
+        "token": "$GITHUB_TOKEN",
+        "api_url": "https://api.github.com"
+      }
+    }
+  },
+
+  "defaults": {
+    "default_branch": "main",
+    "protected_branches": [
+      "main",
+      "master",
+      "production",
+      "staging"
+    ],
+    "branch_naming": {
+      "pattern": "{prefix}/{issue_id}-{slug}",
+      "allowed_prefixes": [
+        "feat",
+        "fix",
+        "chore",
+        "hotfix",
+        "docs",
+        "test",
+        "refactor",
+        "style",
+        "perf"
+      ]
+    },
+    "commit_format": "faber",
+    "require_signed_commits": false,
+    "merge_strategy": "no-ff",
+    "auto_delete_merged_branches": false,
+    "remote": {
+      "name": "origin",
+      "auto_set_upstream": true
+    },
+    "push_sync_strategy": "auto-merge",
+    "pull_sync_strategy": "auto-merge-prefer-remote",
+    "pr": {
+      "template": "standard",
+      "require_work_id": true,
+      "auto_link_issues": true
+    },
+    "cleanup": {
+      "inactive_threshold_days": 30,
+      "auto_cleanup_merged": false,
+      "exclude_patterns": [
+        "release/*",
+        "hotfix/*"
+      ]
+    },
+    "tags": {
+      "require_signed_tags": false,
+      "auto_push_tags": false
+    }
+  },
+
+  "faber_integration": {
+    "enabled": true,
+    "branch_creation": {
+      "auto_create": true,
+      "use_work_id": true
+    },
+    "commit_metadata": {
+      "include_author_context": true,
+      "include_phase": true,
+      "include_work_id": true
+    },
+    "pr_creation": {
+      "auto_create": true,
+      "include_metadata": true,
+      "draft_until_approved": false
+    }
+  },
+
+  "platform_specific": {
+    "github": {
+      "use_gh_cli": true,
+      "pr_checks": {
+        "require_ci_pass": true,
+        "require_reviews": 1
+      }
+    }
+  }
+}

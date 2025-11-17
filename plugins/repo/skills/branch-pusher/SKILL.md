@@ -251,6 +251,28 @@ Return structured JSON response:
   "error_code": 11
 }
 ```
+
+**Error Response with Context (Exit Code 13):**
+```json
+{
+  "status": "failure",
+  "operation": "push-branch",
+  "error": "Branch is out of sync with remote (non-fast-forward)",
+  "error_code": 13,
+  "context": {
+    "branch_name": "main",
+    "remote": "origin",
+    "push_sync_strategy": "auto-merge",
+    "auto_sync_attempted": true,
+    "auto_sync_failed": true,
+    "reason": "Conflicts detected during auto-merge"
+  }
+}
+```
+
+This context helps the repo-manager agent determine whether to:
+- Report conflicts for manual resolution (if auto-sync failed)
+- Offer to invoke /repo:pull workflow (if strategy was manual/fail)
 </OUTPUTS>
 
 <HANDLERS>
@@ -285,8 +307,26 @@ The active handler is determined by configuration: `config.handlers.source_contr
 - DNS resolution: "Error: Could not resolve hostname: {remote_host}"
 
 **Push Rejected Error** (Exit Code 13):
-- Non-fast-forward: "Error: Push rejected. Remote has changes not present locally. Pull first or use force."
+- Non-fast-forward (auto-sync attempted): Return structured error with context including push_sync_strategy, auto_sync_attempted, and failure reason
+- Non-fast-forward (manual strategy): Return structured error with context indicating workflow enforcement
 - Remote ref changed: "Error: Remote ref changed since last fetch. Cannot force-with-lease."
+
+**IMPORTANT**: When exit code 13 occurs, ALWAYS include context in error response:
+```json
+{
+  "error_code": 13,
+  "context": {
+    "branch_name": "...",
+    "remote": "...",
+    "push_sync_strategy": "auto-merge|pull-rebase|pull-merge|manual|fail",
+    "auto_sync_attempted": true|false,
+    "auto_sync_failed": true|false,
+    "reason": "Detailed explanation"
+  }
+}
+```
+
+This allows the repo-manager agent to make intelligent decisions about retry strategies.
 
 **Configuration Error** (Exit Code 3):
 - Failed to load config: "Error: Failed to load configuration"
