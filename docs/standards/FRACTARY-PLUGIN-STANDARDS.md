@@ -439,16 +439,41 @@ skills/handler-{type}-{provider}/
 
 ### Invocation Pattern
 
+**CRITICAL**: Handler invocations MUST use **explicit, fully-qualified skill names** with the plugin namespace prefix to prevent cross-plugin confusion.
+
+**Pattern**:
+```
+{plugin-name}:handler-{type}-{provider}
+```
+
+**Example**:
 ```markdown
 <EXECUTE_OPERATION>
 Determine which handler to use:
 
-handler_type = config.handlers.{type}.active
+1. Read platform from config: config.handlers.source_control.active (e.g., "github")
+2. Construct full skill name: fractary-repo:handler-source-control-<platform>
+3. Invoke using Skill tool
 
-**USE SKILL: handler-{type}-${handler_type}**
-Operation: [operation-name]
-Arguments: [arguments]
+**IMPORTANT**: Use the Skill tool with:
+- command: `fractary-repo:handler-source-control-<platform>` (where <platform> is from config)
+- parameters: {operation-specific params}
+
+Example: If platform is "github", invoke: `fractary-repo:handler-source-control-github`
 </EXECUTE_OPERATION>
+```
+
+**Why this matters**:
+- Prevents namespace collisions between plugins (e.g., `fractary-repo:handler-source-control-github` vs `fractary-codex:handler-sync-github`)
+- Makes skill invocations unambiguous for Claude
+- Ensures correct handler is selected even with multiple plugins loaded
+- Avoids fallback to incorrect skills or bash commands
+
+**Anti-patterns to avoid**:
+```markdown
+❌ USE SKILL: handler-{type}-{provider}              # Missing namespace prefix
+❌ USE SKILL: {plugin}:handler-{type}-{provider}     # Variable in namespace (ambiguous)
+✅ Use Skill tool with command: "fractary-repo:handler-source-control-github"  # Explicit and clear
 ```
 
 ---

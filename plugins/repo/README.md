@@ -391,6 +391,36 @@ The plugin can be invoked programmatically by other plugins or FABER workflows:
 
 [Handler documentation](skills/handler-source-control-github/SKILL.md)
 
+#### Handler Invocation Pattern
+
+**CRITICAL**: When skills invoke handlers, they must use **explicit, fully-qualified skill names** with the correct namespace prefix to prevent cross-plugin confusion.
+
+**Correct Pattern**:
+```
+fractary-repo:handler-source-control-<platform>
+```
+
+**Example**:
+```
+Use the Skill tool with:
+- command: `fractary-repo:handler-source-control-github`
+- parameters: {operation-specific params}
+```
+
+**Why this matters**:
+- Prevents namespace collisions with other plugins (e.g., `fractary-codex:handler-sync-github`)
+- Makes the skill invocation unambiguous for Claude
+- Ensures correct handler is selected even with multiple plugins loaded
+- Avoids fallback to direct bash command execution
+
+**Implementation**:
+All repo skills (branch-pusher, commit-creator, pr-manager, etc.) use this pattern. Each skill:
+1. Reads `config.handlers.source_control.active` to get platform (e.g., "github")
+2. Constructs full skill name: `fractary-repo:handler-source-control-<platform>`
+3. Invokes via Skill tool with constructed name
+
+See individual skill documentation for specific handler invocation examples.
+
 ### Utilities
 
 **repo-common** - Shared utilities for all skills
