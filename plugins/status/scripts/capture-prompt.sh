@@ -81,10 +81,15 @@ jq -n \
     timestamp: $timestamp,
     prompt: $prompt,
     prompt_short: $prompt_short
-  }' > "$PROMPT_CACHE.tmp"
+  }' > "$PROMPT_CACHE.tmp" 2>/dev/null || {
+  # If jq fails, create a minimal fallback cache
+  echo '{"timestamp":"'$TIMESTAMP'","prompt":"","prompt_short":""}' > "$PROMPT_CACHE.tmp" 2>/dev/null || true
+}
 
-# Atomic move to prevent race conditions
-mv "$PROMPT_CACHE.tmp" "$PROMPT_CACHE"
+# Atomic move to prevent race conditions (only if temp file exists)
+if [ -f "$PROMPT_CACHE.tmp" ]; then
+  mv "$PROMPT_CACHE.tmp" "$PROMPT_CACHE" 2>/dev/null || true
+fi
 
 # Exit silently (hook should not produce output)
 exit 0

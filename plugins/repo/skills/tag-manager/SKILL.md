@@ -152,11 +152,9 @@ If sign=true or required by config:
 - Warn if GPG not available
 
 **Invoke Handler:**
-```
-USE SKILL handler-source-control-{platform}
-OPERATION: create-tag
-PARAMETERS: {tag_name, message, commit_sha, sign, force}
-```
+
+Use the Skill tool with command `fractary-repo:handler-source-control-<platform>` where <platform> is from config.
+Pass parameters: {tag_name, message, commit_sha, sign, force}
 
 The handler will:
 - Create annotated Git tag
@@ -182,11 +180,9 @@ If tag_name="all":
 - Require confirmation
 
 **Invoke Handler:**
-```
-USE SKILL handler-source-control-{platform}
-OPERATION: push-tag
-PARAMETERS: {tag_name, remote}
-```
+
+Use the Skill tool with command `fractary-repo:handler-source-control-<platform>` where <platform> is from config.
+Pass parameters: {tag_name, remote}
 
 The handler will:
 - Push tag(s) to remote

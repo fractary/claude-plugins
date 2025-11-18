@@ -25,8 +25,12 @@ generate_commit_message() {
     local files=$(git diff --cached --name-only)
     local file_count=$(echo "$files" | wc -l)
 
-    # Analyze file types
-    local has_docs=$(echo "$files" | grep -iE "\.(md|rst|txt|adoc)$" | wc -l)
+    # Analyze file types and paths
+    # Distinguish between different types of markdown files based on their location
+    local has_docs=$(echo "$files" | grep -iE "^docs/.*\.(md|rst|txt|adoc)$" | grep -vE "^docs/(specs|logs)/" | wc -l)
+    local has_specs=$(echo "$files" | grep -iE "(^specs/|^docs/specs/).*\.(md|rst|txt|adoc)$" | wc -l)
+    local has_logs=$(echo "$files" | grep -iE "(^logs/|^docs/logs/).*\.(md|rst|txt|adoc)$" | wc -l)
+    local has_plugin_structure=$(echo "$files" | grep -iE "(^plugins/.*/skills/|^plugins/.*/agents/|^plugins/.*/commands/|^skills/|^agents/|^commands/).*\.(md|rst|txt|adoc)$" | wc -l)
     local has_scripts=$(echo "$files" | grep -E "\.(sh|bash|zsh|fish)$" | wc -l)
     local has_config=$(echo "$files" | grep -E "\.(toml|yaml|yml|json|ini|conf)$" | wc -l)
     local has_source=$(echo "$files" | grep -E "\.(js|ts|py|rb|go|rs|java|c|cpp|h|hpp)$" | wc -l)
@@ -38,17 +42,43 @@ generate_commit_message() {
     if [ "$file_count" -eq 1 ]; then
         # Single file change
         local filename=$(basename "$files")
+        local filepath="$files"
 
         if [ "$added" -eq 1 ]; then
-            commit_type="feat"
-            summary="Add $filename"
+            # Determine type based on path for added files
+            if [[ "$filepath" =~ ^docs/specs/ ]] || [[ "$filepath" =~ ^specs/ ]]; then
+                commit_type="docs"
+                summary="Add spec: $filename"
+            elif [[ "$filepath" =~ ^docs/logs/ ]] || [[ "$filepath" =~ ^logs/ ]]; then
+                commit_type="chore"
+                summary="Add log: $filename"
+            elif [[ "$filepath" =~ (^plugins/.*/skills/|^plugins/.*/agents/|^plugins/.*/commands/|^skills/|^agents/|^commands/) ]]; then
+                commit_type="feat"
+                summary="Add plugin component: $filename"
+            elif [[ "$filepath" =~ ^docs/ ]] && [[ "$filename" =~ \.(md|rst|txt|adoc)$ ]]; then
+                commit_type="docs"
+                summary="Add documentation: $filename"
+            else
+                commit_type="feat"
+                summary="Add $filename"
+            fi
         elif [ "$deleted" -eq 1 ]; then
             commit_type="chore"
             summary="Remove $filename"
         elif [ "$modified" -eq 1 ]; then
-            if [[ "$filename" =~ \.(md|rst|txt)$ ]]; then
+            # Determine type based on path for modified files
+            if [[ "$filepath" =~ ^docs/specs/ ]] || [[ "$filepath" =~ ^specs/ ]]; then
                 commit_type="docs"
-                summary="Update $filename"
+                summary="Update spec: $filename"
+            elif [[ "$filepath" =~ ^docs/logs/ ]] || [[ "$filepath" =~ ^logs/ ]]; then
+                commit_type="chore"
+                summary="Update log: $filename"
+            elif [[ "$filepath" =~ (^plugins/.*/skills/|^plugins/.*/agents/|^plugins/.*/commands/|^skills/|^agents/|^commands/) ]] && [[ "$filename" =~ \.(md|rst|txt|adoc)$ ]]; then
+                commit_type="chore"
+                summary="Update plugin component: $filename"
+            elif [[ "$filepath" =~ ^docs/ ]] && [[ "$filename" =~ \.(md|rst|txt|adoc)$ ]]; then
+                commit_type="docs"
+                summary="Update documentation: $filename"
             elif [[ "$filename" =~ \.(sh|bash)$ ]]; then
                 commit_type="fix"
                 summary="Update $filename"
@@ -59,7 +89,17 @@ generate_commit_message() {
         fi
     else
         # Multiple files changed
-        if [ "$has_docs" -gt 0 ] && [ "$has_source" -eq 0 ] && [ "$has_scripts" -eq 0 ]; then
+        # Prioritize based on file type and location
+        if [ "$has_specs" -gt 0 ] && [ "$has_specs" -eq "$file_count" ]; then
+            commit_type="docs"
+            summary="Update specs ($file_count files)"
+        elif [ "$has_logs" -gt 0 ] && [ "$has_logs" -eq "$file_count" ]; then
+            commit_type="chore"
+            summary="Update logs ($file_count files)"
+        elif [ "$has_plugin_structure" -gt 0 ] && [ "$has_plugin_structure" -eq "$file_count" ]; then
+            commit_type="chore"
+            summary="Update plugin components ($file_count files)"
+        elif [ "$has_docs" -gt 0 ] && [ "$has_source" -eq 0 ] && [ "$has_scripts" -eq 0 ] && [ "$has_plugin_structure" -eq 0 ]; then
             commit_type="docs"
             summary="Update documentation ($file_count files)"
         elif [ "$has_scripts" -gt "$has_source" ]; then
@@ -86,8 +126,12 @@ generate_commit_message() {
             fi
 
             # Set type based on what changed most
-            if [ "$has_docs" -gt 0 ]; then
+            if [ "$has_specs" -gt 0 ]; then
                 commit_type="docs"
+            elif [ "$has_docs" -gt 0 ] && [ "$has_plugin_structure" -eq 0 ]; then
+                commit_type="docs"
+            elif [ "$has_plugin_structure" -gt 0 ]; then
+                commit_type="chore"
             elif [ "$modified" -gt "$added" ]; then
                 commit_type="chore"
             else
