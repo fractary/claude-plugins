@@ -108,7 +108,9 @@ For details, see: `/.tmp/FRACTARY_WORK_PLUGIN_BUG_REPORT.md`
 8. **For create-issue operation**: Check for branch creation workflow based on `branch_create` parameter (see REPO_INTEGRATION):
    - If `branch_create` is true: Automatically create branch without prompting
    - If `branch_create` is false or not provided: Offer interactive prompt to create branch
-9. Return normalized JSON response to caller
+9. **For create-issue operation**: Check for spec creation workflow based on `spec_create` parameter (see SPEC_INTEGRATION):
+   - If `spec_create` is true: Automatically create spec using /fractary-spec:create with the issue ID
+10. Return normalized JSON response to caller
 </WORKFLOW>
 
 <OPERATION_ROUTING>
@@ -180,6 +182,7 @@ Route operations to focused skills based on operation type:
 - `labels` (optional): Comma-separated labels
 - `assignees` (optional): Comma-separated usernames
 - `branch_create` (optional): If true, automatically create Git branch after issue creation (default: false)
+- `spec_create` (optional): If true, automatically create specification after issue (and branch if applicable) creation (default: false)
 **Returns:** Created issue JSON with id and url
 **Example:**
 ```json
@@ -190,7 +193,8 @@ Route operations to focused skills based on operation type:
     "description": "Users report crash...",
     "labels": "bug,urgent",
     "assignees": "username",
-    "branch_create": false
+    "branch_create": false,
+    "spec_create": false
   }
 }
 ```
@@ -688,6 +692,174 @@ Skip the branch creation offer if:
 
 </REPO_INTEGRATION>
 
+<SPEC_INTEGRATION>
+## Specification Creation Integration (Automatic Spec Generation)
+
+After successfully executing a **create-issue** operation, and after handling branch creation (if applicable), you should handle specification creation based on the `spec_create` parameter:
+
+1. **If `spec_create` is true**: Automatically create a specification using the fractary-spec plugin
+
+This provides a complete workflow from issue creation to development start with a detailed specification.
+
+### When to Handle Spec Creation
+
+Handle spec creation if:
+1. The create-issue operation completed successfully (status: "success")
+2. Branch creation completed successfully (if `branch_create` was true)
+3. The `spec_create` parameter is true
+4. The fractary-spec plugin is configured (`.fractary/plugins/spec/config.json` exists)
+
+**Note**: Spec creation happens AFTER branch creation (if applicable), as the spec is typically created while on the issue branch.
+
+### Detection Logic
+
+After the issue is created (and branch created if applicable), check if spec creation should be triggered:
+
+```bash
+# Check if spec plugin is configured (not just installed)
+if [ -f ".fractary/plugins/spec/config.json" ]; then
+    # Spec plugin is configured
+    SPEC_CONFIGURED=true
+else
+    # No spec plugin - cannot create spec
+    SPEC_CONFIGURED=false
+fi
+
+# Only proceed if both parameter is true AND plugin is configured
+if [ "$CREATE_SPEC" = "true" ]; then
+    if [ "$SPEC_CONFIGURED" = "true" ]; then
+        # Proceed with spec creation
+        SPEC_CREATE=true
+    else
+        # Plugin not configured - show error and skip
+        SPEC_CREATE=false
+    fi
+else
+    # Parameter not set - skip spec creation
+    SPEC_CREATE=false
+fi
+```
+
+### Spec Creation Flow
+
+**IMPORTANT**: Use the SlashCommand tool to invoke the spec creation command. This is the proper way to invoke commands within the plugin system. **DO NOT** use direct bash/gh CLI commands as a workaround.
+
+#### Automatic Spec Creation (spec_create = true):
+
+1. Display the issue creation result (and branch creation result if applicable)
+2. Output: "📋 Creating specification automatically..."
+3. Use the SlashCommand tool to invoke: `/fractary-spec:create --work-id {issue_id}`
+4. Wait for the command to complete
+5. Capture the spec creation result (spec file path)
+6. Display the complete result to the user
+
+### Error Handling for Spec Creation
+
+#### Plugin Not Configured
+
+If `--spec-create` flag is provided but spec plugin is not configured:
+
+1. **DO NOT** fail the entire operation (issue and branch were already created successfully)
+2. Display the issue (and branch) creation success
+3. Show a warning message:
+   ```
+   ⚠️ Spec creation skipped: fractary-spec plugin not configured
+
+   The spec plugin is not installed or configured in this project.
+
+   To enable spec creation:
+   1. Install the fractary-spec plugin
+   2. Run /fractary-spec:init to configure it
+   3. Then create spec manually: /fractary-spec:create --work-id {issue_id}
+   ```
+
+#### Spec Creation Command Fails
+
+If spec plugin is configured but the `/fractary-spec:create` command fails:
+
+1. **DO NOT** fail the entire operation (issue and branch were already created successfully)
+2. Display the issue (and branch) creation success
+3. Show the spec creation error separately
+4. Inform user they can manually create spec later with troubleshooting guidance:
+   ```
+   ⚠️ Spec creation failed: [error message]
+
+   Common causes:
+   - Missing permissions or dependencies
+   - Network connectivity issues
+   - Invalid work item ID
+
+   You can create a specification manually with:
+   /fractary-spec:create --work-id {issue_id}
+   ```
+
+### Complete Example Workflows
+
+#### Full Workflow Example (branch_create = true, spec_create = true, plugin configured):
+
+```
+1. Receive create-issue request with branch_create=true and spec_create=true
+2. Route to issue-creator skill
+3. Skill returns: {"status": "success", "result": {"id": "124", "identifier": "#124", "title": "Add dark mode support", "url": "https://...", "platform": "github"}}
+4. Output: "✅ Issue created successfully"
+5. Output: "Issue: #124 - 'Add dark mode support'"
+6. Output: "URL: https://..."
+7. Check: branch_create is true → automatic branch creation mode
+8. Output: "🌿 Creating branch automatically..."
+9. Invoke SlashCommand: /fractary-repo:branch-create --work-id 124
+10. Receive: Branch created successfully (feat/124-add-dark-mode-support)
+11. Output: "✅ Branch created: feat/124-add-dark-mode-support"
+12. Check: spec_create is true AND .fractary/plugins/spec/config.json exists → automatic spec creation mode
+13. Output: "📋 Creating specification automatically..."
+14. Invoke SlashCommand: /fractary-spec:create --work-id 124
+15. Receive: Spec created successfully (WORK-00124-add-dark-mode-support.md)
+16. Output: "✅ Spec created: /specs/WORK-00124-add-dark-mode-support.md"
+17. Return final JSON response to caller
+```
+
+#### Plugin Not Configured Example (spec_create = true, but plugin missing):
+
+```
+1. Receive create-issue request with spec_create=true
+2. Route to issue-creator skill
+3. Skill returns: {"status": "success", "result": {"id": "124", ...}}
+4. Output: "✅ Issue created successfully"
+5. Output: "Issue: #124 - 'Add dark mode support'"
+6. Check: spec_create is true BUT .fractary/plugins/spec/config.json does NOT exist
+7. Output warning:
+   ⚠️ Spec creation skipped: fractary-spec plugin not configured
+
+   The spec plugin is not installed or configured in this project.
+
+   To enable spec creation:
+   1. Install the fractary-spec plugin
+   2. Run /fractary-spec:init to configure it
+   3. Then create spec manually: /fractary-spec:create --work-id 124
+8. Return final JSON response to caller (with warning note)
+```
+
+### Integration Benefits
+
+1. **Complete workflow**: Issue → Branch → Spec in one command
+2. **Automatic linking**: Spec is automatically linked to issue and created on the issue branch
+3. **Context preservation**: Spec creation happens after discussion, capturing full context
+4. **User control**: Choose automatic mode (--spec-create flag) or manual spec creation later
+5. **Graceful degradation**: Works even if spec plugin not configured
+
+### When to Skip
+
+Skip the spec creation if:
+- The create-issue operation failed
+- The branch creation failed (if `branch_create` was true)
+- The `spec_create` parameter is false or not provided
+- Spec plugin is not configured (`.fractary/plugins/spec/config.json` file doesn't exist)
+
+When skipping due to missing plugin configuration, show the warning message (see Error Handling section above).
+
+**Note**: Automated workflows like FABER should handle spec creation in their own workflow and won't rely on this integration.
+
+</SPEC_INTEGRATION>
+
 <OUTPUTS>
 You return structured JSON responses:
 
@@ -751,7 +923,8 @@ Routing is complete when:
 3. Response received from skill
 4. Response validated and formatted
 5. **For create-issue**: Optional branch creation workflow completed (if applicable)
-6. JSON response returned to caller
+6. **For create-issue**: Optional spec creation workflow completed (if applicable)
+7. JSON response returned to caller
 </COMPLETION_CRITERIA>
 
 <DOCUMENTATION>

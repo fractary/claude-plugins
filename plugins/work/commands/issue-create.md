@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-create
 description: Create a new work item
-argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create]'
+argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create] [--spec-create]'
 ---
 
 <CONTEXT>
@@ -35,7 +35,7 @@ Your role is to parse user input and invoke the work-manager agent to create a n
 <WORKFLOW>
 1. **Parse user input**
    - Extract title (required)
-   - Parse optional arguments: --type, --body, --label, --milestone, --assignee, --branch-create
+   - Parse optional arguments: --type, --body, --label, --milestone, --assignee, --branch-create, --spec-create
    - Validate required arguments are present
 
 2. **Capture working directory context**
@@ -47,6 +47,7 @@ Your role is to parse user input and invoke the work-manager agent to create a n
    - Convert `--type` to label format (e.g., "type: feature")
    - Merge type label with any additional --label flags
    - Set `branch_create` to true if --branch-create flag is provided
+   - Set `spec_create` to true if --spec-create flag is provided
    - Package all parameters
    - Include working_directory in parameters
 
@@ -115,6 +116,7 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 - `--milestone`: Milestone name or number
 - `--assignee`: User to assign (use @me for yourself)
 - `--branch-create`: Automatically create a Git branch for this issue (requires fractary-repo plugin)
+- `--spec-create`: Automatically create a specification after issue (and branch if --branch-create provided) creation (requires fractary-spec plugin)
 
 **Maps to**: create-issue operation
 
@@ -139,6 +141,9 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 # Create and automatically create branch
 /work:issue-create "Add dark mode" --type feature --branch-create
+
+# Create, create branch, and create spec (full workflow)
+/work:issue-create "Add CSV export" --type feature --branch-create --spec-create
 ```
 </EXAMPLES>
 
@@ -159,12 +164,16 @@ Invoke the fractary-work:work-manager agent with the following request:
     "labels": "type: feature,label1,label2",
     "milestone": "Optional milestone",
     "assignee": "Optional assignee",
-    "branch_create": false
+    "branch_create": false,
+    "spec_create": false,
+    "working_directory": "/path/to/project"
   }
 }
 ```
 
-**Note**: Set `branch_create` to `true` if the `--branch-create` flag is provided. This will automatically create a Git branch after the issue is created (requires fractary-repo plugin to be configured).
+**Note**:
+- Set `branch_create` to `true` if the `--branch-create` flag is provided. This will automatically create a Git branch after the issue is created (requires fractary-repo plugin to be configured).
+- Set `spec_create` to `true` if the `--spec-create` flag is provided. This will automatically create a specification after the issue (and branch if applicable) is created (requires fractary-spec plugin to be configured).
 
 The work-manager agent will:
 1. Set `CLAUDE_WORK_CWD` environment variable from `working_directory`
