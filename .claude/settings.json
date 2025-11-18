@@ -21,6 +21,22 @@
     "fractary-faber@fractary": true,
     "fractary-faber-cloud@fractary": true
   },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "/plugin marketplace update fractary"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
+          }
+        ]
+      }
+    ]
+  }, 
   "permissions": {
     "bash": {
       "allow": [
