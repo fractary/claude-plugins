@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Workflow Log Schema",
+  "description": "Schema for tracking FABER workflow execution steps, operations, and project-specific workflow actions",
+  "properties": {
+    "log_type": {
+      "const": "workflow",
+      "description": "Must be 'workflow'"
+    },
+    "title": {
+      "type": "string",
+      "description": "Workflow execution title"
+    },
+    "workflow_id": {
+      "type": "string",
+      "description": "Unique identifier for this workflow execution",
+      "pattern": "^workflow-[a-z0-9-]+$"
+    },
+    "work_item_id": {
+      "type": "string",
+      "description": "Associated work item (issue/ticket number)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when workflow started"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "running", "success", "failure", "partial", "cancelled", "archived"],
+      "description": "Current workflow execution status"
+    },
+    "phase": {
+      "type": "string",
+      "description": "Current FABER phase or custom workflow phase",
+      "examples": ["Frame", "Architect", "Build", "Evaluate", "Release", "Extract", "Transform", "Load"]
+    },
+    "step": {
+      "type": "string",
+      "description": "Current step within the phase"
+    },
+    "workflow_type": {
+      "type": "string",
+      "description": "Type of workflow (FABER, ETL, custom)",
+      "examples": ["faber", "etl", "cicd", "data-pipeline", "custom"]
+    },
+    "operations": {
+      "type": "array",
+      "description": "Timestamped list of all operations performed",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {"type": "string", "format": "date-time"},
+          "phase": {"type": "string"},
+          "step": {"type": "string"},
+          "operation": {"type": "string"},
+          "target": {"type": "string"},
+          "status": {"type": "string", "enum": ["started", "completed", "failed", "skipped"]},
+          "duration_ms": {"type": "number"},
+          "output": {"type": "string"}
+        },
+        "required": ["timestamp", "operation", "status"]
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Files and outputs created during workflow",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string"},
+          "path": {"type": "string"},
+          "size_bytes": {"type": "number"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "checksum": {"type": "string"}
+        },
+        "required": ["type", "path"]
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "Key decisions made during workflow execution",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {"type": "string", "format": "date-time"},
+          "decision": {"type": "string"},
+          "rationale": {"type": "string"},
+          "alternatives_considered": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        },
+        "required": ["timestamp", "decision"]
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Execution context and environment",
+      "properties": {
+        "project": {"type": "string"},
+        "repository": {"type": "string"},
+        "branch": {"type": "string"},
+        "commit": {"type": "string"},
+        "environment": {"type": "string"},
+        "triggered_by": {"type": "string"},
+        "config_version": {"type": "string"}
+      }
+    },
+    "upstream_dependencies": {
+      "type": "array",
+      "description": "Upstream workflows or data sources that triggered this",
+      "items": {
+        "type": "object",
+        "properties": {
+          "workflow_id": {"type": "string"},
+          "type": {"type": "string"},
+          "status": {"type": "string"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "downstream_impacts": {
+      "type": "array",
+      "description": "Downstream systems that may need to respond to these changes",
+      "items": {
+        "type": "object",
+        "properties": {
+          "system": {"type": "string"},
+          "impact_type": {"type": "string"},
+          "action_required": {"type": "string"}
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Execution metrics and performance data",
+      "properties": {
+        "total_duration_ms": {"type": "number"},
+        "operations_count": {"type": "number"},
+        "success_rate": {"type": "number"},
+        "resource_usage": {"type": "object"}
+      }
+    },
+    "error_summary": {
+      "type": "object",
+      "description": "Summary of errors encountered",
+      "properties": {
+        "total_errors": {"type": "number"},
+        "error_types": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "critical_errors": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "next_steps": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Recommended next actions or follow-ups"
+    }
+  },
+  "required": ["log_type", "title", "workflow_id", "timestamp", "status"],
+  "additionalProperties": true
+}

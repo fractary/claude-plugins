@@ -31,6 +31,8 @@ declare -A SCORES=(
   [test]=0
   [audit]=0
   [operational]=0
+  [changelog]=0
+  [workflow]=0
   [_untyped]=20
 )
 
@@ -160,6 +162,99 @@ for cmd in "${OP_COMMANDS[@]}"; do
   fi
 done
 
+# CHANGELOG classification
+CHANGELOG_KEYWORDS=("changelog" "release.*notes?" "version" "breaking.*change" "semver")
+CHANGELOG_SCORE=$(check_keywords changelog "${CHANGELOG_KEYWORDS[@]}")
+SCORES[changelog]=$((CHANGELOG_SCORE * 10))
+
+# Check for semantic version pattern in metadata or content
+if echo "$METADATA_JSON" | jq -e '.version' >/dev/null 2>&1; then
+  SCORES[changelog]=$((SCORES[changelog] + 25))
+elif echo "$CONTENT" | grep -qE 'v?[0-9]+\.[0-9]+\.[0-9]+'; then
+  SCORES[changelog]=$((SCORES[changelog] + 15))
+fi
+
+# Check for Keep a Changelog format sections
+CHANGELOG_SECTIONS=("Added" "Changed" "Deprecated" "Removed" "Fixed" "Security")
+CHANGELOG_SECTION_COUNT=0
+for section in "${CHANGELOG_SECTIONS[@]}"; do
+  if echo "$CONTENT" | grep -qE "^##.*$section"; then
+    ((CHANGELOG_SECTION_COUNT++))
+  fi
+done
+if [[ $CHANGELOG_SECTION_COUNT -ge 2 ]]; then
+  SCORES[changelog]=$((SCORES[changelog] + 30))
+elif [[ $CHANGELOG_SECTION_COUNT -eq 1 ]]; then
+  SCORES[changelog]=$((SCORES[changelog] + 15))
+fi
+
+# Check for work items/PR references
+if echo "$CONTENT" | grep -qE '#[0-9]+|PR.*#[0-9]+|issue.*#[0-9]+'; then
+  SCORES[changelog]=$((SCORES[changelog] + 10))
+fi
+
+# WORKFLOW classification
+WORKFLOW_KEYWORDS=("workflow" "pipeline" "faber" "operation" "phase" "lineage")
+WORKFLOW_SCORE=$(check_keywords workflow "${WORKFLOW_KEYWORDS[@]}")
+SCORES[workflow]=$((WORKFLOW_SCORE * 10))
+
+# Check for FABER phases
+FABER_PHASES=("Frame" "Architect" "Build" "Evaluate" "Release")
+FABER_PHASE_COUNT=0
+for phase in "${FABER_PHASES[@]}"; do
+  if echo "$CONTENT" | grep -qi "$phase"; then
+    ((FABER_PHASE_COUNT++))
+  fi
+done
+if [[ $FABER_PHASE_COUNT -ge 3 ]]; then
+  SCORES[workflow]=$((SCORES[workflow] + 30))
+elif [[ $FABER_PHASE_COUNT -ge 1 ]]; then
+  SCORES[workflow]=$((SCORES[workflow] + 15))
+fi
+
+# Check for ETL phases
+ETL_PHASES=("Extract" "Transform" "Load")
+ETL_PHASE_COUNT=0
+for phase in "${ETL_PHASES[@]}"; do
+  if echo "$CONTENT" | grep -qi "$phase"; then
+    ((ETL_PHASE_COUNT++))
+  fi
+done
+if [[ $ETL_PHASE_COUNT -ge 2 ]]; then
+  SCORES[workflow]=$((SCORES[workflow] + 25))
+fi
+
+# Check for workflow metadata
+if echo "$METADATA_JSON" | jq -e '.workflow_id' >/dev/null 2>&1; then
+  SCORES[workflow]=$((SCORES[workflow] + 30))
+fi
+
+if echo "$METADATA_JSON" | jq -e '.phase' >/dev/null 2>&1; then
+  SCORES[workflow]=$((SCORES[workflow] + 20))
+fi
+
+# Check for operations array or timeline
+if echo "$CONTENT" | grep -qE 'operation|Operations Timeline'; then
+  SCORES[workflow]=$((SCORES[workflow] + 15))
+fi
+
+# Check for workflow action verbs
+WORKFLOW_ACTIONS=("processed" "transformed" "validated" "executed" "completed")
+WORKFLOW_ACTION_COUNT=0
+for action in "${WORKFLOW_ACTIONS[@]}"; do
+  if echo "$CONTENT" | grep -qi "$action"; then
+    ((WORKFLOW_ACTION_COUNT++))
+  fi
+done
+if [[ $WORKFLOW_ACTION_COUNT -ge 2 ]]; then
+  SCORES[workflow]=$((SCORES[workflow] + 10))
+fi
+
+# Check for lineage tracking keywords
+if echo "$CONTENT" | grep -qE 'upstream|downstream|dependency|artifact'; then
+  SCORES[workflow]=$((SCORES[workflow] + 10))
+fi
+
 # Cap scores at 100
 for type in "${!SCORES[@]}"; do
   if [[ ${SCORES[$type]} -gt 100 ]]; then
@@ -177,6 +272,8 @@ cat <<EOF
   "test": ${SCORES[test]},
   "audit": ${SCORES[audit]},
   "operational": ${SCORES[operational]},
+  "changelog": ${SCORES[changelog]},
+  "workflow": ${SCORES[workflow]},
   "_untyped": ${SCORES[_untyped]}
 }
 EOF

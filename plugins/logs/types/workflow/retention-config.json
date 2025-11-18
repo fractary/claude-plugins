@@ -1,0 +1,55 @@
+{
+  "log_type": "workflow",
+  "description": "FABER workflow and ETL pipeline execution logs for audit and lineage tracking",
+  "local_retention_days": 30,
+  "cloud_retention_policy": "90_days",
+  "priority": "high",
+  "auto_archive": true,
+  "archive_triggers": {
+    "age_days": 30,
+    "size_mb": 10,
+    "status": ["success", "failure", "partial", "cancelled"]
+  },
+  "compression": true,
+  "validation_required": true,
+  "metadata": {
+    "category": "execution",
+    "audience": "internal",
+    "compliance": ["audit_trail", "lineage_tracking", "workflow_history"]
+  },
+  "archival_rules": {
+    "keep_local_after_archive": false,
+    "archive_format": "markdown",
+    "index_fields": ["workflow_id", "work_item_id", "timestamp", "status", "phase", "workflow_type"],
+    "searchable": true
+  },
+  "retention_exceptions": {
+    "status:failure": {
+      "local_retention_days": 60,
+      "cloud_retention_policy": "180_days",
+      "priority": "critical",
+      "note": "Keep failures longer for debugging and root cause analysis"
+    },
+    "status:running": {
+      "local_retention_days": 7,
+      "cloud_retention_policy": "30_days",
+      "note": "Incomplete workflows archived separately"
+    },
+    "workflow_type:faber": {
+      "local_retention_days": 45,
+      "cloud_retention_policy": "120_days",
+      "note": "FABER workflows kept longer for development insights"
+    }
+  },
+  "cleanup_policy": {
+    "safe_to_delete": true,
+    "requires_approval": false,
+    "auto_cleanup_after_days": 90,
+    "warning_message": "Workflow logs older than 90 days will be archived to cloud storage and removed locally."
+  },
+  "query_optimization": {
+    "index_by": ["work_item_id", "workflow_type", "status", "timestamp"],
+    "partition_by": "timestamp",
+    "enable_full_text_search": true
+  }
+}

@@ -1,7 +1,7 @@
 # Log Classifier Skill
 
 <CONTEXT>
-You are the **log-classifier** skill, responsible for determining the correct log type for logs based on their content, metadata, and context. You analyze logs and classify them into one of the 8 supported types: session, build, deployment, debug, test, audit, operational, or _untyped (fallback).
+You are the **log-classifier** skill, responsible for determining the correct log type for logs based on their content, metadata, and context. You analyze logs and classify them into one of the 10 supported types: session, build, deployment, debug, test, audit, operational, changelog, workflow, or _untyped (fallback).
 
 You work by applying **classification rules** and **pattern matching** to identify log characteristics, then recommend the most appropriate type. You can also reclassify existing _untyped logs into specific types.
 </CONTEXT>
@@ -91,6 +91,22 @@ Execute `scripts/classify-log.sh` with extracted signals:
 - Patterns: Operational metrics, scheduled tasks, system maintenance
 - Commands: cron jobs, backup scripts, cleanup utilities
 - Resource impact data
+
+### Changelog Type Indicators
+- Keywords: changelog, release notes, version, breaking change, semver
+- Patterns: Semantic version numbers (e.g., v1.2.3), Keep a Changelog sections
+- Structure: Sections for Added/Changed/Deprecated/Removed/Fixed/Security
+- Work items: PR references (#123), issue links
+- Critical: version field in metadata
+
+### Workflow Type Indicators
+- Keywords: workflow, pipeline, faber, operation, phase, lineage
+- Patterns: FABER phases (Frame/Architect/Build/Evaluate/Release), ETL phases (Extract/Transform/Load)
+- Structure: Operations timeline, decisions log, artifacts list
+- Metadata: workflow_id, phase, work_item_id
+- Lineage: upstream dependencies, downstream impacts
+- Action verbs: processed, transformed, validated, executed, completed
+- Critical: workflow_id or multiple FABER/ETL phases
 
 ### _untyped Fallback
 - Use when: No clear type match, confidence < 70%, truly ad-hoc content

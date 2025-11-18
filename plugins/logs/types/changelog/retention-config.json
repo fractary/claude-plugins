@@ -1,0 +1,40 @@
+{
+  "log_type": "changelog",
+  "description": "Release notes and version history - permanent historical record",
+  "local_retention_days": 365,
+  "cloud_retention_policy": "permanent",
+  "priority": "high",
+  "auto_archive": true,
+  "archive_triggers": {
+    "age_days": 90,
+    "status": ["released", "deprecated"]
+  },
+  "compression": true,
+  "validation_required": true,
+  "metadata": {
+    "category": "documentation",
+    "audience": "public",
+    "compliance": ["version_tracking", "change_documentation"]
+  },
+  "archival_rules": {
+    "keep_local_after_archive": true,
+    "archive_format": "markdown",
+    "index_fields": ["version", "release_date", "status", "breaking_changes"],
+    "searchable": true
+  },
+  "retention_exceptions": {
+    "status:deprecated": {
+      "local_retention_days": 180,
+      "cloud_retention_policy": "2_years"
+    },
+    "status:draft": {
+      "local_retention_days": 30,
+      "cloud_retention_policy": "90_days"
+    }
+  },
+  "cleanup_policy": {
+    "safe_to_delete": false,
+    "requires_approval": true,
+    "warning_message": "Changelog logs are permanent historical records. Deletion should be rare and approved."
+  }
+}

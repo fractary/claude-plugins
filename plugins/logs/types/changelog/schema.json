@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Changelog Log Schema",
+  "description": "Schema for tracking software releases with version numbers, features, bug fixes, and breaking changes",
+  "properties": {
+    "log_type": {
+      "const": "changelog",
+      "description": "Must be 'changelog'"
+    },
+    "title": {
+      "type": "string",
+      "description": "Release title (e.g., 'Version 1.2.0 Release')"
+    },
+    "changelog_id": {
+      "type": "string",
+      "description": "Unique identifier for this changelog entry",
+      "pattern": "^changelog-[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version number (e.g., '1.2.3')",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    },
+    "release_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of release"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "planned", "released", "deprecated", "archived"],
+      "description": "Release status"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Categorized changes following Keep a Changelog format",
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "New features added"
+        },
+        "changed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Changes to existing functionality"
+        },
+        "deprecated": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Soon-to-be removed features"
+        },
+        "removed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Removed features"
+        },
+        "fixed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Bug fixes"
+        },
+        "security": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Security fixes and vulnerabilities"
+        }
+      },
+      "additionalProperties": false
+    },
+    "breaking_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {"type": "string"},
+          "migration_notes": {"type": "string"}
+        },
+        "required": ["description"]
+      },
+      "description": "Breaking changes requiring user action"
+    },
+    "work_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string", "enum": ["issue", "pr", "feature", "bug"]},
+          "title": {"type": "string"},
+          "url": {"type": "string", "format": "uri"}
+        },
+        "required": ["id", "type"]
+      },
+      "description": "Associated issues, PRs, and work items"
+    },
+    "contributors": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Contributors to this release"
+    },
+    "compare_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to compare this version with previous"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional release notes or commentary"
+    }
+  },
+  "required": ["log_type", "title", "changelog_id", "version", "release_date", "status"],
+  "additionalProperties": true
+}
