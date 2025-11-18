@@ -169,13 +169,18 @@ Before creating commit:
 
 **6. INVOKE HANDLER:**
 
-Invoke the active source control handler:
+Invoke the active source control handler skill.
 
-```
-USE SKILL handler-source-control-{platform}
-OPERATION: create-commit
-PARAMETERS: {formatted_message, allow_empty, sign}
-```
+**IMPORTANT**: You MUST use the Skill tool to invoke the handler. The handler skill name is constructed as follows:
+1. Read the platform from config: `config.handlers.source_control.active` (e.g., "github")
+2. Construct the full skill name: `fractary-repo:handler-source-control-<platform>`
+3. For example, if platform is "github", invoke: `fractary-repo:handler-source-control-github`
+
+**DO NOT** use any other handler name pattern. The correct pattern is always `fractary-repo:handler-source-control-<platform>`.
+
+Use the Skill tool with:
+- command: `fractary-repo:handler-source-control-<platform>` (where <platform> is from config)
+- Pass parameters: {formatted_message, allow_empty, sign}
 
 The handler will:
 - Create Git commit with formatted message
