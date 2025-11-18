@@ -136,16 +136,38 @@ if echo "$CONTENT" | grep -qE '[0-9]+ (passed|failed)'; then
 fi
 
 # AUDIT classification
-AUDIT_KEYWORDS=("audit" "security" "compliance" "access" "permission" "unauthorized")
+AUDIT_KEYWORDS=("audit" "security" "compliance" "access" "permission" "unauthorized" "inspect" "inspection" "validate" "validation" "verify" "verification" "review" "assessment" "examine" "examination" "findings")
 AUDIT_SCORE=$(check_keywords audit "${AUDIT_KEYWORDS[@]}")
 SCORES[audit]=$((AUDIT_SCORE * 10))
 
-# Check for user + action + resource pattern
+# Check for audit/inspection commands
+AUDIT_COMMANDS=("audit" "inspect" "validate" "verify" "review" "check")
+for cmd in "${AUDIT_COMMANDS[@]}"; do
+  if [[ $(check_command "$cmd") -eq 1 ]]; then
+    SCORES[audit]=$((SCORES[audit] + 20))
+    break
+  fi
+done
+
+# Check for user + action + resource pattern (flexible: 2 of 3 sufficient)
 HAS_USER=$(echo "$METADATA_JSON" | jq -e '.user' >/dev/null 2>&1 && echo 1 || echo 0)
 HAS_ACTION=$(echo "$METADATA_JSON" | jq -e '.action' >/dev/null 2>&1 && echo 1 || echo 0)
 HAS_RESOURCE=$(echo "$METADATA_JSON" | jq -e '.resource' >/dev/null 2>&1 && echo 1 || echo 0)
-if [[ $HAS_USER -eq 1 ]] && [[ $HAS_ACTION -eq 1 ]] && [[ $HAS_RESOURCE -eq 1 ]]; then
+METADATA_COUNT=$((HAS_USER + HAS_ACTION + HAS_RESOURCE))
+if [[ $METADATA_COUNT -ge 3 ]]; then
   SCORES[audit]=$((SCORES[audit] + 30))
+elif [[ $METADATA_COUNT -ge 2 ]]; then
+  SCORES[audit]=$((SCORES[audit] + 20))
+fi
+
+# Check for audit report patterns
+if echo "$CONTENT" | grep -qiE 'findings|violations|issues.*found|passed.*failed'; then
+  SCORES[audit]=$((SCORES[audit] + 15))
+fi
+
+# Check for inspection/validation results
+if echo "$CONTENT" | grep -qiE 'inspected.*files|validated.*records|verified.*items'; then
+  SCORES[audit]=$((SCORES[audit] + 15))
 fi
 
 # OPERATIONAL classification

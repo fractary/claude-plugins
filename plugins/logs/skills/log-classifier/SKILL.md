@@ -81,10 +81,11 @@ Execute `scripts/classify-log.sh` with extracted signals:
 - Test metrics: duration, coverage percentages
 
 ### Audit Type Indicators
-- Keywords: audit, security, compliance, access, permission, user action
-- Patterns: User actions, resource access, permission changes
-- Security context: IP addresses, auth methods, failed access attempts
-- Critical: user + action + resource fields
+- Keywords: audit, security, compliance, access, permission, unauthorized, inspect, inspection, validate, validation, verify, verification, review, assessment, examine, examination, findings
+- Commands: audit, inspect, validate, verify, review, check
+- Patterns: Audit reports (findings, violations, issues found), inspection results (inspected files, validated records, verified items)
+- Metadata: user + action + resource (flexible: any 2 of 3 fields sufficient for bonus)
+- Use cases: Security audits, compliance reviews, code inspections, data validation, quality assessments
 
 ### Operational Type Indicators
 - Keywords: maintenance, backup, restore, migration, sync, cleanup, cron
