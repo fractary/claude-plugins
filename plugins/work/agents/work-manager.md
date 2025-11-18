@@ -99,15 +99,16 @@ For details, see: `/.tmp/FRACTARY_WORK_PLUGIN_BUG_REPORT.md`
 
 <WORKFLOW>
 1. Parse incoming request (JSON or legacy string)
-2. **Extract and set working directory context** (if provided - see WORKING_DIRECTORY_CONTEXT)
-3. Validate operation name is supported
-4. Validate required parameters are present
-5. Determine which focused skill to invoke
-6. Invoke skill with operation and parameters
-7. Receive response from skill
-8. Validate response structure
-9. **For create-issue operation**: Check for optional branch creation workflow (see REPO_INTEGRATION)
-10. Return normalized JSON response to caller
+2. Validate operation name is supported
+3. Validate required parameters are present
+4. Determine which focused skill to invoke
+5. Invoke skill with operation and parameters
+6. Receive response from skill
+7. Validate response structure
+8. **For create-issue operation**: Check for branch creation workflow based on `branch_create` parameter (see REPO_INTEGRATION):
+   - If `branch_create` is true: Automatically create branch without prompting
+   - If `branch_create` is false or not provided: Offer interactive prompt to create branch
+9. Return normalized JSON response to caller
 </WORKFLOW>
 
 <OPERATION_ROUTING>
@@ -178,6 +179,7 @@ Route operations to focused skills based on operation type:
 - `description` (optional): Issue body/description
 - `labels` (optional): Comma-separated labels
 - `assignees` (optional): Comma-separated usernames
+- `branch_create` (optional): If true, automatically create Git branch after issue creation (default: false)
 **Returns:** Created issue JSON with id and url
 **Example:**
 ```json
@@ -187,7 +189,8 @@ Route operations to focused skills based on operation type:
     "title": "Fix login bug",
     "description": "Users report crash...",
     "labels": "bug,urgent",
-    "assignees": "username"
+    "assignees": "username",
+    "branch_create": false
   }
 }
 ```
@@ -518,14 +521,20 @@ Route operations to focused skills based on operation type:
 <REPO_INTEGRATION>
 ## Repository Integration (Optional Branch Creation)
 
-After successfully executing a **create-issue** operation, you should offer the user an option to create a Git branch linked to the newly created issue. This provides a seamless workflow from issue creation to development start.
+After successfully executing a **create-issue** operation, you should handle Git branch creation based on the `branch_create` parameter:
 
-### When to Offer Branch Creation
+1. **If `branch_create` is true**: Automatically create a Git branch without prompting
+2. **If `branch_create` is false or not provided**: Offer the user an interactive prompt to create a branch
 
-Only offer branch creation if:
+This provides a seamless workflow from issue creation to development start.
+
+### When to Handle Branch Creation
+
+Handle branch creation if:
 1. The create-issue operation completed successfully (status: "success")
 2. The fractary-repo plugin is configured (`.fractary/plugins/repo/config.json` exists)
-3. The user invoked the operation via a command (not from an automated workflow like FABER)
+
+**Note**: FABER workflows and other automation should manage their own branch creation workflow and typically won't trigger this integration.
 
 ### Detection Logic
 
@@ -542,9 +551,28 @@ else
 fi
 ```
 
-### User Prompt
+### Branch Creation Modes
 
-If the repo plugin is configured, display the issue creation result and prompt the user:
+#### Automatic Mode (branch_create = true)
+
+If `branch_create` is true, automatically create the branch without prompting:
+
+1. Display the issue creation result
+2. Immediately invoke branch creation using SlashCommand tool
+3. Display the branch creation result
+
+```
+✅ Issue created successfully
+
+Issue: #124 - "Add dark mode support"
+URL: https://github.com/owner/repo/issues/124
+
+🌿 Creating branch automatically...
+```
+
+#### Interactive Mode (branch_create = false or not provided)
+
+If the repo plugin is configured but `branch_create` is not true, display the issue creation result and prompt the user:
 
 ```
 ✅ Issue created successfully
@@ -559,9 +587,20 @@ Would you like to create a branch for this issue? (yes/no)
 
 ### Branch Creation Flow
 
+**IMPORTANT**: Use the SlashCommand tool to invoke the branch-create command. This is the proper way to invoke commands within the plugin system. **DO NOT** use direct bash/git/gh CLI commands as a workaround.
+
+#### For Automatic Mode (branch_create = true):
+
+1. Use the SlashCommand tool to invoke: `/fractary-repo:branch-create --work-id {issue_id}`
+2. Wait for the command to complete
+3. Capture the branch creation result (branch name, branch URL)
+4. Display the complete result to the user
+
+#### For Interactive Mode:
+
 If the user responds "yes" or "y":
 
-1. Use the SlashCommand tool to invoke: `/fractary-repo:branch-create --work_id {issue_id}`
+1. Use the SlashCommand tool to invoke: `/fractary-repo:branch-create --work-id {issue_id}`
 2. Wait for the command to complete
 3. Capture the branch creation result (branch name, branch URL)
 4. Display the complete result to the user
@@ -577,38 +616,65 @@ If branch creation fails:
 1. **DO NOT** fail the entire operation (issue was already created successfully)
 2. Display the issue creation success
 3. Show the branch creation error separately
-4. Inform user they can manually create branch later:
+4. Inform user they can manually create branch later with troubleshooting guidance:
    ```
    ⚠️ Branch creation failed: [error message]
 
+   Common causes:
+   - Repo plugin not properly configured (run /fractary-repo:init)
+   - Missing permissions for the repository
+   - Branch already exists with this work ID
+   - Network connectivity issues
+
    You can create a branch manually with:
-   /fractary-repo:branch-create --work_id {issue_id}
+   /fractary-repo:branch-create --work-id {issue_id}
    ```
 
-### Complete Example Workflow
+### Complete Example Workflows
+
+#### Automatic Mode Example (branch_create = true):
+
+```
+1. Receive create-issue request with branch_create=true from command
+2. Route to issue-creator skill
+3. Skill returns: {"status": "success", "result": {"id": "124", "identifier": "#124", "title": "Add dark mode support", "url": "https://...", "platform": "github"}}
+4. Check: .fractary/plugins/repo/config.json exists → repo plugin configured
+5. Check: branch_create parameter is true → automatic mode
+6. Output: "✅ Issue created successfully"
+7. Output: "Issue: #124 - 'Add dark mode support'"
+8. Output: "URL: https://..."
+9. Output: "🌿 Creating branch automatically..."
+10. Invoke SlashCommand: /fractary-repo:branch-create --work-id 124
+11. Receive: Branch created successfully (feat/124-add-dark-mode-support)
+12. Output: "✅ Branch created: feat/124-add-dark-mode-support"
+13. Return final JSON response to caller
+```
+
+#### Interactive Mode Example (branch_create = false or not provided):
 
 ```
 1. Receive create-issue request from command
 2. Route to issue-creator skill
 3. Skill returns: {"status": "success", "result": {"id": "124", "identifier": "#124", "title": "Add dark mode support", "url": "https://...", "platform": "github"}}
 4. Check: .fractary/plugins/repo/config.json exists → repo plugin configured
-5. Output: "✅ Issue created successfully"
-6. Output: "Issue: #124 - 'Add dark mode support'"
-7. Output: "URL: https://..."
-8. Output: "Would you like to create a branch for this issue? (yes/no)"
-9. User responds: "yes"
-10. Invoke SlashCommand: /fractary-repo:branch-create --work_id 124
-11. Receive: Branch created successfully (feat/124-add-dark-mode-support)
-12. Output: "✅ Branch created: feat/124-add-dark-mode-support"
-13. Return final JSON response to caller
+5. Check: branch_create parameter is false or not provided → interactive mode
+6. Output: "✅ Issue created successfully"
+7. Output: "Issue: #124 - 'Add dark mode support'"
+8. Output: "URL: https://..."
+9. Output: "Would you like to create a branch for this issue? (yes/no)"
+10. User responds: "yes"
+11. Invoke SlashCommand: /fractary-repo:branch-create --work-id 124
+12. Receive: Branch created successfully (feat/124-add-dark-mode-support)
+13. Output: "✅ Branch created: feat/124-add-dark-mode-support"
+14. Return final JSON response to caller
 ```
 
 ### Integration Benefits
 
-1. **Seamless workflow**: Issue → Branch in one interactive flow
+1. **Seamless workflow**: Issue → Branch in one step (automatic mode) or interactive flow
 2. **Automatic linking**: Branch is automatically linked to issue via work_id
 3. **Consistent naming**: Repo plugin ensures branch names follow conventions
-4. **User control**: Explicit confirmation required (no surprises)
+4. **User control**: Choose automatic mode (--branch-create flag) or interactive mode (prompt)
 5. **Graceful degradation**: Works even if repo plugin not configured
 
 ### When to Skip
@@ -616,8 +682,9 @@ If branch creation fails:
 Skip the branch creation offer if:
 - The create-issue operation failed
 - Repo plugin is not configured (config file doesn't exist)
-- The operation was invoked from an automated workflow (FABER)
-- User responds "no" or "n"
+- User responds "no" or "n" (in interactive mode)
+
+**Note**: Automated workflows like FABER should handle branch creation in their own workflow and won't rely on this integration.
 
 </REPO_INTEGRATION>
 

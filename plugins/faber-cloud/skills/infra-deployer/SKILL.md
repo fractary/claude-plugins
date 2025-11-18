@@ -16,16 +16,19 @@ update the resource registry, and generate deployment documentation.
 
 <CRITICAL_RULES>
 **IMPORTANT:** Deployment Safety
-- NEVER deploy to production without explicit confirmation
+- NEVER deploy to production without checking confirmation requirements
+- Execute production-safety-confirm.sh when `require_confirmation: true`
 - ALWAYS validate profile separation before deployment
 - Use correct AWS profile for environment (never discover-deploy)
 - Verify deployment success before updating registry
 - Handle permission errors by delegating to permission-manager
 
 **IMPORTANT:** Production Deployments
-- Require TWO confirmations for production
+- Check `DEVOPS_REQUIRE_CONFIRMATION` environment variable from config
+- If "true" for production, require TWO confirmations via production-safety-confirm.sh
 - Show clear warnings about production impact
 - Verify plan was reviewed before applying
+- Production confirmation happens AFTER plan generation, BEFORE deployment
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -39,18 +42,20 @@ Use TodoWrite to track deployment progress:
 
 1. ⏳ Validate environment configuration
 2. ⏳ Run environment safety validation
-3. ⏳ Initialize Terraform
-4. ⏳ Select Terraform workspace
-5. ⏳ Validate Terraform configuration
-6. ⏳ Generate deployment plan
-7. ⏳ Review plan for safety
-8. ⏳ **Execute pre-deploy hooks**
-9. ⏳ Execute deployment (terraform apply)
-10. ⏳ **Execute post-deploy hooks**
-11. ⏳ Verify resources created
-12. ⏳ Run post-deployment tests
-13. ⏳ Generate documentation
-14. ⏳ Update deployment history
+3. ⏳ **Check production safety confirmation requirement**
+4. ⏳ Initialize Terraform
+5. ⏳ Select Terraform workspace
+6. ⏳ Validate Terraform configuration
+7. ⏳ Generate deployment plan
+8. ⏳ Review plan for safety
+9. ⏳ **Execute production safety confirmation (if required)**
+10. ⏳ **Execute pre-deploy hooks**
+11. ⏳ Execute deployment (terraform apply)
+12. ⏳ **Execute post-deploy hooks**
+13. ⏳ Verify resources created
+14. ⏳ Run post-deployment tests
+15. ⏳ Generate documentation
+16. ⏳ Update deployment history
 
 Mark each step in_progress → completed as you go.
 
@@ -71,16 +76,33 @@ AWS Profile: {profile}
    ```
    - If validation fails (exit code 1): STOP deployment, show errors
    - If validation passes (exit code 0): Continue to step 3
-3. Run legacy validation (validate-plan.sh) for profile/backend checks
-4. Validate AWS profile separation
-5. Authenticate with AWS (via handler-hosting-aws)
-6. **Execute pre-deploy hooks:**
+3. **Check production safety confirmation requirement:**
+   - Configuration is loaded by sourcing cloud-common/scripts/config-loader.sh
+   - config-loader.sh reads `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+   - It sets `DEVOPS_REQUIRE_CONFIRMATION` from `environments.{env}.require_confirmation`
+   - Example: If config has `"prod": {"require_confirmation": true}`, then `DEVOPS_REQUIRE_CONFIRMATION="true"`
+   - If "true", mark that confirmation will be required after plan generation (step 9)
+   - Continue to step 4
+4. Run legacy validation (validate-plan.sh) for profile/backend checks
+5. Validate AWS profile separation
+6. Authenticate with AWS (via handler-hosting-aws)
+7. Initialize Terraform and generate deployment plan
+8. Review plan for safety
+9. **Execute production safety confirmation (if required):**
+   - If `DEVOPS_REQUIRE_CONFIRMATION` is "true" for this environment:
+   ```bash
+   bash plugins/faber-cloud/skills/cloud-common/scripts/production-safety-confirm.sh {environment} deploy {plan_summary_file}
+   ```
+   - If confirmation fails (exit code 1): STOP deployment, show abort message
+   - If confirmation succeeds (exit code 0): Continue to step 10
+   - If `DEVOPS_REQUIRE_CONFIRMATION` is "false" or not set: Skip confirmation, continue to step 10
+10. **Execute pre-deploy hooks:**
    ```bash
    bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh pre-deploy {environment} {terraform_dir}
    ```
    - If hooks fail (exit code 1): STOP deployment, show error
-   - If hooks pass (exit code 0): Check for hook context and continue to step 7
-6a. **Load hook context (if available):**
+   - If hooks pass (exit code 0): Check for hook context and continue to step 11
+10a. **Load hook context (if available):**
    - Check for hook context files in /tmp/faber-cloud-hook-context-*.txt
    - If found, read and apply the context for this deployment
    - Prompt hooks may reference documentation, provide guidance, or include project-specific requirements
@@ -93,19 +115,19 @@ AWS Profile: {profile}
        fi
      done
      ```
-7. Execute Terraform apply (via handler-iac-terraform), applying any context from step 6a
-8. If permission error: Present error delegation options
-9. **Execute post-deploy hooks:**
+11. Execute Terraform apply (via handler-iac-terraform), applying any context from step 10a
+12. If permission error: Present error delegation options
+13. **Execute post-deploy hooks:**
    ```bash
    bash plugins/faber-cloud/skills/cloud-common/scripts/execute-hooks.sh post-deploy {environment} {terraform_dir}
    ```
    - If hooks fail: WARN user, deployment already complete but post-deploy actions failed
-   - If hooks pass: Continue to step 10
-10. Verify deployed resources (via handler-hosting-aws)
-11. Update resource registry
-12. Generate DEPLOYED.md documentation
-13. Update deployment history
-14. Report deployment results
+   - If hooks pass: Continue to step 14
+14. Verify deployed resources (via handler-hosting-aws)
+15. Update resource registry
+16. Generate DEPLOYED.md documentation
+17. Update deployment history
+18. Report deployment results
 
 **OUTPUT COMPLETION MESSAGE:**
 ```
@@ -178,8 +200,62 @@ Before deployment (step 2):
    - Continue to terraform init (step 3)
 </SAFETY_VALIDATION>
 
+<PRODUCTION_SAFETY_PROTOCOL>
+**When production deployment confirmation is required:**
+
+The production safety confirmation protocol is triggered when:
+- Configuration has `environments.{env}.require_confirmation: true`
+- This sets `DEVOPS_REQUIRE_CONFIRMATION="true"` (loaded by config-loader.sh)
+- Works with any environment name (prod, production, live, prd, prod-us, etc.)
+
+**Environment Variable Distinction:**
+- `DEVOPS_REQUIRE_CONFIRMATION` - From config, indicates if confirmation is required
+- `DEVOPS_AUTO_APPROVE` - Runtime override to bypass interactive confirmation (CI/CD use)
+
+**Two-Question Confirmation Protocol:**
+
+1. **Question 1: Validation Confirmation**
+   - "Have you validated this deployment in TEST environment and are ready to deploy to PRODUCTION?"
+   - User must answer "yes" or "y" (case-insensitive)
+   - Any other answer (including "no") aborts deployment
+
+2. **Question 2: Typed Confirmation**
+   - User must type the environment name exactly (e.g., "prod")
+   - Exact match required - no fuzzy matching
+   - Failure aborts deployment
+
+**Special Cases:**
+
+1. **CI/CD Environments:**
+   - Script detects CI environment variable
+   - Requires `DEVOPS_AUTO_APPROVE=true` to bypass interactive confirmation
+   - This prevents accidental production deployments from CI/CD
+   - Should only be set in approved production deployment jobs
+
+2. **Auto-Approve Flag:**
+   - If `auto_approve` parameter is true, confirmation is skipped
+   - NOT recommended for production
+   - Should only be used in automated workflows with proper safeguards
+
+**Abort Handling:**
+- If user declines or fails confirmation, deployment stops immediately
+- Clear message displayed with recommended next steps
+- User can retry deployment after addressing concerns
+
+**Safety Features:**
+- 5-minute timeout on each confirmation question
+- Graceful handling of SIGINT/SIGTERM (Ctrl+C)
+- Plan summary size limit (1MB, shows first 100 lines if larger)
+- Comprehensive audit logging to stderr
+- Works with any environment name (not limited to "prod"/"production")
+
+**Integration Point:**
+Execute after plan generation (step 9) but before pre-deploy hooks (step 10).
+This ensures user sees the plan before confirming.
+</PRODUCTION_SAFETY_PROTOCOL>
+
 <ERROR_DELEGATION>
-When deployment encounters errors during terraform apply (step 8):
+When deployment encounters errors during terraform apply (step 12):
 
 1. STOP deployment immediately
 2. Capture error output
@@ -194,7 +270,7 @@ When deployment encounters errors during terraform apply (step 8):
    → Invoke infra-debugger with --complete flag
    → Auto-fixes all errors
    → Returns control to infra-deployer
-   → Deployment continues automatically from step 8
+   → Deployment continues automatically from step 12
 
    Option 3: Manual fix
    → User fixes issues manually

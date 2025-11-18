@@ -184,6 +184,164 @@ trap "rm -f $context_file" EXIT
 - ✅ Avoid storing secrets in WorkflowContext
 - ✅ Minimize data passed via temp files
 
+## Production Deployment Safety
+
+### Overview
+
+The faber-cloud plugin includes a **production safety confirmation protocol** to prevent accidental production deployments. This is separate from hooks security and provides explicit user confirmation before any production deployment.
+
+### Configuration
+
+Production safety is controlled by the `require_confirmation` setting in your environment configuration:
+
+```json
+{
+  "environments": {
+    "test": {
+      "auto_approve": false,
+      "require_confirmation": false
+    },
+    "prod": {
+      "auto_approve": false,
+      "require_confirmation": true
+    }
+  }
+}
+```
+
+**Settings:**
+- `require_confirmation: true` - Requires explicit 2-step user confirmation
+- `require_confirmation: false` - No confirmation required (use for test environments)
+- `auto_approve: true` - Bypasses all confirmations (NOT recommended)
+
+### Two-Question Confirmation Protocol
+
+When `require_confirmation: true` for production environments, users must answer two questions:
+
+**Question 1: Validation Confirmation**
+```
+Have you validated this deployment in TEST environment
+and are ready to deploy to PRODUCTION?
+Answer (yes/no): _
+```
+
+**Question 2: Typed Confirmation**
+```
+Type 'prod' to confirm deployment to PROD:
+Type exactly: _
+```
+
+Both confirmations must succeed for deployment to proceed.
+
+### Implementation
+
+Production safety confirmation is executed by:
+```bash
+bash plugins/faber-cloud/skills/cloud-common/scripts/production-safety-confirm.sh \
+  <environment> <operation> [plan_summary_file]
+```
+
+This script:
+- Displays prominent warning banner
+- Shows deployment plan summary (if provided)
+- Requires two explicit confirmations
+- Aborts deployment if user declines
+- Provides clear guidance on next steps
+
+### CI/CD Integration
+
+**Problem:** Interactive confirmations don't work in automated CI/CD pipelines.
+
+**Solution:** Set `DEVOPS_AUTO_APPROVE=true` environment variable in your CI/CD configuration:
+
+```yaml
+# Example GitHub Actions
+deploy-to-production:
+  environment: production
+  steps:
+    - name: Deploy Infrastructure
+      env:
+        DEVOPS_AUTO_APPROVE: true  # Bypass interactive confirmation
+      run: |
+        /faber-cloud:deploy-apply --env=prod
+```
+
+**IMPORTANT CI/CD Security:**
+- ✅ Only set `DEVOPS_AUTO_APPROVE=true` for approved production deployment jobs
+- ✅ Use environment protection rules (GitHub Actions, GitLab Protected Environments)
+- ✅ Require manual approval before CI/CD runs production deployment
+- ✅ Document approval requirements in CI/CD configuration
+- ✅ Audit all production deployments
+
+**Anti-Patterns:**
+- ❌ Setting `DEVOPS_AUTO_APPROVE=true` globally
+- ❌ Using same job for test and production without environment gates
+- ❌ No approval process before automated production deployment
+
+### Bypass Mechanisms (Use with Caution)
+
+**1. Configuration-Level Bypass**
+```json
+{
+  "environments": {
+    "prod": {
+      "require_confirmation": false  // ⚠️ Not recommended
+    }
+  }
+}
+```
+
+**2. Environment Variable Bypass**
+```bash
+DEVOPS_AUTO_APPROVE=true /faber-cloud:deploy-apply --env=prod
+```
+
+**3. Auto-Approve Parameter**
+```bash
+/faber-cloud:deploy-apply --env=prod --auto-approve
+```
+
+**When to Use Bypass:**
+- CI/CD pipelines with external approval gates
+- Emergency deployments (document reason)
+- Automated rollback procedures
+
+**When NOT to Use Bypass:**
+- Regular manual deployments
+- First-time deployments
+- Deployments with unknown impact
+- When in doubt
+
+### Comparison: Deploy vs Teardown
+
+| Feature | Deploy (infra-deployer) | Teardown (infra-teardown) |
+|---------|-------------------------|---------------------------|
+| Questions | 2 | 3 |
+| Reason | Deployments reversible | Destruction permanent |
+| Can bypass | Yes (with flags) | NO for production |
+| CI/CD support | Yes | Limited |
+
+Teardown is more restrictive because resource destruction cannot be undone.
+
+### Security Best Practices
+
+**For Manual Deployments:**
+1. ✅ Always enable `require_confirmation: true` for production
+2. ✅ Test in non-production environment first
+3. ✅ Review terraform plan before confirming
+4. ✅ Know your rollback procedure
+5. ✅ Have team member review critical changes
+
+**For Automated Deployments:**
+1. ✅ Use environment protection with manual approval
+2. ✅ Set `DEVOPS_AUTO_APPROVE=true` only in production job
+3. ✅ Require code review before merging
+4. ✅ Run automated tests in staging first
+5. ✅ Monitor deployments with alerting
+
+**Audit Trail:**
+All confirmation prompts and responses should be captured in deployment logs for compliance auditing.
+
 ## Production Environment Security
 
 ### Profile Separation
