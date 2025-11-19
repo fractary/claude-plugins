@@ -328,6 +328,52 @@ If operation is `push-branch` and skill returns exit code 13 (branch out of sync
    - ❌ "Run: git pull origin main && git push"
    - ✅ "Use /repo:pull to sync, then retry /repo:push"
 
+**Special handling for create-branch operation with spec_create flag:**
+
+If operation is `create-branch` and skill returns success AND `parameters.spec_create` is true:
+
+1. **Check preconditions for spec creation**:
+   - Verify `work_id` is provided (required for spec creation)
+   - Check if spec plugin is configured: `.fractary/plugins/spec/config.json` exists
+   - If either precondition fails, show appropriate warning (see SPEC_INTEGRATION section) but do NOT fail the operation
+
+2. **If all preconditions met**:
+   - Output: "📋 Creating specification automatically..."
+   - Use SlashCommand tool to invoke: `/fractary-spec:create --work-id {work_id}`
+   - Wait for command to complete
+   - Capture and display the result
+
+3. **Error handling**:
+   - If `work_id` is missing:
+     ```
+     ⚠️ Spec creation skipped: work_id is required
+
+     To create a specification, you need to provide a work item ID.
+
+     Either:
+     1. Use --work-id flag: /repo:branch-create "description" --work-id 123 --spec-create
+     2. Create spec manually: /fractary-spec:create --work-id {work_id}
+     ```
+   - If spec plugin not configured (config file doesn't exist):
+     ```
+     ⚠️ Spec creation skipped: fractary-spec plugin not configured
+
+     The spec plugin is not installed or configured in this project.
+
+     To enable spec creation:
+     1. Install the fractary-spec plugin
+     2. Run /fractary-spec:init to configure it
+     3. Then create spec manually: /fractary-spec:create --work-id {work_id}
+     ```
+   - If spec creation command fails:
+     - Display the error message from the command
+     - Provide guidance on manual spec creation
+     - Do NOT fail the entire operation (branch was created successfully)
+
+4. **Success path**:
+   - Display spec file path returned by the command
+   - Include in the final response JSON
+
 **7. RETURN RESPONSE:**
 
 Return structured response to caller:
