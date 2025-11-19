@@ -443,7 +443,7 @@ Automatically invoked when permission errors occur during deployment.
 6. Generate compliance report
 
 **Outputs:**
-- Audit report at `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-audit.json`
+- Audit report at `logs/infrastructure/audits/{env}/{timestamp}-audit.json`
 - Findings with severity
 - Prioritized recommendations
 - Potential savings (for cost)

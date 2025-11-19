@@ -426,7 +426,7 @@ Monitor health, investigate issues, and respond to incidents.
 - Best practices validation
 
 **Audit report location:**
-`.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-audit.json`
+`logs/infrastructure/audits/{env}/{timestamp}-audit.json`
 
 ---
 

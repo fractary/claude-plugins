@@ -96,7 +96,7 @@ init_audit_report() {
     export AUDIT_START_TIME=$(date +%s)
 
     # Define paths
-    export AUDIT_BASE_DIR="${DEVOPS_PROJECT_ROOT}/.fractary/plugins/faber-cloud/audits"
+    export AUDIT_BASE_DIR="${DEVOPS_PROJECT_ROOT}/logs/infrastructure/audits"
     export AUDIT_ENV_DIR="${AUDIT_BASE_DIR}/${env}"
     export AUDIT_REPORT_FILE="${AUDIT_ENV_DIR}/${AUDIT_TIMESTAMP}-${check_type}"
     export AUDIT_REPORT_JSON="${AUDIT_REPORT_FILE}.json"
@@ -332,8 +332,8 @@ EOF
 ---
 
 **Report Files:**
-- JSON: \`.fractary/plugins/faber-cloud/audits/$(basename "$(dirname "$AUDIT_REPORT_JSON")")/$(basename "$AUDIT_REPORT_JSON")\`
-- Markdown: \`.fractary/plugins/faber-cloud/audits/$(basename "$(dirname "$AUDIT_REPORT_MD")")/$(basename "$AUDIT_REPORT_MD")\`
+- JSON: \`logs/infrastructure/audits/$(basename "$(dirname "$AUDIT_REPORT_JSON")")/$(basename "$AUDIT_REPORT_JSON")\`
+- Markdown: \`logs/infrastructure/audits/$(basename "$(dirname "$AUDIT_REPORT_MD")")/$(basename "$AUDIT_REPORT_MD")\`
 
 EOF
 }

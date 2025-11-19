@@ -496,7 +496,7 @@ plugins/fractary-faber-cloud/
 - Includes timeline, root cause, affected resources
 
 ### Audit Reports
-- `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-audit.json`
+- `logs/infrastructure/audits/{env}/{timestamp}-audit.json`
 - Cost analysis, security findings, compliance checks
 
 ### Remediation History
