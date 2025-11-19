@@ -24,7 +24,7 @@ No configuration needed! The local handler works out of the box with defaults:
 ```
 
 Default settings:
-- **base_path**: `./storage` (relative to current directory)
+- **base_path**: `.` (project root)
 - **create_directories**: `true` (auto-create directories)
 - **permissions**: `0755` (standard directory permissions)
 
@@ -48,9 +48,9 @@ Customize the local handler in `.fractary/plugins/file/config.json`:
 **Configuration Fields**:
 
 - **base_path**: Base directory for file storage
-  - Can be relative (`./storage`) or absolute (`/var/fractary/storage`)
+  - Can be relative (`.` for project root, `./storage` for subdirectory) or absolute (`/var/fractary/storage`)
   - Created automatically if it doesn't exist
-  - Example: `"./storage"`, `"/tmp/fractary"`, `"~/fractary-files"`
+  - Example: `"."` (project root), `"./storage"` (subdirectory), `"/tmp/fractary"`, `"~/fractary-files"`
 
 - **create_directories**: Auto-create directories for uploads
   - `true`: Automatically create parent directories (recommended)
@@ -285,14 +285,29 @@ When ready to move from local to cloud storage:
 
 ## Examples
 
-### Development Setup
+### Development Setup (Project Root)
 
 ```json
 {
   "active_handler": "local",
   "handlers": {
     "local": {
-      "base_path": "./dev-storage",
+      "base_path": ".",
+      "create_directories": true,
+      "permissions": "0755"
+    }
+  }
+}
+```
+
+### Development Setup (Storage Directory)
+
+```json
+{
+  "active_handler": "local",
+  "handlers": {
+    "local": {
+      "base_path": "./storage",
       "create_directories": true,
       "permissions": "0755"
     }

@@ -144,7 +144,7 @@ Each handler requires specific parameters. Prepare based on handler type:
 ## Local Handler Parameters
 ```json
 {
-  "base_path": "./storage",
+  "base_path": ".",
   "local_path": "source.txt",
   "remote_path": "dest.txt",
   "create_directories": true

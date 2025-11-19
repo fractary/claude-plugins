@@ -191,7 +191,7 @@ For each handler in the list, execute the corresponding configuration section be
 ───────────────────────────────────────
 
 Storage path (where files will be stored):
-  Default: ./storage
+  Default: . (project root)
   Path: _____
 
 Create directories automatically if they don't exist? [Y/n]: _____
@@ -202,14 +202,14 @@ Directory permissions (octal format):
 ```
 
 **Required fields:**
-- `base_path`: string (default: "./storage")
+- `base_path`: string (default: "." - project root)
 - `create_directories`: boolean (default: true)
 - `permissions`: string (default: "0755")
 
 **Non-interactive defaults:**
 ```json
 {
-  "base_path": "./storage",
+  "base_path": ".",
   "create_directories": true,
   "permissions": "0755"
 }

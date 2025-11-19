@@ -36,7 +36,7 @@ The `fractary-file` plugin provides a unified interface for file storage operati
 No configuration needed! Works immediately with local filesystem:
 
 ```bash
-# Files stored in ./storage/ by default
+# Files stored in project root by default
 Use the @agent-fractary-file:file-manager agent to upload:
 {
   "operation": "upload",
@@ -326,7 +326,7 @@ Configuration is stored in `.fractary/plugins/file/config.json`.
 
 1. **Project config**: `.fractary/plugins/file/config.json` (highest priority)
 2. **Global config**: `~/.config/fractary/file/config.json` (fallback)
-3. **Default**: Local handler with `./storage` base path
+3. **Default**: Local handler with `.` (project root) base path
 
 ### Configuration Schema
 
@@ -360,7 +360,7 @@ Configure local for working files and S3 for backups:
   "active_handler": "local",
   "handlers": {
     "local": {
-      "base_path": "./storage",
+      "base_path": ".",
       "create_directories": true,
       "permissions": "0755"
     },
@@ -387,7 +387,7 @@ Now you can use `local` by default, and override to `s3` for specific files.
   "active_handler": "local",
   "handlers": {
     "local": {
-      "base_path": "./storage",
+      "base_path": ".",
       "create_directories": true,
       "permissions": "0755"
     }

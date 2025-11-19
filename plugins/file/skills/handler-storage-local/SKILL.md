@@ -33,7 +33,7 @@ Required configuration in .fractary/plugins/file/config.json:
 {
   "handlers": {
     "local": {
-      "base_path": "./storage",
+      "base_path": ".",
       "create_directories": true,
       "permissions": "0755"
     }
@@ -42,7 +42,7 @@ Required configuration in .fractary/plugins/file/config.json:
 ```
 
 **Configuration Fields**:
-- `base_path`: Base directory for file storage (default: "./storage")
+- `base_path`: Base directory for file storage (default: "." - project root)
 - `create_directories`: Automatically create directories (default: true)
 - `permissions`: Directory permissions in octal (default: "0755")
 
@@ -90,7 +90,7 @@ All operations return JSON:
 </OUTPUTS>
 
 <ERROR_HANDLING>
-- Missing configuration: Use default base_path ("./storage")
+- Missing configuration: Use default base_path ("." - project root)
 - Path traversal attempt: Return error, do not execute
 - File not found: Return clear error message
 - Permission denied: Return error with file path

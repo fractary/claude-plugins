@@ -99,7 +99,7 @@ if [[ "$USE_DEFAULTS" != "true" ]]; then
     case "$ACTIVE_HANDLER" in
         local)
             # Local handler works with defaults
-            BASE_PATH=$(jq -r ".handlers.local.base_path // \"./storage\"" "$CONFIG_FILE")
+            BASE_PATH=$(jq -r ".handlers.local.base_path // \".\"" "$CONFIG_FILE")
 
             # Validate base_path is accessible
             if [[ ! -d "$BASE_PATH" ]] && [[ $(jq -r ".handlers.local.create_directories // true" "$CONFIG_FILE") == "false" ]]; then
