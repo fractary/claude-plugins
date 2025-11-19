@@ -1,5 +1,5 @@
 ---
-name: config-wizard
+name: file-config-wizard
 description: Interactive configuration wizard for the fractary-file plugin, guiding users through storage handler setup with validation
 ---
 

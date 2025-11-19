@@ -1,5 +1,5 @@
 ---
-name: config-wizard
+name: repo-config-wizard
 description: Interactive setup wizard for configuring the Fractary Repo Plugin
 tools: Bash, Read, Write
 model: inherit

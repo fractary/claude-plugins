@@ -1,5 +1,5 @@
 ---
-name: spec-generator
+name: conversion-spec-generator
 description: Generates detailed actionable conversion specifications from audit results for architectural migration
 ---
 
