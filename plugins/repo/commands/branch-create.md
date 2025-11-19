@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
-argument-hint: '["<branch-name-or-description>"] [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree]'
+argument-hint: '["<branch-name-or-description>"] [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree] [--spec-create]'
 ---
 
 <CONTEXT>
@@ -41,7 +41,7 @@ This command supports:
 1. **Parse user input**
    - Determine invocation mode based on arguments (see PARSING_LOGIC)
    - Extract parameters based on mode
-   - Parse optional arguments: --base, --prefix, --work-id, --worktree
+   - Parse optional arguments: --base, --prefix, --work-id, --worktree, --spec-create
    - Validate required arguments are present
 
 2. **Handle Semantic Mode (if applicable)**
@@ -60,9 +60,9 @@ This command supports:
 3. **Build structured request**
    - Map to "create-branch" operation
    - Package parameters based on mode:
-     - Direct mode: branch_name, base_branch, work_id (optional), create_worktree
-     - Description mode: description, prefix, base_branch, work_id (optional), create_worktree
-     - Semantic mode: description (from issue), prefix (from issue type), base_branch, work_id, create_worktree
+     - Direct mode: branch_name, base_branch, work_id (optional), create_worktree, spec_create
+     - Description mode: description, prefix, base_branch, work_id (optional), create_worktree, spec_create
+     - Semantic mode: description (from issue), prefix (from issue type), base_branch, work_id, create_worktree, spec_create
 
 4. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-repo:repo-manager"
@@ -198,6 +198,7 @@ END
 - `--prefix <type>` (string): Branch prefix - `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf` (default: `feat`)
 - `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional, but if provided alone (without description), enables semantic mode where issue title is fetched automatically.
 - `--worktree` (boolean flag): Create a git worktree for parallel development. No value needed, just include the flag
+- `--spec-create` (boolean flag): Automatically create a specification after branch creation (requires fractary-spec plugin and --work-id). No value needed, just include the flag
 
 ### Maps to Operation
 All modes map to: `create-branch` operation in repo-manager agent
@@ -238,6 +239,14 @@ All modes map to: `create-branch` operation in repo-manager agent
 # Create branch with worktree for parallel development
 /repo:branch-create "add CSV export" --work-id 123 --worktree
 # Result: feat/123-add-csv-export + worktree at ../repo-wt-feat-123-add-csv-export
+
+# Create branch and automatically create spec (requires work_id)
+/repo:branch-create "add CSV export" --work-id 123 --spec-create
+# Result: feat/123-add-csv-export + spec file created
+
+# Full workflow: branch + worktree + spec
+/repo:branch-create "add CSV export" --work-id 123 --worktree --spec-create
+# Result: feat/123-add-csv-export + worktree + spec file
 ```
 
 ### Mode 3: Semantic Mode (Work-ID Only)
@@ -305,7 +314,8 @@ Task(
       "branch_name": "feature/my-new-feature",
       "base_branch": "main",
       "work_id": "123",
-      "create_worktree": false
+      "create_worktree": false,
+      "spec_create": false
     }
   }'
 )
@@ -324,7 +334,8 @@ Task(
       "prefix": "feat",
       "base_branch": "main",
       "work_id": "123",
-      "create_worktree": false
+      "create_worktree": false,
+      "spec_create": false
     }
   }'
 )
@@ -342,7 +353,27 @@ Task(
       "description": "add CSV export",
       "prefix": "feat",
       "work_id": "123",
-      "create_worktree": true
+      "create_worktree": true,
+      "spec_create": false
+    }
+  }'
+)
+```
+
+### With Spec Creation
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Create branch with spec",
+  prompt='{
+    "operation": "create-branch",
+    "parameters": {
+      "mode": "description",
+      "description": "add CSV export",
+      "prefix": "feat",
+      "work_id": "123",
+      "create_worktree": false,
+      "spec_create": true
     }
   }'
 )

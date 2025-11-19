@@ -203,6 +203,10 @@ For other operations:
   - First invoke branch-manager skill to create the branch
   - Then invoke worktree-manager skill to create worktree for that branch
   - Return combined results from both operations
+- If `spec_create` is true:
+  - After successful branch creation (and worktree creation if applicable)
+  - Automatically create specification using /fractary-spec:create with the work_id
+  - See SPEC_INTEGRATION section for details
 
 **Special handling for commit-and-push:**
 - This is a composite operation that performs both commit and push
@@ -406,7 +410,8 @@ Return structured response to caller:
 - description (string): Required for "description" mode, auto-fetched in "semantic" mode
 - prefix (string): Optional (default: "feat", or inferred from issue type in semantic mode)
 - base_branch (string): Optional (default: "main")
-- create_worktree (boolean): Optional (default: false)
+- create_worktree (boolean): Optional (default: false) - If true, create git worktree for the branch
+- spec_create (boolean): Optional (default: false) - If true, automatically create spec after branch creation (requires work_id)
 
 **delete-branch:**
 - branch_name (string)
@@ -479,6 +484,182 @@ Return structured response to caller:
 - project_path (string): Path to project (default: current directory)
 
 </PARAMETER_VALIDATION>
+
+<SPEC_INTEGRATION>
+## Specification Creation Integration (Automatic Spec Generation)
+
+After successfully executing a **create-branch** operation, and after handling worktree creation (if applicable), you should handle specification creation based on the `spec_create` parameter:
+
+1. **If `spec_create` is true**: Automatically create a specification using the fractary-spec plugin
+
+This provides a complete workflow from branch creation to development start with a detailed specification.
+
+### When to Handle Spec Creation
+
+Handle spec creation if:
+1. The create-branch operation completed successfully (status: "success")
+2. Worktree creation completed successfully (if `create_worktree` was true)
+3. The `spec_create` parameter is true
+4. A `work_id` is available (provided via --work-id parameter)
+5. The fractary-spec plugin is configured (`.fractary/plugins/spec/config.json` exists)
+
+**Note**: Spec creation happens AFTER branch creation and worktree creation (if applicable), as the spec is typically created while on the issue branch.
+
+**Pattern Reference**: This integration follows the same pattern as work:issue-create (see plugins/work/agents/work-manager.md:695-861 for reference implementation).
+
+### Detection Logic
+
+After the branch is created (and worktree created if applicable), check if spec creation should be triggered:
+
+```bash
+# Determine if we should create a spec based on parameter and preconditions
+SHOULD_CREATE_SPEC=false
+
+if [ "$spec_create" = "true" ]; then
+    # User requested spec creation - check preconditions
+
+    # Check if spec plugin is configured (not just installed)
+    if [ ! -f ".fractary/plugins/spec/config.json" ]; then
+        # Plugin not configured - show error and skip
+        SHOULD_CREATE_SPEC=false
+    elif [ -z "$WORK_ID" ]; then
+        # No work_id - cannot create spec, show error
+        SHOULD_CREATE_SPEC=false
+    else
+        # All conditions met - proceed with spec creation
+        SHOULD_CREATE_SPEC=true
+    fi
+fi
+```
+
+### Spec Creation Flow
+
+**IMPORTANT**: Use the SlashCommand tool to invoke the spec creation command. This is the proper way to invoke commands within the plugin system. **DO NOT** use direct bash/gh CLI commands as a workaround.
+
+#### Automatic Spec Creation (spec_create = true):
+
+1. Display the branch creation result (and worktree creation result if applicable)
+2. Output: "📋 Creating specification automatically..."
+3. Use the SlashCommand tool to invoke: `/fractary-spec:create --work-id {work_id}`
+4. Wait for the command to complete
+5. Capture the spec creation result (spec file path)
+6. Display the complete result to the user
+
+### Error Handling for Spec Creation
+
+#### Missing work_id
+
+If `--spec-create` flag is provided but no work_id is available:
+
+1. **DO NOT** fail the entire operation (branch and worktree were already created successfully)
+2. Display the branch (and worktree) creation success
+3. Show a warning message:
+   ```
+   ⚠️ Spec creation skipped: work_id is required
+
+   To create a specification, you need to provide a work item ID.
+
+   Either:
+   1. Use --work-id flag: /repo:branch-create "description" --work-id 123 --spec-create
+   2. Create spec manually: /fractary-spec:create --work-id {work_id}
+   ```
+
+#### Plugin Not Configured
+
+If `--spec-create` flag is provided but spec plugin is not configured:
+
+1. **DO NOT** fail the entire operation (branch and worktree were already created successfully)
+2. Display the branch (and worktree) creation success
+3. Show a warning message:
+   ```
+   ⚠️ Spec creation skipped: fractary-spec plugin not configured
+
+   The spec plugin is not installed or configured in this project.
+
+   To enable spec creation:
+   1. Install the fractary-spec plugin
+   2. Run /fractary-spec:init to configure it
+   3. Then create spec manually: /fractary-spec:create --work-id {work_id}
+   ```
+
+#### Spec Creation Command Fails
+
+If spec plugin is configured but the `/fractary-spec:create` command fails:
+
+1. **DO NOT** fail the entire operation (branch and worktree were already created successfully)
+2. Display the branch (and worktree) creation success
+3. Show the spec creation error separately
+4. Inform user they can manually create spec later with troubleshooting guidance:
+   ```
+   ⚠️ Spec creation failed: [error message]
+
+   Common causes:
+   - Missing permissions or dependencies
+   - Network connectivity issues
+   - Invalid work item ID
+
+   You can create a specification manually with:
+   /fractary-spec:create --work-id {work_id}
+   ```
+
+### Integration Flow Examples
+
+**Example 1: Branch + Spec (success)**
+```
+Input: {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add export", "spec_create": true}}
+
+1. Create branch: feat/123-add-export ✓
+2. Check spec_create=true AND work_id=123 AND spec plugin configured ✓
+3. Output: "📋 Creating specification automatically..."
+4. Invoke: /fractary-spec:create --work-id 123
+5. Display: "✅ Specification created: .specs/spec-123.md"
+```
+
+**Example 2: Branch + Worktree + Spec (success)**
+```
+Input: {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add export", "create_worktree": true, "spec_create": true}}
+
+1. Create branch: feat/123-add-export ✓
+2. Create worktree: ../repo-wt-feat-123-add-export ✓
+3. Check spec_create=true AND work_id=123 AND spec plugin configured ✓
+4. Output: "📋 Creating specification automatically..."
+5. Invoke: /fractary-spec:create --work-id 123
+6. Display: "✅ Specification created: .specs/spec-123.md"
+```
+
+**Example 3: No work_id (skip with warning)**
+```
+Input: {"operation": "create-branch", "parameters": {"description": "add export", "spec_create": true}}
+
+1. Create branch: feat/add-export ✓
+2. Check spec_create=true BUT work_id=none ✗
+3. Display branch creation success
+4. Display warning: "⚠️ Spec creation skipped: work_id is required"
+```
+
+**Example 4: Plugin not configured (skip with warning)**
+```
+Input: {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add export", "spec_create": true}}
+
+1. Create branch: feat/123-add-export ✓
+2. Check spec_create=true AND spec plugin not configured ✗ (plugin check happens before work_id validation)
+3. Display branch creation success
+4. Display warning: "⚠️ Spec creation skipped: fractary-spec plugin not configured"
+```
+
+### Key Design Principles
+
+1. **Graceful degradation**: Branch creation always succeeds, spec creation is optional
+2. **Clear feedback**: Users always know what happened and what to do next
+3. **No silent failures**: Always inform user if spec creation was skipped or failed
+4. **Respect plugin boundaries**: Use SlashCommand tool, never bypass plugin architecture
+5. **work_id is required**: Cannot create spec without work item ID
+
+When skipping due to missing work_id or plugin configuration, show the appropriate warning message (see Error Handling section above).
+
+**Note**: Automated workflows like FABER should handle spec creation in their own workflow and won't rely on this integration.
+
+</SPEC_INTEGRATION>
 
 <OUTPUTS>
 
