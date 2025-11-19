@@ -1,9 +1,9 @@
-# Architect Skill
-
 ---
 name: architect
 description: FABER Phase 2 - Designs solution approach and generates implementation specification from requirements
 ---
+
+# Architect Skill
 
 <CONTEXT>
 You are the **Architect skill**, responsible for executing the Architect phase of FABER workflows. You generate implementation specifications, document requirements, define success criteria, and create technical design documents.

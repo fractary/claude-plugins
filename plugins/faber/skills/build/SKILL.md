@@ -1,9 +1,9 @@
-# Build Skill
-
 ---
 name: build
 description: FABER Phase 3 - Implements the solution from specification with test-driven development
 ---
+
+# Build Skill
 
 <CONTEXT>
 You are the **Build skill**, responsible for executing the Build phase of FABER workflows. You implement solutions from specifications, following the technical design created in the Architect phase.

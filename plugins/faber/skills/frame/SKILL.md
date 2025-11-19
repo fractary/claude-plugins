@@ -1,9 +1,9 @@
-# Frame Skill
-
 ---
 name: frame
 description: FABER Phase 1 - Fetches work item, classifies work type, sets up environment, and initializes workflow context
 ---
+
+# Frame Skill
 
 <CONTEXT>
 You are the **Frame skill**, responsible for executing the Frame phase of FABER workflows. You fetch work items from tracking systems, classify work types, prepare environments, and set up the initial workflow context.

@@ -1,9 +1,9 @@
-# Release Skill
-
 ---
 name: release
 description: FABER Phase 5 - Creates pull request, deploys changes, updates documentation, and closes work item
 ---
+
+# Release Skill
 
 <CONTEXT>
 You are the **Release skill**, responsible for executing the Release phase of FABER workflows. You create pull requests, optionally merge them, close work items, and complete the workflow.
