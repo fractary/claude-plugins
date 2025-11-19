@@ -189,8 +189,14 @@ For other operations:
 **Special handling for create-branch:**
 - Determine mode from parameters:
   - If `branch_name` provided → "direct" mode
-  - If `work_id` provided → "semantic" mode
-  - If only `description` provided → "simple" mode
+  - If `work_id` provided WITHOUT `description` → "semantic" mode (fetch issue title)
+  - If `description` provided (with or without `work_id`) → "description" mode
+- For semantic mode:
+  - Invoke `/work:issue-fetch {work_id}` using SlashCommand tool
+  - Extract issue title and type from response
+  - If `prefix` not provided, infer from issue type (feature→feat, bug→fix, etc.)
+  - Use issue title as description
+  - Proceed with description-based branch creation
 - Validate required parameters for chosen mode
 - Set defaults for optional parameters
 - If `create_worktree` is true:
@@ -394,12 +400,13 @@ Return structured response to caller:
 - description (string)
 
 **create-branch:**
-- mode (string): "direct"|"semantic"|"simple" (optional, defaults to "direct" if branch_name provided)
+- mode (string): "direct"|"semantic"|"description" (optional, auto-detected from parameters)
 - branch_name (string): Required for "direct" mode
-- work_id (string): Required for "semantic" mode
-- description (string): Required for "semantic" and "simple" modes
-- prefix (string): Optional for "semantic" mode, required for "simple" mode (default: "feat")
+- work_id (string): Required for "semantic" mode, optional for "description" mode
+- description (string): Required for "description" mode, auto-fetched in "semantic" mode
+- prefix (string): Optional (default: "feat", or inferred from issue type in semantic mode)
 - base_branch (string): Optional (default: "main")
+- create_worktree (boolean): Optional (default: false)
 
 **delete-branch:**
 - branch_name (string)

@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
-argument-hint: '"<branch-name-or-description>" [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree]'
+argument-hint: '["<branch-name-or-description>"] [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree]'
 ---
 
 <CONTEXT>
@@ -39,18 +39,32 @@ This command supports:
 
 <WORKFLOW>
 1. **Parse user input**
-   - Determine invocation mode based on first argument (direct vs description-based)
-   - Extract parameters based on mode (see PARSING_LOGIC)
+   - Determine invocation mode based on arguments (see PARSING_LOGIC)
+   - Extract parameters based on mode
    - Parse optional arguments: --base, --prefix, --work-id, --worktree
    - Validate required arguments are present
 
-2. **Build structured request**
+2. **Handle Semantic Mode (if applicable)**
+   - If Mode 3 detected (no first arg, only --work-id):
+     a. Invoke `/work:issue-fetch {work_id}` using SlashCommand tool
+     b. Extract issue title and type from response
+     c. If --prefix not provided, infer from issue type:
+        - feature/enhancement → feat
+        - bug/defect → fix
+        - documentation → docs
+        - chore/maintenance → chore
+        - default → feat
+     d. Use issue title as description
+     e. Proceed with description-based naming flow
+
+3. **Build structured request**
    - Map to "create-branch" operation
    - Package parameters based on mode:
      - Direct mode: branch_name, base_branch, work_id (optional), create_worktree
      - Description mode: description, prefix, base_branch, work_id (optional), create_worktree
+     - Semantic mode: description (from issue), prefix (from issue type), base_branch, work_id, create_worktree
 
-3. **ACTUALLY INVOKE the Task tool**
+4. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-repo:repo-manager"
    - Pass the structured JSON request in the prompt parameter
    - The agent will handle:
@@ -61,7 +75,7 @@ This command supports:
      - Worktree creation (if create_worktree is true)
      - URL extraction and display
 
-4. **Return agent response**
+5. **Return agent response**
    - The Task tool returns the agent's output
    - Display it to the user (prompts, success messages, URLs, errors)
 </WORKFLOW>
@@ -135,16 +149,40 @@ This command intelligently determines the invocation mode based on the arguments
 - `work_id` = --work-id value (optional)
 - Generate branch name: `{prefix}/{work_id-}{description-slug}` if work_id provided, otherwise `{prefix}/{description-slug}`
 
+### Mode 3: Semantic Mode (Work-ID Only)
+**Pattern**: No first arg, only `--work-id` provided
+```bash
+/repo:branch-create --work-id 123
+/repo:branch-create --work-id 123 --prefix feat
+/repo:branch-create --work-id 123 --base develop
+```
+
+**Parsing**:
+- `work_id` = --work-id value (required)
+- `prefix` = --prefix value or inferred from issue type
+- Fetch issue title from work plugin
+- Use issue title as description
+- Generate branch name: `{prefix}/{work_id-}{issue-title-slug}`
+
+**Process**:
+1. Invoke `/work:issue-fetch {work_id}` to retrieve issue details
+2. Extract issue title from response
+3. Infer prefix from issue type if not provided (feature→feat, bug→fix, etc.)
+4. Use title as description for branch naming
+5. Proceed with description-based naming flow
+
 ### Detection Logic
 
 ```
-IF arg contains "/" THEN
+IF no first argument AND --work-id provided THEN
+  Mode 3: Semantic mode (fetch issue title)
+ELSE IF first arg contains "/" THEN
   Mode 1: Direct branch name
-ELSE
+ELSE IF first arg provided THEN
   Mode 2: Description-based naming
+ELSE
+  ERROR: Either branch name/description OR --work-id is required
 END
-
-work_id is always optional via --work-id flag
 ```
 </PARSING_LOGIC>
 
@@ -153,11 +191,12 @@ work_id is always optional via --work-id flag
 
 ### Required Argument:
 - `<branch-name-or-description>` (string): Either a full branch name (e.g., "feature/my-branch") or a description (e.g., "add CSV export")
+  - **EXCEPTION**: This argument is optional if `--work-id` is provided. When only `--work-id` is given, the issue title is fetched automatically.
 
 ### Optional Arguments (all modes):
 - `--base <branch>` (string): Base branch name to create from (default: main/master)
 - `--prefix <type>` (string): Branch prefix - `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf` (default: `feat`)
-- `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional.
+- `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional, but if provided alone (without description), enables semantic mode where issue title is fetched automatically.
 - `--worktree` (boolean flag): Create a git worktree for parallel development. No value needed, just include the flag
 
 ### Maps to Operation
@@ -199,6 +238,28 @@ All modes map to: `create-branch` operation in repo-manager agent
 # Create branch with worktree for parallel development
 /repo:branch-create "add CSV export" --work-id 123 --worktree
 # Result: feat/123-add-csv-export + worktree at ../repo-wt-feat-123-add-csv-export
+```
+
+### Mode 3: Semantic Mode (Work-ID Only)
+```bash
+# Fetch issue #123 and use its title as description
+/repo:branch-create --work-id 123
+# If issue #123 title is "Add CSV export feature"
+# Result: feat/123-add-csv-export-feature
+
+# Specify branch type (overrides inferred type from issue)
+/repo:branch-create --work-id 456 --prefix fix
+# Even if issue is type "feature", uses "fix" prefix
+# Result: fix/456-{issue-title-slug}
+
+# Create from specific base branch
+/repo:branch-create --work-id 789 --base develop
+# Result: feat/789-{issue-title-slug} (created from develop)
+
+# Create with worktree
+/repo:branch-create --work-id 138 --worktree
+# Fetches issue #138 title, creates branch + worktree
+# Result: {prefix}/138-{issue-title-slug} + worktree at ../repo-wt-{prefix}-138-{issue-title-slug}
 ```
 
 ### Work Tracking Integration Example
@@ -306,14 +367,34 @@ Task(
 <ERROR_HANDLING>
 Common errors to handle at the **command level** (argument parsing):
 
-**Missing branch name or description**:
+**Missing branch name/description AND work-id**:
 ```
-Error: Branch name or description is required
+Error: Either branch name/description OR --work-id is required
 Usage: /repo:branch-create <branch-name-or-description> [options]
+       /repo:branch-create --work-id <id> [options]
 Examples:
   /repo:branch-create feature/my-branch
   /repo:branch-create "my feature description"
   /repo:branch-create "add CSV export" --work-id 123
+  /repo:branch-create --work-id 123
+```
+
+**Work plugin not available (semantic mode)**:
+```
+Error: Cannot fetch issue details - work plugin not configured
+To use semantic mode (--work-id only), you need:
+1. Install fractary-work plugin
+2. Run /work:init to configure it
+3. Then retry: /repo:branch-create --work-id {id}
+
+Or provide a description: /repo:branch-create "description" --work-id {id}
+```
+
+**Issue not found (semantic mode)**:
+```
+Error: Issue #{work_id} not found
+Please verify the issue ID exists in your work tracking system
+Or provide a description: /repo:branch-create "description" --work-id {work_id}
 ```
 
 **Invalid argument format**:
