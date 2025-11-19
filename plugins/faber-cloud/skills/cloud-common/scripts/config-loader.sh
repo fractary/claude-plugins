@@ -1,14 +1,17 @@
 #!/bin/bash
 # config-loader.sh
-# Loads DevOps configuration from .fractary/plugins/faber-cloud/config/devops.json
+# Loads faber-cloud configuration from .fractary/plugins/faber-cloud/config/config.json
 # Provides pattern substitution and validation
+# Migration: config.json (current) ← faber-cloud.json ← devops.json (legacy)
 
 set -euo pipefail
 
 # Configuration paths
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/faber-cloud/config"
-CONFIG_FILE="${CONFIG_DIR}/devops.json"
+CONFIG_FILE="${CONFIG_DIR}/config.json"
+OLD_CONFIG_FILE="${CONFIG_DIR}/faber-cloud.json"
+LEGACY_CONFIG_FILE="${CONFIG_DIR}/devops.json"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -74,8 +77,38 @@ log_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
+# Function: Migrate old config to new naming standard
+migrate_config_if_needed() {
+    # If config.json exists, we're good
+    if [[ -f "$CONFIG_FILE" ]]; then
+        return 0
+    fi
+
+    # Check for faber-cloud.json (previous standard)
+    if [[ -f "$OLD_CONFIG_FILE" ]]; then
+        log_info "Migrating configuration: faber-cloud.json → config.json"
+        mv "$OLD_CONFIG_FILE" "$CONFIG_FILE"
+        log_success "Configuration migrated successfully"
+        return 0
+    fi
+
+    # Check for devops.json (legacy)
+    if [[ -f "$LEGACY_CONFIG_FILE" ]]; then
+        log_warning "Legacy config found: devops.json"
+        log_info "Please run: /fractary-faber-cloud:init to migrate configuration"
+        log_info "Or manually rename: devops.json → config.json"
+        return 1
+    fi
+
+    # No config found
+    return 1
+}
+
 # Function: Check if config file exists
 check_config_exists() {
+    # First, attempt migration if needed
+    migrate_config_if_needed
+
     if [[ ! -f "$CONFIG_FILE" ]]; then
         log_error "Configuration file not found: $CONFIG_FILE"
         log_info "Run /fractary-faber-cloud:init to create configuration"
@@ -97,7 +130,7 @@ validate_json() {
 load_config() {
     local env="${1:-test}"
 
-    log_info "Loading DevOps configuration..."
+    log_info "Loading faber-cloud configuration..."
 
     # Check if config exists
     if ! check_config_exists; then

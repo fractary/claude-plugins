@@ -88,7 +88,7 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 
 **Architecture Clarity**:
 - Removed all "devops" naming for clear focus on infrastructure lifecycle
-- Configuration: `devops.json` → `faber-cloud.json` (backward compatible in v2.1.x)
+- Configuration: `devops.json` → `faber-cloud.json` → `config.json` (automatic migration)
 - All skills updated: `devops-common` → `cloud-common`
 
 ---
@@ -185,7 +185,7 @@ See [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) 
 /fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
-This creates `.fractary/plugins/faber-cloud/config/faber-cloud.json` with your project configuration.
+This creates `.fractary/plugins/faber-cloud/config/config.json` with your project configuration.
 
 ### 2. Deploy Infrastructure
 
@@ -464,7 +464,9 @@ See [Hook System Guide](docs/guides/HOOKS.md) for complete documentation and [Sk
 
 ## Configuration
 
-Configuration file: `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+Configuration file: `.fractary/plugins/faber-cloud/config/config.json`
+
+**Migration**: Old `faber-cloud.json` files are automatically renamed to `config.json` when loaded.
 
 ### Example Configuration
 
@@ -839,9 +841,10 @@ git clone https://github.com/fractary/claude-plugins.git
 - Environment safety validation
 
 **2.1.0 (Configuration Standardization):**
-- Configuration file renamed to faber-cloud.json
+- Configuration file standardized: devops.json → faber-cloud.json → config.json
 - Enhanced AWS profile management
 - Improved production safety features
+- Automatic migration from old config names
 
 **1.0.0 (Phase 4 Complete):**
 - Natural language interface (devops-director)

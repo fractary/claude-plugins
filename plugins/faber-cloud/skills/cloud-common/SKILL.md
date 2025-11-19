@@ -11,25 +11,22 @@ Shared utilities used across all faber-cloud skills.
 ## Purpose
 
 This skill provides:
-- Configuration loading from `.fractary/plugins/faber-cloud/config/faber-cloud.json`
-- Backward compatibility with `devops.json` (v2.1.x only, deprecated)
+- Configuration loading from `.fractary/plugins/faber-cloud/config/config.json`
+- Backward compatibility with `faber-cloud.json` and `devops.json` (deprecated)
 - Pattern substitution (`{project}`, `{environment}`, etc.)
 - Auto-discovery fallbacks when config is missing
 - Validation and error handling
 
 ## Configuration Loading
 
-**Primary config file**: `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+**Primary config file**: `.fractary/plugins/faber-cloud/config/config.json`
 
-**Backward compatibility** (v2.1.x only):
-- If `faber-cloud.json` not found, check for `devops.json`
-- If `devops.json` found:
-  1. Show deprecation warning
-  2. Prompt user to migrate: "Would you like to rename devops.json to faber-cloud.json?"
-  3. If yes: Rename file automatically
-  4. If no: Use devops.json but warn on every load
+**Automatic migration** (seamless upgrade):
+- If `config.json` exists: use it (current standard)
+- If `faber-cloud.json` exists: automatically rename to `config.json`
+- If `devops.json` exists: show warning to migrate manually
 
-This backward compatibility will be removed in v3.0.
+**Migration is automatic and preserves all configuration settings.**
 
 ## Components
 
@@ -49,7 +46,7 @@ Core configuration management:
 # Source the loader
 source "${SKILL_DIR}/../cloud-common/scripts/config-loader.sh"
 
-# Load configuration (checks faber-cloud.json, falls back to devops.json with warning)
+# Load configuration (checks config.json, auto-migrates from faber-cloud.json if needed)
 load_faber_cloud_config
 
 # Use configuration variables
@@ -81,10 +78,11 @@ AWS_PROFILE=$(get_aws_profile "test")
 
 ### templates/faber-cloud.json.template
 
-Template for generating `.fractary/plugins/faber-cloud/config/faber-cloud.json`:
+Template for generating `.fractary/plugins/faber-cloud/config/config.json`:
 - Placeholders: `{{PROJECT_NAME}}`, `{{NAMESPACE}}`, etc.
 - Used by `/fractary-faber-cloud:init` command
 - Includes sensible defaults
+- Template filename remains `faber-cloud.json.template` for compatibility, generates `config.json`
 
 ## Auto-Discovery
 

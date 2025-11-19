@@ -399,11 +399,14 @@ main() {
 
   # Get configuration file path
   local config_file
-  if [ -f ".fractary/plugins/faber-cloud/config/faber-cloud.json" ]; then
+  if [ -f ".fractary/plugins/faber-cloud/config/config.json" ]; then
+    config_file=".fractary/plugins/faber-cloud/config/config.json"
+  elif [ -f ".fractary/plugins/faber-cloud/config/faber-cloud.json" ]; then
     config_file=".fractary/plugins/faber-cloud/config/faber-cloud.json"
+    log_warning "Using deprecated faber-cloud.json - please rename to config.json"
   elif [ -f ".fractary/plugins/devops/config/devops.json" ]; then
     config_file=".fractary/plugins/devops/config/devops.json"
-    log_warning "Using deprecated devops.json - please rename to faber-cloud.json"
+    log_warning "Using legacy devops.json - please run /fractary-faber-cloud:init to migrate"
   else
     log_info "No configuration file found - no hooks to execute"
     exit 0
