@@ -29,6 +29,12 @@ if ! command -v gh &> /dev/null; then
     exit 3
 fi
 
+# Check if jq is available
+if ! command -v jq &> /dev/null; then
+    echo "Error: jq is not installed (required for JSON parsing)" >&2
+    exit 3
+fi
+
 # Validate PR number
 if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
     echo "Error: Invalid PR number '$PR_NUMBER'. Must be a positive integer" >&2
@@ -50,15 +56,15 @@ case "$STRATEGY" in
         GH_STRATEGY="rebase"
         ;;
     *)
-        echo "Error: Invalid merge strategy '$STRATEGY'. Must be: merge, squash, or rebase" >&2
+        echo "Error: Invalid merge strategy '$STRATEGY'. Must be one of: merge, no-ff, squash, rebase, ff-only" >&2
         exit 2
         ;;
 esac
 
 # Check if PR exists and is mergeable
-PR_STATE=$(gh pr view "$PR_NUMBER" --json state,mergeable,isDraft --jq '{state: .state, mergeable: .mergeable, isDraft: .isDraft}' 2>&1)
-if [ $? -ne 0 ]; then
+if ! PR_STATE=$(gh pr view "$PR_NUMBER" --json state,mergeable,isDraft --jq '{state: .state, mergeable: .mergeable, isDraft: .isDraft}' 2>&1); then
     echo "Error: Pull request #$PR_NUMBER not found" >&2
+    echo "$PR_STATE" >&2
     exit 1
 fi
 
@@ -84,7 +90,9 @@ if [ "$MERGEABLE" = "CONFLICTING" ]; then
 fi
 
 if [ "$MERGEABLE" = "UNKNOWN" ]; then
-    echo "Warning: Pull request #$PR_NUMBER merge status is unknown (GitHub is still computing it)" >&2
+    echo "Error: Pull request #$PR_NUMBER merge status is unknown" >&2
+    echo "GitHub is still computing mergability. Please wait a moment and try again." >&2
+    exit 1
 fi
 
 # Build gh pr merge command
@@ -102,10 +110,7 @@ if [ "$DELETE_BRANCH" = "true" ]; then
 fi
 
 # Capture output and exit code
-MERGE_OUTPUT=$($GH_CMD 2>&1)
-MERGE_EXIT=$?
-
-if [ $MERGE_EXIT -ne 0 ]; then
+if ! MERGE_OUTPUT=$($GH_CMD 2>&1); then
     echo "Error: Failed to merge PR #$PR_NUMBER" >&2
     echo "$MERGE_OUTPUT" >&2
 
@@ -121,8 +126,8 @@ if [ $MERGE_EXIT -ne 0 ]; then
     fi
 fi
 
-# Extract merge SHA from output if available
-MERGE_SHA=$(echo "$MERGE_OUTPUT" | grep -o '[a-f0-9]\{40\}' | head -n1 || echo "")
+# Get merge commit SHA reliably using gh pr view
+MERGE_SHA=$(gh pr view "$PR_NUMBER" --json mergeCommit --jq '.mergeCommit.oid' 2>/dev/null || echo "")
 
 # Output success message
 echo "Successfully merged PR #$PR_NUMBER using $GH_STRATEGY strategy" >&2
