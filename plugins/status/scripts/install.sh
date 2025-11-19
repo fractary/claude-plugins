@@ -48,8 +48,8 @@ echo -e "${CYAN}Configuring status line in .claude/settings.json...${NC}"
 mkdir -p .claude
 
 # Determine the status line script path
-# Use the installed marketplace location
-STATUS_LINE_SCRIPT="~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
+# Use CLAUDE_PLUGIN_ROOT variable for environment portability
+STATUS_LINE_SCRIPT="\${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
 
 # Create or update settings.json with statusLine configuration
 if [ -f .claude/settings.json ]; then
@@ -97,7 +97,7 @@ echo ""
 echo -e "${YELLOW}Plugin Components:${NC}"
 echo -e "  ${CYAN}•${NC} StatusLine command (in .claude/settings.json)"
 echo -e "  ${CYAN}•${NC} UserPromptSubmit hook (managed in plugin hooks/hooks.json)"
-echo -e "  ${CYAN}•${NC} Scripts (in ~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/)"
+echo -e "  ${CYAN}•${NC} Scripts (referenced via \${CLAUDE_PLUGIN_ROOT}/scripts/)"
 echo ""
 echo -e "${YELLOW}Note:${NC} Restart Claude Code to activate the status line"
 echo ""
