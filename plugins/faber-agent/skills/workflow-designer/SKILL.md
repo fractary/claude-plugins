@@ -1,7 +1,6 @@
 ---
-skill: workflow-designer
-purpose: Design and generate workflow components following Manager-as-Agent pattern
-layer: Generator
+name: workflow-designer
+description: Designs and generates workflow components following Manager-as-Agent pattern with architectural compliance
 ---
 
 # Workflow Designer Skill

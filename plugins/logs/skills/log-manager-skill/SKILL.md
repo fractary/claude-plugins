@@ -1,3 +1,8 @@
+---
+name: log-manager-skill
+description: Orchestrates single-log sequential workflows by coordinating operation skills for individual logs
+---
+
 # Log Manager Skill
 
 <CONTEXT>

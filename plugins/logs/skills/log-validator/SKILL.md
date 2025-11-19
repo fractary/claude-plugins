@@ -1,3 +1,8 @@
+---
+name: log-validator
+description: Validates logs against type-specific schemas checking frontmatter, structure, and required fields
+---
+
 # Log Validator Skill
 
 <CONTEXT>

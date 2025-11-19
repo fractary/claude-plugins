@@ -1,7 +1,6 @@
 ---
-skill: context-optimizer
-purpose: Aggregate all context optimization opportunities and calculate total potential savings
-layer: Aggregator
+name: context-optimizer
+description: Aggregates context optimization opportunities and calculates total potential savings from architectural improvements
 ---
 
 # Context Optimizer Skill

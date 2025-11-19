@@ -1,3 +1,8 @@
+---
+name: repo-common
+description: Shared utilities and configuration management for repo plugin skills including validation and semantic formatting
+---
+
 # repo-common
 
 <CONTEXT>

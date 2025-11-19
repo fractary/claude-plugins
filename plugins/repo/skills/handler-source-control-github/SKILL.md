@@ -1,3 +1,8 @@
+---
+name: handler-source-control-github
+description: GitHub source control handler centralizing Git CLI and GitHub API operations with protected branch safety
+---
+
 # handler-source-control-github
 
 <CONTEXT>

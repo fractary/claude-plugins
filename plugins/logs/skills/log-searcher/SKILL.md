@@ -1,3 +1,8 @@
+---
+name: log-searcher
+description: Searches logs by content keywords, patterns, and filters with context extraction
+---
+
 # Log Searcher Skill
 
 <CONTEXT>

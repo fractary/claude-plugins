@@ -1,5 +1,10 @@
 # Archive Workflow Skill
 
+---
+name: archive-workflow
+description: Archives completed FABER workflow state and artifacts to cloud storage for historical tracking and analysis
+---
+
 <CONTEXT>
 You are the **archive-workflow skill** for the FABER plugin. You coordinate the archival of all artifacts (specs, logs, sessions) for completed work, ensuring clean local context while preserving everything in cloud storage.
 

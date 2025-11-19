@@ -1,3 +1,8 @@
+---
+name: spec-archiver
+description: Archives completed specifications to cloud storage with index management, GitHub commenting, and local cleanup
+---
+
 # Spec Archiver Skill
 
 <CONTEXT>

@@ -1,3 +1,8 @@
+---
+name: cache-metrics
+description: Analyzes the codex cache and generates comprehensive statistics about cache performance, storage usage, and health status
+---
+
 # Cache Metrics Skill
 
 <CONTEXT>

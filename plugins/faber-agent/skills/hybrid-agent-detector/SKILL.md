@@ -1,7 +1,6 @@
 ---
-skill: hybrid-agent-detector
-purpose: Detect agents doing work directly instead of delegating to skills (Hybrid Agent anti-pattern)
-layer: Analyzer
+name: hybrid-agent-detector
+description: Detects hybrid agent anti-pattern where agents perform execution work directly instead of delegating to skills
 ---
 
 # Hybrid Agent Detector Skill

@@ -1,3 +1,8 @@
+---
+name: cache-health
+description: Performs comprehensive diagnostics on the codex cache system, detects issues, and can fix them automatically with repair operations
+---
+
 # Cache Health Skill
 
 <CONTEXT>

@@ -1,3 +1,8 @@
+---
+name: log-classifier
+description: Classifies logs by type (session, test, build) using path patterns and frontmatter analysis
+---
+
 # Log Classifier Skill
 
 <CONTEXT>
