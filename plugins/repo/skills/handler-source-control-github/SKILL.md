@@ -131,6 +131,7 @@ Next: {what_calling_skill_should_do}
 **Parameters**:
 - `branch_name` - Name of branch to create
 - `base_branch` - Base branch to branch from (default: main)
+- `checkout` - Whether to checkout the branch after creation (default: true)
 
 **Validation**:
 - Branch doesn't already exist
@@ -138,7 +139,7 @@ Next: {what_calling_skill_should_do}
 
 **Example Invocation**:
 ```bash
-./scripts/create-branch.sh "feat/123-add-export" "main"
+./scripts/create-branch.sh "feat/123-add-export" "main" "true"
 ```
 
 **Output Format**:

@@ -6,12 +6,13 @@ set -euo pipefail
 
 # Check arguments
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <branch_name> [base_branch]" >&2
+    echo "Usage: $0 <branch_name> [base_branch] [checkout]" >&2
     exit 2
 fi
 
 BRANCH_NAME="$1"
 BASE_BRANCH="${2:-main}"
+CHECKOUT="${3:-true}"
 
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -39,5 +40,16 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH'"
+# Checkout the branch if requested
+if [ "$CHECKOUT" = "true" ]; then
+    git checkout "$BRANCH_NAME"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to checkout branch '$BRANCH_NAME'" >&2
+        exit 1
+    fi
+    echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' and checked out"
+else
+    echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' (not checked out)"
+fi
+
 exit 0
