@@ -1,3 +1,8 @@
+---
+name: log-summarizer
+description: Generates concise summaries of log content using type-specific summarization templates
+---
+
 # Log Summarizer Skill (v2.0: Type-Aware Templates)
 
 <CONTEXT>

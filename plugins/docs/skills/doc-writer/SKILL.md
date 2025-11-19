@@ -1,3 +1,8 @@
+---
+name: doc-writer
+description: Creates or updates documentation in a type-agnostic manner by dynamically loading type-specific context at runtime
+---
+
 # doc-writer
 
 <CONTEXT>

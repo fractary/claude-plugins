@@ -1,3 +1,8 @@
+---
+name: spec-validator
+description: Validates implementations against specifications by checking requirements coverage, acceptance criteria, and documentation updates
+---
+
 # Spec Validator Skill
 
 <CONTEXT>

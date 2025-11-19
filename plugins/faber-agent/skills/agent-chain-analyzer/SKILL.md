@@ -1,8 +1,6 @@
 ---
-skill: agent-chain-analyzer
-purpose: Detect and analyze agent chain anti-patterns (Agent1 → Agent2 → Agent3)
-layer: Analyzer
-criticality: CRITICAL
+name: agent-chain-analyzer
+description: Detects and analyzes agent chain anti-patterns where agents invoke other agents sequentially causing massive context load
 ---
 
 # Agent Chain Analyzer Skill

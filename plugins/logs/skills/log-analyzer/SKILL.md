@@ -1,3 +1,8 @@
+---
+name: log-analyzer
+description: Extracts patterns, errors, and insights from operational logs using type-specific analysis templates
+---
+
 # Log Analyzer Skill
 
 <CONTEXT>

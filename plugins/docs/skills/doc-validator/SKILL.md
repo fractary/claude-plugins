@@ -1,3 +1,8 @@
+---
+name: doc-validator
+description: Validates documentation against type-specific rules and schemas loaded dynamically, checking frontmatter, structure, content, and schema compliance
+---
+
 # doc-validator
 
 <CONTEXT>

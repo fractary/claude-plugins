@@ -1,3 +1,8 @@
+---
+name: build
+description: FABER Phase 3 - Implements the solution from specification with test-driven development
+---
+
 # Build Skill
 
 <CONTEXT>

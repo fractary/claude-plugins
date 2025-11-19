@@ -1,7 +1,6 @@
 ---
-skill: architecture-validator
-purpose: Validate project architecture against Fractary standards and best practices
-layer: Validator
+name: architecture-validator
+description: Validates project architecture against Fractary standards and best practices for Manager-as-Agent patterns
 ---
 
 # Architecture Validator Skill

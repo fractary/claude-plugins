@@ -1,3 +1,8 @@
+---
+name: config-migrator
+description: Migrates codex configuration files from v2.0 push-based sync to v3.0 pull-based retrieval format with automatic backups
+---
+
 # Config Migrator Skill
 
 <CONTEXT>

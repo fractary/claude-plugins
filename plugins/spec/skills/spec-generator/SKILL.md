@@ -1,3 +1,8 @@
+---
+name: spec-generator
+description: Generates implementation specifications from conversation context optionally enriched with GitHub issue data
+---
+
 # Spec Generator Skill
 
 <CONTEXT>

@@ -1,3 +1,8 @@
+---
+name: handler-source-control-bitbucket
+description: Bitbucket source control handler centralizing Git CLI and Bitbucket API operations with protected branch safety
+---
+
 # handler-source-control-bitbucket
 
 <CONTEXT>

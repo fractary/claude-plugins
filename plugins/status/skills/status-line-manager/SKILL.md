@@ -1,3 +1,8 @@
+---
+name: status-line-manager
+description: Installs and configures custom status line functionality in Claude Code projects with proper plugin root variable usage
+---
+
 # Status Line Manager Skill
 
 <CONTEXT>

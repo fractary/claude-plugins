@@ -1,3 +1,8 @@
+---
+name: frame
+description: FABER Phase 1 - Fetches work item, classifies work type, sets up environment, and initializes workflow context
+---
+
 # Frame Skill
 
 <CONTEXT>

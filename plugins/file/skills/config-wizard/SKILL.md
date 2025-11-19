@@ -1,3 +1,8 @@
+---
+name: file-config-wizard
+description: Interactive configuration wizard for the fractary-file plugin, guiding users through storage handler setup with validation
+---
+
 # Config Wizard Skill
 
 Interactive configuration wizard for the fractary-file plugin.

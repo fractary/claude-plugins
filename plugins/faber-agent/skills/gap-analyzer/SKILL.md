@@ -1,7 +1,6 @@
 ---
-skill: gap-analyzer
-purpose: Identify missing components and architectural gaps in project structure
-layer: Analyzer
+name: gap-analyzer
+description: Identifies missing components and architectural gaps in project structure based on detected patterns
 ---
 
 # Gap Analyzer Skill

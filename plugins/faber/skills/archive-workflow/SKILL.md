@@ -1,3 +1,8 @@
+---
+name: archive-workflow
+description: Archives completed FABER workflow state and artifacts to cloud storage for historical tracking and analysis
+---
+
 # Archive Workflow Skill
 
 <CONTEXT>

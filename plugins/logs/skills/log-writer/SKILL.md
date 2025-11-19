@@ -1,3 +1,8 @@
+---
+name: log-writer
+description: Creates or updates logs using type-specific templates with automatic validation and formatting
+---
+
 # Log Writer Skill
 
 <CONTEXT>

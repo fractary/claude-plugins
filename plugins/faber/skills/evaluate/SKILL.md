@@ -1,3 +1,8 @@
+---
+name: evaluate
+description: FABER Phase 4 - Tests and reviews implementation, looping back to build phase if issues found
+---
+
 # Evaluate Skill
 
 <CONTEXT>

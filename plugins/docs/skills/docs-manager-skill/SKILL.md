@@ -1,3 +1,8 @@
+---
+name: docs-manager-skill
+description: Orchestrates complete single-document workflows with automatic validation and indexing in a write→validate→index pipeline
+---
+
 # docs-manager-skill
 
 <CONTEXT>

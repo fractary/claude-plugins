@@ -1,3 +1,8 @@
+---
+name: handler-source-control-gitlab
+description: GitLab source control handler centralizing Git CLI and GitLab API operations with protected branch safety
+---
+
 # handler-source-control-gitlab
 
 <CONTEXT>

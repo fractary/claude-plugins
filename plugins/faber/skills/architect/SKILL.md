@@ -1,3 +1,8 @@
+---
+name: architect
+description: FABER Phase 2 - Designs solution approach and generates implementation specification from requirements
+---
+
 # Architect Skill
 
 <CONTEXT>

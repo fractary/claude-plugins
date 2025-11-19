@@ -1,3 +1,8 @@
+---
+name: log-director-skill
+description: Orchestrates multi-log workflows with parallel execution for batch operations across many logs
+---
+
 # Log Director Skill
 
 <CONTEXT>

@@ -1,7 +1,6 @@
 ---
-skill: spec-generator
-purpose: Generate detailed conversion specifications from audit results
-layer: Generator
+name: conversion-spec-generator
+description: Generates detailed actionable conversion specifications from audit results for architectural migration
 ---
 
 # Spec Generator Skill

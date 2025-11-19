@@ -1,7 +1,6 @@
 ---
-skill: script-extractor
-purpose: Detect inline logic in prompts and identify script extraction opportunities
-layer: Analyzer
+name: script-extractor
+description: Detects inline logic anti-pattern in prompts and identifies opportunities to extract deterministic operations to scripts
 ---
 
 # Script Extractor Skill

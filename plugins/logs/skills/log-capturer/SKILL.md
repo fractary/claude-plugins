@@ -1,3 +1,8 @@
+---
+name: log-capturer
+description: Captures Claude Code conversation sessions in structured markdown format tied to work items with redaction
+---
+
 # Log Capturer Skill
 
 <CONTEXT>

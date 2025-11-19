@@ -1,3 +1,8 @@
+---
+name: spec-linker
+description: Creates and maintains bidirectional links between specifications and GitHub issues/PRs via comments
+---
+
 # Spec Linker Skill
 
 <CONTEXT>

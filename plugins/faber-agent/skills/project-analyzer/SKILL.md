@@ -1,7 +1,6 @@
 ---
-skill: project-analyzer
-purpose: Analyze Claude Code project structure and detect architectural anti-patterns
-layer: Analyzer
+name: project-analyzer
+description: Analyzes Claude Code project structure detecting architectural patterns and anti-patterns with context optimization opportunities
 ---
 
 # Project Analyzer Skill

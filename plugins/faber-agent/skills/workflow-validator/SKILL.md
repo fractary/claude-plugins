@@ -1,7 +1,6 @@
 ---
-skill: workflow-validator
-purpose: Validate generated workflow components for pattern compliance
-layer: Validator
+name: workflow-validator
+description: Validates generated workflow components for compliance with Manager-as-Agent principle and correct architectural patterns
 ---
 
 # Workflow Validator Skill
