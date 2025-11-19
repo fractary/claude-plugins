@@ -610,51 +610,21 @@ If merging to protected branch:
 
 **Invoke Handler:**
 
-**CRITICAL**: You must invoke the handler skill using the Skill tool, then execute the handler's script using Bash.
+Use the Skill tool with command `fractary-repo:handler-source-control-<platform>` where <platform> is from config.
 
-1. **Construct handler skill name**: `fractary-repo:handler-source-control-<platform>` where <platform> is from `config.handlers.source_control.active`
+Pass parameters: {pr_number, strategy, delete_branch}
 
-2. **Invoke the handler skill**: Use the Skill tool to invoke the handler skill (this loads the handler's SKILL.md into context)
+**Note**: The handler script automatically maps strategy names:
+- `no-ff` or `merge` → GitHub's `--merge` flag
+- `squash` → GitHub's `--squash` flag
+- `ff-only` or `rebase` → GitHub's `--rebase` flag
 
-3. **Execute the merge script**: After the handler skill is loaded, use the Bash tool to execute the handler's merge-pr script:
-
-```bash
-# Determine plugin root (where the handler skill is located)
-HANDLER_ROOT="plugins/repo/skills/handler-source-control-<platform>"
-
-# Map strategy if needed (no-ff → merge, ff-only → rebase)
-STRATEGY="<strategy>"  # merge, squash, or rebase
-
-# Execute merge script
-$HANDLER_ROOT/scripts/merge-pr.sh "<pr_number>" "$STRATEGY" "<delete_branch>"
-```
-
-**Example for GitHub**:
-```bash
-plugins/repo/skills/handler-source-control-github/scripts/merge-pr.sh "456" "merge" "true"
-```
-
-**Handler script parameters**:
-- Arg 1: PR number (e.g., "456")
-- Arg 2: Merge strategy ("merge", "squash", or "rebase")
-- Arg 3: Delete branch flag ("true" or "false")
-
-**Parse Response:**
-The script returns JSON:
-```json
-{
-  "status": "success",
-  "pr_number": 456,
-  "strategy": "merge",
-  "merge_sha": "abc123...",
-  "branch_deleted": true
-}
-```
+No manual mapping is needed - the script handles this internally.
 
 **Post-Merge Cleanup:**
 If delete_branch=true and merge successful:
-- The handler script automatically deletes the remote branch via gh CLI
-- No additional cleanup needed (gh pr merge --delete-branch handles it)
+- The handler automatically deletes the remote branch via `gh pr merge --delete-branch`
+- No additional cleanup needed
 
 **5. VALIDATE RESPONSE:**
 

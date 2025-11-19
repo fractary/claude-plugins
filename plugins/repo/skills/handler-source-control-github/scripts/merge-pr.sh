@@ -43,7 +43,8 @@ fi
 
 # Validate merge strategy
 # Note: The command uses 'no-ff', 'squash', 'ff-only' but gh CLI uses 'merge', 'squash', 'rebase'
-# Map the strategies appropriately
+# This mapping is intentional to maintain consistency with git terminology while using gh CLI
+# The script handles this mapping automatically - no manual intervention needed
 GH_STRATEGY="$STRATEGY"
 case "$STRATEGY" in
     no-ff|merge)
@@ -109,8 +110,18 @@ if [ "$DELETE_BRANCH" = "true" ]; then
     echo "Branch will be deleted after merge" >&2
 fi
 
-# Capture output and exit code
-if ! MERGE_OUTPUT=$($GH_CMD 2>&1); then
+# Capture output and exit code with timeout protection (120s for large PRs)
+if ! MERGE_OUTPUT=$(timeout 120 $GH_CMD 2>&1); then
+    TIMEOUT_EXIT=$?
+
+    # Check if command timed out (exit code 124)
+    if [ $TIMEOUT_EXIT -eq 124 ]; then
+        echo "Error: Merge operation timed out after 120 seconds" >&2
+        echo "This may indicate a slow GitHub API response or a very large PR" >&2
+        echo "Please wait a moment and try again, or check PR status manually" >&2
+        exit 12  # Network/timeout error
+    fi
+
     echo "Error: Failed to merge PR #$PR_NUMBER" >&2
     echo "$MERGE_OUTPUT" >&2
 
@@ -139,13 +150,16 @@ if [ "$DELETE_BRANCH" = "true" ]; then
 fi
 
 # Output JSON response for parsing by skill
+# Convert bash string boolean to proper JSON boolean
+BRANCH_DELETED_JSON=$([ "$DELETE_BRANCH" = "true" ] && echo "true" || echo "false")
+
 cat <<EOF
 {
   "status": "success",
   "pr_number": $PR_NUMBER,
   "strategy": "$GH_STRATEGY",
   "merge_sha": "${MERGE_SHA:-unknown}",
-  "branch_deleted": $DELETE_BRANCH
+  "branch_deleted": $BRANCH_DELETED_JSON
 }
 EOF
 
