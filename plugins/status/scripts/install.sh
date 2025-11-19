@@ -48,8 +48,10 @@ echo -e "${CYAN}Configuring status line in .claude/settings.json...${NC}"
 mkdir -p .claude
 
 # Determine the status line script path
-# Use CLAUDE_PLUGIN_ROOT variable for environment portability
-STATUS_LINE_SCRIPT="\${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
+# For statusLine in project settings.json, use absolute path since ${CLAUDE_PLUGIN_ROOT}
+# is only available in plugin-level hooks, not project settings
+# Standard plugin path: ~/.claude/plugins/marketplaces/{marketplace}/plugins/{plugin}/
+STATUS_LINE_SCRIPT="~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
 
 # Create or update settings.json with statusLine configuration
 if [ -f .claude/settings.json ]; then
@@ -95,9 +97,9 @@ echo -e "  ${CYAN}•${NC} StatusLine: .claude/settings.json"
 echo -e "  ${CYAN}•${NC} Script path: $STATUS_LINE_SCRIPT"
 echo ""
 echo -e "${YELLOW}Plugin Components:${NC}"
-echo -e "  ${CYAN}•${NC} StatusLine command (in .claude/settings.json)"
+echo -e "  ${CYAN}•${NC} StatusLine command: $STATUS_LINE_SCRIPT"
 echo -e "  ${CYAN}•${NC} UserPromptSubmit hook (managed in plugin hooks/hooks.json)"
-echo -e "  ${CYAN}•${NC} Scripts (referenced via \${CLAUDE_PLUGIN_ROOT}/scripts/)"
+echo -e "  ${CYAN}•${NC} Hook scripts (use \${CLAUDE_PLUGIN_ROOT}/scripts/ in plugin hooks)"
 echo ""
 echo -e "${YELLOW}Note:${NC} Restart Claude Code to activate the status line"
 echo ""

@@ -15,12 +15,12 @@ You execute the installation script and verify successful setup.
 **YOU MUST:**
 - Execute the install.sh script to set up status line
 - Verify all files are created correctly
-- Check that statusLine is properly configured in .claude/settings.json using ${CLAUDE_PLUGIN_ROOT}
+- Check that statusLine is properly configured in .claude/settings.json using absolute path
 - Provide clear feedback on installation status
 - Document what was installed and where
 
 **YOU MUST NOT:**
-- Use hardcoded paths (must use ${CLAUDE_PLUGIN_ROOT} variable)
+- Use ${CLAUDE_PLUGIN_ROOT} in statusLine config (only works in plugin-level hooks)
 - Overwrite custom user configurations without merging
 - Skip verification steps
 - Proceed if not in a git repository
@@ -28,8 +28,8 @@ You execute the installation script and verify successful setup.
 
 **IMPORTANT:**
 - StatusLine must be configured in .claude/settings.json (not in hooks/hooks.json)
-- Use ${CLAUDE_PLUGIN_ROOT} for environment-portable script references
-- UserPromptSubmit hook is managed in plugin's hooks/hooks.json
+- StatusLine uses absolute path (~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh) since ${CLAUDE_PLUGIN_ROOT} is only available in plugin-level hooks
+- UserPromptSubmit hook is managed in plugin's hooks/hooks.json and uses ${CLAUDE_PLUGIN_ROOT}
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -56,14 +56,14 @@ You receive installation requests from the /status:install command.
 - Run install.sh from scripts directory
 - Script will:
   - Create plugin configuration in .fractary/plugins/status/
-  - Configure statusLine in .claude/settings.json using ${CLAUDE_PLUGIN_ROOT}
+  - Configure statusLine in .claude/settings.json using absolute path
   - Update .gitignore if needed
-- Note: UserPromptSubmit hook is managed in plugin's hooks/hooks.json automatically
+- Note: UserPromptSubmit hook is managed in plugin's hooks/hooks.json automatically and uses ${CLAUDE_PLUGIN_ROOT}
 
 ### 3. Verify Installation
 - Verify .fractary/plugins/status/config.json exists
-- Confirm .claude/settings.json has statusLine configured with ${CLAUDE_PLUGIN_ROOT}
-- Check that statusLine.command uses ${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh
+- Confirm .claude/settings.json has statusLine configured with absolute path
+- Check that statusLine.command uses ~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh
 - Verify .gitignore includes cache file exclusion
 
 ### 4. Post-Installation
@@ -76,10 +76,10 @@ You receive installation requests from the /status:install command.
 <COMPLETION_CRITERIA>
 Installation is complete when:
 1. Plugin configuration created in .fractary/plugins/status/
-2. .claude/settings.json contains statusLine with ${CLAUDE_PLUGIN_ROOT} reference
+2. .claude/settings.json contains statusLine with absolute path reference
 3. .gitignore updated to exclude cache file
 4. User is informed of successful installation
-5. User understands UserPromptSubmit hook is managed at plugin level
+5. User understands UserPromptSubmit hook is managed at plugin level and uses ${CLAUDE_PLUGIN_ROOT}
 6. User is reminded to restart Claude Code
 </COMPLETION_CRITERIA>
 
@@ -96,9 +96,9 @@ Operation: install
 ✅ COMPLETED: Status Line Manager
 Installed components:
   • Plugin configuration: .fractary/plugins/status/config.json
-  • StatusLine: .claude/settings.json (using ${CLAUDE_PLUGIN_ROOT})
-  • UserPromptSubmit hook: managed in plugin hooks/hooks.json
-  • Scripts: referenced via ${CLAUDE_PLUGIN_ROOT}/scripts/
+  • StatusLine: .claude/settings.json (using absolute path)
+  • UserPromptSubmit hook: managed in plugin hooks/hooks.json (uses ${CLAUDE_PLUGIN_ROOT})
+  • Scripts: ~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/
 
 Status line format:
   [branch] [±files] [#issue] [PR#pr] [↑ahead ↓behind] last: prompt...
@@ -132,7 +132,7 @@ Solution: Check directory permissions, ensure you have write access
 **StatusLine conflicts**:
 ```
 Info: StatusLine will be updated in .claude/settings.json
-Note: Uses ${CLAUDE_PLUGIN_ROOT} for environment portability
+Note: Uses absolute path for statusLine (${CLAUDE_PLUGIN_ROOT} only works in plugin-level hooks)
 ```
 
 ## Error Recovery
@@ -179,12 +179,12 @@ Configuring status line in .claude/settings.json...
 Plugin configuration:
   • Configuration: .fractary/plugins/status/config.json
   • Cache location: .fractary/plugins/status/
-  • StatusLine: .claude/settings.json (using ${CLAUDE_PLUGIN_ROOT})
+  • StatusLine: .claude/settings.json (using absolute path)
 
 Plugin Components:
-  • StatusLine command (in .claude/settings.json)
-  • UserPromptSubmit hook (managed in plugin hooks/hooks.json)
-  • Scripts (referenced via ${CLAUDE_PLUGIN_ROOT}/scripts/)
+  • StatusLine command: ~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh
+  • UserPromptSubmit hook (managed in plugin hooks/hooks.json, uses ${CLAUDE_PLUGIN_ROOT})
+  • Scripts: ~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/
 
 ✅ COMPLETED: Status Line Manager
 ───────────────────────────────────────
