@@ -6,6 +6,13 @@
 
 set -euo pipefail
 
+# Get script directory for sourcing shared functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source environment validation functions
+# shellcheck source=./shared/validate-environments.sh
+source "$SCRIPT_DIR/shared/validate-environments.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -163,6 +170,26 @@ generate_environments() {
       local profile_name=$(echo "$profile" | jq -r '.name')
       local environment=$(echo "$profile" | jq -r '.environment')
       local region=$(echo "$profile" | jq -r '.region')
+      local is_iam_utility=$(echo "$profile" | jq -r '.is_iam_utility // false')
+
+      # CRITICAL: Skip IAM utility profiles - they are NOT deployment environments
+      if [ "$is_iam_utility" = "true" ] || [ "$environment" = "iam-utility" ]; then
+        log_warning "  └─ Skipped IAM utility profile: $profile_name (not an environment)"
+        continue
+      fi
+
+      # CRITICAL: Skip unknown environments
+      if [ "$environment" = "unknown" ]; then
+        log_warning "  └─ Skipped profile with unknown environment: $profile_name"
+        continue
+      fi
+
+      # CRITICAL: Validate environment is legitimate
+      local validation_result=$(validate_environment "$environment" "AWS profile $profile_name" 2>&1 >/dev/null || echo "invalid")
+      if [[ "$validation_result" == *"invalid"* ]]; then
+        log_error "  └─ Skipped profile with invalid environment: $profile_name → $environment"
+        continue
+      fi
 
       # Determine if protected (production)
       local is_protected="false"
