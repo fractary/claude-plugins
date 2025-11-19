@@ -32,21 +32,12 @@ if ! git rev-parse --verify "$BASE_BRANCH" > /dev/null 2>&1; then
     exit 1
 fi
 
-# Create branch from base
+# Create branch from base (will exit on error due to set -e)
 git branch "$BRANCH_NAME" "$BASE_BRANCH"
 
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to create branch '$BRANCH_NAME'" >&2
-    exit 1
-fi
-
-# Checkout the branch if requested
+# Checkout the branch if requested (will exit on error due to set -e)
 if [ "$CHECKOUT" = "true" ]; then
     git checkout "$BRANCH_NAME"
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to checkout branch '$BRANCH_NAME'" >&2
-        exit 1
-    fi
     echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' and checked out"
 else
     echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' (not checked out)"
