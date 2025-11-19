@@ -63,7 +63,7 @@ case "$STRATEGY" in
 esac
 
 # Check if PR exists and is mergeable
-if ! PR_STATE=$(gh pr view "$PR_NUMBER" --json state,mergeable,isDraft --jq '{state: .state, mergeable: .mergeable, isDraft: .isDraft}' 2>&1); then
+if ! PR_STATE=$(gh pr view "$PR_NUMBER" --json state,mergeable,isDraft,autoMergeRequest --jq '{state: .state, mergeable: .mergeable, isDraft: .isDraft, autoMerge: .autoMergeRequest}' 2>&1); then
     echo "Error: Pull request #$PR_NUMBER not found" >&2
     echo "$PR_STATE" >&2
     exit 1
@@ -73,6 +73,7 @@ fi
 STATE=$(echo "$PR_STATE" | jq -r '.state')
 MERGEABLE=$(echo "$PR_STATE" | jq -r '.mergeable')
 IS_DRAFT=$(echo "$PR_STATE" | jq -r '.isDraft')
+AUTO_MERGE=$(echo "$PR_STATE" | jq -r '.autoMerge')
 
 # Validate PR state
 if [ "$STATE" != "OPEN" ]; then
@@ -96,12 +97,19 @@ if [ "$MERGEABLE" = "UNKNOWN" ]; then
     exit 1
 fi
 
-# Build gh pr merge command
-GH_CMD="gh pr merge $PR_NUMBER --$GH_STRATEGY"
+# Check for auto-merge
+if [ "$AUTO_MERGE" != "null" ] && [ -n "$AUTO_MERGE" ]; then
+    echo "Warning: Pull request #$PR_NUMBER has auto-merge enabled" >&2
+    echo "The PR will be automatically merged when requirements are met" >&2
+    echo "Manual merge may conflict with auto-merge settings" >&2
+fi
+
+# Build gh pr merge command as array for proper quoting
+GH_CMD=(gh pr merge "$PR_NUMBER" "--$GH_STRATEGY")
 
 # Add delete-branch flag if requested
 if [ "$DELETE_BRANCH" = "true" ]; then
-    GH_CMD="$GH_CMD --delete-branch"
+    GH_CMD+=(--delete-branch)
 fi
 
 # Execute merge
@@ -110,8 +118,28 @@ if [ "$DELETE_BRANCH" = "true" ]; then
     echo "Branch will be deleted after merge" >&2
 fi
 
+# Proactively check merge requirements before attempting merge
+# This provides better error detection than parsing error messages
+echo "Checking merge requirements..." >&2
+MERGE_REQS=$(gh pr view "$PR_NUMBER" --json reviewDecision,statusCheckRollup 2>/dev/null)
+REVIEW_DECISION=$(echo "$MERGE_REQS" | jq -r '.reviewDecision // "null"')
+STATUS_CHECKS=$(echo "$MERGE_REQS" | jq -r '.statusCheckRollup // [] | map(select(.conclusion != "SUCCESS")) | length')
+
+# Check review requirements
+if [ "$REVIEW_DECISION" = "CHANGES_REQUESTED" ]; then
+    echo "Error: Pull request #$PR_NUMBER has requested changes that must be addressed" >&2
+    exit 15  # Review requirements not met
+fi
+
+# Check CI status
+if [ "$STATUS_CHECKS" != "0" ] && [ "$STATUS_CHECKS" != "null" ]; then
+    echo "Error: Pull request #$PR_NUMBER has failing status checks" >&2
+    exit 14  # CI checks failing
+fi
+
 # Capture output and exit code with timeout protection (120s for large PRs)
-if ! MERGE_OUTPUT=$(timeout 120 $GH_CMD 2>&1); then
+# Use array execution with proper quoting to prevent command injection
+if ! MERGE_OUTPUT=$(timeout 120 "${GH_CMD[@]}" 2>&1); then
     TIMEOUT_EXIT=$?
 
     # Check if command timed out (exit code 124)
@@ -122,10 +150,11 @@ if ! MERGE_OUTPUT=$(timeout 120 $GH_CMD 2>&1); then
         exit 12  # Network/timeout error
     fi
 
+    # Merge failed - report error with output
     echo "Error: Failed to merge PR #$PR_NUMBER" >&2
     echo "$MERGE_OUTPUT" >&2
 
-    # Check for specific error conditions
+    # Fallback error message parsing for any issues we didn't catch proactively
     if echo "$MERGE_OUTPUT" | grep -q "not satisfy the required approvals"; then
         exit 15  # Review requirements not met
     elif echo "$MERGE_OUTPUT" | grep -q "required status checks"; then
@@ -137,8 +166,28 @@ if ! MERGE_OUTPUT=$(timeout 120 $GH_CMD 2>&1); then
     fi
 fi
 
-# Get merge commit SHA reliably using gh pr view
-MERGE_SHA=$(gh pr view "$PR_NUMBER" --json mergeCommit --jq '.mergeCommit.oid' 2>/dev/null || echo "")
+# Get merge commit SHA reliably using gh pr view with retry loop
+# GitHub API may not have updated immediately after merge, so retry with delays
+MERGE_SHA=""
+for attempt in 1 2 3; do
+    MERGE_SHA=$(gh pr view "$PR_NUMBER" --json mergeCommit --jq '.mergeCommit.oid' 2>/dev/null || echo "")
+
+    # If we got a SHA (not empty and not "null"), we're done
+    if [ -n "$MERGE_SHA" ] && [ "$MERGE_SHA" != "null" ]; then
+        break
+    fi
+
+    # If this isn't the last attempt, wait before retrying
+    if [ $attempt -lt 3 ]; then
+        echo "Waiting for GitHub API to update (attempt $attempt/3)..." >&2
+        sleep 1
+    fi
+done
+
+# If we still don't have a SHA after retries, that's okay - set to unknown
+if [ -z "$MERGE_SHA" ] || [ "$MERGE_SHA" = "null" ]; then
+    MERGE_SHA="unknown"
+fi
 
 # Output success message
 echo "Successfully merged PR #$PR_NUMBER using $GH_STRATEGY strategy" >&2
