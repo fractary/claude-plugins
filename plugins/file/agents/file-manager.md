@@ -4,6 +4,7 @@ description: Manages file storage operations across multiple cloud providers (Lo
 tools: Skill
 model: inherit
 color: orange
+skills: [file-manager]
 ---
 
 <CONTEXT>

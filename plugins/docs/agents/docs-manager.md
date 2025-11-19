@@ -4,6 +4,7 @@ description: Orchestrates ALL documentation operations - routes to operation-spe
 tools: Skill
 model: inherit
 color: orange
+skills: [docs-manager-skill]
 ---
 
 # docs-manager
