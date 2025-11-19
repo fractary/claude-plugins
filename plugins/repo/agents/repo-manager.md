@@ -494,40 +494,35 @@ Handle spec creation if:
 1. The create-branch operation completed successfully (status: "success")
 2. Worktree creation completed successfully (if `create_worktree` was true)
 3. The `spec_create` parameter is true
-4. A `work_id` is available (either provided directly or extracted from the created issue)
+4. A `work_id` is available (provided via --work-id parameter)
 5. The fractary-spec plugin is configured (`.fractary/plugins/spec/config.json` exists)
 
 **Note**: Spec creation happens AFTER branch creation and worktree creation (if applicable), as the spec is typically created while on the issue branch.
+
+**Pattern Reference**: This integration follows the same pattern as work:issue-create (see plugins/work/agents/work-manager.md:695-861 for reference implementation).
 
 ### Detection Logic
 
 After the branch is created (and worktree created if applicable), check if spec creation should be triggered:
 
 ```bash
-# Check if spec plugin is configured (not just installed)
-if [ -f ".fractary/plugins/spec/config.json" ]; then
-    # Spec plugin is configured
-    SPEC_CONFIGURED=true
-else
-    # No spec plugin - cannot create spec
-    SPEC_CONFIGURED=false
-fi
+# Determine if we should create a spec based on parameter and preconditions
+SHOULD_CREATE_SPEC=false
 
-# Only proceed if both parameter is true AND plugin is configured AND work_id available
-if [ "$SPEC_CREATE" = "true" ]; then
-    if [ -z "$WORK_ID" ]; then
-        # No work_id - cannot create spec
-        SPEC_CREATE=false
-    elif [ "$SPEC_CONFIGURED" = "true" ]; then
-        # Proceed with spec creation
-        SPEC_CREATE=true
-    else
+if [ "$spec_create" = "true" ]; then
+    # User requested spec creation - check preconditions
+
+    # Check if spec plugin is configured (not just installed)
+    if [ ! -f ".fractary/plugins/spec/config.json" ]; then
         # Plugin not configured - show error and skip
-        SPEC_CREATE=false
+        SHOULD_CREATE_SPEC=false
+    elif [ -z "$WORK_ID" ]; then
+        # No work_id - cannot create spec, show error
+        SHOULD_CREATE_SPEC=false
+    else
+        # All conditions met - proceed with spec creation
+        SHOULD_CREATE_SPEC=true
     fi
-else
-    # Parameter not set - skip spec creation
-    SPEC_CREATE=false
 fi
 ```
 
@@ -641,7 +636,7 @@ Input: {"operation": "create-branch", "parameters": {"description": "add export"
 Input: {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add export", "spec_create": true}}
 
 1. Create branch: feat/123-add-export ✓
-2. Check spec_create=true AND work_id=123 BUT spec plugin not configured ✗
+2. Check spec_create=true AND spec plugin not configured ✗ (plugin check happens before work_id validation)
 3. Display branch creation success
 4. Display warning: "⚠️ Spec creation skipped: fractary-spec plugin not configured"
 ```

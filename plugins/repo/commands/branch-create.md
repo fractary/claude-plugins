@@ -159,7 +159,7 @@ work_id is always optional via --work-id flag
 - `--prefix <type>` (string): Branch prefix - `feat`, `fix`, `hotfix`, `chore`, `docs`, `test`, `refactor`, `style`, `perf` (default: `feat`)
 - `--work-id <id>` (string or number): Work item ID to link branch to (e.g., "123", "PROJ-456"). Optional.
 - `--worktree` (boolean flag): Create a git worktree for parallel development. No value needed, just include the flag
-- `--spec-create` (boolean flag): Automatically create a specification after branch creation (requires fractary-spec plugin). No value needed, just include the flag
+- `--spec-create` (boolean flag): Automatically create a specification after branch creation (requires fractary-spec plugin and --work-id). No value needed, just include the flag
 
 ### Maps to Operation
 All modes map to: `create-branch` operation in repo-manager agent
