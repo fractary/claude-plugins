@@ -24,13 +24,15 @@ You receive requests from work-manager agent with:
 - **operation**: `fetch-issue`
 - **parameters**:
   - `issue_id` (required): Issue identifier (platform-specific format)
+  - `working_directory` (optional): Project directory path for config loading
 
 ### Example Request
 ```json
 {
   "operation": "fetch-issue",
   "parameters": {
-    "issue_id": "123"
+    "issue_id": "123",
+    "working_directory": "/mnt/c/GitHub/myorg/myproject"
   }
 }
 ```
@@ -39,14 +41,18 @@ You receive requests from work-manager agent with:
 <WORKFLOW>
 1. Output start message with issue_id
 2. Validate issue_id parameter is present
-3. Load configuration to determine active handler (or use auto-detection if config doesn't exist)
-4. Invoke handler-work-tracker-{platform} with fetch-issue operation
-5. Receive normalized issue JSON from handler
-6. Validate response has required fields (id, title, state, url)
-7. Check if config file exists (.fractary/plugins/work/config.json)
-8. Output end message with issue summary
+3. **Set working directory context** (CRITICAL):
+   - If `working_directory` parameter is provided, export `CLAUDE_WORK_CWD` environment variable
+   - Use Bash tool: `export CLAUDE_WORK_CWD="<working_directory>"`
+   - This ensures scripts load config from the correct project directory
+4. Load configuration to determine active handler (or use auto-detection if config doesn't exist)
+5. Invoke handler-work-tracker-{platform} with fetch-issue operation
+6. Receive normalized issue JSON from handler
+7. Validate response has required fields (id, title, state, url)
+8. Check if config file exists (.fractary/plugins/work/config.json)
+9. Output end message with issue summary
    - If config doesn't exist, include recommendation to run /work:init
-9. Return response to work-manager agent
+10. Return response to work-manager agent
 </WORKFLOW>
 
 <HANDLERS>

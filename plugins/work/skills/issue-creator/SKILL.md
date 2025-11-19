@@ -27,6 +27,7 @@ You receive requests from work-manager agent with:
   - `description` (optional): Issue body/description
   - `labels` (optional): Comma-separated label names
   - `assignees` (optional): Comma-separated usernames
+  - `working_directory` (optional): Project directory path for config loading
 
 ### Example Request
 ```json
@@ -36,7 +37,8 @@ You receive requests from work-manager agent with:
     "title": "Add dark mode support",
     "description": "Implement dark mode theme with user toggle in settings",
     "labels": "feature,ui",
-    "assignees": "johndoe"
+    "assignees": "johndoe",
+    "working_directory": "/mnt/c/GitHub/myorg/myproject"
   }
 }
 ```
@@ -45,13 +47,17 @@ You receive requests from work-manager agent with:
 <WORKFLOW>
 1. Output start message with title and parameters
 2. Validate title parameter is present and non-empty
-3. Load configuration to determine active handler
-4. Determine handler based on config: `.handlers["work-tracker"].active`
-5. Invoke handler-work-tracker-{platform} skill with create-issue operation
-6. Receive normalized issue JSON from handler (id, identifier, title, url, platform)
-7. Validate response has required fields (id, url)
-8. Output end message with created issue details
-9. Return response to work-manager agent
+3. **Set working directory context** (CRITICAL):
+   - If `working_directory` parameter is provided, export `CLAUDE_WORK_CWD` environment variable
+   - Use Bash tool: `export CLAUDE_WORK_CWD="<working_directory>"`
+   - This ensures scripts load config from the correct project directory
+4. Load configuration to determine active handler
+5. Determine handler based on config: `.handlers["work-tracker"].active`
+6. Invoke handler-work-tracker-{platform} skill with create-issue operation
+7. Receive normalized issue JSON from handler (id, identifier, title, url, platform)
+8. Validate response has required fields (id, url)
+9. Output end message with created issue details
+10. Return response to work-manager agent
 </WORKFLOW>
 
 <HANDLERS>

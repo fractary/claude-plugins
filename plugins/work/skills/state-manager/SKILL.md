@@ -28,26 +28,33 @@ You receive requests from work-manager agent with:
 - `issue_id` (required): Issue identifier
 - `close_comment` (optional): Comment to post when closing
 - `work_id` (optional): FABER work identifier for tracking
+- `working_directory` (optional): Project directory path for config loading
 
 ### reopen-issue Parameters
 - `issue_id` (required): Issue identifier
 - `reopen_comment` (optional): Comment to post when reopening
 - `work_id` (optional): FABER work identifier for tracking
+- `working_directory` (optional): Project directory path for config loading
 
 ### update-state Parameters
 - `issue_id` (required): Issue identifier
 - `target_state` (required): Universal state name (open, in_progress, in_review, done, closed)
+- `working_directory` (optional): Project directory path for config loading
 </INPUTS>
 
 <WORKFLOW>
 1. Output start message with operation and parameters
 2. Validate required parameters are present
-3. Load configuration to determine active handler
-4. Invoke handler skill with operation and parameters
-5. Receive normalized response from handler
-6. Validate response structure
-7. Output end message with results
-8. Return response to work-manager agent
+3. **Set working directory context** (CRITICAL):
+   - If `working_directory` parameter is provided, export `CLAUDE_WORK_CWD` environment variable
+   - Use Bash tool: `export CLAUDE_WORK_CWD="<working_directory>"`
+   - This ensures scripts load config from the correct project directory
+4. Load configuration to determine active handler
+5. Invoke handler skill with operation and parameters
+6. Receive normalized response from handler
+7. Validate response structure
+8. Output end message with results
+9. Return response to work-manager agent
 </WORKFLOW>
 
 <HANDLERS>
