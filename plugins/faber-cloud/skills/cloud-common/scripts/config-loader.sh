@@ -1,6 +1,6 @@
 #!/bin/bash
 # config-loader.sh
-# Loads faber-cloud configuration from .fractary/plugins/faber-cloud/config/config.json
+# Loads faber-cloud configuration from .fractary/plugins/faber-cloud/config.json
 # Provides pattern substitution and validation
 # Migration: config.json (current) ← faber-cloud.json ← devops.json (legacy)
 
@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Configuration paths
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/faber-cloud/config"
+CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/faber-cloud"
 CONFIG_FILE="${CONFIG_DIR}/config.json"
 OLD_CONFIG_FILE="${CONFIG_DIR}/faber-cloud.json"
 LEGACY_CONFIG_FILE="${CONFIG_DIR}/devops.json"
