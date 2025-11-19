@@ -440,22 +440,31 @@ Next: {what_calling_skill_should_do}
 ---
 
 ### merge-pr
-**Purpose**: Merge pull request with specified strategy
+**Purpose**: Merge pull request using GitHub CLI
 **Script**: `scripts/merge-pr.sh`
 **Parameters**:
-- `pr_number` - PR number or branch name
-- `merge_strategy` - Merge strategy (no-ff|squash|ff-only)
-- `delete_branch` - Delete branch after merge (boolean)
+- `pr_number` - PR number (integer, e.g., 456)
+- `strategy` - Merge strategy (merge|squash|rebase)
+  - `merge` - Creates merge commit (maps from no-ff)
+  - `squash` - Squashes all commits into one
+  - `rebase` - Rebases and merges (maps from ff-only)
+- `delete_branch` - Delete head branch after merge (boolean, default: false)
+
+**Validation**:
+- PR must exist and be open
+- PR must not be a draft
+- PR must not have merge conflicts
+- Checks CI status and review requirements via GitHub API
 
 **Safety**:
-- Warns if merging to protected branch
-- Saves current branch before merge
-- Aborts and restores on conflict
-- Checks CI status before merge
+- Uses `gh pr merge` to respect branch protection rules
+- Validates PR state before merging
+- Returns specific exit codes for different failure conditions
+- Outputs structured JSON response for parsing
 
 **Example Invocation**:
 ```bash
-./scripts/merge-pr.sh "456" "no-ff" "true"
+./scripts/merge-pr.sh "456" "merge" "true"
 ```
 
 **Output Format**:
@@ -463,11 +472,19 @@ Next: {what_calling_skill_should_do}
 {
   "status": "success",
   "pr_number": 456,
+  "strategy": "merge",
   "merge_sha": "abc123...",
-  "strategy": "no-ff",
   "branch_deleted": true
 }
 ```
+
+**Error Codes**:
+- `1` - General error or PR not found
+- `2` - Invalid arguments
+- `3` - Configuration error (not in git repo, gh CLI missing)
+- `13` - Merge conflicts detected
+- `14` - CI checks failing
+- `15` - Review requirements not met
 
 ---
 
