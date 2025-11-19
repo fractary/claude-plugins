@@ -27,6 +27,9 @@ Optional parameters (for FABER workflows):
 - `work_id`: FABER work identifier for tracking (if provided, author_context must also be provided)
 - `author_context`: Phase context (frame, architect, build, evaluate, release, ops) (if provided, work_id must also be provided)
 
+Optional parameter (for multi-repository support):
+- `working_directory`: Project directory path for config loading
+
 Example (FABER workflow):
 ```json
 {
@@ -35,7 +38,8 @@ Example (FABER workflow):
     "issue_id": "123",
     "work_id": "faber-abc123",
     "author_context": "frame",
-    "message": "🎯 **Frame Phase Started**\n\nAnalyzing requirements..."
+    "message": "🎯 **Frame Phase Started**\n\nAnalyzing requirements...",
+    "working_directory": "/mnt/c/GitHub/myorg/myproject"
   }
 }
 ```
@@ -46,7 +50,8 @@ Example (standalone comment):
   "operation": "create-comment",
   "parameters": {
     "issue_id": "123",
-    "message": "This is a regular comment without FABER metadata"
+    "message": "This is a regular comment without FABER metadata",
+    "working_directory": "/mnt/c/GitHub/myorg/myproject"
   }
 }
 ```
@@ -55,15 +60,19 @@ Example (standalone comment):
 <WORKFLOW>
 1. Output start message
 2. Validate required parameters present (issue_id, message)
-3. Check if FABER context provided (work_id and author_context)
-4. If FABER context provided:
+3. **Set working directory context** (CRITICAL):
+   - If `working_directory` parameter is provided, export `CLAUDE_WORK_CWD` environment variable
+   - Use Bash tool: `export CLAUDE_WORK_CWD="<working_directory>"`
+   - This ensures scripts load config from the correct project directory
+4. Check if FABER context provided (work_id and author_context)
+5. If FABER context provided:
    - Validate both work_id and author_context are present
    - Validate author_context is valid phase
-5. Load configuration for active handler
-6. Invoke handler create-comment script with appropriate parameters
-7. Receive comment ID/URL from handler
-8. Output end message
-9. Return success response
+6. Load configuration for active handler
+7. Invoke handler create-comment script with appropriate parameters
+8. Receive comment ID/URL from handler
+9. Output end message
+10. Return success response
 </WORKFLOW>
 
 <COMMENT_FORMAT>

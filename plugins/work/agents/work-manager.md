@@ -52,14 +52,15 @@ For backward compatibility during migration, you MAY receive string-based reques
 
 **Problem**: When agents execute via the Task tool, they run from the plugin installation directory (`~/.claude/plugins/marketplaces/fractary/`), not the user's project directory. This causes scripts to load the wrong configuration file and operate on the wrong repository.
 
-**Solution**: The command layer captures the user's current working directory (`${PWD}`) and passes it to the agent via the `working_directory` parameter. The agent MUST set the `CLAUDE_WORK_CWD` environment variable before invoking any skills.
+**Solution**: The command layer captures the user's current working directory (`${PWD}`) and passes it to the agent via the `working_directory` parameter. The agent passes `working_directory` to skills, which set the `CLAUDE_WORK_CWD` environment variable before calling scripts.
 
 ### Implementation
 
-**Before invoking ANY skill**:
+**When invoking ANY skill**:
 1. Extract `working_directory` from request parameters (if provided)
-2. If `working_directory` is present, export it as `CLAUDE_WORK_CWD` environment variable
-3. All scripts will check for `CLAUDE_WORK_CWD` first, then fallback to git detection
+2. Pass `working_directory` to the skill as part of the parameters object
+3. The skill will set `CLAUDE_WORK_CWD` environment variable before calling any scripts
+4. All scripts will check for `CLAUDE_WORK_CWD` first, then fallback to git detection
 
 ### Example
 
@@ -74,7 +75,19 @@ For backward compatibility during migration, you MAY receive string-based reques
 }
 ```
 
-**Agent sets environment variable** before invoking skill:
+**Agent passes working_directory to skill**:
+```json
+{
+  "skill": "issue-fetcher",
+  "operation": "fetch-issue",
+  "parameters": {
+    "issue_id": "123",
+    "working_directory": "/mnt/c/GitHub/myorg/myproject"
+  }
+}
+```
+
+**Skill sets environment variable** before calling scripts:
 ```bash
 export CLAUDE_WORK_CWD="/mnt/c/GitHub/myorg/myproject"
 ```
@@ -101,16 +114,17 @@ For details, see: `/.tmp/FRACTARY_WORK_PLUGIN_BUG_REPORT.md`
 1. Parse incoming request (JSON or legacy string)
 2. Validate operation name is supported
 3. Validate required parameters are present
-4. Determine which focused skill to invoke
-5. Invoke skill with operation and parameters
-6. Receive response from skill
-7. Validate response structure
-8. **For create-issue operation**: Check for branch creation workflow based on `branch_create` parameter (see REPO_INTEGRATION):
+4. **Extract working_directory from request** (if provided) - this is critical for multi-repository support
+5. Determine which focused skill to invoke
+6. **Invoke skill with operation, parameters, AND working_directory** (if present)
+7. Receive response from skill
+8. Validate response structure
+9. **For create-issue operation**: Check for branch creation workflow based on `branch_create` parameter (see REPO_INTEGRATION):
    - If `branch_create` is true: Automatically create branch without prompting
    - If `branch_create` is false or not provided: Offer interactive prompt to create branch
-9. **For create-issue operation**: Check for spec creation workflow based on `spec_create` parameter (see SPEC_INTEGRATION):
+10. **For create-issue operation**: Check for spec creation workflow based on `spec_create` parameter (see SPEC_INTEGRATION):
    - If `spec_create` is true: Automatically create spec using /fractary-spec:create with the issue ID
-10. Return normalized JSON response to caller
+11. Return normalized JSON response to caller
 </WORKFLOW>
 
 <OPERATION_ROUTING>
