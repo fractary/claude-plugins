@@ -76,7 +76,7 @@ Ensure handler is configured:
 if [[ -z "$HANDLER_CONFIG" ]] || [[ "$HANDLER_CONFIG" == "{}" ]] || [[ "$HANDLER_CONFIG" == "null" ]]; then
     # Special case: local handler works with defaults
     if [[ "$ACTIVE_HANDLER" == "local" ]]; then
-        HANDLER_CONFIG='{"base_path":"./storage","create_directories":true,"permissions":"0755"}'
+        HANDLER_CONFIG='{"base_path":".","create_directories":true,"permissions":"0755"}'
     else
         # Other handlers require configuration
         return_result false "Handler '$ACTIVE_HANDLER' is not configured. Run /fractary-file:init --handler $ACTIVE_HANDLER"
@@ -158,7 +158,7 @@ Expand ${VAR_NAME} in configuration values:
 case "$ACTIVE_HANDLER" in
     local)
         # Local handler: just base_path
-        BASE_PATH=$(echo "$HANDLER_CONFIG" | jq -r '.base_path // "./storage"')
+        BASE_PATH=$(echo "$HANDLER_CONFIG" | jq -r '.base_path // "."')
         BASE_PATH=$(expand_env_vars "$BASE_PATH")
         CREATE_DIRS=$(echo "$HANDLER_CONFIG" | jq -r '.create_directories // true')
         ;;

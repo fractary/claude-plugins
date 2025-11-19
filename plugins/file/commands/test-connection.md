@@ -68,7 +68,7 @@ if [ -n "$CONFIG_PATH" ]; then
     ACTIVE_HANDLER=$(echo "$CONFIG" | jq -r '.active_handler')
 else
     ACTIVE_HANDLER="local"
-    CONFIG='{"schema_version":"1.0","active_handler":"local","handlers":{"local":{"base_path":"./storage","create_directories":true}}}'
+    CONFIG='{"schema_version":"1.0","active_handler":"local","handlers":{"local":{"base_path":".","create_directories":true}}}'
 fi
 
 # Override if --handler specified

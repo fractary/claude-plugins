@@ -78,7 +78,7 @@ if [ -n "$CONFIG_PATH" ]; then
     CONFIG=$(cat "$CONFIG_PATH")
 else
     # Use default config
-    CONFIG='{"schema_version":"1.0","active_handler":"local","handlers":{"local":{"base_path":"./storage","create_directories":true}}}'
+    CONFIG='{"schema_version":"1.0","active_handler":"local","handlers":{"local":{"base_path":".","create_directories":true}}}'
 fi
 ```
 
@@ -250,7 +250,7 @@ Documentation: plugins/file/README.md
 ```
 Handler: local
 ───────────────────────────────────────
-  Base Path: ./storage
+  Base Path: . (project root)
   Create Directories: true
   Permissions: 0755
 ```
@@ -330,7 +330,7 @@ Failure: Error message with troubleshooting steps
 
 Using default configuration:
   Active Handler: local
-  Base Path: ./storage
+  Base Path: . (project root)
 
 To create a configuration:
   /fractary-file:init
