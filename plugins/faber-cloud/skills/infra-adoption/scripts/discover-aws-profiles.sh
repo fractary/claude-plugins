@@ -191,19 +191,56 @@ detect_environment() {
   # Normalize to lowercase for matching
   local lower_name=$(echo "$profile_name" | tr '[:upper:]' '[:lower:]')
 
-  # Check for environment keywords
-  if [[ "$lower_name" =~ (test|testing|tst) ]]; then
-    echo "test"
-  elif [[ "$lower_name" =~ (prod|production|prd) ]]; then
+  # IMPORTANT: Only detect standard deployment environments
+  # Do NOT detect IAM user/role names as environments
+  # Standard environments: test, prod, staging, dev
+
+  # Check for environment keywords - prioritize most specific matches first
+  if [[ "$lower_name" =~ (prod|production|prd)-deploy$ ]] || [[ "$lower_name" =~ ^(prod|production|prd)- ]] || [[ "$lower_name" =~ -(prod|production|prd)$ ]]; then
     echo "prod"
-  elif [[ "$lower_name" =~ (staging|stage|stg) ]]; then
+  elif [[ "$lower_name" =~ (staging|stage|stg)-deploy$ ]] || [[ "$lower_name" =~ ^(staging|stage|stg)- ]] || [[ "$lower_name" =~ -(staging|stage|stg)$ ]]; then
     echo "staging"
-  elif [[ "$lower_name" =~ (dev|development|devel) ]]; then
+  elif [[ "$lower_name" =~ (test|testing|tst)-deploy$ ]] || [[ "$lower_name" =~ ^(test|testing|tst)- ]] || [[ "$lower_name" =~ -(test|testing|tst)$ ]]; then
+    echo "test"
+  elif [[ "$lower_name" =~ (dev|development|devel)-deploy$ ]] || [[ "$lower_name" =~ ^(dev|development|devel)- ]] || [[ "$lower_name" =~ -(dev|development|devel)$ ]]; then
     echo "dev"
-  elif [[ "$lower_name" =~ discover ]]; then
-    echo "discover"
   else
+    # Unknown - likely an IAM user/role, not an environment
     echo "unknown"
+  fi
+}
+
+# Function: Check if profile is an IAM utility user (not a deployment environment)
+is_iam_utility_profile() {
+  local profile_name="$1"
+
+  # Normalize to lowercase
+  local lower_name=$(echo "$profile_name" | tr '[:upper:]' '[:lower:]')
+
+  # IMPORTANT: These are IAM user/role patterns that are NOT deployment environments
+  # Common IAM utility user patterns:
+  # - discover: Used for permission discovery/granting
+  # - admin: Administrative access
+  # - ci: CI/CD pipeline user
+  # - terraform: Terraform state management
+  # - backup: Backup operations
+  # - monitor: Monitoring/observability
+
+  # Check for utility patterns that should NOT be treated as environments
+  if [[ "$lower_name" =~ -discover$ ]] || [[ "$lower_name" =~ -discover- ]]; then
+    echo "true"
+  elif [[ "$lower_name" =~ -admin$ ]] || [[ "$lower_name" =~ ^admin- ]]; then
+    echo "true"
+  elif [[ "$lower_name" =~ -ci$ ]] || [[ "$lower_name" =~ ^ci- ]]; then
+    echo "true"
+  elif [[ "$lower_name" =~ -terraform$ ]] || [[ "$lower_name" =~ ^terraform- ]]; then
+    echo "true"
+  elif [[ "$lower_name" =~ -backup$ ]] || [[ "$lower_name" =~ ^backup- ]]; then
+    echo "true"
+  elif [[ "$lower_name" =~ -monitor$ ]] || [[ "$lower_name" =~ ^monitor- ]]; then
+    echo "true"
+  else
+    echo "false"
   fi
 }
 
@@ -337,19 +374,25 @@ main() {
     [ -z "$profile" ] && continue
 
     local name=$(echo "$profile" | jq -r '.name')
+    local is_utility=$(is_iam_utility_profile "$name")
     local environment=$(detect_environment "$name")
     local project_related=$(is_project_related "$name" "$project_name")
+
+    # Override environment detection if this is a utility profile
+    if [ "$is_utility" = "true" ]; then
+      environment="iam-utility"
+      log_info "Profile: $name → IAM utility user (not an environment)"
+    elif [ "$project_related" = "true" ]; then
+      log_info "Profile: $name → $environment (project-related)"
+    fi
 
     local enriched=$(echo "$profile" | jq \
       --arg env "$environment" \
       --arg related "$project_related" \
-      '. + {environment: $env, project_related: ($related == "true")}')
+      --arg is_util "$is_utility" \
+      '. + {environment: $env, project_related: ($related == "true"), is_iam_utility: ($is_util == "true")}')
 
     enriched_profiles=$(echo "$enriched_profiles" | jq --argjson entry "$enriched" '. + [$entry]')
-
-    if [ "$project_related" = "true" ]; then
-      log_info "Profile: $name → $environment (project-related)"
-    fi
 
   done <<< "$(echo "$all_profiles" | jq -c '.[]')"
 
@@ -362,7 +405,7 @@ main() {
   log_info "Project-related profiles: $project_related_count"
   echo ""
 
-  # Generate final report
+  # Generate final report with environment filtering
   local report=$(jq -n \
     --arg project "$project_name" \
     --argjson profiles "$enriched_profiles" \
@@ -377,7 +420,8 @@ main() {
       summary: {
         total_profiles: ($profiles | length),
         project_related_profiles: ([$profiles[] | select(.project_related == true)] | length),
-        environments_detected: ([$profiles[] | select(.project_related == true) | .environment] | unique),
+        iam_utility_profiles: ([$profiles[] | select(.is_iam_utility == true)] | length),
+        environments_detected: ([$profiles[] | select(.project_related == true and .is_iam_utility != true and .environment != "unknown" and .environment != "iam-utility") | .environment] | unique),
         most_common_region: ([$profiles[].region] | group_by(.) | max_by(length) | .[0])
       }
     }')
