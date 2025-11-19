@@ -70,7 +70,7 @@ The skill will:
 5. Return installation summary
 
 Note: Hooks are managed at the plugin level and automatically activated when the plugin is installed.
-Scripts remain in the plugin directory and are referenced using ${CLAUDE_PLUGIN_ROOT}.
+StatusLine uses absolute path in project settings.json. Plugin hooks use ${CLAUDE_PLUGIN_ROOT}.
 </SKILL_INVOCATION>
 
 <ERROR_HANDLING>
@@ -89,12 +89,12 @@ The installation process:
 3. Updates `.gitignore` to exclude cache file
 
 **Plugin-Level Components (Managed Automatically):**
-- Hooks are registered in the plugin's marketplace entry
-- Scripts remain in plugin root directory (`${CLAUDE_PLUGIN_ROOT}/scripts/`)
+- Hooks are registered in the plugin's marketplace entry and use `${CLAUDE_PLUGIN_ROOT}/scripts/`
+- Scripts remain in plugin root directory (`~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/`)
 - UserPromptSubmit hook captures prompts automatically
-- StatusLine hook displays dynamic status automatically
+- StatusLine is configured in project's `.claude/settings.json` with absolute path
 
-No per-project script copying or settings.json modifications needed!
+**Note:** `${CLAUDE_PLUGIN_ROOT}` only works in plugin-level hooks, not in project settings.json!
 
 ## Status Line Features
 

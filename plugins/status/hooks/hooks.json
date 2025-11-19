@@ -1,5 +1,5 @@
 {
-  "description": "Fractary Status Plugin Hooks - Capture user prompts and display status line",
+  "description": "Fractary Status Plugin Hooks - Capture user prompts for status line display",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -11,9 +11,5 @@
         ]
       }
     ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
   }
 }

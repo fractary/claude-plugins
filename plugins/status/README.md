@@ -52,50 +52,46 @@ Then restart Claude Code to activate.
 ### What Gets Installed
 
 The installation process:
-1. Creates `.claude/status/scripts/` directory
-2. Copies `status-line.sh` (status line generator)
-3. Copies `capture-prompt.sh` (prompt capture hook)
-4. Updates `.claude/settings.json` with hooks:
-   - StatusLine hook (displays the status line)
-   - UserPromptSubmit hook (captures prompts)
-5. Creates `.fractary/plugins/status/config.json`
-6. Updates `.gitignore` to exclude cache file
+1. Creates `.fractary/plugins/status/` directory for plugin configuration
+2. Creates `.fractary/plugins/status/config.json` with plugin settings
+3. Updates `.claude/settings.json` with statusLine configuration (using absolute path)
+4. Updates `.gitignore` to exclude cache file
+
+**Note**: Scripts remain in the plugin directory (`~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/`).
+The UserPromptSubmit hook is managed at the plugin level in `hooks/hooks.json` and automatically activates when the plugin is enabled.
 
 ### Manual Installation
 
-If you prefer manual installation:
+If you prefer manual installation or need to troubleshoot:
 
-1. Copy scripts:
-   ```bash
-   mkdir -p .claude/status/scripts
-   cp plugins/status/skills/status-line-manager/scripts/*.sh .claude/status/scripts/
-   chmod +x .claude/status/scripts/*.sh
-   ```
-
-2. Add hooks to `.claude/settings.json`:
+1. Enable the plugin in `.claude/settings.json`:
    ```json
    {
-     "statusLine": {
-       "type": "command",
-       "command": "bash .claude/status/scripts/status-line.sh"
-     },
-     "hooks": {
-       "UserPromptSubmit": [
-         {
-           "matcher": "*",
-           "hooks": [
-             {
-               "type": "command",
-               "command": "bash .claude/status/scripts/capture-prompt.sh"
-             }
-           ]
-         }
-       ]
+     "enabledPlugins": {
+       "fractary-status@fractary": true
      }
    }
    ```
 
-3. Restart Claude Code
+2. Add statusLine configuration to `.claude/settings.json`:
+   ```json
+   {
+     "statusLine": {
+       "type": "command",
+       "command": "~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh"
+     }
+   }
+   ```
+
+3. Create plugin configuration:
+   ```bash
+   mkdir -p .fractary/plugins/status
+   echo '{"version": "1.0.0", "cache_path": ".fractary/plugins/status"}' > .fractary/plugins/status/config.json
+   ```
+
+4. Restart Claude Code
+
+**Important**: The UserPromptSubmit hook is automatically registered via the plugin's `hooks/hooks.json` and uses `${CLAUDE_PLUGIN_ROOT}`. You don't need to manually add it to your project's settings.json.
 
 ## Requirements
 
@@ -164,6 +160,43 @@ The status line supports clickable issue and PR links in both terminal and web I
 - Automatically detects GitHub repository from git remote URL
 - Supports both HTTPS and SSH remote formats
 - Falls back to non-clickable labels for non-GitHub repositories
+
+## Plugin Architecture
+
+### Variable Expansion in Claude Code
+
+Understanding where `${CLAUDE_PLUGIN_ROOT}` works is crucial for plugin development:
+
+**✅ Supported in Plugin-Level Hooks** (`hooks/hooks.json`):
+- Hooks registered in the plugin's `hooks/hooks.json` file support `${CLAUDE_PLUGIN_ROOT}`
+- This variable expands at runtime to the plugin's installation directory
+- Example: `${CLAUDE_PLUGIN_ROOT}/scripts/capture-prompt.sh` → `~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/capture-prompt.sh`
+- The UserPromptSubmit hook uses this pattern
+
+**❌ NOT Supported in Project Settings** (`.claude/settings.json`):
+- Project-level settings.json does not support `${CLAUDE_PLUGIN_ROOT}` variable expansion
+- The `statusLine` property must use an absolute path
+- Example: `~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/status-line.sh`
+- This is why the install script writes the absolute path
+
+**Why the Difference?**
+
+Claude Code's hook system has two distinct contexts:
+1. **Plugin context**: Hooks defined in `hooks/hooks.json` execute with plugin-aware variable expansion
+2. **Project context**: Settings in `.claude/settings.json` execute without plugin variable support
+
+The `statusLine` property is configured at the project level (in `.claude/settings.json`), not at the plugin level, which is why it cannot use `${CLAUDE_PLUGIN_ROOT}`.
+
+### File Locations
+
+**Plugin-managed files** (never copied to project):
+- Scripts: `~/.claude/plugins/marketplaces/fractary/plugins/status/scripts/`
+- Hooks definition: `~/.claude/plugins/marketplaces/fractary/plugins/status/hooks/hooks.json`
+
+**Project-specific files**:
+- Configuration: `.fractary/plugins/status/config.json`
+- Cache: `.fractary/plugins/status/last-prompt.json` (gitignored)
+- Settings: `.claude/settings.json` (statusLine configuration)
 
 ## Configuration
 

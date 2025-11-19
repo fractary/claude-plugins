@@ -106,19 +106,32 @@ Hooks are registered in `.claude-plugin/marketplace.json`, NOT in the plugin man
         "command": "${CLAUDE_PLUGIN_ROOT}/scripts/script-name.sh"
       }]
     }]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/status-line.sh"
   }
 }
 ```
 
 **Key Features**:
-- `${CLAUDE_PLUGIN_ROOT}` - Variable that resolves to plugin root directory
+- `${CLAUDE_PLUGIN_ROOT}` - Variable that resolves to plugin root directory (works in hooks array)
 - Scripts stay in plugin, no per-project copying needed
 - Plugin updates automatically propagate to all projects
 - Hooks auto-activate when plugin installed
+
+**Variable Expansion Behavior**:
+- ✅ **Hooks array**: `${CLAUDE_PLUGIN_ROOT}` is supported and expands at runtime
+- ❌ **statusLine property**: `${CLAUDE_PLUGIN_ROOT}` NOT supported in hooks.json
+- ℹ️ **statusLine configuration**: Must be set in project's `.claude/settings.json` using absolute path
+
+**StatusLine Configuration** (in project's `.claude/settings.json`, NOT in hooks.json):
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/plugins/marketplaces/{marketplace}/plugins/{plugin}/scripts/status-line.sh"
+  }
+}
+```
+
+Note: The install script for status-related plugins should write this configuration to the project's settings.json.
 
 **Examples**: See `plugins/repo/hooks/hooks.json` and `plugins/status/hooks/hooks.json`
 
