@@ -75,7 +75,7 @@ You receive:
    - Invoke docs-manage-audit skill to create dual-format report
    - Pass collected audit data in standardized schema format
    - Generate both README.md and audit.json files
-   - Store in `.fractary/plugins/faber-cloud/audits/{env}/`
+   - Store in `logs/infrastructure/audits/{env}/`
 
 6. **Return Results**
    - Output structured report summary
@@ -171,9 +171,9 @@ Script: `scripts/audit-full.sh`
 Generate structured reports in both JSON and Markdown formats.
 
 **Report Storage Location:**
-- Base Directory: `.fractary/plugins/faber-cloud/audits/{env}/`
-- JSON Report: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.json`
-- Markdown Report: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.md`
+- Base Directory: `logs/infrastructure/audits/{env}/`
+- JSON Report: `logs/infrastructure/audits/{env}/{timestamp}-{check-type}.json`
+- Markdown Report: `logs/infrastructure/audits/{env}/{timestamp}-{check-type}.md`
 
 **Timestamp Format:** `YYYYMMDD-HHMMSS` (e.g., `20250105-143022`)
 
@@ -227,8 +227,8 @@ Generate structured reports in both JSON and Markdown formats.
 ---
 
 **Report Files:**
-- JSON: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.json`
-- Markdown: `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.md`
+- JSON: `logs/infrastructure/audits/{env}/{timestamp}-{check-type}.json`
+- Markdown: `logs/infrastructure/audits/{env}/{timestamp}-{check-type}.md`
 ```
 
 **JSON Report Format:**
@@ -356,7 +356,7 @@ Use the docs-manage-audit skill to create infrastructure audit report with the f
       }
     }
   },
-  "output_path": ".fractary/plugins/faber-cloud/audits/{env}/",
+  "output_path": "logs/infrastructure/audits/{env}/",
   "project_root": "{project-root}"
 }
 ```
@@ -404,14 +404,14 @@ The skill will generate:
 - **README.md**: Human-readable dashboard with status summary, findings by severity, metrics, and recommendations
 - **audit.json**: Machine-readable structured data for automation and trending
 
-Both files stored in `.fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.[md|json]`
+Both files stored in `logs/infrastructure/audits/{env}/{timestamp}-{check-type}.[md|json]`
 </DOCS_MANAGE_AUDIT_INTEGRATION>
 
 <COMPLETION_CRITERIA>
 - Audit check executed successfully
 - No infrastructure modifications made
 - Structured reports generated (JSON + Markdown)
-- Reports stored in `.fractary/plugins/faber-cloud/audits/{env}/` with timestamps
+- Reports stored in `logs/infrastructure/audits/{env}/` with timestamps
 - Status code reflects findings (0=pass, 1=warn, 2=fail)
 - Execution time within specified bounds
 - Actionable recommendations provided
@@ -429,8 +429,8 @@ Duration: {duration}s
 Status: {passing/warnings/failures}
 ───────────────────────────────────────
 Reports Generated:
-- JSON: .fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.json
-- Markdown: .fractary/plugins/faber-cloud/audits/{env}/{timestamp}-{check-type}.md
+- JSON: logs/infrastructure/audits/{env}/{timestamp}-{check-type}.json
+- Markdown: logs/infrastructure/audits/{env}/{timestamp}-{check-type}.md
 
 {Report summary}
 Next: {Recommended action}
