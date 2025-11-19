@@ -179,62 +179,264 @@ Use the Skill tool with:
 - Pass parameters: {pr_number}
 
 **Analyze Response:**
-- Extract PR details (title, description, status, branch names)
-- Extract CI status from statusCheckRollup
-- Extract merge conflict information
-- Parse all comments for code review bot results
-- Parse all reviews for approval status
-- Identify outstanding issues from most recent code review
+
+The handler returns a JSON object with these fields:
+```json
+{
+  "pr": { /* PR details */ },
+  "comments": [ /* issue comments array */ ],
+  "reviews": [ /* review objects array */ ],
+  "review_comments": [ /* inline code review comments array */ ],
+  "conflicts": { /* conflict info */ }
+}
+```
+
+**STEP 1: Extract Basic PR Information**
+- title: `pr.title`
+- state: `pr.state`
+- author: `pr.author`
+- head_branch: `pr.headRefName`
+- base_branch: `pr.baseRefName`
+- mergeable: `pr.mergeable`
+- reviewDecision: `pr.reviewDecision`
+
+**STEP 2: Analyze Merge Conflicts**
+
+Check `pr.mergeable` field:
+- If `CONFLICTING`: Conflicts exist, must be resolved before merging
+- If `MERGEABLE`: No conflicts, proceed with other checks
+- If `UNKNOWN`: Conflict status unknown (GitHub still computing)
+
+If conflicts detected (`pr.mergeable === "CONFLICTING"`):
+- Extract conflicting files from `conflicts.files` array (if available)
+- Note conflict details from `conflicts.details`
+- Mark as: **CANNOT MERGE** - This is a blocking condition
+
+**STEP 3: Analyze CI Status**
+
+Extract CI status from `pr.statusCheckRollup`:
+- If array is null/empty: No CI configured (proceed)
+- If array contains checks with state `FAILURE` or `ERROR`: CI failures exist
+- If array contains checks with state `PENDING`: CI still running
+- If all checks have state `SUCCESS`: CI passing
+
+If CI checks failing:
+- List failed check names
+- Mark as: **DO NOT APPROVE** - This is a blocking condition
+
+**STEP 4: Analyze Reviews (CRITICAL - Most Important Step)**
+
+**IMPORTANT**: This is where the previous implementation was failing. You MUST thoroughly analyze ALL reviews and comments, with special emphasis on the MOST RECENT ones.
+
+**Review State Analysis:**
+Check `reviews` array (sorted by `submitted_at` timestamp, most recent first):
+
+1. **Find the most recent review for each reviewer**:
+   - Group reviews by `user.login`
+   - Take the most recent review per reviewer (highest `submitted_at` timestamp)
+
+2. **Check review states**:
+   - `APPROVED`: Reviewer approved the PR
+   - `CHANGES_REQUESTED`: Reviewer explicitly requested changes (BLOCKING)
+   - `COMMENTED`: Reviewer added comments without explicit approval/rejection
+   - `DISMISSED`: Review was dismissed (ignore this review)
+
+3. **Count review states**:
+   - approved_count: Number of reviewers with most recent state = `APPROVED`
+   - changes_requested_count: Number of reviewers with most recent state = `CHANGES_REQUESTED`
+   - commented_count: Number of reviewers with most recent state = `COMMENTED`
+
+**CRITICAL RULE**: If ANY reviewer's most recent review state is `CHANGES_REQUESTED`, this is a **BLOCKING CONDITION**. Do NOT recommend approval.
+
+**STEP 5: Analyze Comments for Critical Issues (CRITICAL - Often Overlooked)**
+
+**IMPORTANT**: Comments often contain detailed code review findings that don't appear in the formal review state. You MUST analyze comment content, not just review states.
+
+**Parse ALL comments** (from `comments`, `reviews[].body`, and `review_comments` arrays):
+
+1. **Sort all comments by timestamp** (`created_at` or `submitted_at`), most recent first
+
+2. **Identify the most recent substantial comment** (typically the last comment from a reviewer):
+   - Skip automated bot comments (unless from code review tools)
+   - Skip trivial comments like "👍", "LGTM", etc.
+   - Focus on comments with actual feedback content (>50 characters)
+
+3. **Analyze the most recent comment content for critical issue indicators**:
+
+   **BLOCKING KEYWORDS** (case-insensitive search):
+   - "critical issue", "critical bug", "critical problem"
+   - "blocking", "blocker", "blocks"
+   - "must fix", "need to fix", "needs to be fixed", "has to be fixed"
+   - "security issue", "security vulnerability", "security risk"
+   - "do not approve", "don't approve", "not ready", "not approved"
+   - "fails", "failing", "failed" (in context of tests, not past attempts)
+   - "broken", "breaks", "breaking" (in context of functionality)
+   - "memory leak", "race condition", "deadlock"
+   - "incorrect", "wrong", "error", "bug" (when describing current code, not fixed issues)
+
+   **CODE REVIEW FINDINGS** (structured feedback patterns):
+   - Numbered lists of issues (e.g., "1. Fix X, 2. Add Y, 3. Remove Z")
+   - Bullet lists with "TODO", "FIX", "ISSUE", "PROBLEM"
+   - Section headers like "Issues Found:", "Problems:", "Concerns:", "Required Changes:"
+   - References to specific line numbers with required fixes
+   - Mentions of missing tests, error handling, or validation
+
+   **IMPORTANT CONTEXT CLUES**:
+   - If comment says "before approving" or "before this can be merged" → Issues are blocking
+   - If comment says "nice to have" or "optional" or "future improvement" → Issues are NOT blocking
+   - If comment is from PR author → Usually addressing feedback, not raising new issues
+   - If comment is a reply in a thread → Check if it's resolving or raising an issue
+
+4. **Extract outstanding issues from most recent code review**:
+   - If the most recent comment from a reviewer lists specific issues/tasks → Extract them
+   - If the comment explicitly says issues must be fixed → Mark as blocking
+   - If the comment is asking questions without demanding changes → Mark as non-blocking
+
+**STEP 6: Check Overall Review Decision**
+
+GitHub computes an overall `pr.reviewDecision` field:
+- `APPROVED`: PR has sufficient approvals and no outstanding change requests
+- `CHANGES_REQUESTED`: One or more reviewers requested changes
+- `REVIEW_REQUIRED`: Reviews required but not yet received
+- `null`: No review requirements
+
+**CRITICAL**: If `reviewDecision === "CHANGES_REQUESTED"`, this is a **BLOCKING CONDITION** regardless of other factors.
 
 **Determine Recommendation:**
 
-If merge conflicts detected:
-- Recommendation: CANNOT MERGE - Resolve conflicts first
-- List conflicting files (if available)
-- Propose conflict resolution strategy:
-  - Pull latest from base branch into head branch
-  - Resolve conflicts manually
-  - Re-run tests and code review
+**Use this decision tree** (in order, first match wins):
 
-Else if CI checks are failing:
-- Recommendation: DO NOT APPROVE - Fix CI failures first
+1. **If merge conflicts detected** (`pr.mergeable === "CONFLICTING"`):
+   - Recommendation: **CANNOT MERGE - RESOLVE CONFLICTS FIRST**
+   - Priority: P0 (highest - blocks everything)
+   - Reason: "PR has merge conflicts that must be resolved"
+   - List conflicting files (if available)
 
-Else if code review comments indicate critical issues:
-- Recommendation: DO NOT APPROVE - Address critical issues first
-- List outstanding issues from most recent review
+2. **If CI checks are failing**:
+   - Recommendation: **DO NOT APPROVE - FIX CI FAILURES FIRST**
+   - Priority: P0 (highest - blocks approval)
+   - Reason: "CI checks must pass before approval"
+   - List failed checks
 
-Else if code review has approved or no critical issues:
-- Recommendation: READY TO APPROVE
+3. **If ANY reviewer has state `CHANGES_REQUESTED`** (from most recent review per reviewer):
+   - Recommendation: **DO NOT APPROVE - CHANGES REQUESTED BY REVIEWERS**
+   - Priority: P0 (highest - explicit block)
+   - Reason: "One or more reviewers explicitly requested changes"
+   - List reviewers who requested changes
+
+4. **If `reviewDecision === "CHANGES_REQUESTED"`**:
+   - Recommendation: **DO NOT APPROVE - CHANGES REQUESTED**
+   - Priority: P0 (highest - GitHub-level block)
+   - Reason: "GitHub review decision indicates changes are required"
+
+5. **If most recent comment contains BLOCKING KEYWORDS or structured critical issues**:
+   - Recommendation: **DO NOT APPROVE - ADDRESS CRITICAL ISSUES FIRST**
+   - Priority: P1 (high - implicit block from code review)
+   - Reason: "Most recent code review identified critical issues that must be addressed"
+   - List outstanding issues extracted from comment
+
+6. **If `reviewDecision === "REVIEW_REQUIRED"` and no approvals**:
+   - Recommendation: **REVIEW REQUIRED - WAIT FOR APPROVALS**
+   - Priority: P2 (medium - process requirement)
+   - Reason: "PR requires review approval before merging"
+
+7. **If reviewDecision === "APPROVED" OR (no review requirements AND no blocking issues)**:
+   - Recommendation: **READY TO APPROVE**
+   - Priority: P3 (normal - can proceed)
+   - Reason: "All checks passed, no blocking issues identified"
 
 **Present Analysis to User:**
 
-Show structured analysis:
+Show structured analysis with **all relevant details** from the analysis steps above:
+
 ```
 📋 PR ANALYSIS: #{pr_number}
 Title: {title}
 Branch: {head_branch} → {base_branch}
 Author: {author}
-Status: {state}
+Status: {state} {isDraft ? "(DRAFT)" : ""}
+URL: {url}
 ───────────────────────────────────────
 
 🔀 MERGE STATUS:
 {Mergeable status - MERGEABLE, CONFLICTING, or UNKNOWN}
-{If conflicts: list conflicting files}
+{If conflicts detected:}
+  ❌ Merge conflicts detected
+  {If conflicting files available:}
+  Conflicting files:
+  {List each conflicting file}
+  {conflict_details if available}
 
 🔍 CI STATUS:
-{CI check results}
+{If no CI checks configured:}
+  ℹ️  No CI checks configured
+
+{If CI checks exist:}
+  {For each check in statusCheckRollup:}
+  - {check_name}: {status} {conclusion}
+
+  Summary: {X passing, Y failing, Z pending}
 
 📝 REVIEW STATUS:
-{Review decision and approval count}
+Overall Decision: {reviewDecision or "No review requirements"}
 
-💬 CODE REVIEW FINDINGS:
-{Summary of code review bot comments, focusing on most recent}
+{If reviews exist:}
+Reviews by user (most recent state):
+{For each reviewer with their most recent review:}
+- {reviewer_name}: {state} {submitted_at}
+  {If review has body/comment:}
+  Comment: "{truncated comment preview}"
 
-⚠️  OUTSTANDING ISSUES:
-{List of unresolved issues, if any}
+Summary:
+- ✅ Approved: {approved_count}
+- ⚠️  Changes Requested: {changes_requested_count}
+- 💬 Commented: {commented_count}
 
-✅ RECOMMENDATION:
-{APPROVE, FIX ISSUES FIRST, or RESOLVE CONFLICTS FIRST}
+{If no reviews:}
+  ℹ️  No reviews submitted yet
+
+💬 COMMENT ANALYSIS:
+{If substantial comments exist:}
+Total comments: {total comment count}
+
+Most Recent Substantial Comment:
+  From: {author}
+  Date: {timestamp}
+  {If blocking keywords found:}
+  ⚠️  BLOCKING INDICATORS DETECTED: {list keywords found}
+
+  Content Preview:
+  {Show first 200-300 chars or key excerpts}
+
+  {If structured issues extracted:}
+  Outstanding Issues Identified:
+  {List each extracted issue/task}
+
+{If no substantial comments:}
+  ℹ️  No substantial code review comments
+
+⚠️  CRITICAL ISSUES SUMMARY:
+{Compile all blocking issues from above analysis:}
+{If conflicts:}
+- Merge conflicts must be resolved
+
+{If CI failures:}
+- CI checks failing: {list failed check names}
+
+{If changes requested:}
+- Changes explicitly requested by: {list reviewers}
+
+{If critical issues in comments:}
+- Code review identified critical issues:
+  {List outstanding issues from comment analysis}
+
+{If no critical issues:}
+✅ No critical issues identified
+
+───────────────────────────────────────
+🎯 RECOMMENDATION: {RECOMMENDATION}
+Priority: {P0/P1/P2/P3}
+Reason: {Detailed reason from decision tree}
 
 ───────────────────────────────────────
 📍 SUGGESTED NEXT STEPS:
@@ -250,22 +452,56 @@ Status: {state}
    f. Push changes: git push origin {head_branch}
    g. Wait for CI to pass and re-analyze: /repo:pr-review {pr_number}
 
-{Else if CI or code review issues exist:}
-1. [FIX ISSUES] Address outstanding issues
-   Use: Continue work to fix issues on branch {head_branch}
+{Else if CI failures exist:}
+1. [FIX CI] Address failing CI checks
+   Failed checks: {list failed checks}
+   View details: {pr_url}/checks
+   Fix issues on branch {head_branch}
 
-2. [APPROVE ANYWAY] Approve and merge PR (override issues)
-   Use: /repo:pr-review {pr_number} approve
-   Then: /repo:pr-merge {pr_number}
+2. [RE-ANALYZE] After fixes, re-run analysis
+   Use: /repo:pr-review {pr_number}
+
+{Else if changes requested or critical issues in comments:}
+1. [ADDRESS ISSUES] Fix the issues identified in code review
+   {If specific issues listed:}
+   Issues to address:
+   {List each issue as a checkbox/action item}
+
+   Work on branch: {head_branch}
+
+2. [RE-ANALYZE] After fixes, re-run analysis
+   Use: /repo:pr-review {pr_number}
+
+3. [DISCUSS] If you disagree with the feedback
+   Add comment to discuss: /repo:pr-comment {pr_number} --comment "Your response"
+
+{Else if review required but no reviews:}
+1. [WAIT FOR REVIEW] PR requires review approval
+   Request review from team members
+
+2. [CHECK STATUS] Monitor review status
+   Use: /repo:pr-review {pr_number}
 
 {Else if ready to approve:}
 1. [APPROVE & MERGE] Approve and merge this PR
-   Use: /repo:pr-review {pr_number} approve
+   Use: /repo:pr-review {pr_number} --action approve --comment "Looks good!"
    Then: /repo:pr-merge {pr_number}
 
-2. [REQUEST CHANGES] Request additional changes
-   Use: /repo:pr-review {pr_number} request_changes --comment "Your feedback"
+2. [REQUEST CHANGES] Request additional changes (if you found issues)
+   Use: /repo:pr-review {pr_number} --action request_changes --comment "Your feedback"
+
+3. [ADD COMMENT] Add comment without formal review
+   Use: /repo:pr-comment {pr_number} --comment "Your feedback"
 ```
+
+**CRITICAL OUTPUT REQUIREMENTS:**
+
+1. **Always show the most recent comment analysis** - This is often where critical issues are documented
+2. **Always extract and display outstanding issues** from comments if they exist
+3. **Always justify the recommendation** with specific evidence from the analysis
+4. **Never recommend approval** if Step 5 (comment analysis) found blocking indicators
+5. **Show specific reviewers** who requested changes or approved
+6. **Include timestamps** to show recency of feedback
 
 **4B. CREATE PR WORKFLOW:**
 
@@ -624,7 +860,7 @@ OUTPUT:
 }
 ```
 
-**Example 1b: Analyze PR (with code review issues)**
+**Example 1b: Analyze PR (with code review issues in comments)**
 ```
 INPUT:
 {
@@ -633,6 +869,40 @@ INPUT:
     "pr_number": 456
   }
 }
+
+SCENARIO:
+- PR is mergeable (no conflicts)
+- CI checks are passing
+- No formal CHANGES_REQUESTED review state
+- BUT: Most recent comment from reviewer contains critical issues
+
+HANDLER RESPONSE:
+{
+  "pr": {
+    "mergeable": "MERGEABLE",
+    "reviewDecision": null,
+    "statusCheckRollup": [{"state": "SUCCESS"}]
+  },
+  "comments": [
+    {
+      "author": {"login": "reviewer1"},
+      "created_at": "2025-11-19T10:30:00Z",
+      "body": "I've reviewed the code and found several critical issues that must be fixed before this can be approved:\n\n1. Missing error handling for large files (>100MB) - this will cause memory issues\n2. No validation for malformed CSV input - security vulnerability\n3. Unit tests don't cover edge cases (empty files, special characters)\n4. The export function doesn't handle concurrent requests properly\n\nPlease address these before we proceed with approval."
+    }
+  ],
+  "reviews": [],
+  "review_comments": []
+}
+
+SKILL ANALYSIS (Step 5 - Comment Analysis):
+- Most recent comment from: reviewer1
+- Timestamp: 2025-11-19T10:30:00Z
+- BLOCKING KEYWORDS FOUND: "critical issues", "must be fixed", "before this can be approved"
+- STRUCTURED ISSUES FOUND: Numbered list with 4 specific issues
+- Context clues: "before we proceed with approval" → BLOCKING
+
+RECOMMENDATION (from decision tree step 5):
+"DO NOT APPROVE - ADDRESS CRITICAL ISSUES FIRST"
 
 OUTPUT:
 {
@@ -647,12 +917,23 @@ OUTPUT:
       "files": []
     },
     "ci_status": "passing",
-    "reviewDecision": "REVIEW_REQUIRED",
-    "outstanding_issues": [
-      "Add error handling for large files",
-      "Add unit tests for edge cases"
-    ],
-    "recommendation": "FIX_ISSUES_FIRST"
+    "reviewDecision": null,
+    "comment_analysis": {
+      "most_recent_comment": {
+        "author": "reviewer1",
+        "timestamp": "2025-11-19T10:30:00Z",
+        "blocking_keywords": ["critical issues", "must be fixed", "before this can be approved"]
+      },
+      "outstanding_issues": [
+        "Missing error handling for large files (>100MB) - this will cause memory issues",
+        "No validation for malformed CSV input - security vulnerability",
+        "Unit tests don't cover edge cases (empty files, special characters)",
+        "The export function doesn't handle concurrent requests properly"
+      ]
+    },
+    "recommendation": "DO_NOT_APPROVE",
+    "priority": "P1",
+    "reason": "Most recent code review identified critical issues that must be addressed"
   }
 }
 ```
