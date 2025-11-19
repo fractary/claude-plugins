@@ -38,32 +38,20 @@ get_issue_id_from_branch() {
     fi
 }
 
-# Fetch issue content from GitHub
-fetch_issue_content() {
-    local issue_id="$1"
-    if ! command -v gh &> /dev/null; then
-        echo ""
-        return
-    fi
-    gh issue view "$issue_id" --json title,body 2>/dev/null || echo ""
-}
-
 # Find spec file for this issue
 find_spec_file() {
     local issue_id="$1"
-    # Common spec file patterns
-    local patterns=(
-        "docs/specs/*${issue_id}*.md"
-        "specs/*${issue_id}*.md"
-        ".fractary/specs/*${issue_id}*.md"
-        "SPEC-*${issue_id}*.md"
-    )
+    # Common spec file patterns - search in common directories
+    local dirs=("docs/specs" "specs" ".fractary/specs" ".")
 
-    for pattern in "${patterns[@]}"; do
-        local files=$(find . -path "*/${pattern}" 2>/dev/null | head -1)
-        if [ -n "$files" ]; then
-            echo "$files"
-            return
+    for dir in "${dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            # Use find with -type f to avoid glob expansion issues
+            local spec_file=$(find "$dir" -type f -name "*${issue_id}*.md" 2>/dev/null | head -1)
+            if [ -n "$spec_file" ]; then
+                echo "$spec_file"
+                return
+            fi
         fi
     done
     echo ""
@@ -88,10 +76,13 @@ determine_workflow_state() {
     local spec_file="$2"
     local uncommitted="$3"
 
-    # Check if spec was just created
-    if [ -n "$spec_file" ] && echo "$commits" | grep -q "spec:.*${spec_file##*/}"; then
-        echo "spec-created"
-        return
+    # Check if spec was just created (use -F for fixed string to avoid regex injection)
+    if [ -n "$spec_file" ]; then
+        local spec_basename="${spec_file##*/}"
+        if echo "$commits" | grep -qF "$spec_basename"; then
+            echo "spec-created"
+            return
+        fi
     fi
 
     # Check if spec exists
@@ -194,7 +185,7 @@ analyze_accomplishments() {
     local accomplishments=()
 
     # Check for new files created
-    local new_files=$(echo "$diff_content" | grep "^diff --git" | grep "/dev/null b/" | wc -l)
+    local new_files=$(echo "$diff_content" | grep "^diff --git" | grep "/dev/null b/" | wc -l | tr -d ' ')
     if [ "$new_files" -gt 0 ]; then
         accomplishments+=("Created $new_files new file(s)")
     fi
@@ -205,27 +196,27 @@ analyze_accomplishments() {
     fi
 
     # Check for test additions
-    local test_additions=$(echo "$diff_content" | grep -E "^\+.*test|^\+.*describe|^\+.*it\(" | wc -l)
+    local test_additions=$(echo "$diff_content" | grep -E "^\+.*test|^\+.*describe|^\+.*it\(" | wc -l | tr -d ' ')
     if [ "$test_additions" -gt 5 ]; then
         accomplishments+=("Added test coverage ($test_additions new test assertions)")
     fi
 
     # Check for function/class additions
-    local new_functions=$(echo "$diff_content" | grep -E "^\+.*(function |def |class |const .* = |export )" | wc -l)
+    local new_functions=$(echo "$diff_content" | grep -E "^\+.*(function |def |class |const .* = |export )" | wc -l | tr -d ' ')
     if [ "$new_functions" -gt 0 ]; then
         accomplishments+=("Implemented $new_functions new function(s)/class(es)")
     fi
 
     # Check for documentation
     if echo "$diff_content" | grep -qE "^\+.*\/\/|^\+.*\/\*|^\+.*#"; then
-        local doc_lines=$(echo "$diff_content" | grep -E "^\+.*\/\/|^\+.*\/\*|^\+.*#" | wc -l)
+        local doc_lines=$(echo "$diff_content" | grep -E "^\+.*\/\/|^\+.*\/\*|^\+.*#" | wc -l | tr -d ' ')
         if [ "$doc_lines" -gt 10 ]; then
             accomplishments+=("Added inline documentation")
         fi
     fi
 
     # Check for bug fixes (removed TODO, FIXME, etc.)
-    local fixed_todos=$(echo "$diff_content" | grep -E "^-.*TODO|^-.*FIXME|^-.*XXX" | wc -l)
+    local fixed_todos=$(echo "$diff_content" | grep -E "^-.*TODO|^-.*FIXME|^-.*XXX" | wc -l | tr -d ' ')
     if [ "$fixed_todos" -gt 0 ]; then
         accomplishments+=("Resolved $fixed_todos TODO/FIXME item(s)")
     fi
@@ -315,9 +306,9 @@ fi
 # Determine workflow state
 WORKFLOW_STATE=$(determine_workflow_state "$COMMITS" "$SPEC_FILE" "$UNCOMMITTED_CHANGES")
 
-# Check if tests exist
+# Check if tests exist (use more specific pattern to avoid false positives)
 HAS_TESTS="no"
-if git ls-files | grep -qE "test|spec" 2>/dev/null; then
+if git ls-files | grep -qE "(test|spec)/.*\.(js|ts|py|go|rb|java|rs)$|_(test|spec)\.(js|ts|py|go|rb|java|rs)$" 2>/dev/null; then
     HAS_TESTS="yes"
 fi
 
@@ -465,8 +456,8 @@ if [ "$UNCOMMITTED_CHANGES" -gt 0 ]; then
     echo "- ⚠️ **$UNCOMMITTED_CHANGES uncommitted change(s)** - work in progress"
 fi
 
-# Check if tests exist and suggest running them
-if git ls-files | grep -qE "test|spec" 2>/dev/null; then
+# Check if tests exist and suggest running them (use cached result)
+if [ "$HAS_TESTS" = "yes" ]; then
     echo "- 🧪 **Test validation** - ensure tests pass before merging"
 fi
 
