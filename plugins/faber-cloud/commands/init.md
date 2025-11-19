@@ -12,7 +12,7 @@ examples:
 
 # fractary-faber-cloud:init
 
-Initializes the faber-cloud plugin configuration for your project. Creates the configuration file at `.fractary/plugins/faber-cloud/config/config.json` with project-specific settings for cloud infrastructure management.
+Initializes the faber-cloud plugin configuration for your project. Creates the configuration file at `.fractary/plugins/faber-cloud/config.json` with project-specific settings for cloud infrastructure management.
 
 <ARGUMENT_SYNTAX>
 ## Command Argument Syntax
@@ -37,7 +37,7 @@ This command follows the standard space-separated syntax:
 - Create initialization script directly (this is a setup command)
 - Do NOT invoke any agents (this is an exception to the normal pattern)
 - Prompt user for required configuration values
-- Create `.fractary/plugins/faber-cloud/config/` directory
+- Create `.fractary/plugins/faber-cloud/` directory if needed
 - Generate `config.json` from template at `skills/cloud-common/templates/faber-cloud.json.template`
   - If template not found, generate configuration from scratch using auto-discovery
   - This is NORMAL - templates are part of the plugin source, not required in user projects
@@ -66,12 +66,12 @@ This is an exception to the normal pattern because it's a one-time setup command
 5. For AWS: Get account ID via `aws sts get-caller-identity`, prompt for region
 6. Read template from `skills/cloud-common/templates/faber-cloud.json.template`
 7. Substitute all placeholders with user values
-8. Create config directory: `.fractary/plugins/faber-cloud/config/`
-9. Save to `.fractary/plugins/faber-cloud/config/config.json`
+8. Create config directory: `.fractary/plugins/faber-cloud/`
+9. Save to `.fractary/plugins/faber-cloud/config.json`
 10. Display configuration summary and next steps
 </IMPLEMENTATION>
 
-Create `.fractary/plugins/faber-cloud/config/config.json` configuration file for this project.
+Create `.fractary/plugins/faber-cloud/config.json` configuration file for this project.
 
 ## Your Task
 
@@ -91,7 +91,7 @@ Set up cloud infrastructure automation configuration by:
    - Check for existing `faber-cloud.json` and migrate to `config.json` if found
    - Use template from `skills/cloud-common/templates/faber-cloud.json.template`
    - Substitute detected values
-   - Create `.fractary/plugins/faber-cloud/config/config.json`
+   - Create `.fractary/plugins/faber-cloud/config.json`
 
 4. **Validate Setup**
    - Verify AWS profiles exist
@@ -189,9 +189,9 @@ After generating configuration:
 
 1. **File Structure Check**
    ```bash
-   # Verify .fractary/plugins/faber-cloud/config/config.json exists
+   # Verify .fractary/plugins/faber-cloud/config.json exists
    # Validate JSON syntax
-   jq empty .fractary/plugins/faber-cloud/config/config.json
+   jq empty .fractary/plugins/faber-cloud/config.json
    ```
 
 2. **AWS Profile Validation**
@@ -236,10 +236,10 @@ AWS Profiles:
   ✓ Test: corthuxa-core-test-deploy
   ✓ Prod: corthuxa-core-prod-deploy
 
-Configuration saved to: .fractary/plugins/faber-cloud/config/config.json
+Configuration saved to: .fractary/plugins/faber-cloud/config.json
 
 Next steps:
-  - Review configuration: cat .fractary/plugins/faber-cloud/config/config.json
+  - Review configuration: cat .fractary/plugins/faber-cloud/config.json
   - Validate setup: /fractary-faber-cloud:validate
   - Deploy infrastructure: /fractary-faber-cloud:deploy-apply --env test
 ```
@@ -268,7 +268,7 @@ Next steps:
 
 ## Implementation Notes
 
-- MUST create `.fractary/plugins/faber-cloud/config/` directory if it doesn't exist
+- MUST create `.fractary/plugins/faber-cloud/` directory if it doesn't exist
 - MUST check for existing `faber-cloud.json` and migrate to `config.json` if found
 - MUST validate JSON syntax after generation
 - SHOULD run profile validation if AWS detected

@@ -91,7 +91,7 @@ Create a **generic, extensible DevOps plugin** for Claude Code that:
 │   (devops-deployer, devops-debugger, etc.)      │
 └────────────────┬────────────────────────────────┘
                  │
-                 ├─── Reads Config (.fractary/plugins/faber-cloud/config/faber-cloud.json)
+                 ├─── Reads Config (.fractary/plugins/faber-cloud/faber-cloud.json)
                  │
                  ▼
 ┌─────────────────────────────────────────────────┐
@@ -141,7 +141,7 @@ Create a **generic, extensible DevOps plugin** for Claude Code that:
 
 ### Configuration File Location
 
-**Path:** `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+**Path:** `.fractary/plugins/faber-cloud/faber-cloud.json`
 
 **Rationale:**
 - Fractary-branded namespace (consistent with other Fractary tools)
@@ -576,8 +576,8 @@ parse_iac_error() {
 
 load_plugins() {
     # Read config
-    PROVIDER=$(jq -r '.provider' .fractary/plugins/faber-cloud/config/faber-cloud.json)
-    IAC_TOOL=$(jq -r '.iac_tool' .fractary/plugins/faber-cloud/config/faber-cloud.json)
+    PROVIDER=$(jq -r '.provider' .fractary/plugins/faber-cloud/faber-cloud.json)
+    IAC_TOOL=$(jq -r '.iac_tool' .fractary/plugins/faber-cloud/faber-cloud.json)
 
     # Validate plugins exist
     PROVIDER_DIR="${SKILL_DIR}/providers/${PROVIDER}"
@@ -643,7 +643,7 @@ Commands are user-invoked via `/faber-cloud:*` pattern.
 **Purpose:** Initialize DevOps configuration for a project
 
 **Workflow:**
-1. Check if `.fractary/plugins/faber-cloud/config/faber-cloud.json` already exists
+1. Check if `.fractary/plugins/faber-cloud/faber-cloud.json` already exists
 2. If exists, prompt to overwrite or update
 3. If not exists, run setup wizard:
    - Detect project name from Git
@@ -896,12 +896,12 @@ Detecting project settings...
 
    Create configuration? [Y/n] y
 
-   ✓ Creating .fractary/plugins/faber-cloud/config/faber-cloud.json...
+   ✓ Creating .fractary/plugins/faber-cloud/faber-cloud.json...
    ✓ Validating configuration...
    ✓ Configuration created successfully!
 
 Next steps:
-1. Review configuration: cat .fractary/plugins/faber-cloud/config/faber-cloud.json
+1. Review configuration: cat .fractary/plugins/faber-cloud/faber-cloud.json
 2. Validate setup: /faber-cloud:validate
 3. Deploy infrastructure: /faber-cloud:deploy test
 
@@ -910,7 +910,7 @@ For more information, see: /faber-cloud:help
 
 ### Configuration File Generation
 
-The wizard creates `.fractary/plugins/faber-cloud/config/faber-cloud.json` with:
+The wizard creates `.fractary/plugins/faber-cloud/faber-cloud.json` with:
 - User-provided values
 - Auto-discovered values
 - Sensible defaults
@@ -997,7 +997,7 @@ Or via Claude plugin manager (future):
 
 ### Configuration File Management
 
-**Important:** The configuration file (`.fractary/plugins/faber-cloud/config/faber-cloud.json`) is:
+**Important:** The configuration file (`.fractary/plugins/faber-cloud/faber-cloud.json`) is:
 - **NOT** included in the plugin
 - **Generated per-project** by `/faber-cloud:init`
 - **Version-controlled with the project**
@@ -1134,7 +1134,7 @@ The plugin only provides the **template** for the config file.
    - AWS profiles from existing setup
    - Terraform directory
    - Project name
-   - Generates `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+   - Generates `.fractary/plugins/faber-cloud/faber-cloud.json`
 
 3. **Validate Configuration**
    ```bash
@@ -1158,7 +1158,7 @@ The plugin only provides the **template** for the config file.
 
 7. **Commit Configuration**
    ```bash
-   git add .fractary/plugins/faber-cloud/config/faber-cloud.json
+   git add .fractary/plugins/faber-cloud/faber-cloud.json
    git commit -m "Add Fractary DevOps configuration"
    ```
 

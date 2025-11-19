@@ -66,7 +66,7 @@ Output: {output_dir}
 **IMPORTANT:** If you encounter missing files or "plugin not installed" errors, this is NORMAL. The adopt workflow will:
 1. Discover your existing infrastructure (Terraform, AWS, etc.)
 2. Generate configuration automatically
-3. Create `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+3. Create `.fractary/plugins/faber-cloud/faber-cloud.json`
 4. You do NOT need to run `/fractary-faber-cloud:init` first
 
 Check project directory exists and is a valid project:
@@ -316,7 +316,7 @@ Ask user if they want to proceed:
 ❓ Ready to install faber-cloud configuration?
 
 This will:
-  ✓ Copy faber-cloud.json to .fractary/plugins/faber-cloud/config/
+  ✓ Copy faber-cloud.json to .fractary/plugins/faber-cloud/
   ✓ Set up directory structure
   ✓ Enable faber-cloud lifecycle management
 
@@ -341,13 +341,13 @@ If user approves installation:
 
 2. Copy configuration:
    ```bash
-   cp {output_dir}/faber-cloud.json .fractary/plugins/faber-cloud/config/
+   cp {output_dir}/faber-cloud.json .fractary/plugins/faber-cloud/
    ```
 
 3. Validate installation:
    ```bash
    bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh \
-     .fractary/plugins/faber-cloud/config/faber-cloud.json
+     .fractary/plugins/faber-cloud/faber-cloud.json
    ```
 
 4. Display success message:
@@ -392,7 +392,7 @@ Reports: {output_dir}/
   - ADOPTION-SPEC.md ⭐ (detailed implementation plan)
 
 {If installed}
-Configuration: .fractary/plugins/faber-cloud/config/faber-cloud.json
+Configuration: .fractary/plugins/faber-cloud/faber-cloud.json
 
 Next Steps:
 1. Review ADOPTION-SPEC.md for detailed implementation plan

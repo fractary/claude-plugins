@@ -476,7 +476,7 @@ infra-manager: Retry deployment
 ```
 Skill starts
   ↓
-Read: .fractary/plugins/faber-cloud/config/devops.json
+Read: .fractary/plugins/faber-cloud/devops.json
   ↓
 Extract relevant configuration:
   - hosting_handler = config.handlers.hosting.active

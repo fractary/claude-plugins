@@ -34,7 +34,7 @@ What this skill receives:
 - operation: What was being attempted (deploy/destroy/validate/preview)
 - environment: Target environment (test/prod)
 - resource_context: Information about resources involved
-- config: Configuration from .fractary/plugins/faber-cloud/config/faber-cloud.json
+- config: Configuration from .fractary/plugins/faber-cloud/faber-cloud.json
 - --complete (optional): Enable automated mode - apply fixes without prompts and return to parent
 </INPUTS>
 
@@ -142,7 +142,7 @@ Error: ${error_summary}
 **EXECUTE STEPS:**
 
 **Step 1: Load Configuration**
-- Read: .fractary/plugins/faber-cloud/config/devops.json
+- Read: .fractary/plugins/faber-cloud/devops.json
 - Extract: environment settings, handlers, project info
 - Output: "✓ Configuration loaded"
 

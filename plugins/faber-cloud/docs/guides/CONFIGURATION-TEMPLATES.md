@@ -902,7 +902,7 @@ When you need stronger isolation:
 
 ### All Templates
 
-1. **Version Control**: Always commit `.fractary/plugins/faber-cloud/config/faber-cloud.json`
+1. **Version Control**: Always commit `.fractary/plugins/faber-cloud/faber-cloud.json`
 2. **Test First**: Always test in test environment before production
 3. **Protected Environments**: Mark prod (and staging) as `"protected": true`
 4. **Use Hooks**: Leverage lifecycle hooks for custom logic

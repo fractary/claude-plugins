@@ -7,7 +7,7 @@
 
 ## Configuration File Structure
 
-**Location:** `.fractary/plugins/faber-cloud/config/devops.json`
+**Location:** `.fractary/plugins/faber-cloud/devops.json`
 
 ### Complete Example
 

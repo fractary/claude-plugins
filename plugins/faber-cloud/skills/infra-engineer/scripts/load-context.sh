@@ -20,7 +20,7 @@ INSTRUCTIONS=$(echo "$PARSE_RESULT" | jq -r '.instructions')
 ADDITIONAL_CONTEXT=$(echo "$PARSE_RESULT" | jq -r '.additional_context')
 
 # Configuration (parameterized for testability)
-CONFIG_FILE="${FABER_CLOUD_CONFIG_FILE:-.fractary/plugins/faber-cloud/config/devops.json}"
+CONFIG_FILE="${FABER_CLOUD_CONFIG_FILE:-.fractary/plugins/faber-cloud/devops.json}"
 TF_DIR="${FABER_CLOUD_TF_DIR:-./infrastructure/terraform}"
 
 # Detect stat platform once for performance (LOW PRIORITY optimization)

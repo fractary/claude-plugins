@@ -409,7 +409,7 @@ plugins/faber-cloud/skills/
 - **Standard**: Recommended for prod (+ ADRs, runbooks, audit reports)
 - **Comprehensive**: Full documentation (+ trend analysis, dependency maps, change history)
 
-**Configuration** (in `.fractary/plugins/faber-cloud/config/faber-cloud-config.json`):
+**Configuration** (in `.fractary/plugins/faber-cloud/faber-cloud-config.json`):
 ```json
 {
   "documentation": {

@@ -464,7 +464,7 @@ append "## Phase 4: Configure Faber-Cloud (1 hour)
 
 \`\`\`bash
 mkdir -p .fractary/plugins/faber-cloud/config
-cp ${OUTPUT_DIR}/faber-cloud.json .fractary/plugins/faber-cloud/config/
+cp ${OUTPUT_DIR}/faber-cloud.json .fractary/plugins/faber-cloud/
 \`\`\`
 
 ### Task 4.2: Review Configuration

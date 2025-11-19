@@ -11,7 +11,7 @@ Shared utilities used across all faber-cloud skills.
 ## Purpose
 
 This skill provides:
-- Configuration loading from `.fractary/plugins/faber-cloud/config/config.json`
+- Configuration loading from `.fractary/plugins/faber-cloud/config.json`
 - Backward compatibility with `faber-cloud.json` and `devops.json` (deprecated)
 - Pattern substitution (`{project}`, `{environment}`, etc.)
 - Auto-discovery fallbacks when config is missing
@@ -19,7 +19,7 @@ This skill provides:
 
 ## Configuration Loading
 
-**Primary config file**: `.fractary/plugins/faber-cloud/config/config.json`
+**Primary config file**: `.fractary/plugins/faber-cloud/config.json`
 
 **Automatic migration** (seamless upgrade):
 - If `config.json` exists: use it (current standard)
@@ -78,7 +78,7 @@ AWS_PROFILE=$(get_aws_profile "test")
 
 ### templates/faber-cloud.json.template
 
-Template for generating `.fractary/plugins/faber-cloud/config/config.json`:
+Template for generating `.fractary/plugins/faber-cloud/config.json`:
 - Placeholders: `{{PROJECT_NAME}}`, `{{NAMESPACE}}`, etc.
 - Used by `/fractary-faber-cloud:init` command
 - Includes sensible defaults

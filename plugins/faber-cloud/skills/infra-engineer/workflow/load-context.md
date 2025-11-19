@@ -116,7 +116,7 @@ echo "✓ Loaded latest design: $DESIGN_FILE"
 
 ```bash
 # Load faber-cloud configuration
-CONFIG_FILE=".fractary/plugins/faber-cloud/config/devops.json"
+CONFIG_FILE=".fractary/plugins/faber-cloud/devops.json"
 if [ -f "$CONFIG_FILE" ]; then
     CONFIG_JSON=$(cat "$CONFIG_FILE")
 

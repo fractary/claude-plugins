@@ -400,7 +400,7 @@ main() {
     echo ""
     echo "Configuration is ready to use!"
     echo "Next steps:"
-    echo "  1. Copy to project root: cp $config_file ./.fractary/plugins/faber-cloud/config/faber-cloud.json"
+    echo "  1. Copy to project root: cp $config_file ./.fractary/plugins/faber-cloud/faber-cloud.json"
     echo "  2. Test with read-only audit: faber-cloud audit test"
     echo "  3. Deploy to test environment first"
     echo ""

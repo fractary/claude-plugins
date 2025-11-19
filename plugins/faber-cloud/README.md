@@ -185,7 +185,7 @@ See [Migration from Custom Agents](docs/guides/MIGRATION-FROM-CUSTOM-AGENTS.md) 
 /fractary-faber-cloud:init --provider=aws --iac=terraform
 ```
 
-This creates `.fractary/plugins/faber-cloud/config/config.json` with your project configuration.
+This creates `.fractary/plugins/faber-cloud/config.json` with your project configuration.
 
 ### 2. Deploy Infrastructure
 
@@ -464,7 +464,7 @@ See [Hook System Guide](docs/guides/HOOKS.md) for complete documentation and [Sk
 
 ## Configuration
 
-Configuration file: `.fractary/plugins/faber-cloud/config/config.json`
+Configuration file: `.fractary/plugins/faber-cloud/config.json`
 
 **Migration**: Old `faber-cloud.json` files are automatically renamed to `config.json` when loaded.
 

@@ -371,7 +371,7 @@ ops-manager returns results to user
 
 All behavior determined by single config file:
 
-`.fractary/plugins/faber-cloud/config/devops.json`
+`.fractary/plugins/faber-cloud/devops.json`
 
 **Pattern Substitution:**
 - `{project}` - Project name

@@ -30,7 +30,7 @@ What this skill receives:
 - environment: Target environment (test/prod)
 - phase: Test phase (pre-deployment/post-deployment)
 - terraform_dir: Path to terraform code
-- config: Configuration from .fractary/plugins/faber-cloud/config/devops.json
+- config: Configuration from .fractary/plugins/faber-cloud/devops.json
 </INPUTS>
 
 <WORKFLOW>
@@ -46,7 +46,7 @@ Terraform: ${terraform_dir}
 **EXECUTE STEPS:**
 
 **Step 1: Load Configuration**
-- Read: .fractary/plugins/faber-cloud/config/devops.json
+- Read: .fractary/plugins/faber-cloud/devops.json
 - Extract: environment settings, resource patterns, cost thresholds
 - Output: "✓ Configuration loaded"
 

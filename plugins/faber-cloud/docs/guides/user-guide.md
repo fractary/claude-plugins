@@ -432,7 +432,7 @@ Monitor health, investigate issues, and respond to incidents.
 
 ## Configuration
 
-The plugin is configured via `.fractary/plugins/faber-cloud/config/devops.json`.
+The plugin is configured via `.fractary/plugins/faber-cloud/devops.json`.
 
 ### Initialize Configuration
 

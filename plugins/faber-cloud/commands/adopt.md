@@ -367,7 +367,7 @@ If adoption doesn't work as expected:
 1. Configuration is in `.fractary/` (not yet active)
 2. Original infrastructure is unchanged
 3. Original scripts still available
-4. Can revert by removing `.fractary/plugins/faber-cloud/config/`
+4. Can revert by removing `.fractary/plugins/faber-cloud/`
 5. Continue using original workflow
 
 ## Dry-Run Mode

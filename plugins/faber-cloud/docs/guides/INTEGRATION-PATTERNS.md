@@ -100,7 +100,7 @@ You validate datasets meet our project requirements before deploying infrastruct
 
 **3. Configure Hook**
 
-Add to `.fractary/plugins/faber-cloud/config/faber-cloud.json`:
+Add to `.fractary/plugins/faber-cloud/faber-cloud.json`:
 
 ```json
 {
@@ -462,7 +462,7 @@ with context from docs/ARCHITECTURE.md...
 
 **Step 3: Configure Hooks**
 
-Add to `.fractary/plugins/faber-cloud/config/faber-cloud.json`:
+Add to `.fractary/plugins/faber-cloud/faber-cloud.json`:
 ```json
 {
   "hooks": {

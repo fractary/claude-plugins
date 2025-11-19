@@ -47,7 +47,7 @@ All operations monitoring functionality is now in the `fractary-helm-cloud` plug
 ### 3. Configuration Changes
 
 **faber-cloud configuration:**
-- Remains in `.fractary/plugins/faber-cloud/config/devops.json`
+- Remains in `.fractary/plugins/faber-cloud/devops.json`
 - **No changes required** for infrastructure operations
 
 **helm-cloud configuration:**
@@ -265,7 +265,7 @@ All infrastructure lifecycle commands remain unchanged:
 ### Configuration Files
 
 Infrastructure configuration remains the same:
-- `.fractary/plugins/faber-cloud/config/devops.json`
+- `.fractary/plugins/faber-cloud/devops.json`
 - AWS profiles
 - Terraform settings
 - Resource naming patterns
