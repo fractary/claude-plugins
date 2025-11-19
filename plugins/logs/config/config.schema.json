@@ -1,14 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://fractary.ai/schemas/logs-config-v1.1.json",
+  "$id": "https://fractary.ai/schemas/logs-config-v2.0.json",
   "title": "Fractary Logs Plugin Configuration",
-  "description": "Configuration schema for fractary-logs plugin v1.1",
+  "description": "Configuration schema for fractary-logs plugin v2.0",
   "type": "object",
   "required": ["schema_version", "storage", "retention"],
   "properties": {
     "schema_version": {
       "type": "string",
-      "enum": ["1.0", "1.1"],
+      "enum": ["1.0", "1.1", "2.0"],
       "description": "Configuration schema version"
     },
     "storage": {
@@ -72,35 +72,210 @@
     },
     "retention": {
       "type": "object",
-      "required": ["strategy"],
+      "required": ["default"],
       "properties": {
-        "strategy": {
-          "type": "string",
-          "enum": ["local", "hybrid"],
-          "description": "Retention strategy: local-only or hybrid (local + cloud)"
+        "default": {
+          "type": "object",
+          "description": "Default retention policy applied to all logs unless overridden by path-specific rules",
+          "properties": {
+            "local_days": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 365,
+              "description": "Days to retain logs locally before archiving"
+            },
+            "cloud_days": {
+              "oneOf": [
+                {"type": "string", "enum": ["forever"]},
+                {"type": "number", "minimum": 1}
+              ],
+              "description": "Days to retain in cloud archive (or 'forever')"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low"],
+              "description": "Retention priority level"
+            },
+            "auto_archive": {
+              "type": "boolean",
+              "description": "Enable automatic archival for this log type"
+            },
+            "cleanup_after_archive": {
+              "type": "boolean",
+              "description": "Remove from local storage after successful archival"
+            }
+          }
         },
-        "local_days": {
-          "type": "number",
-          "minimum": 1,
-          "maximum": 365,
-          "description": "Days to retain logs locally"
-        },
-        "cloud_days": {
-          "oneOf": [
-            {"type": "string", "enum": ["forever"]},
-            {"type": "number", "minimum": 1}
-          ],
-          "description": "Days to retain in cloud (or 'forever')"
-        },
-        "auto_archive_on_age": {
-          "type": "boolean",
-          "description": "Automatically archive logs when they reach threshold"
-        },
-        "auto_archive_threshold_days": {
-          "type": "number",
-          "minimum": 1,
-          "maximum": 365,
-          "description": "Age threshold for automatic archival"
+        "paths": {
+          "type": "array",
+          "description": "Path-specific retention policies that override defaults",
+          "items": {
+            "type": "object",
+            "required": ["pattern"],
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match log paths (e.g., 'sessions/*', 'builds/*', 'deployments/*')"
+              },
+              "log_type": {
+                "type": "string",
+                "description": "Logical log type name (session, build, deployment, test, debug, etc.)"
+              },
+              "local_days": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 365,
+                "description": "Days to retain logs locally before archiving"
+              },
+              "cloud_days": {
+                "oneOf": [
+                  {"type": "string", "enum": ["forever"]},
+                  {"type": "number", "minimum": 1}
+                ],
+                "description": "Days to retain in cloud archive (or 'forever')"
+              },
+              "priority": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low"],
+                "description": "Retention priority level"
+              },
+              "auto_archive": {
+                "type": "boolean",
+                "description": "Enable automatic archival for this log type"
+              },
+              "cleanup_after_archive": {
+                "type": "boolean",
+                "description": "Remove from local storage after successful archival"
+              },
+              "retention_exceptions": {
+                "type": "object",
+                "description": "Special rules to prevent deletion",
+                "properties": {
+                  "keep_if_linked_to_open_issue": {
+                    "type": "boolean",
+                    "description": "Keep logs linked to open work items"
+                  },
+                  "keep_if_referenced_in_docs": {
+                    "type": "boolean",
+                    "description": "Keep logs referenced in documentation"
+                  },
+                  "keep_recent_n": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Always keep the N most recent logs of this type"
+                  },
+                  "never_delete_production": {
+                    "type": "boolean",
+                    "description": "Never delete production deployment logs"
+                  },
+                  "never_delete_security_incidents": {
+                    "type": "boolean",
+                    "description": "Never delete security incident logs"
+                  },
+                  "never_delete_compliance_audits": {
+                    "type": "boolean",
+                    "description": "Never delete compliance audit logs"
+                  }
+                }
+              },
+              "archive_triggers": {
+                "type": "object",
+                "description": "Conditions that trigger automatic archival",
+                "properties": {
+                  "age_days": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Archive when log reaches this age in days"
+                  },
+                  "size_mb": {
+                    "type": ["number", "null"],
+                    "minimum": 0.1,
+                    "description": "Archive when log exceeds this size in MB (null = no size trigger)"
+                  },
+                  "status": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["stopped", "error", "success", "failure", "cancelled", "rolled_back"]
+                    },
+                    "description": "Archive when log has one of these status values"
+                  }
+                }
+              },
+              "validation": {
+                "type": "object",
+                "description": "Validation rules before archival",
+                "properties": {
+                  "require_summary": {
+                    "type": "boolean",
+                    "description": "Require summary before archival"
+                  },
+                  "require_redaction_check": {
+                    "type": "boolean",
+                    "description": "Require redaction check for sensitive data"
+                  },
+                  "warn_if_no_decisions": {
+                    "type": "boolean",
+                    "description": "Warn if session has no key decisions recorded"
+                  },
+                  "warn_if_no_errors_on_failure": {
+                    "type": "boolean",
+                    "description": "Warn if failed build has no error logs"
+                  },
+                  "require_health_checks_for_production": {
+                    "type": "boolean",
+                    "description": "Require health checks for production deployments"
+                  },
+                  "require_rollback_plan_for_production": {
+                    "type": "boolean",
+                    "description": "Require rollback plan for production deployments"
+                  }
+                }
+              },
+              "compression": {
+                "type": "object",
+                "description": "Compression settings for this log type",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Enable compression for archival"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["gzip", "bzip2", "xz"],
+                    "description": "Compression format"
+                  },
+                  "threshold_mb": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "description": "Only compress files larger than this threshold"
+                  }
+                }
+              },
+              "metadata": {
+                "type": "object",
+                "description": "Metadata about this log type (documentation)",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Human-readable description of this log type"
+                  },
+                  "typical_size_mb": {
+                    "type": "number",
+                    "description": "Typical log size in MB"
+                  },
+                  "typical_duration_minutes": {
+                    "type": "number",
+                    "description": "Typical session/operation duration in minutes"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Business value and use case for these logs"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

@@ -6,22 +6,23 @@ description: Archives completed logs to cloud storage with index management and 
 # Log Archiver Skill
 
 <CONTEXT>
-You are the log-archiver skill for the fractary-logs plugin. You implement **per-type hybrid retention**: each log type has its own retention policy (from types/{type}/retention-config.json), with both lifecycle-based archival (when work completes) + time-based safety net.
+You are the log-archiver skill for the fractary-logs plugin. You implement **path-based hybrid retention**: each log path pattern has its own retention policy defined in the user's `config.json`, with both lifecycle-based archival (when work completes) + time-based safety net.
 
-**v2.0 Update**: Now **type-aware** - retention policies differ by log type. Session logs kept 7 days local/forever cloud, test logs only 3 days/7 days, audit logs 90 days/forever. You load retention policies dynamically from type context.
+**v2.0 Update**: Now **centralized configuration** - retention policies are defined in `.fractary/plugins/logs/config.json` with path-based rules. Session logs kept 7 days local/forever cloud, test logs only 3 days/7 days, audit logs 90 days/forever. You load retention policies from the user's config file, not from plugin source files.
 
-You collect logs based on retention rules, compress large files, upload to cloud storage via fractary-file, maintain a type-aware archive index, and clean up local storage.
+You collect logs based on retention rules, match them against path patterns in config, compress large files, upload to cloud storage via fractary-file, maintain a type-aware archive index, and clean up local storage.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. **ALWAYS load per-type retention policy** from types/{log_type}/retention-config.json
-2. **NEVER delete logs without archiving first** (unless retention exceptions apply)
-3. **ALWAYS compress logs > 1MB before upload**
-4. **ALWAYS update type-aware archive index** after archival
-5. **ALWAYS verify cloud upload successful** before local deletion
-6. **NEVER archive the same logs twice** (check index first)
-7. **MUST respect retention exceptions** (never_delete_production, keep_if_linked_to_open_issue, etc.)
-8. **ALWAYS keep archive index locally** even after cleanup
+1. **ALWAYS load retention policies** from `.fractary/plugins/logs/config.json` (retention.paths array)
+2. **MATCH log paths against patterns** to find applicable retention policy (or use retention.default)
+3. **NEVER delete logs without archiving first** (unless retention exceptions apply)
+4. **ALWAYS compress logs** based on per-path compression settings (respects threshold_mb)
+5. **ALWAYS update type-aware archive index** after archival
+6. **ALWAYS verify cloud upload successful** before local deletion
+7. **NEVER archive the same logs twice** (check index first)
+8. **MUST respect retention exceptions** (never_delete_production, keep_if_linked_to_open_issue, etc.)
+9. **ALWAYS keep archive index locally** even after cleanup
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -45,47 +46,77 @@ Invoke log-lister skill:
 - Filter by log_type (if specified)
 - Get all logs with metadata
 
-### Step 2: Load Retention Policies
-For each log type found:
-- Read `types/{log_type}/retention-config.json`
-- Extract retention rules:
-  - `local_retention_days` - How long to keep locally
-  - `cloud_retention_policy` - "forever", "90_days", "30_days", "7_days"
-  - `priority` - "critical", "high", "medium", "low"
-  - `retention_exceptions` - Special rules
+### Step 2: Load Retention Policies from Config
+Read user's config file: `.fractary/plugins/logs/config.json`
+- Load `retention.default` - fallback policy for unmatched paths
+- Load `retention.paths` array - path-specific retention rules
+- For each log, match against path patterns to find applicable policy
 
-Example policies:
+Example config structure:
 ```json
-// Session logs: high value, keep forever in cloud
 {
-  "log_type": "session",
-  "local_retention_days": 7,
-  "cloud_retention_policy": "forever",
-  "retention_exceptions": {
-    "keep_if_linked_to_open_issue": true,
-    "keep_recent_n": 10
-  }
-}
-
-// Test logs: low value, short retention
-{
-  "log_type": "test",
-  "local_retention_days": 3,
-  "cloud_retention_policy": "7_days",
-  "priority": "low"
-}
-
-// Audit logs: compliance, never delete
-{
-  "log_type": "audit",
-  "local_retention_days": 90,
-  "cloud_retention_policy": "forever",
-  "retention_exceptions": {
-    "never_delete_security_incidents": true,
-    "never_delete_compliance_audits": true
+  "retention": {
+    "default": {
+      "local_days": 30,
+      "cloud_days": "forever",
+      "priority": "medium",
+      "auto_archive": true,
+      "cleanup_after_archive": true
+    },
+    "paths": [
+      {
+        "pattern": "sessions/*",
+        "log_type": "session",
+        "local_days": 7,
+        "cloud_days": "forever",
+        "priority": "high",
+        "auto_archive": true,
+        "cleanup_after_archive": false,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_recent_n": 10
+        },
+        "archive_triggers": {
+          "age_days": 7,
+          "size_mb": null,
+          "status": ["stopped", "error"]
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        }
+      },
+      {
+        "pattern": "test/*",
+        "log_type": "test",
+        "local_days": 3,
+        "cloud_days": 7,
+        "priority": "low",
+        "auto_archive": true,
+        "cleanup_after_archive": true
+      },
+      {
+        "pattern": "audit/*",
+        "log_type": "audit",
+        "local_days": 90,
+        "cloud_days": "forever",
+        "priority": "critical",
+        "retention_exceptions": {
+          "never_delete_security_incidents": true,
+          "never_delete_compliance_audits": true
+        }
+      }
+    ]
   }
 }
 ```
+
+Path matching algorithm:
+1. For each log file, extract relative path from `/logs/` directory
+2. Test against each pattern in `retention.paths` array (in order)
+3. First match wins - use that path's retention policy
+4. If no match, use `retention.default` policy
 
 ### Step 3: Calculate Retention Status
 Execute `scripts/check-retention-status.sh`:
@@ -246,10 +277,10 @@ Recommendation: Re-upload missing build log
 <SCRIPTS>
 
 ## scripts/check-retention-status.sh
-**Purpose**: Calculate retention status per type
-**Usage**: `check-retention-status.sh <log_path>`
+**Purpose**: Calculate retention status per log path
+**Usage**: `check-retention-status.sh <log_path> <config_file>`
 **Outputs**: JSON with retention status (active/expiring/expired/protected)
-**v2.0 NEW**: Loads per-type retention-config.json dynamically
+**v2.0 CHANGE**: Reads retention policies from `.fractary/plugins/logs/config.json` (retention.paths array), matches log path against patterns
 
 ## scripts/collect-issue-logs.sh
 **Purpose**: Find all logs for an issue, grouped by type
@@ -258,9 +289,10 @@ Recommendation: Re-upload missing build log
 **v2.0 CHANGE**: Returns type-grouped structure
 
 ## scripts/compress-logs.sh
-**Purpose**: Compress log if > 1MB
-**Usage**: `compress-logs.sh <log_file>`
+**Purpose**: Compress log based on path-specific compression settings
+**Usage**: `compress-logs.sh <log_file> <retention_policy_json>`
 **Outputs**: Compressed file path or original if not compressed
+**v2.0 CHANGE**: Respects per-path `compression.enabled`, `compression.format`, and `compression.threshold_mb` from config
 
 ## scripts/upload-to-cloud.sh
 **Purpose**: Upload log to type-specific cloud path
@@ -272,13 +304,19 @@ Recommendation: Re-upload missing build log
 **Purpose**: Update type-aware archive index
 **Usage**: `update-index.sh <archive_metadata_json>`
 **Outputs**: Updated index path
-**v2.0 CHANGE**: Includes type-specific retention metadata
+**v2.0 CHANGE**: Includes type-specific retention metadata from user config
 
 ## scripts/cleanup-local.sh
-**Purpose**: Remove local logs based on per-type retention
-**Usage**: `cleanup-local.sh <log_type_filter> [--dry-run]`
+**Purpose**: Remove local logs based on path-specific retention
+**Usage**: `cleanup-local.sh <config_file> [--dry-run]`
 **Outputs**: List of deleted files by type
-**v2.0 CHANGE**: Respects per-type retention periods
+**v2.0 CHANGE**: Reads `retention.paths` from config, matches logs against patterns, respects per-path `cleanup_after_archive` and `local_days` settings
+
+## scripts/load-retention-policy.sh (NEW)
+**Purpose**: Load retention policy for a specific log path
+**Usage**: `load-retention-policy.sh <log_path> <config_file>`
+**Outputs**: JSON with matched retention policy (from paths array or default)
+**v2.0 NEW**: Core script for path-based retention matching - tests log path against all patterns in config, returns first match or default
 
 </SCRIPTS>
 
@@ -371,7 +409,11 @@ audit (90d local, forever cloud):
 <DOCUMENTATION>
 Archive operations documented in **type-aware archive index** at `.fractary/logs/.archive-index.json`. Each log type has its retention policy specified.
 
-Retention policies defined in `types/{log_type}/retention-config.json`.
+**Retention policies centralized in user config**: `.fractary/plugins/logs/config.json`
+- Path-based matching via `retention.paths` array
+- Default fallback via `retention.default`
+- Per-path settings for compression, validation, retention exceptions
+- All retention settings managed in one place
 </DOCUMENTATION>
 
 <ERROR_HANDLING>
@@ -416,20 +458,32 @@ Retry: /logs:archive --type audit --retry
 ## v2.0 Migration Notes
 
 **What changed:**
-- Per-type retention policies (from retention-config.json)
+- **Centralized configuration**: Retention policies now in `.fractary/plugins/logs/config.json` (not plugin source)
+- **Path-based matching**: Use glob patterns (e.g., `sessions/*`) to match logs to retention policies
+- **User-customizable**: All retention settings configurable per project
+- **Sensible defaults**: Init command creates comprehensive config with 9 log types pre-configured
+- **Deprecated**: Plugin source files `types/{type}/retention-config.json` no longer used
 - Type-aware archive paths (archive/logs/{year}/{month}/{type}/)
-- Retention exceptions per type (never_delete_production, keep_if_open, etc.)
+- Retention exceptions per path (never_delete_production, keep_if_open, etc.)
 - Archive index includes type and retention metadata
 
 **What stayed the same:**
-- Compression logic (> 1MB)
+- Compression logic (per-path compression settings)
 - Cloud upload via fractary-file
 - Verification process
 - Issue-based archival
 
 **Benefits:**
+- **One config file** - all retention settings in `.fractary/plugins/logs/config.json`
+- **Project-specific policies** - customize retention per project, not globally
+- **Version control friendly** - config committed with project
 - Audit logs protected for 90 days (compliance)
 - Test logs cleaned quickly (3 days) to save space
 - Session logs kept forever in cloud for debugging
 - Production deployments never auto-deleted
 - Retention matches log value and use case
+
+**Migration path:**
+- Run `/fractary-logs:init --force` to generate new v2.0 config
+- Review `retention.paths` array and adjust as needed
+- Old configs (v1.x) automatically migrated to path-based structure
