@@ -1,567 +1,245 @@
----
-name: faber:status
-description: Show detailed status of FABER workflow sessions
-argument-hint: [work_id] | --all | --recent <N> | --failed | --waiting
-tools: Bash, Read, Glob
-model: inherit
----
+# /fractary-faber:status
 
-# FABER Status Command
+Display FABER workflow status with dual-state tracking (current state + historical logs).
 
-You are the **FABER Status Reporter**. Your mission is to display detailed information about FABER workflow sessions, including phase progress, artifacts, and next steps.
+## What This Does
+
+Shows comprehensive workflow status by combining:
+- **Current State**: From `.fractary/plugins/faber/state.json`
+- **Historical Logs**: From `fractary-logs` plugin (workflow log type)
+
+**Features**:
+- 📊 Current phase and progress
+- 📝 Recent workflow events from logs
+- 📦 Artifacts created (specs, branches, PRs)
+- ⏭️ Next steps based on current state
+- 🔄 Retry count and error tracking
+- ⏱️ Phase timing information
 
 ## Your Mission
 
-1. **Parse input** to identify which session(s) to show
-2. **Load session data** from `.faber/sessions/`
-3. **Format output** with clear phase status
-4. **Show artifacts** (specs, PRs, branches, etc.)
+1. **Load current state** from `.fractary/plugins/faber/state.json`
+2. **Query recent logs** from fractary-logs plugin
+3. **Combine information** to show complete picture
+4. **Display phase status** with visual indicators
 5. **Provide next steps** based on current state
 
-## Input Formats
-
-Support multiple query formats:
+## Usage
 
 ```bash
-# Show specific session by work_id
-/faber:status abc12345
+# Show current workflow status
+/fractary-faber:status
 
-# Show specific session by issue
-/faber:status #123
-/faber:status PROJ-456
+# Show status with work item ID
+/fractary-faber:status 158
 
-# Show all active sessions
-/faber:status
-/faber:status --all
+# Show detailed log history (last N events)
+/fractary-faber:status --logs 20
 
-# Show recent sessions
-/faber:status --recent 5
+# Show only current state (no logs)
+/fractary-faber:status --state-only
 
-# Show failed sessions
-/faber:status --failed
+# Show timing breakdown
+/fractary-faber:status --timing
 
-# Show waiting sessions (paused)
-/faber:status --waiting
+# Show all information (state + full logs + timing)
+/fractary-faber:status --verbose
 ```
 
-## Workflow
+## Implementation
 
-### Step 1: Parse Input
+This command should:
 
-Determine what to show:
-
-```bash
-#!/bin/bash
-
-QUERY="$1"
-MODE="single"
-
-# Check if flag provided
-if [[ "$QUERY" =~ ^-- ]]; then
-    case "$QUERY" in
-        --all)
-            MODE="all"
-            ;;
-        --recent)
-            MODE="recent"
-            LIMIT="${2:-10}"
-            ;;
-        --failed)
-            MODE="failed"
-            ;;
-        --waiting)
-            MODE="waiting"
-            ;;
-        *)
-            echo "Unknown flag: $QUERY" >&2
-            exit 2
-            ;;
-    esac
-elif [ -z "$QUERY" ]; then
-    # No argument - show all active
-    MODE="active"
-else
-    # Specific work_id or issue
-    MODE="single"
-fi
-```
-
-### Step 2: Load Sessions
-
-Load session data from filesystem:
+### Step 1: Load Current State
 
 ```bash
-# Get script directory
-SCRIPT_DIR="/mnt/c/GitHub/fractary/claude-plugins/plugins/faber"
-SESSION_DIR=".faber/sessions"
+# Check if state file exists
+STATE_FILE=".fractary/plugins/faber/state.json"
 
-# Check if session directory exists
-if [ ! -d "$SESSION_DIR" ]; then
-    echo "No FABER sessions found in this project." >&2
+if [ ! -f "$STATE_FILE" ]; then
+    echo "No active FABER workflow found in this project." >&2
     echo "" >&2
     echo "To start a workflow:" >&2
-    echo "  /faber:run <issue-id>" >&2
+    echo "  /fractary-faber:run <work-id>" >&2
     exit 1
 fi
 
-# Function to load session
-load_session() {
-    local work_id="$1"
-    local session_file="$SESSION_DIR/${work_id}.json"
+# Load current state
+STATE_JSON=$(cat "$STATE_FILE")
 
-    if [ ! -f "$session_file" ]; then
-        return 1
-    fi
-
-    cat "$session_file"
-    return 0
-}
-
-# Function to find session by issue
-find_session_by_issue() {
-    local issue_id="$1"
-
-    for session_file in "$SESSION_DIR"/*.json; do
-        if [ ! -f "$session_file" ]; then
-            continue
-        fi
-
-        local source_id=$(jq -r '.metadata.source_id // empty' "$session_file")
-        if [ "$source_id" = "$issue_id" ]; then
-            basename "$session_file" .json
-            return 0
-        fi
-    done
-
-    return 1
-}
+# Extract key fields
+WORK_ID=$(echo "$STATE_JSON" | jq -r '.work_id')
+STATUS=$(echo "$STATE_JSON" | jq -r '.status')
+CURRENT_PHASE=$(echo "$STATE_JSON" | jq -r '.current_phase')
+STARTED_AT=$(echo "$STATE_JSON" | jq -r '.started_at')
+UPDATED_AT=$(echo "$STATE_JSON" | jq -r '.updated_at')
 ```
 
-### Step 3: Format Single Session Status
+### Step 2: Query Recent Logs
 
-Display detailed status for one session:
+Use the `fractary-logs` plugin to query workflow events:
 
 ```bash
-format_session_status() {
-    local session_json="$1"
+# Query recent workflow log entries (if logs enabled)
+LOG_LIMIT="${LOG_LIMIT:-10}"
 
-    # Extract metadata
-    local work_id=$(echo "$session_json" | jq -r '.work_id')
-    local source_type=$(echo "$session_json" | jq -r '.metadata.source_type')
-    local source_id=$(echo "$session_json" | jq -r '.metadata.source_id')
-    local work_domain=$(echo "$session_json" | jq -r '.metadata.work_domain')
-    local created_at=$(echo "$session_json" | jq -r '.metadata.created_at')
-    local updated_at=$(echo "$session_json" | jq -r '.metadata.updated_at')
-
-    # Extract phase statuses
-    local frame_status=$(echo "$session_json" | jq -r '.stages.frame.status // "pending"')
-    local architect_status=$(echo "$session_json" | jq -r '.stages.architect.status // "pending"')
-    local build_status=$(echo "$session_json" | jq -r '.stages.build.status // "pending"')
-    local evaluate_status=$(echo "$session_json" | jq -r '.stages.evaluate.status // "pending"')
-    local release_status=$(echo "$session_json" | jq -r '.stages.release.status // "pending"')
-
-    # Determine overall status
-    local overall_status="in_progress"
-    if [ "$release_status" = "completed" ]; then
-        overall_status="completed"
-    elif [ "$frame_status" = "failed" ] || [ "$architect_status" = "failed" ] || \
-         [ "$build_status" = "failed" ] || [ "$evaluate_status" = "failed" ] || \
-         [ "$release_status" = "failed" ]; then
-        overall_status="failed"
-    elif [ "$evaluate_status" = "in_progress" ] || [ "$release_status" = "pending" ]; then
-        overall_status="waiting"
-    fi
-
-    # Print header
-    echo "========================================"
-    echo "📊 FABER Workflow Status"
-    echo "========================================"
-    echo ""
-
-    # Print metadata
-    echo "Work ID: $work_id"
-    echo "Source: $source_type/$source_id"
-    echo "Domain: $work_domain"
-    echo "Status: $overall_status"
-    echo ""
-    echo "Created: $(date -d "$created_at" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$created_at")"
-    echo "Updated: $(date -d "$updated_at" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$updated_at")"
-    echo ""
-
-    # Print phase status with visual indicators
-    echo "Workflow Phases:"
-    echo ""
-
-    print_phase_status "Frame" "$frame_status"
-    print_phase_status "Architect" "$architect_status"
-    print_phase_status "Build" "$build_status"
-    print_phase_status "Evaluate" "$evaluate_status"
-    print_phase_status "Release" "$release_status"
-
-    echo ""
-
-    # Print artifacts
-    echo "Artifacts:"
-    echo ""
-
-    local spec_file=$(echo "$session_json" | jq -r '.stages.architect.data.spec_file // empty')
-    local branch_name=$(echo "$session_json" | jq -r '.stages.frame.data.branch_name // empty')
-    local pr_url=$(echo "$session_json" | jq -r '.stages.release.data.pr_url // empty')
-
-    if [ -n "$spec_file" ]; then
-        echo "  Specification: $spec_file"
-    fi
-
-    if [ -n "$branch_name" ]; then
-        echo "  Branch: $branch_name"
-    fi
-
-    if [ -n "$pr_url" ]; then
-        echo "  Pull Request: $pr_url"
-    fi
-
-    if [ -z "$spec_file" ] && [ -z "$branch_name" ] && [ -z "$pr_url" ]; then
-        echo "  (No artifacts yet)"
-    fi
-
-    echo ""
-
-    # Print next steps based on current state
-    echo "Next Steps:"
-    echo ""
-
-    if [ "$overall_status" = "completed" ]; then
-        echo "  ✅ Workflow completed successfully"
-        if [ -n "$pr_url" ]; then
-            echo "  View PR: $pr_url"
-        fi
-    elif [ "$overall_status" = "failed" ]; then
-        echo "  ❌ Workflow failed - check error details below"
-        echo "  Retry: /faber:retry $work_id"
-    elif [ "$overall_status" = "waiting" ]; then
-        if [ "$release_status" = "pending" ]; then
-            echo "  ⏸️  Waiting for release approval"
-            echo "  Approve: /faber:approve $work_id"
-        else
-            echo "  ⏸️  Workflow paused"
-        fi
-    else
-        echo "  🔄 Workflow in progress..."
-    fi
-
-    echo ""
-
-    # Print errors if any
-    local has_errors=false
-
-    for phase in frame architect build evaluate release; do
-        local error=$(echo "$session_json" | jq -r ".stages.$phase.data.error // empty")
-        if [ -n "$error" ]; then
-            if [ "$has_errors" = false ]; then
-                echo "Errors:"
-                echo ""
-                has_errors=true
-            fi
-            echo "  $phase: $error"
-        fi
-    done
-
-    if [ "$has_errors" = true ]; then
-        echo ""
-    fi
-
-    # Print retry information if applicable
-    local retry_count=$(echo "$session_json" | jq -r '.stages.build.data.retry_count // 0')
-    if [ "$retry_count" -gt 0 ]; then
-        echo "Retries: $retry_count"
-        echo ""
-    fi
-}
-
-# Helper function to print phase status
-print_phase_status() {
-    local phase="$1"
-    local status="$2"
-
-    local icon=""
-    local status_text=""
-
-    case "$status" in
-        completed)
-            icon="✅"
-            status_text="Complete"
-            ;;
-        in_progress|started)
-            icon="🔄"
-            status_text="In Progress"
-            ;;
-        failed)
-            icon="❌"
-            status_text="Failed"
-            ;;
-        pending)
-            icon="⏸️"
-            status_text="Pending"
-            ;;
-        *)
-            icon="❓"
-            status_text="Unknown"
-            ;;
-    esac
-
-    printf "  %-12s %s %s\n" "$phase" "$icon" "$status_text"
-}
+# Use fractary-logs to query workflow events
+# This should invoke the fractary-logs plugin with appropriate filters
+RECENT_LOGS=$(fractary-logs query --type workflow --work-id "$WORK_ID" --limit "$LOG_LIMIT" 2>/dev/null || echo "[]")
 ```
 
-### Step 4: Format Session List
+### Step 3: Display Status
 
-Display multiple sessions in table format:
+Combine current state with recent logs to show comprehensive status.
 
-```bash
-format_session_list() {
-    local title="$1"
+## Status Output Format
 
-    echo "========================================"
-    echo "$title"
-    echo "========================================"
-    echo ""
+The command displays three sections:
 
-    # Table header
-    printf "%-10s %-15s %-20s %-12s\n" "Work ID" "Source" "Updated" "Status"
-    printf "%-10s %-15s %-20s %-12s\n" "----------" "---------------" "--------------------" "------------"
-
-    local count=0
-
-    # Iterate sessions
-    for session_file in "$SESSION_DIR"/*.json; do
-        if [ ! -f "$session_file" ]; then
-            continue
-        fi
-
-        local session_json=$(cat "$session_file")
-        local work_id=$(echo "$session_json" | jq -r '.work_id')
-        local source_type=$(echo "$session_json" | jq -r '.metadata.source_type')
-        local source_id=$(echo "$session_json" | jq -r '.metadata.source_id')
-        local updated_at=$(echo "$session_json" | jq -r '.metadata.updated_at')
-
-        # Determine status
-        local release_status=$(echo "$session_json" | jq -r '.stages.release.status // "pending"')
-        local frame_status=$(echo "$session_json" | jq -r '.stages.frame.status // "pending"')
-
-        local overall_status="in_progress"
-        if [ "$release_status" = "completed" ]; then
-            overall_status="completed"
-        elif [ "$release_status" = "failed" ] || [ "$frame_status" = "failed" ]; then
-            overall_status="failed"
-        elif [ "$release_status" = "pending" ]; then
-            overall_status="waiting"
-        fi
-
-        # Apply filters
-        if [ "$MODE" = "failed" ] && [ "$overall_status" != "failed" ]; then
-            continue
-        fi
-
-        if [ "$MODE" = "waiting" ] && [ "$overall_status" != "waiting" ]; then
-            continue
-        fi
-
-        if [ "$MODE" = "active" ] && [ "$overall_status" = "completed" ]; then
-            continue
-        fi
-
-        # Format updated time
-        local updated_short=$(date -d "$updated_at" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "$updated_at")
-
-        printf "%-10s %-15s %-20s %-12s\n" \
-            "$work_id" \
-            "$source_type/$source_id" \
-            "$updated_short" \
-            "$overall_status"
-
-        ((count++))
-
-        # Limit for recent mode
-        if [ "$MODE" = "recent" ] && [ $count -ge $LIMIT ]; then
-            break
-        fi
-    done
-
-    if [ $count -eq 0 ]; then
-        echo "(No sessions found)"
-    fi
-
-    echo ""
-    echo "Total: $count session(s)"
-    echo ""
-    echo "To view details: /faber:status <work_id>"
-    echo ""
-}
-```
-
-### Step 5: Execute Query
-
-Run the appropriate display based on mode:
-
-```bash
-case "$MODE" in
-    single)
-        # Find work_id
-        WORK_ID="$QUERY"
-
-        # Check if it's an issue ID instead
-        if [[ "$QUERY" =~ ^#?([0-9]+)$ ]] || [[ "$QUERY" =~ ^[A-Z]+-[0-9]+$ ]]; then
-            # Try to find session by issue
-            FOUND_WORK_ID=$(find_session_by_issue "$QUERY")
-            if [ $? -eq 0 ]; then
-                WORK_ID="$FOUND_WORK_ID"
-            else
-                echo "Error: No session found for issue: $QUERY" >&2
-                exit 1
-            fi
-        fi
-
-        # Load and display session
-        SESSION_JSON=$(load_session "$WORK_ID")
-        if [ $? -ne 0 ]; then
-            echo "Error: Session not found: $WORK_ID" >&2
-            exit 1
-        fi
-
-        format_session_status "$SESSION_JSON"
-        ;;
-
-    all)
-        format_session_list "📊 All FABER Sessions"
-        ;;
-
-    active)
-        format_session_list "📊 Active FABER Sessions"
-        ;;
-
-    recent)
-        format_session_list "📊 Recent FABER Sessions (Last $LIMIT)"
-        ;;
-
-    failed)
-        format_session_list "❌ Failed FABER Sessions"
-        ;;
-
-    waiting)
-        format_session_list "⏸️  Waiting FABER Sessions"
-        ;;
-esac
-```
-
-## Output Examples
-
-### Single Session Status
+### 1. Current State Section
 
 ```
-========================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 FABER Workflow Status
-========================================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Work ID: abc12345
-Source: github/123
-Domain: engineering
-Status: waiting
+Work ID: 158
+Status: in_progress
+Current Phase: architect
 
-Created: 2025-10-22 10:30:15
-Updated: 2025-10-22 10:45:23
+Started: 2025-11-19 10:30:15
+Updated: 2025-11-19 10:45:23
 
 Workflow Phases:
-
-  Frame        ✅ Complete
-  Architect    ✅ Complete
-  Build        ✅ Complete
-  Evaluate     ✅ Complete
+  Frame        ✅ Complete (2m 15s)
+  Architect    🔄 In Progress
+  Build        ⏸️  Pending
+  Evaluate     ⏸️  Pending
   Release      ⏸️  Pending
 
 Artifacts:
+  Specification: specs/WORK-00158-description.md
+  Branch: feat/158-review-faber-workflow-config
+  Commit: abc1234 (2 commits)
+```
 
-  Specification: .faber/specs/abc12345-feature.md
-  Branch: feat/123-add-user-authentication
+### 2. Recent Log Events Section
 
+```
+Recent Events (last 10):
+  [10:45:23] phase_start - Architect phase started
+  [10:43:10] step_complete - setup-env completed
+  [10:42:55] step_complete - classify completed
+  [10:41:30] step_complete - fetch-work completed
+  [10:41:15] phase_complete - Frame phase completed
+  [10:41:00] phase_start - Frame phase started
+  [10:40:45] hook_execute - pre_frame hook: load-context
+  [10:40:30] workflow_start - FABER workflow started for #158
+```
+
+### 3. Next Steps Section
+
+```
 Next Steps:
+  🔄 Architect phase in progress
+  → Generating technical specification from requirements
+  → Estimated time remaining: ~3 minutes
 
-  ⏸️  Waiting for release approval
-  Approve: /faber:approve abc12345
+  When architect completes:
+    /fractary-faber:build 158    # Continue to build phase
+    /fractary-faber:run 158      # Continue full workflow
 ```
 
-### Session List
+## State Information Tracked
 
-```
-========================================
-📊 Active FABER Sessions
-========================================
+From `.fractary/plugins/faber/state.json`:
+- **work_id**: Work item identifier
+- **status**: Overall workflow status (pending, in_progress, completed, failed)
+- **current_phase**: Currently executing phase
+- **started_at**: Workflow start timestamp
+- **updated_at**: Last update timestamp
+- **phases**: Status and timing for each of 5 phases
+  - **status**: Phase status (pending, in_progress, completed, failed)
+  - **started_at**: Phase start timestamp
+  - **completed_at**: Phase completion timestamp
+  - **steps_completed**: Array of completed step names
+  - **retries**: Retry count (for evaluate phase)
+- **artifacts**: Created artifacts
+  - **specification**: Path to spec file
+  - **branch**: Branch name
+  - **commits**: Array of commit SHAs
+  - **pr_url**: Pull request URL (if created)
+- **errors**: Error tracking per phase
 
-Work ID    Source          Updated              Status
----------- --------------- -------------------- ------------
-abc12345   github/123      2025-10-22 10:45     waiting
-def67890   github/456      2025-10-22 09:30     in_progress
-ghi11121   jira/PROJ-789   2025-10-21 16:20     waiting
-
-Total: 3 session(s)
-
-To view details: /faber:status <work_id>
-```
+From `fractary-logs` plugin (workflow log type):
+- **workflow_start**: Workflow initiated
+- **workflow_complete**: Workflow finished successfully
+- **workflow_fail**: Workflow failed
+- **phase_start**: Phase execution started
+- **phase_complete**: Phase completed successfully
+- **phase_fail**: Phase failed
+- **step_start**: Sub-step execution started
+- **step_complete**: Sub-step completed
+- **step_fail**: Sub-step failed
+- **hook_execute**: Hook executed (pre/post phase)
+- **retry_attempt**: Retry attempt (evaluate phase)
+- **approval_requested**: Waiting for user approval
+- **approval_granted**: User approved continuation
+- **artifact_created**: Artifact generated
+- **state_change**: Status change recorded
 
 ## Error Handling
 
 Handle these cases:
 
-1. **No sessions directory**: "No FABER sessions found"
-2. **Session not found**: "Session not found: {work_id}"
-3. **Invalid flag**: "Unknown flag: {flag}"
-4. **No matching sessions**: "(No sessions found)" in table
+1. **No state file**: "No active FABER workflow found"
+2. **Invalid JSON**: "State file is corrupted"
+3. **Logs plugin unavailable**: Show state only with warning
+4. **Work ID mismatch**: Warn if provided work_id doesn't match state
 
-## Usage Examples
+## Command Flags
 
-```bash
-# Show specific session
-/faber:status abc12345
+- `--logs N`: Show last N log events (default: 10)
+- `--state-only`: Skip logs, show only current state
+- `--timing`: Include phase timing breakdown
+- `--verbose`: Show everything (state + logs + timing)
 
-# Show session by issue number
-/faber:status #123
-/faber:status PROJ-456
+## Use Cases
 
-# Show all sessions
-/faber:status --all
-
-# Show active sessions (default)
-/faber:status
-
-# Show recent 5 sessions
-/faber:status --recent 5
-
-# Show failed sessions
-/faber:status --failed
-
-# Show sessions waiting for approval
-/faber:status --waiting
-```
+**When to use status:**
+- Check current workflow progress
+- Review phase completion status
+- See recent workflow events
+- Debug workflow issues
+- Verify artifacts created
+- Understand next steps
 
 ## Integration Points
 
 This command reads:
-- Session files in `.faber/sessions/*.json`
-- Created by director via session-create.sh
-- Updated by director via session-update.sh
+- **State**: `.fractary/plugins/faber/state.json` (current state)
+- **Logs**: `fractary-logs` plugin with workflow log type (historical events)
+- **Config**: `.fractary/plugins/faber/config.json` (to understand configuration)
 
 ## What This Command Does NOT Do
 
-- Does NOT modify sessions (read-only)
-- Does NOT execute workflows (use `/faber:run`)
-- Does NOT approve releases (use `/faber:approve`)
-- Does NOT retry workflows (use `/faber:retry`)
+- Does NOT modify state (read-only)
+- Does NOT execute workflows (use `/fractary-faber:run`)
+- Does NOT approve releases (handled by faber-manager)
+- Does NOT retry workflows (handled by faber-manager)
 
 ## Best Practices
 
-1. **Show clear visual indicators** (✅ ❌ 🔄 ⏸️)
-2. **Format dates consistently** for readability
-3. **Provide actionable next steps** based on state
-4. **Handle missing data gracefully** (show "N/A" or "(empty)")
-5. **Support multiple query formats** for user convenience
+1. **Dual-state visibility** - Always show both current state and recent logs
+2. **Clear visual indicators** - Use emoji/icons (✅ ❌ 🔄 ⏸️)
+3. **Actionable next steps** - Based on current phase and status
+4. **Timing information** - Show how long each phase took
+5. **Error visibility** - Surface errors prominently
 
-This command provides comprehensive visibility into FABER workflow progress and artifacts.
+## See Also
+
+- `/fractary-faber:run` - Execute workflow
+- `/fractary-faber:audit` - Validate configuration
+- Config file: `.fractary/plugins/faber/config.json`
+- State file: `.fractary/plugins/faber/state.json`
+- Logs: Query via `fractary-logs` plugin

@@ -495,34 +495,111 @@ This pattern applies to:
 
 ### FABER v2.0 Architecture (Current)
 
-FABER v2.0 uses a **single workflow-manager architecture** for improved context efficiency:
+FABER v2.0 uses a **universal workflow-manager architecture** with configuration-driven behavior.
 
 **Architecture**:
 ```
-director.md (lightweight router)
-  └─ workflow-manager.md (orchestrates all 5 phases)
-      ├─ frame (skill with workflow/basic.md)
-      ├─ architect (skill with workflow/basic.md)
-      ├─ build (skill with workflow/basic.md)
-      ├─ evaluate (skill with workflow/basic.md)
-      └─ release (skill with workflow/basic.md)
+faber-director (lightweight command parser)
+  └─ faber-manager (universal orchestrator)
+      ├─ frame (phase skill)
+      ├─ architect (phase skill)
+      ├─ build (phase skill)
+      ├─ evaluate (phase skill)
+      └─ release (phase skill)
 ```
 
-**Key improvements**:
-- **60% context reduction** (from ~98K to ~40K tokens for orchestration)
-- **Continuous context** across all phases
-- **Skill overrides** via configuration (`[workflow.skills]`)
-- **Domain customization** through `workflow/{domain}.md` files
+**Key Features**:
+- **Universal Manager** - Single faber-manager works across ALL projects via configuration
+- **JSON Configuration** - Located at `.fractary/plugins/faber/config.json`
+- **Dual-State Tracking** - Current state (state.json) + historical logs (fractary-logs)
+- **Phase-Level Hooks** - 10 hooks total (pre/post for each of 5 phases)
+- **60% context reduction** - From ~98K to ~40K tokens for orchestration
 
-**Configuration example**:
-```toml
-[workflow.skills]
-frame = "basic"        # Use FABER default
-architect = "cloud"    # Use cloud-specific override
-build = "cloud"        # Use cloud-specific override
-evaluate = "cloud"     # Use cloud-specific override
-release = "basic"      # Use FABER default
+**Configuration Location** (v2.0):
 ```
+.fractary/plugins/faber/config.json  # JSON format (NEW)
+```
+
+**Old Location** (v1.x - NO LONGER USED):
+```
+.faber.config.toml  # TOML format (DEPRECATED)
+```
+
+**Configuration Structure**:
+```json
+{
+  "project": {
+    "name": "my-project",
+    "type": "software",
+    "issue_system": "github",
+    "source_control": "github"
+  },
+  "workflow": {
+    "version": "2.0",
+    "manager_skill": "faber-manager",
+    "director_skill": "faber-director"
+  },
+  "phases": {
+    "frame": { "enabled": true, "steps": [...], "validation": [...] },
+    "architect": { "enabled": true, "steps": [...], "validation": [...] },
+    "build": { "enabled": true, "steps": [...], "validation": [...] },
+    "evaluate": { "enabled": true, "steps": [...], "validation": [...] },
+    "release": { "enabled": true, "steps": [...], "validation": [...] }
+  },
+  "hooks": {
+    "pre_frame": [], "post_frame": [],
+    "pre_architect": [], "post_architect": [],
+    "pre_build": [], "post_build": [],
+    "pre_evaluate": [], "post_evaluate": [],
+    "pre_release": [], "post_release": []
+  },
+  "autonomy": {
+    "level": "guarded",
+    "pause_before_release": true,
+    "require_approval_for": ["release"]
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_type": "workflow"
+  },
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs"
+  }
+}
+```
+
+**Dual-State Tracking**:
+- **Current State**: `.fractary/plugins/faber/state.json` (for workflow resume/retry)
+- **Historical Logs**: `fractary-logs` plugin with workflow log type (complete audit trail)
+
+**Initialization**:
+```bash
+# Auto-detect project type and generate config
+/fractary-faber:init
+
+# Or specify project type
+/fractary-faber:init --type software
+/fractary-faber:init --type infrastructure
+/fractary-faber:init --type application
+```
+
+**Validation**:
+```bash
+# Validate configuration
+/fractary-faber:audit
+
+# Check completeness score and get suggestions
+/fractary-faber:audit --verbose
+```
+
+**Documentation**:
+- `plugins/faber/docs/CONFIGURATION.md` - Complete configuration guide
+- `plugins/faber/docs/HOOKS.md` - Phase-level hooks guide
+- `plugins/faber/docs/STATE-TRACKING.md` - Dual-state tracking guide
+- `plugins/faber/docs/MIGRATION-v2.md` - Migration from v1.x
 
 **Migration**: See `plugins/faber/docs/MIGRATION-v2.md` for upgrading from v1.x
 
