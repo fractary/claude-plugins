@@ -39,7 +39,7 @@ You generate specifications that can be followed to bring documentation into com
 
 <INPUTS>
 - **project_root**: Project directory to analyze (default: current directory)
-- **audit_report_path**: Path for final audit report (default: logs/audits/{timestamp}-audit-report.md)
+- **audit_report_path**: Path for final audit report (default: logs/audits/docs/{timestamp}-documentation-audit.md)
 - **temp_dir**: Directory for temporary discovery files (default: logs/audits/tmp)
 - **config_path**: Path to fractary-docs config (if exists)
 - **dry_run**: Generate spec without installing config (default: false)
@@ -97,9 +97,9 @@ timestamp=$(date +%Y-%m-%d-%H%M%S)
 temp_dir="${temp_dir:-logs/audits/tmp}"
 mkdir -p "$temp_dir"
 
-# Final audit report will be saved in logs/audits with timestamp
-audit_report_path="${audit_report_path:-logs/audits/$timestamp-audit-report.md}"
-mkdir -p "logs/audits"
+# Final audit report will be saved in logs/audits/docs with timestamp
+audit_report_path="${audit_report_path:-logs/audits/docs/$timestamp-documentation-audit.md}"
+mkdir -p "logs/audits/docs"
 
 # State directory for workflow state (separate from logs)
 state_dir=".fractary/state"
@@ -147,7 +147,7 @@ echo "State saved to: $state_dir/"
 
 **Directory Structure**:
 - **Temporary discovery files**: `logs/audits/tmp/` (deleted after final report generated)
-- **Final audit reports**: `logs/audits/{timestamp}-audit-report.md` (permanent, tracked by logs-manager)
+- **Final audit reports**: `logs/audits/docs/{timestamp}-documentation-audit.md` (permanent, tracked by logs-manager)
 - **Workflow state**: `.fractary/state/` (ephemeral workflow state)
 
 **State Tracking**:
@@ -519,7 +519,7 @@ Use the docs-manage-audit skill to create documentation audit report with the fo
       }
     }
   },
-  "output_path": "logs/audits/",
+  "output_path": "logs/audits/docs/",
   "project_root": "{project-root}"
 }
 ```
@@ -528,7 +528,7 @@ This will generate:
 - **README.md**: Human-readable audit dashboard
 - **audit.json**: Machine-readable audit data
 
-Both files in `logs/audits/{timestamp}-documentation-audit.[md|json]`
+Both files in `logs/audits/docs/{timestamp}-documentation-audit.[md|json]`
 
 **Cleanup temporary files:**
 
@@ -567,17 +567,17 @@ Display audit completion summary:
   Low Priority: {count}
 
 📋 OUTPUTS
-  Audit Report: logs/audits/{timestamp}-audit-report.md
+  Audit Report: logs/audits/docs/{timestamp}-documentation-audit.md
   Remediation Spec: specs/spec-{issue_number}-documentation-remediation.md
   Tracking Issue: #{issue_number}
   Estimated Effort: {hours} hours
 
 💡 NEXT STEPS
-  1. Review audit report: logs/audits/{timestamp}-audit-report.md
+  1. Review audit report: logs/audits/docs/{timestamp}-documentation-audit.md
   2. Review remediation spec: specs/spec-{issue_number}-documentation-remediation.md
   3. Follow implementation plan
   4. Verify with: /fractary-docs:validate
-  5. View audit history: logs/audits/
+  5. View audit history: logs/audits/docs/
 
 ═══════════════════════════════════════════════════════════
 ```
@@ -665,7 +665,7 @@ Next: Review and follow remediation spec
     },
     "quality_score": 6.2,
     "compliance_percentage": 45,
-    "audit_report_path": "logs/audits/2025-01-15-143022-audit-report.md",
+    "audit_report_path": "logs/audits/docs/2025-01-15-143022-documentation-audit.md",
     "spec_path": "specs/spec-123-documentation-remediation.md",
     "tracking_issue_number": "123",
     "tracking_issue_url": "https://github.com/org/repo/issues/123",
@@ -773,7 +773,7 @@ Use the doc-auditor skill to audit documentation:
 Document the audit process:
 
 **What to document:**
-- Final audit report (saved to logs/audits/{timestamp}-audit-report.md)
+- Final audit report (saved to logs/audits/docs/{timestamp}-documentation-audit.md)
 - Discovery results (temporary files in logs/audits/tmp/, cleaned up after report)
 - Issues identified by priority
 - Standards applied (plugin + project)
@@ -784,14 +784,14 @@ Document the audit process:
 - Audit log registration via logs-manager
 
 **Format:**
-- Final audit report: Markdown file in `logs/audits/{timestamp}-audit-report.md`
+- Final audit report: Markdown file in `logs/audits/docs/{timestamp}-documentation-audit.md`
 - Audit findings: Formatted text presentation for user review
 - Remediation spec: Generated via fractary-spec:spec-manager (if approved)
 - Temporary discovery reports: JSON files in `logs/audits/tmp/` (cleaned up after report)
 - Audit log metadata: Tracked by logs-manager for trend analysis
 
 **Log Management:**
-- All audit runs produce a permanent report in `logs/audits/{timestamp}-audit-report.md`
+- All audit runs produce a permanent report in `logs/audits/docs/{timestamp}-documentation-audit.md`
 - Managed by fractary-logs:logs-manager agent
 - Temporary discovery files in `logs/audits/tmp/` are cleaned up after final report
 - Enables tracking of compliance trends over time
