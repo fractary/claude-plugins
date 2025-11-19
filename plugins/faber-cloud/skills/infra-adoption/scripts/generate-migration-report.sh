@@ -665,7 +665,7 @@ Use this checklist to track your migration progress.
 - [ ] Copy configuration to project
   \`\`\`bash
   mkdir -p .fractary/plugins/faber-cloud/config
-  cp faber-cloud.json .fractary/plugins/faber-cloud/config/
+  cp faber-cloud.json .fractary/plugins/faber-cloud/
   \`\`\`
 
 ### Phase 3: Hook Integration

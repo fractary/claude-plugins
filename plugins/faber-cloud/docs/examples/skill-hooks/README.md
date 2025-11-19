@@ -103,7 +103,7 @@ WorkflowContext (environment variables):
 
 ### Step 2: Configure Hook
 
-Add to `.fractary/plugins/faber-cloud/config/faber-cloud.json`:
+Add to `.fractary/plugins/faber-cloud/faber-cloud.json`:
 
 ```json
 {

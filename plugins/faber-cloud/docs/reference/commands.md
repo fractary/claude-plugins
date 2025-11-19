@@ -551,7 +551,7 @@ Audit costs, security, or compliance.
 ```
 
 **Creates:**
-- Configuration file at `.fractary/plugins/faber-cloud/config/devops.json`
+- Configuration file at `.fractary/plugins/faber-cloud/devops.json`
 - Directory structure
 - Auto-discovers project settings
 

@@ -342,7 +342,7 @@ A unified, intelligent DevOps plugin that:
 
 ### Configuration
 
-**Location:** `.fractary/plugins/faber-cloud/config/devops.json`
+**Location:** `.fractary/plugins/faber-cloud/devops.json`
 
 **Key sections:**
 - `project`: Project metadata

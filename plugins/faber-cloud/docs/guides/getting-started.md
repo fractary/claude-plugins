@@ -21,7 +21,7 @@ In your project directory, initialize the plugin:
 /fractary-faber-cloud:init --provider aws --iac terraform
 ```
 
-This creates `.fractary/plugins/faber-cloud/config/devops.json` with your project configuration.
+This creates `.fractary/plugins/faber-cloud/devops.json` with your project configuration.
 
 **What it does:**
 - Auto-discovers your project name
@@ -36,7 +36,7 @@ Check that everything is configured correctly:
 
 ```bash
 # View configuration
-cat .fractary/plugins/faber-cloud/config/devops.json
+cat .fractary/plugins/faber-cloud/devops.json
 
 # Verify AWS credentials
 aws sts get-caller-identity --profile your-test-profile

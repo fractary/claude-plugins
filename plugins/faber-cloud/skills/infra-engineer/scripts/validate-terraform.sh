@@ -7,7 +7,7 @@ set -euo pipefail
 # Output: JSON with validation results
 
 TF_DIR="${1:-./infrastructure/terraform}"
-CONFIG_FILE="${FABER_CLOUD_CONFIG_FILE:-.fractary/plugins/faber-cloud/config/devops.json}"
+CONFIG_FILE="${FABER_CLOUD_CONFIG_FILE:-.fractary/plugins/faber-cloud/devops.json}"
 
 # Check Terraform directory exists
 if [ ! -d "$TF_DIR" ]; then

@@ -169,7 +169,7 @@ Detected: test (from AWS profile)
 
 2. **Check faber-cloud configuration**:
    ```bash
-   cat .fractary/plugins/faber-cloud/config/faber-cloud.json | grep -A 5 "name.*prod"
+   cat .fractary/plugins/faber-cloud/faber-cloud.json | grep -A 5 "name.*prod"
    ```
 
 3. **Ensure profile matches environment**:
@@ -672,7 +672,7 @@ You can configure credentials with `aws configure`
 
 4. **Check profile name matches configuration**:
    ```bash
-   grep aws_profile .fractary/plugins/faber-cloud/config/faber-cloud.json
+   grep aws_profile .fractary/plugins/faber-cloud/faber-cloud.json
    ```
 
 ### Issue: AWS Access Denied
@@ -881,7 +881,7 @@ Unexpected token at line 45
 
 1. **Validate JSON syntax**:
    ```bash
-   cat .fractary/plugins/faber-cloud/config/faber-cloud.json | jq .
+   cat .fractary/plugins/faber-cloud/faber-cloud.json | jq .
    # Will show exact error location
    ```
 
@@ -928,7 +928,7 @@ Missing required field: environments[0].aws_profile
    ```bash
    # Use generated validation script
    bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh \
-     .fractary/plugins/faber-cloud/config/faber-cloud.json
+     .fractary/plugins/faber-cloud/faber-cloud.json
    ```
 
 3. **Reference example configurations**:
@@ -1156,14 +1156,14 @@ export FABER_CLOUD_DEBUG=1
 
 ```bash
 # View current configuration
-cat .fractary/plugins/faber-cloud/config/faber-cloud.json | jq .
+cat .fractary/plugins/faber-cloud/faber-cloud.json | jq .
 
 # Validate configuration
 bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh \
-  .fractary/plugins/faber-cloud/config/faber-cloud.json
+  .fractary/plugins/faber-cloud/faber-cloud.json
 
 # Check environment detection
-grep -A 5 "name.*prod" .fractary/plugins/faber-cloud/config/faber-cloud.json
+grep -A 5 "name.*prod" .fractary/plugins/faber-cloud/faber-cloud.json
 ```
 
 ### Review Deployment Logs

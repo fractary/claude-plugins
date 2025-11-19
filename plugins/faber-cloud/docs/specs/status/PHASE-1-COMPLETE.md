@@ -215,7 +215,7 @@ plugins/fractary-faber-cloud/
 ## Artifacts Generated
 
 ### Configuration
-- `.fractary/plugins/faber-cloud/config/devops.json` (not committed)
+- `.fractary/plugins/faber-cloud/devops.json` (not committed)
 
 ### Design Documents
 - `.fractary/plugins/faber-cloud/designs/{feature}.md`

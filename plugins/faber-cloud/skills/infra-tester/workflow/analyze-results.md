@@ -199,7 +199,7 @@ fi
 
 ```bash
 # Check against configured thresholds from config
-config_path=".fractary/plugins/faber-cloud/config/devops.json"
+config_path=".fractary/plugins/faber-cloud/devops.json"
 
 # Security thresholds
 max_critical=$(jq -r '.testing.thresholds.max_critical_findings // 0' ${config_path})

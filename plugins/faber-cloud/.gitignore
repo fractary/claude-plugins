@@ -1,5 +1,5 @@
 # Faber Cloud Configuration (contains secrets and profiles)
-.fractary/plugins/faber-cloud/config/
+.fractary/plugins/faber-cloud/
 
 # Terraform State Files
 *.tfstate
