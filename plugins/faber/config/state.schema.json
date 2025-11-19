@@ -1,0 +1,226 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FABER Workflow State Schema",
+  "description": "Schema for tracking current workflow execution state",
+  "type": "object",
+  "required": ["work_id", "workflow_version", "status", "started_at"],
+  "properties": {
+    "work_id": {
+      "type": "string",
+      "description": "Work item identifier"
+    },
+    "issue_number": {
+      "type": "string",
+      "description": "External issue number (e.g., GitHub issue #123)"
+    },
+    "workflow_version": {
+      "type": "string",
+      "description": "FABER workflow version (e.g., '2.0')"
+    },
+    "config_hash": {
+      "type": "string",
+      "description": "Hash of configuration file for consistency checking"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["in_progress", "paused", "completed", "failed", "cancelled"],
+      "description": "Overall workflow status"
+    },
+    "current_phase": {
+      "type": "string",
+      "enum": ["frame", "architect", "build", "evaluate", "release", "none"],
+      "description": "Current phase being executed"
+    },
+    "current_step": {
+      "type": "string",
+      "description": "Current sub-step within phase"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Workflow start timestamp (ISO 8601)"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp (ISO 8601)"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Workflow completion timestamp (ISO 8601)"
+    },
+    "phases": {
+      "type": "object",
+      "description": "Phase-level state tracking",
+      "properties": {
+        "frame": {
+          "$ref": "#/definitions/phase_state"
+        },
+        "architect": {
+          "$ref": "#/definitions/phase_state"
+        },
+        "build": {
+          "$ref": "#/definitions/phase_state"
+        },
+        "evaluate": {
+          "$ref": "#/definitions/phase_state"
+        },
+        "release": {
+          "$ref": "#/definitions/phase_state"
+        }
+      }
+    },
+    "pending_approvals": {
+      "type": "array",
+      "description": "Pending approval requests",
+      "items": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "Errors encountered during workflow",
+      "items": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "retries": {
+      "type": "object",
+      "description": "Retry tracking per phase",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "Artifacts created during workflow",
+      "properties": {
+        "branch": {
+          "type": "string"
+        },
+        "spec_path": {
+          "type": "string"
+        },
+        "commits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pr_number": {
+          "type": "string"
+        },
+        "pr_url": {
+          "type": "string"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional workflow metadata",
+      "properties": {
+        "autonomy_level": {
+          "type": "string",
+          "enum": ["dry-run", "assist", "guarded", "autonomous"]
+        },
+        "manager_skill": {
+          "type": "string"
+        },
+        "director_skill": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "phase_state": {
+      "type": "object",
+      "description": "State of a single workflow phase",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "completed", "failed", "skipped"],
+          "description": "Phase status"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Phase start timestamp"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Phase completion timestamp"
+        },
+        "current_step": {
+          "type": "string",
+          "description": "Current sub-step within phase"
+        },
+        "completed_steps": {
+          "type": "array",
+          "description": "List of completed sub-steps",
+          "items": {
+            "type": "string"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "description": "Artifacts created in this phase",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hooks_executed": {
+          "type": "object",
+          "description": "Hooks executed in this phase",
+          "properties": {
+            "pre": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "post": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if phase failed"
+        }
+      }
+    }
+  }
+}

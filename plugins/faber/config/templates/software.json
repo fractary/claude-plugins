@@ -1,0 +1,104 @@
+{
+  "$schema": "https://fractary.io/schemas/faber-config-v1.json",
+  "schema_version": "1.0",
+  "project": {
+    "name": "{{PROJECT_NAME}}",
+    "type": "software",
+    "issue_system": "github",
+    "source_control": "github"
+  },
+  "workflow": {
+    "version": "2.0",
+    "manager_skill": "faber-manager",
+    "director_skill": "faber-director"
+  },
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "steps": [
+        {
+          "name": "fetch-work",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "classify",
+          "skill": "work-classifier"
+        },
+        {
+          "name": "setup-env",
+          "skill": "fractary-repo:branch-manager"
+        }
+      ],
+      "validation": ["work-item-exists", "branch-created"]
+    },
+    "architect": {
+      "enabled": true,
+      "steps": [
+        {
+          "name": "generate-spec",
+          "skill": "fractary-spec:spec-generator"
+        }
+      ],
+      "validation": ["spec-created"]
+    },
+    "build": {
+      "enabled": true,
+      "steps": [
+        {
+          "name": "implement"
+        },
+        {
+          "name": "commit",
+          "skill": "fractary-repo:commit-creator"
+        }
+      ],
+      "validation": ["implementation-complete", "tests-pass"]
+    },
+    "evaluate": {
+      "enabled": true,
+      "max_retries": 3,
+      "steps": [
+        {
+          "name": "test"
+        },
+        {
+          "name": "review"
+        }
+      ],
+      "validation": ["all-tests-pass"]
+    },
+    "release": {
+      "enabled": true,
+      "require_approval": true,
+      "steps": [
+        {
+          "name": "create-pr",
+          "skill": "fractary-repo:pr-manager"
+        }
+      ],
+      "validation": ["pr-created", "ci-pass"]
+    }
+  },
+  "hooks": {
+    "pre_frame": [],
+    "post_frame": [],
+    "pre_architect": [],
+    "post_architect": [],
+    "pre_build": [],
+    "post_build": [],
+    "pre_evaluate": [],
+    "post_evaluate": [],
+    "pre_release": [],
+    "post_release": []
+  },
+  "autonomy": {
+    "level": "guarded",
+    "pause_before_release": true,
+    "require_approval_for": ["release"]
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_type": "workflow",
+    "log_level": "info"
+  }
+}

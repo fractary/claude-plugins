@@ -1,0 +1,63 @@
+{
+  "work_id": "158",
+  "issue_number": "158",
+  "workflow_version": "2.0",
+  "config_hash": "a3f5b8c9d2e1",
+  "status": "in_progress",
+  "current_phase": "architect",
+  "current_step": "generate-spec",
+  "started_at": "2025-11-19T15:00:00Z",
+  "updated_at": "2025-11-19T15:15:00Z",
+  "phases": {
+    "frame": {
+      "status": "completed",
+      "started_at": "2025-11-19T15:00:00Z",
+      "completed_at": "2025-11-19T15:10:00Z",
+      "completed_steps": ["fetch-work", "classify", "setup-env"],
+      "artifacts": [
+        "branch: feat/158-review-faber-workflow-config"
+      ],
+      "hooks_executed": {
+        "pre": [],
+        "post": []
+      }
+    },
+    "architect": {
+      "status": "in_progress",
+      "started_at": "2025-11-19T15:10:00Z",
+      "current_step": "generate-spec",
+      "completed_steps": [],
+      "artifacts": [],
+      "hooks_executed": {
+        "pre": ["architecture-standards"],
+        "post": []
+      }
+    },
+    "build": {
+      "status": "pending"
+    },
+    "evaluate": {
+      "status": "pending"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "pending_approvals": [],
+  "errors": [],
+  "retries": {
+    "evaluate": 0
+  },
+  "artifacts": {
+    "branch": "feat/158-review-faber-workflow-config",
+    "spec_path": "/specs/WORK-00158-review-faber-workflow-config.md",
+    "commits": [],
+    "pr_number": null,
+    "pr_url": null
+  },
+  "metadata": {
+    "autonomy_level": "guarded",
+    "manager_skill": "faber-manager",
+    "director_skill": "faber-director"
+  }
+}
