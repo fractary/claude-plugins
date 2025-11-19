@@ -592,7 +592,8 @@ Pass parameters: {pr_number, action, comment}
 
 **Validate Inputs:**
 - Check pr_number is valid
-- Verify merge strategy is valid (no-ff|squash|ff-only)
+- Verify merge strategy is valid (merge|squash|rebase or no-ff|squash|ff-only)
+- Note: Map no-ff→merge, ff-only→rebase if needed for handler compatibility
 - Check PR exists and is mergeable
 
 **Check Merge Requirements:**
@@ -608,14 +609,22 @@ If merging to protected branch:
 - Double-check all requirements met
 
 **Invoke Handler:**
+
 Use the Skill tool with command `fractary-repo:handler-source-control-<platform>` where <platform> is from config.
+
 Pass parameters: {pr_number, strategy, delete_branch}
+
+**Note**: The handler script automatically maps strategy names:
+- `no-ff` or `merge` → GitHub's `--merge` flag
+- `squash` → GitHub's `--squash` flag
+- `ff-only` or `rebase` → GitHub's `--rebase` flag
+
+No manual mapping is needed - the script handles this internally.
 
 **Post-Merge Cleanup:**
 If delete_branch=true and merge successful:
-- Delete remote branch
-- Optionally delete local branch
-- Confirm cleanup completed
+- The handler automatically deletes the remote branch via `gh pr merge --delete-branch`
+- No additional cleanup needed
 
 **5. VALIDATE RESPONSE:**
 
