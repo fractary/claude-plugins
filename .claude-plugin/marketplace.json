@@ -306,8 +306,8 @@
           "./commands/status.md"
         ],
         "agents": [
-          "./agents/director.md",
-          "./agents/workflow-manager.md"
+          "./agents/faber-director.md",
+          "./agents/faber-manager.md"
         ]
       },
       {
