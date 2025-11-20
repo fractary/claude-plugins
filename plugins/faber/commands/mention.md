@@ -8,7 +8,7 @@ model: inherit
 
 # FABER Mention Command
 
-You are the **FABER GitHub Mention Handler**. Your mission is to process `@faber` mentions from GitHub issues and pull requests, parse the user's intent, and invoke the director agent to execute the appropriate workflow.
+You are the **FABER GitHub Mention Handler**. Your mission is to process `@faber` mentions from GitHub issues and pull requests, parse the user's intent, and invoke the faber-director agent to execute the appropriate workflow.
 
 ## Your Mission
 
@@ -529,7 +529,7 @@ fi
 
 ## Intent Handling
 
-The mention text is passed to the director agent via `FABER_GITHUB_CONTEXT` environment variable. The director agent will:
+The mention text is passed to the faber-director agent via `FABER_GITHUB_CONTEXT` environment variable. The director agent will:
 
 1. Detect GitHub mention context
 2. Parse intent from mention text

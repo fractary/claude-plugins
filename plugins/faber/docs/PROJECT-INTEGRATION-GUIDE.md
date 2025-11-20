@@ -12,6 +12,25 @@ FABER provides a universal issue-centric workflow:
 
 This guide helps you integrate FABER into your existing project by mapping your current practices to FABER's structure.
 
+## ⚠️ Important: Direct Command Usage
+
+**DO NOT create wrapper agents or commands for FABER**. The FABER plugin already provides:
+- ✅ Complete workflow orchestration via `faber-manager` agent
+- ✅ Ready-to-use commands (`/fractary-faber:init`, `/fractary-faber:run`, etc.)
+- ✅ Full integration with work, repo, spec, and logs plugins
+
+**Use FABER commands directly:**
+```bash
+✅ /fractary-faber:run 123              # Correct: Use the plugin command directly
+✅ /fractary-faber:frame 123            # Correct: Run individual phases
+✅ /fractary-faber:audit                # Correct: Validate configuration
+
+❌ /my-project:faber 123                # Wrong: Don't create wrapper commands
+❌ @agent my-project-faber-manager      # Wrong: Don't create wrapper agents
+```
+
+The `faber-manager` agent is already the universal workflow orchestrator. Additional wrappers add unnecessary complexity without benefits.
+
 ## Integration Steps
 
 ### Step 1: Understand Your Current Workflow
@@ -85,14 +104,65 @@ Choose appropriate autonomy based on your team's preferences:
 
 ### Step 8: Test Incrementally
 
+Start with individual phases, then progress to full workflow execution:
+
 ```bash
-/fractary-faber:frame 123
-/fractary-faber:architect 123
-/fractary-faber:run 123 --autonomy dry-run
+# Test individual phases (recommended for first-time setup)
+/fractary-faber:frame 123                    # Frame phase only
+/fractary-faber:architect 123                # Architect phase only
+
+# Test complete workflow with dry-run
+/fractary-faber:run 123 --autonomy dry-run   # Simulate without making changes
+
+# Test with assisted mode (stops before release)
+/fractary-faber:run 123 --autonomy assist    # Execute but pause before release
+
+# Production usage (pauses for approval before release)
+/fractary-faber:run 123 --autonomy guarded   # Recommended for production
 ```
+
+## Direct Integration Pattern
+
+When integrating FABER into your project, use the plugin commands directly in your workflow:
+
+```bash
+# In your development process:
+1. Create issue in your work tracker (GitHub/Jira/Linear)
+2. Run: /fractary-faber:run <issue-number>
+3. FABER executes all phases automatically
+4. Review and approve release when prompted
+```
+
+**What FABER handles automatically:**
+- ✅ Branch creation with semantic naming
+- ✅ Specification generation from issue context
+- ✅ Implementation guidance and context management
+- ✅ Test execution and validation
+- ✅ Pull request creation with generated summary
+- ✅ Work tracking integration (comments, status updates)
+
+**What you configure:**
+- Your preferred autonomy level (dry-run, assist, guarded, autonomous)
+- Phase-specific steps via hooks (test commands, build scripts, deploy procedures)
+- Tool integrations (work tracker, repo platform, file storage)
+
+## Common Integration Mistakes
+
+**❌ Don't Do This:**
+- Creating project-specific wrapper commands around FABER commands
+- Creating project-specific agents that invoke `faber-manager`
+- Copying FABER logic into custom agents/skills
+- Modifying FABER plugin files directly
+
+**✅ Do This Instead:**
+- Use `/fractary-faber:*` commands directly
+- Customize behavior via `.fractary/plugins/faber/config.json`
+- Add project-specific logic via phase hooks
+- Extend via plugin system (see PLUGIN-EXTENSION-GUIDE.md)
 
 ## See Also
 
 - [CONFIGURATION.md](./CONFIGURATION.md) - Complete configuration reference
 - [HOOKS.md](./HOOKS.md) - Phase-level hooks guide
 - [PLUGIN-EXTENSION-GUIDE.md](./PLUGIN-EXTENSION-GUIDE.md) - Creating specialized FABER plugins
+- [STATE-TRACKING.md](./STATE-TRACKING.md) - Understanding workflow state management

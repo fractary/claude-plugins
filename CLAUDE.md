@@ -140,7 +140,7 @@ Note: The install script for status-related plugins should write this configurat
 ```
 plugins/
 ├── faber/              # Core FABER workflow orchestration
-│   ├── agents/         # Workflow orchestration (director, workflow-manager)
+│   ├── agents/         # Workflow orchestration (faber-director, faber-manager)
 │   ├── skills/         # Phase skills (frame, architect, build, evaluate, release) + core utilities
 │   ├── commands/       # User commands (/faber, /faber:init, /faber:run, /faber:status)
 │   ├── presets/        # Quick-start configuration presets
