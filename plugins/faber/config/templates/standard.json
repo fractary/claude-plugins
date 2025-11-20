@@ -17,8 +17,8 @@
             },
             {
               "name": "classify",
-              "description": "Classify work type",
-              "skill": "work-classifier"
+              "description": "Classify work type (bug, feature, chore, patch)",
+              "skill": "fractary-work:issue-classifier"
             },
             {
               "name": "setup-env",
