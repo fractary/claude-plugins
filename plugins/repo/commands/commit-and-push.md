@@ -226,7 +226,7 @@ Task(
       "description": "extended description"
     },
     "push": {
-      "branch": "branch-name",
+      "branch_name": "branch-name",
       "remote": "origin",
       "set_upstream": true|false,
       "force": true|false

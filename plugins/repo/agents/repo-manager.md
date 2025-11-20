@@ -267,18 +267,28 @@ Use routing table to determine which skill to invoke:
 
 **5. INVOKE SKILL:**
 
-Use the Skill tool to invoke the appropriate skill with validated parameters:
-```
-Skill tool invocation:
-- command: "fractary-repo:{skill_name}"
+**CRITICAL**: You MUST use the Skill tool to invoke the skill determined by the routing table in step 4.
 
-Pass the full operation request as context to the skill.
+**Step-by-step process:**
+1. Look up the operation in the ROUTING_TABLE section below
+2. Find the corresponding skill name
+3. Invoke that skill using the Skill tool with command format: "fractary-repo:{skill_name}"
+4. Pass the full operation request (operation + parameters) to the skill
+
+**DO NOT**:
+- ❌ Invoke repo-common for operation handling (it's only a utility for skills to use)
+- ❌ Invoke any skill not listed in the routing table for the operation
+- ❌ Try to load configuration yourself (skills load their own config)
+- ❌ Try to validate parameters beyond checking they exist (skills do detailed validation)
+
+**Example for push-branch operation:**
+```
+Step 1: Look up "push-branch" in routing table → fractary-repo:branch-pusher
+Step 2: Invoke Skill tool with command: "fractary-repo:branch-pusher"
+Step 3: Pass operation request to skill
 ```
 
-Example:
-```
-For operation "push-branch" → invoke Skill tool with command "fractary-repo:branch-pusher"
-```
+**Routing is deterministic**: Each operation maps to exactly ONE skill. Use the routing table, no exceptions.
 
 **6. HANDLE SKILL RESPONSE AND RETRY LOGIC:**
 
@@ -469,8 +479,10 @@ Return structured response to caller:
 - work_id (string)
 
 **push-branch:**
-- branch_name (string)
+- branch_name (string, optional): defaults to current branch
 - remote (string, default: "origin")
+- set_upstream (boolean, default: false)
+- force (boolean, default: false)
 
 **pull-branch:**
 - branch_name (string)

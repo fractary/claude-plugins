@@ -115,7 +115,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 **Example**:
 ```
 /repo:push feature/123-add-csv-export --set-upstream
-→ Invoke agent with {"operation": "push-branch", "parameters": {"branch": "feature/123-add-csv-export", "set_upstream": true}}
+→ Invoke agent with {"operation": "push-branch", "parameters": {"branch_name": "feature/123-add-csv-export", "set_upstream": true}}
 ```
 </ARGUMENT_PARSING>
 
@@ -159,7 +159,7 @@ Task(
   prompt='{
     "operation": "push-branch",
     "parameters": {
-      "branch": "feature/123-add-export",
+      "branch_name": "feature/123-add-export",
       "remote": "origin",
       "set_upstream": true,
       "force": false
@@ -173,7 +173,7 @@ Task(
 {
   "operation": "push-branch",
   "parameters": {
-    "branch": "branch-name",
+    "branch_name": "branch-name",
     "remote": "origin",
     "set_upstream": true|false,
     "force": true|false
