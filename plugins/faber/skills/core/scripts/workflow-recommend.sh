@@ -124,18 +124,31 @@ for PHASE_NAME in frame architect build evaluate release; do
             RECOMMENDATIONS+=("🟡 LOW: Phase '$PHASE_NAME' has no validation criteria")
         fi
 
-        # Check for skill usage
+        # Check for skill and prompt usage
         STEPS=$(echo "$PHASE" | jq -c '.steps // []')
         STEPS_WITH_SKILLS=0
+        STEPS_WITH_PROMPTS=0
+        STEPS_WITHOUT_SKILL_OR_PROMPT=0
         for i in $(seq 0 $((PHASE_STEPS - 1))); do
             SKILL=$(echo "$STEPS" | jq -r ".[$i].skill // empty")
+            PROMPT=$(echo "$STEPS" | jq -r ".[$i].prompt // empty")
             if [ -n "$SKILL" ]; then
                 STEPS_WITH_SKILLS=$((STEPS_WITH_SKILLS + 1))
+            fi
+            if [ -n "$PROMPT" ]; then
+                STEPS_WITH_PROMPTS=$((STEPS_WITH_PROMPTS + 1))
+            fi
+            if [ -z "$SKILL" ] && [ -z "$PROMPT" ]; then
+                STEPS_WITHOUT_SKILL_OR_PROMPT=$((STEPS_WITHOUT_SKILL_OR_PROMPT + 1))
             fi
         done
 
         if [ $PHASE_STEPS -gt 0 ] && [ $STEPS_WITH_SKILLS -eq 0 ]; then
             RECOMMENDATIONS+=("🟡 LOW: Phase '$PHASE_NAME' has no skill-based steps - consider using plugin skills")
+        fi
+
+        if [ $STEPS_WITHOUT_SKILL_OR_PROMPT -gt 0 ]; then
+            RECOMMENDATIONS+=("🟡 LOW: Phase '$PHASE_NAME' has $STEPS_WITHOUT_SKILL_OR_PROMPT step(s) with neither skill nor prompt - add explicit prompts for clarity")
         fi
     fi
 done

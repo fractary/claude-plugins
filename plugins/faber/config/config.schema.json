@@ -148,7 +148,7 @@
     },
     "step": {
       "type": "object",
-      "required": ["name", "description"],
+      "required": ["name"],
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -158,7 +158,11 @@
         },
         "description": {
           "type": "string",
-          "description": "Step description"
+          "description": "Human-readable step documentation (what this step does)"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Execution instruction for Claude when no skill is present, or to customize skill behavior. Takes precedence over description for execution."
         },
         "skill": {
           "type": "string",
@@ -174,7 +178,12 @@
           "enum": ["only_if_failures", "only_if_success", "always"],
           "description": "Conditional execution rule"
         }
-      }
+      },
+      "anyOf": [
+        {"required": ["description"]},
+        {"required": ["prompt"]},
+        {"required": ["skill"]}
+      ]
     },
     "hooks": {
       "type": "object",

@@ -33,7 +33,7 @@ cd your-project
 /faber:init
 ```
 
-This auto-detects your project settings and creates `.faber.config.toml`.
+This auto-detects your project settings and creates `.fractary/plugins/faber/config.json`.
 
 ### 2. Configure Authentication
 
@@ -86,41 +86,69 @@ Claude Code will automatically discover the plugin.
 
 ## Configuration
 
-### Quick Setup with Presets
+**FABER v2.0** uses JSON-based configuration with JSON Schema validation and IDE autocompletion.
 
-Choose a preset based on your needs:
+### Quick Setup
 
-```bash
-# Conservative (pauses before release)
-cp plugins/fractary-faber/presets/software-basic.toml .faber.config.toml
-
-# Balanced (recommended - pauses at release)
-cp plugins/fractary-faber/presets/software-guarded.toml .faber.config.toml
-
-# Fully automated (⚠️ use with caution)
-cp plugins/fractary-faber/presets/software-autonomous.toml .faber.config.toml
-```
-
-Then edit placeholders (marked with `<...>`) in `.faber.config.toml`.
-
-### Auto-detection
-
-Let FABER detect your project settings:
+**Option 1: Auto-Initialize** (Recommended)
 
 ```bash
-/faber:init
+/fractary-faber:init
 ```
 
-This creates `.faber.config.toml` with auto-detected values for:
-- Project name and repository
-- Issue tracking system (GitHub, Jira, Linear)
-- Source control system (GitHub, GitLab, Bitbucket)
-- File storage preferences (R2, S3, local)
-- Domain (engineering, design, writing, data)
+Creates `.fractary/plugins/faber/config.json` with default workflow configuration.
 
-### Manual Configuration
+**Option 2: Use Templates**
 
-See [`config/faber.example.toml`](config/faber.example.toml) for all available options.
+```bash
+# Create config directory
+mkdir -p .fractary/plugins/faber
+
+# Choose a template:
+# Minimal - Bare essentials
+cp plugins/faber/config/templates/minimal.json .fractary/plugins/faber/config.json
+
+# Standard - Recommended for production (includes plugin integrations)
+cp plugins/faber/config/templates/standard.json .fractary/plugins/faber/config.json
+
+# Enterprise - Full-featured with hook examples
+cp plugins/faber/config/templates/enterprise.json .fractary/plugins/faber/config.json
+```
+
+### Configuration Structure
+
+```json
+{
+  "$schema": "../config.schema.json",
+  "schema_version": "2.0",
+  "workflows": [{
+    "id": "default",
+    "phases": {
+      "frame": { "enabled": true, "steps": [...] },
+      "architect": { "enabled": true, "steps": [...] },
+      "build": { "enabled": true, "steps": [...] },
+      "evaluate": { "enabled": true, "max_retries": 3, "steps": [...] },
+      "release": { "enabled": true, "require_approval": true, "steps": [...] }
+    },
+    "autonomy": { "level": "guarded" }
+  }],
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo"
+  }
+}
+```
+
+### Migrating from v1.x
+
+If you have an existing `.faber.config.toml` file, see [MIGRATION-v2.md](docs/MIGRATION-v2.md) for migration instructions.
+
+### Configuration Documentation
+
+- [configuration.md](docs/configuration.md) - Complete configuration reference
+- [PROMPT-CUSTOMIZATION.md](docs/PROMPT-CUSTOMIZATION.md) - Workflow customization guide
+- [HOOKS.md](docs/HOOKS.md) - Phase-level hooks
+- [STATE-TRACKING.md](docs/STATE-TRACKING.md) - Dual-state tracking system
 
 ## Usage
 
@@ -139,7 +167,7 @@ See [`config/faber.example.toml`](config/faber.example.toml) for all available o
 **Setup** (one-time):
 1. Add `.github/workflows/faber.yml` to your repository
 2. Add `CLAUDE_CODE_OAUTH_TOKEN` secret
-3. Create `.faber.config.toml` in repository root
+3. Create `.fractary/plugins/faber/config.json` in repository root
 4. Mention `@faber` in any issue!
 
 Status updates post automatically to GitHub issues. See [GitHub Integration Guide](docs/github-integration.md) for complete setup instructions and examples.
@@ -241,11 +269,17 @@ FABER supports 4 autonomy levels:
 
 ⭐ **Recommended**: `guarded` provides the best balance of automation and control.
 
-Set default in `.faber.config.toml`:
+Set default in `.fractary/plugins/faber/config.json`:
 
-```toml
-[defaults]
-autonomy = "guarded"
+```json
+{
+  "workflows": [{
+    "autonomy": {
+      "level": "guarded",
+      "pause_before_release": true
+    }
+  }]
+}
 ```
 
 Override per workflow:
@@ -457,45 +491,68 @@ FABER includes multiple safety mechanisms:
 ### Protected Paths
 Prevents modification of critical files:
 
-```toml
-[safety]
-protected_paths = [
-    ".git/",
-    "node_modules/",
-    ".env",
-    "*.key",
-    "*.pem"
-]
+```json
+{
+  "safety": {
+    "protected_paths": [
+      ".git/",
+      "node_modules/",
+      ".env",
+      "*.key",
+      "*.pem"
+    ]
+  }
+}
 ```
 
 ### Confirmation Gates
 Requires approval before critical operations:
 
-```toml
-[safety]
-require_confirmation = [
-    "release"  # Pause before creating PR
-]
+```json
+{
+  "workflows": [{
+    "phases": {
+      "release": {
+        "require_approval": true
+      }
+    },
+    "autonomy": {
+      "pause_before_release": true,
+      "require_approval_for": ["release"]
+    }
+  }]
+}
 ```
 
 ### Audit Trail
-All workflow steps are logged in session files.
+All workflow steps are logged via fractary-logs plugin with complete history.
 
 ### Retry Limits
 Prevents infinite loops with configurable retry limits:
 
-```toml
-[workflow]
-max_evaluate_retries = 3
+```json
+{
+  "workflows": [{
+    "phases": {
+      "evaluate": {
+        "max_retries": 3
+      }
+    }
+  }]
+}
 ```
 
 ## Documentation
 
 - [Configuration Guide](docs/configuration.md) - Detailed configuration reference
+- [Prompt Customization](docs/PROMPT-CUSTOMIZATION.md) - Workflow customization guide
 - [Workflow Guide](docs/workflow-guide.md) - In-depth workflow documentation
 - [Architecture](docs/architecture.md) - System architecture and design
-- [Presets](presets/README.md) - Pre-configured workflow presets
-- [Configuration Example](config/faber.example.toml) - Full configuration example
+- [Hooks](docs/HOOKS.md) - Phase-level hooks reference
+- [State Tracking](docs/STATE-TRACKING.md) - Dual-state system guide
+- [Migration Guide](docs/MIGRATION-v2.md) - Upgrade from v1.x to v2.0
+- [Error Codes](docs/ERROR-CODES.md) - Complete error reference
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Problem-to-solution guide
 
 ## Development
 
@@ -503,60 +560,49 @@ max_evaluate_retries = 3
 
 ```
 fractary-faber/
-├── agents/           # Decision-making agents
-│   ├── director.md
-│   ├── frame-manager.md
-│   ├── architect-manager.md
-│   ├── build-manager.md
-│   ├── evaluate-manager.md
-│   ├── release-manager.md
-│   ├── work-manager.md
-│   ├── repo-manager.md
-│   └── file-manager.md
-├── skills/           # Platform adapters
-│   ├── core/   # Core utilities
-│   ├── work-manager/ # Work tracking adapters
-│   ├── repo-manager/ # Source control adapters
-│   └── file-manager/ # File storage adapters
+├── agents/           # Workflow orchestration
+│   ├── faber-director.md     # Command parser & router
+│   └── faber-manager.md      # Universal workflow manager
+├── skills/           # Phase execution & core utilities
+│   ├── frame/        # Frame phase skill
+│   ├── architect/    # Architect phase skill
+│   ├── build/        # Build phase skill
+│   ├── evaluate/     # Evaluate phase skill
+│   ├── release/      # Release phase skill
+│   └── core/         # Core scripts (validation, audit, state, hooks)
 ├── commands/         # User commands
-│   ├── faber.md      # Main entry point
-│   ├── init.md
-│   ├── run.md
-│   └── status.md
-├── config/           # Configuration templates
-│   └── faber.example.toml
-├── presets/          # Quick-start presets
-│   ├── software-basic.toml
-│   ├── software-guarded.toml
-│   └── software-autonomous.toml
-├── docs/             # Documentation
+│   ├── init.md       # Initialize configuration
+│   ├── run.md        # Execute workflow
+│   └── audit.md      # Validate configuration
+├── config/           # Configuration & schemas
+│   ├── config.schema.json    # JSON Schema v7
+│   ├── templates/            # Configuration templates
+│   │   ├── minimal.json
+│   │   ├── standard.json
+│   │   └── enterprise.json
+│   └── error-codes.json      # Error catalog
+├── docs/             # Comprehensive documentation
+│   ├── configuration.md
+│   ├── PROMPT-CUSTOMIZATION.md
+│   ├── workflow-guide.md
+│   ├── HOOKS.md
+│   ├── STATE-TRACKING.md
+│   ├── MIGRATION-v2.md
+│   ├── ERROR-CODES.md
+│   └── TROUBLESHOOTING.md
 └── README.md         # This file
 ```
 
 ### Adding a New Platform Adapter
 
-To add support for a new platform (e.g., GitLab):
+FABER v2.0 uses companion plugins for platform operations:
 
-1. **Create adapter scripts** in `skills/<manager>/scripts/<platform>/`
-2. **Update skill documentation** in `skills/<manager>/SKILL.md`
-3. **Add platform configuration** to `config/faber.example.toml`
-4. **Test thoroughly** with real workflows
+- **fractary-work** - Work tracking (GitHub, Jira, Linear)
+- **fractary-repo** - Source control (GitHub, GitLab, Bitbucket)
+- **fractary-spec** - Specification generation
+- **fractary-logs** - Workflow logging
 
-Example: Adding GitLab support to repo-manager:
-
-```bash
-# Create scripts
-mkdir -p skills/repo-manager/scripts/gitlab/
-# Implement: generate-branch-name.sh, create-branch.sh, etc.
-
-# Update skill
-vim skills/repo-manager/SKILL.md
-
-# Add config
-vim config/faber.example.toml
-```
-
-No agent changes required! The 3-layer architecture isolates platform-specific logic.
+To extend platform support, contribute to the respective plugin. FABER orchestrates via configuration.
 
 ## Contributing
 
@@ -580,28 +626,31 @@ MIT License - see LICENSE file for details
 
 ## Roadmap
 
-### v1.1.0 (Current - 2025-10-31)
-- ✅ Core FABER workflow
-- ✅ **GitHub `@faber` mention integration**
-- ✅ **Intent parsing** (full workflow, single phase, status, control)
-- ✅ **Status card posting** to GitHub issues
-- ✅ Cloudflare R2 storage
-- ✅ Engineering domain
-- ✅ Configuration presets
+### v2.0 (Current - 2025-11-20)
+- ✅ **JSON-based configuration** with JSON Schema validation
+- ✅ **Prompt customization** for flexible workflow control
+- ✅ **Dual-state tracking** (current + historical logs)
+- ✅ **Phase-level hooks** (10 hooks: pre/post for each phase)
+- ✅ **Error handling system** (28 categorized error codes)
+- ✅ **Validation & audit tools** (scoring, recommendations)
+- ✅ **Atomic state management** with file locking
+- ✅ Core FABER workflow (Frame → Architect → Build → Evaluate → Release)
+- ✅ GitHub integration with work/repo/spec plugins
 - ✅ Autonomy levels (dry-run, assist, guarded, autonomous)
 
-### v1.2 (Planned)
-- 🚧 Jira integration
-- 🚧 Linear integration
-- 🚧 AWS S3 storage
-- 🚧 GitLab mention integration
+### v2.1 (Planned)
+- 🚧 Jira integration (fractary-work plugin)
+- 🚧 Linear integration (fractary-work plugin)
+- 🚧 GitLab support (fractary-repo plugin)
+- 🚧 Bitbucket support (fractary-repo plugin)
+- 🚧 AWS S3 storage (fractary-file plugin)
 
-### v2.0 (Future)
-- 🚧 Design domain
-- 🚧 Writing domain
-- 🚧 Data domain
-- 🚧 GitLab/Bitbucket support
+### v3.0 (Future)
+- 🚧 Multi-domain support (design, writing, data)
 - 🚧 Team collaboration features
+- 🚧 Workflow templates library
+- 🚧 Analytics and reporting
+- 🚧 Web UI (optional)
 
 ## Credits
 

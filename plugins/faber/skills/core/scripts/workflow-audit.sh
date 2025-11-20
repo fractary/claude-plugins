@@ -163,6 +163,7 @@ SCORE_STEPS_MAX=20
 TOTAL_STEPS=0
 STEPS_WITH_SKILLS=0
 STEPS_WITH_PARAMS=0
+STEPS_WITH_PROMPTS=0
 STEPS_WITH_CONDITIONS=0
 
 for PHASE_NAME in frame architect build evaluate release; do
@@ -179,6 +180,12 @@ for PHASE_NAME in frame architect build evaluate release; do
             SKILL=$(echo "$STEP" | jq -r '.skill // empty')
             if [ -n "$SKILL" ]; then
                 STEPS_WITH_SKILLS=$((STEPS_WITH_SKILLS + 1))
+            fi
+
+            # Count steps with explicit prompts
+            PROMPT=$(echo "$STEP" | jq -r '.prompt // empty')
+            if [ -n "$PROMPT" ]; then
+                STEPS_WITH_PROMPTS=$((STEPS_WITH_PROMPTS + 1))
             fi
 
             # Count steps with parameters
@@ -201,14 +208,20 @@ if [ $TOTAL_STEPS -gt 0 ]; then
     # Has steps (5 points)
     SCORE_STEPS=$((SCORE_STEPS + 5))
 
-    # Steps use skills (10 points scaled)
+    # Steps use skills (8 points scaled)
     SKILL_PERCENTAGE=$((STEPS_WITH_SKILLS * 100 / TOTAL_STEPS))
-    SCORE_STEPS=$((SCORE_STEPS + (SKILL_PERCENTAGE * 10 / 100)))
+    SCORE_STEPS=$((SCORE_STEPS + (SKILL_PERCENTAGE * 8 / 100)))
 
-    # Steps have parameters (3 points scaled)
+    # Steps have explicit prompts (3 points scaled)
+    if [ $STEPS_WITH_PROMPTS -gt 0 ]; then
+        PROMPT_PERCENTAGE=$((STEPS_WITH_PROMPTS * 100 / TOTAL_STEPS))
+        SCORE_STEPS=$((SCORE_STEPS + (PROMPT_PERCENTAGE * 3 / 100)))
+    fi
+
+    # Steps have parameters (2 points scaled)
     if [ $STEPS_WITH_PARAMS -gt 0 ]; then
         PARAM_PERCENTAGE=$((STEPS_WITH_PARAMS * 100 / TOTAL_STEPS))
-        SCORE_STEPS=$((SCORE_STEPS + (PARAM_PERCENTAGE * 3 / 100)))
+        SCORE_STEPS=$((SCORE_STEPS + (PARAM_PERCENTAGE * 2 / 100)))
     fi
 
     # Steps have conditions (2 points scaled)
@@ -221,6 +234,7 @@ fi
 if $VERBOSE; then
     echo "  Total steps: $TOTAL_STEPS"
     echo "  Steps with skills: $STEPS_WITH_SKILLS ($SKILL_PERCENTAGE%)"
+    [ $STEPS_WITH_PROMPTS -gt 0 ] && echo "  Steps with explicit prompts: $STEPS_WITH_PROMPTS ($PROMPT_PERCENTAGE%)"
     [ $STEPS_WITH_PARAMS -gt 0 ] && echo "  Steps with parameters: $STEPS_WITH_PARAMS"
     [ $STEPS_WITH_CONDITIONS -gt 0 ] && echo "  Steps with conditions: $STEPS_WITH_CONDITIONS"
 fi

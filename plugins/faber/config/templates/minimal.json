@@ -38,11 +38,13 @@
           "steps": [
             {
               "name": "implement",
-              "description": "Implement the solution"
+              "description": "Implement the solution",
+              "prompt": "Implement based on specification"
             },
             {
               "name": "commit",
-              "description": "Commit changes"
+              "description": "Commit changes",
+              "prompt": "Create commit with conventional format"
             }
           ],
           "validation": ["implementation-complete"]

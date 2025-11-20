@@ -111,6 +111,82 @@ See `plugins/faber/config/faber.example.json` for a complete configuration with:
 - Safe autonomy defaults
 - Plugin integrations
 
+## Step Configuration
+
+### Understanding `description` vs `prompt`
+
+FABER v2.0 introduces a powerful distinction between documentation and execution instructions:
+
+#### `description` Field
+- **Purpose**: Human-readable documentation
+- **What it explains**: What this step does (the "what")
+- **Usage**: Appears in logs, audit reports, and documentation
+- **Example**: `"Create semantic commit with conventional format"`
+
+#### `prompt` Field
+- **Purpose**: Execution instruction for Claude
+- **What it explains**: How Claude should execute (the "how")
+- **Usage**: Direct instruction when no skill present, or customization when skill present
+- **Example**: `"Create commit using conventional commit format, link to issue, and include co-author attribution"`
+
+### Execution Patterns
+
+#### Pattern 1: Step with Skill Only
+```json
+{
+  "name": "fetch-work",
+  "description": "Fetch work item details from issue tracker",
+  "skill": "fractary-work:issue-fetcher"
+}
+```
+**Behavior**: Skill executes with default behavior. Description used for documentation.
+
+#### Pattern 2: Step with Skill + Prompt
+```json
+{
+  "name": "create-pr",
+  "description": "Create pull request for review",
+  "skill": "fractary-repo:pr-manager",
+  "prompt": "Create PR with comprehensive summary, test plan, and FABER attribution"
+}
+```
+**Behavior**: Skill executes with customized behavior based on prompt. Description used for documentation.
+
+#### Pattern 3: Direct Claude Execution (No Skill)
+```json
+{
+  "name": "implement",
+  "description": "Implement solution from specification",
+  "prompt": "Implement based on specification, following project code standards and best practices"
+}
+```
+**Behavior**: Claude executes directly using prompt as instruction. Description used for documentation.
+
+#### Pattern 4: Legacy (Description Only, No Skill)
+```json
+{
+  "name": "test",
+  "description": "Run automated tests"
+}
+```
+**Behavior**: Claude executes using description as prompt (backward compatibility). Recommended to add explicit `prompt` field for clarity.
+
+### When to Use Each Pattern
+
+| Pattern | Use When | Benefits |
+|---------|----------|----------|
+| Skill Only | Standard plugin operation needed | Simple, maintainable, reusable |
+| Skill + Prompt | Need to customize plugin behavior | Flexible without forking plugin |
+| Prompt Only | Custom logic for this workflow | Full control, project-specific |
+| Description Only | Legacy configs, simple cases | Backward compatible, minimal |
+
+### Best Practices
+
+1. **Always provide description** - Helps humans understand the workflow
+2. **Add prompt for non-skill steps** - Makes execution intent explicit
+3. **Use prompt to customize skills** - Avoid forking plugins for small changes
+4. **Keep prompts concise** - Focus on execution details, not full instructions
+
 ## See Also
 
 - [HOOKS.md](./HOOKS.md) - Complete guide to phase-level hooks

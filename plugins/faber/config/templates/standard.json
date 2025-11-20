@@ -50,12 +50,14 @@
           "steps": [
             {
               "name": "implement",
-              "description": "Implement based on specification"
+              "description": "Implement solution from specification",
+              "prompt": "Implement based on specification, following project code standards and best practices"
             },
             {
               "name": "commit",
-              "description": "Create semantic commit",
+              "description": "Create semantic commit with conventional format",
               "skill": "fractary-repo:commit-creator",
+              "prompt": "Create commit using conventional commit format, link to issue, and include co-author attribution",
               "config": {
                 "conventional_commits": true,
                 "link_to_issue": true
@@ -71,15 +73,18 @@
           "steps": [
             {
               "name": "test",
-              "description": "Run automated tests"
+              "description": "Run automated test suite",
+              "prompt": "Run automated tests and report results with coverage metrics"
             },
             {
               "name": "review",
-              "description": "Code review and quality checks"
+              "description": "Perform code quality review",
+              "prompt": "Code review focusing on: correctness, maintainability, security, and adherence to spec"
             },
             {
               "name": "fix",
-              "description": "Fix issues if tests fail",
+              "description": "Fix issues identified in testing",
+              "prompt": "Address test failures and review issues, then re-run validation",
               "conditional": "only_if_failures"
             }
           ],
@@ -92,8 +97,9 @@
           "steps": [
             {
               "name": "create-pr",
-              "description": "Create pull request",
+              "description": "Create pull request for review",
               "skill": "fractary-repo:pr-manager",
+              "prompt": "Create PR with comprehensive summary, test plan, and FABER attribution",
               "config": {
                 "draft_if_assist": true,
                 "auto_link_issue": true
@@ -101,7 +107,8 @@
             },
             {
               "name": "update-docs",
-              "description": "Update documentation if needed"
+              "description": "Update project documentation",
+              "prompt": "Update documentation to reflect changes made in this implementation (README, API docs, etc.)"
             }
           ],
           "validation": ["pr-created", "docs-updated"]

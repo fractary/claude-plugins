@@ -264,13 +264,19 @@ For each phase in [frame, architect, build, evaluate, release]:
    ```
 
 3. **Execute Step**:
-   - If step has `skill`: Invoke that skill using Skill tool
-   - If step has no skill: Execute built-in logic or prompt for manual action
+   - If step has `skill`:
+     - Invoke that skill using Skill tool
+     - If step also has `prompt`: Use prompt to customize skill execution behavior
+   - If step has no skill:
+     - Use `prompt` field as direct execution instruction for Claude
+     - If no `prompt` field, fall back to `description` as prompt
+     - Execute based on provided instruction
    - Pass full context including:
      - Work item details
      - Previous phase results
      - Artifacts created so far
      - Configuration for this step
+     - Prompt/description for execution
 
 4. **Capture Step Results**:
    - Artifacts created

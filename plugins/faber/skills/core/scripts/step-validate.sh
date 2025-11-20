@@ -5,8 +5,10 @@
 # Usage:
 #   step-validate.sh <step-json>
 #
-# Example:
+# Examples:
 #   step-validate.sh '{"description":"Fetch work item","skill":"fractary-work:issue-fetch"}'
+#   step-validate.sh '{"description":"Implement solution","prompt":"Implement based on specification"}'
+#   step-validate.sh '{"prompt":"Run tests and report results"}'
 
 set -euo pipefail
 
@@ -29,30 +31,35 @@ WARNINGS=0
 echo -e "${BLUE}Validating step configuration...${NC}"
 echo ""
 
-# Check description (required)
+# Check description and/or prompt (at least one recommended)
 DESCRIPTION=$(echo "$STEP_JSON" | jq -r '.description // empty')
-if [ -z "$DESCRIPTION" ]; then
-    echo -e "${RED}✗${NC} Missing required field: description" >&2
+PROMPT=$(echo "$STEP_JSON" | jq -r '.prompt // empty')
+SKILL=$(echo "$STEP_JSON" | jq -r '.skill // empty')
+
+if [ -z "$DESCRIPTION" ] && [ -z "$PROMPT" ] && [ -z "$SKILL" ]; then
+    echo -e "${RED}✗${NC} Step must have at least one of: description, prompt, or skill" >&2
     ERRORS=$((ERRORS + 1))
-else
+fi
+
+# Validate description if present
+if [ -n "$DESCRIPTION" ]; then
     echo -e "${GREEN}✓${NC} Description: $DESCRIPTION"
 fi
 
-# Check action or skill (at least one required)
-ACTION=$(echo "$STEP_JSON" | jq -r '.action // empty')
-SKILL=$(echo "$STEP_JSON" | jq -r '.skill // empty')
+# Validate prompt if present
+if [ -n "$PROMPT" ]; then
+    echo -e "${GREEN}✓${NC} Prompt: $PROMPT"
+fi
 
-if [ -z "$ACTION" ] && [ -z "$SKILL" ]; then
-    echo -e "${RED}✗${NC} Step must have either 'action' or 'skill' field" >&2
-    ERRORS=$((ERRORS + 1))
-elif [ -n "$ACTION" ] && [ -n "$SKILL" ]; then
-    echo -e "${YELLOW}⚠${NC} Step has both 'action' and 'skill' (skill takes precedence)" >&2
+# If no skill but no prompt either, suggest adding prompt
+if [ -z "$SKILL" ] && [ -z "$PROMPT" ] && [ -n "$DESCRIPTION" ]; then
+    echo -e "${YELLOW}⚠${NC} Step has no skill or prompt - description will be used as prompt" >&2
     WARNINGS=$((WARNINGS + 1))
 fi
 
-# Validate action if present
-if [ -n "$ACTION" ]; then
-    echo -e "${GREEN}✓${NC} Action: $ACTION"
+# If both prompt and description present without skill, that's fine (description for docs, prompt for execution)
+if [ -n "$PROMPT" ] && [ -n "$DESCRIPTION" ] && [ -z "$SKILL" ]; then
+    echo -e "${BLUE}ℹ${NC} Prompt will be used for execution, description for documentation"
 fi
 
 # Validate skill if present
