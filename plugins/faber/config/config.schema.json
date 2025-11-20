@@ -1,0 +1,407 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.io/schemas/faber-config-v2.json",
+  "title": "FABER Configuration Schema",
+  "description": "JSON Schema for FABER v2.0 workflow configuration",
+  "type": "object",
+  "required": ["schema_version", "workflows", "integrations"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri",
+      "description": "JSON Schema reference for IDE validation"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^2\\.\\d+$",
+      "description": "Configuration schema version (2.x)"
+    },
+    "workflows": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Array of workflow configurations",
+      "items": {
+        "$ref": "#/definitions/workflow"
+      }
+    },
+    "integrations": {
+      "$ref": "#/definitions/integrations"
+    },
+    "logging": {
+      "$ref": "#/definitions/logging"
+    },
+    "safety": {
+      "$ref": "#/definitions/safety"
+    }
+  },
+  "definitions": {
+    "workflow": {
+      "type": "object",
+      "required": ["id", "phases", "autonomy"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Workflow identifier (lowercase, hyphens allowed)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable workflow description"
+        },
+        "phases": {
+          "$ref": "#/definitions/phases"
+        },
+        "hooks": {
+          "$ref": "#/definitions/hooks"
+        },
+        "autonomy": {
+          "$ref": "#/definitions/autonomy"
+        }
+      }
+    },
+    "phases": {
+      "type": "object",
+      "required": ["frame", "architect", "build", "evaluate", "release"],
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "$ref": "#/definitions/phase"
+        },
+        "architect": {
+          "$ref": "#/definitions/phase"
+        },
+        "build": {
+          "$ref": "#/definitions/phase"
+        },
+        "evaluate": {
+          "$ref": "#/definitions/phase_with_retries"
+        },
+        "release": {
+          "$ref": "#/definitions/phase_with_approval"
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this phase is enabled"
+        },
+        "description": {
+          "type": "string",
+          "description": "Phase description"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          },
+          "description": "Array of phase steps"
+        },
+        "validation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Validation checks for phase completion"
+        }
+      }
+    },
+    "phase_with_retries": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/phase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "max_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "Maximum retry attempts for this phase"
+            }
+          }
+        }
+      ]
+    },
+    "phase_with_approval": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/phase"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "require_approval": {
+              "type": "boolean",
+              "description": "Whether this phase requires explicit approval"
+            }
+          }
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Step identifier (lowercase, hyphens allowed)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable step documentation (what this step does)"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Execution instruction for Claude when no skill is present, or to customize skill behavior. Takes precedence over description for execution."
+        },
+        "skill": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$",
+          "description": "Skill reference in format plugin:skill-name"
+        },
+        "config": {
+          "type": "object",
+          "description": "Step-specific configuration"
+        },
+        "conditional": {
+          "type": "string",
+          "enum": ["only_if_failures", "only_if_success", "always"],
+          "description": "Conditional execution rule"
+        }
+      },
+      "anyOf": [
+        {"required": ["description"]},
+        {"required": ["prompt"]},
+        {"required": ["skill"]}
+      ]
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pre_frame": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "post_frame": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "pre_architect": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "post_architect": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "pre_build": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "post_build": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "pre_evaluate": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "post_evaluate": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "pre_release": {
+          "$ref": "#/definitions/hook_array"
+        },
+        "post_release": {
+          "$ref": "#/definitions/hook_array"
+        }
+      }
+    },
+    "hook_array": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/hook"
+      }
+    },
+    "hook": {
+      "type": "object",
+      "required": ["type", "name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["document", "script", "skill"],
+          "description": "Hook type"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Hook identifier"
+        },
+        "description": {
+          "type": "string",
+          "description": "Hook description"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to document or script (required for document and script types)"
+        },
+        "skill": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Skill name (required for skill type)"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Timeout in seconds (default: 300)"
+        },
+        "on_error": {
+          "type": "string",
+          "enum": ["continue", "abort", "retry"],
+          "description": "Error handling strategy"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "document"
+            }
+          },
+          "required": ["path"]
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "script"
+            }
+          },
+          "required": ["path"]
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "skill"
+            }
+          },
+          "required": ["skill"]
+        }
+      ]
+    },
+    "autonomy": {
+      "type": "object",
+      "required": ["level"],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["dry-run", "assist", "guarded", "autonomous"],
+          "description": "Workflow autonomy level"
+        },
+        "description": {
+          "type": "string",
+          "description": "Autonomy level description"
+        },
+        "pause_before_release": {
+          "type": "boolean",
+          "description": "Pause before release phase for approval"
+        },
+        "require_approval_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of actions requiring explicit approval"
+        },
+        "overrides": {
+          "type": "object",
+          "description": "Phase-specific autonomy overrides"
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "required": ["work_plugin", "repo_plugin"],
+      "additionalProperties": false,
+      "properties": {
+        "work_plugin": {
+          "type": "string",
+          "pattern": "^fractary-[a-z][a-z0-9-]*$",
+          "description": "Work tracking plugin name"
+        },
+        "repo_plugin": {
+          "type": "string",
+          "pattern": "^fractary-[a-z][a-z0-9-]*$",
+          "description": "Repository plugin name"
+        },
+        "spec_plugin": {
+          "type": "string",
+          "pattern": "^fractary-[a-z][a-z0-9-]*$",
+          "description": "Specification plugin name"
+        },
+        "logs_plugin": {
+          "type": "string",
+          "pattern": "^fractary-[a-z][a-z0-9-]*$",
+          "description": "Logging plugin name"
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "use_logs_plugin": {
+          "type": "boolean",
+          "description": "Use fractary-logs plugin for workflow logging"
+        },
+        "log_type": {
+          "type": "string",
+          "description": "Log type identifier"
+        },
+        "log_level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "description": "Logging level"
+        },
+        "log_phases": {
+          "type": "boolean",
+          "description": "Log phase transitions"
+        },
+        "log_sub_steps": {
+          "type": "boolean",
+          "description": "Log individual step execution"
+        },
+        "log_hooks": {
+          "type": "boolean",
+          "description": "Log hook execution"
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protected_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for protected paths"
+        },
+        "require_confirm_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actions requiring confirmation"
+        }
+      }
+    }
+  }
+}

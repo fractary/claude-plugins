@@ -1,0 +1,164 @@
+{
+  "FABER-001": {
+    "message": "Configuration file not found",
+    "severity": "error",
+    "category": "configuration",
+    "recovery": "Run /fractary-faber:init to create default configuration"
+  },
+  "FABER-002": {
+    "message": "Invalid JSON in configuration file",
+    "severity": "error",
+    "category": "configuration",
+    "recovery": "Validate JSON syntax or restore from template"
+  },
+  "FABER-003": {
+    "message": "Configuration schema validation failed",
+    "severity": "error",
+    "category": "configuration",
+    "recovery": "Run config-validate.sh for detailed errors, fix issues and retry"
+  },
+  "FABER-004": {
+    "message": "Missing required configuration field",
+    "severity": "error",
+    "category": "configuration",
+    "recovery": "Add missing field or use a complete template (standard.json)"
+  },
+  "FABER-005": {
+    "message": "Invalid autonomy level specified",
+    "severity": "error",
+    "category": "configuration",
+    "recovery": "Use one of: dry-run, assist, guarded, autonomous"
+  },
+  "FABER-100": {
+    "message": "State file not found",
+    "severity": "error",
+    "category": "state",
+    "recovery": "Initialize state with state-init.sh or start a new workflow"
+  },
+  "FABER-101": {
+    "message": "Invalid JSON in state file",
+    "severity": "error",
+    "category": "state",
+    "recovery": "Restore from backup in .fractary/plugins/faber/backups/"
+  },
+  "FABER-102": {
+    "message": "State schema validation failed",
+    "severity": "error",
+    "category": "state",
+    "recovery": "State file is corrupted. Restore from backup or start new workflow"
+  },
+  "FABER-103": {
+    "message": "State version mismatch",
+    "severity": "warning",
+    "category": "state",
+    "recovery": "Run state-migrate.sh to upgrade state to current version"
+  },
+  "FABER-104": {
+    "message": "Failed to write state file",
+    "severity": "error",
+    "category": "state",
+    "recovery": "Check disk space and file permissions"
+  },
+  "FABER-200": {
+    "message": "Phase execution failed",
+    "severity": "error",
+    "category": "execution",
+    "recovery": "Review error details and retry phase or fix issues"
+  },
+  "FABER-201": {
+    "message": "Phase validation failed",
+    "severity": "error",
+    "category": "execution",
+    "recovery": "Complete missing validation criteria before proceeding"
+  },
+  "FABER-202": {
+    "message": "Step execution failed",
+    "severity": "error",
+    "category": "execution",
+    "recovery": "Review step error details and retry or skip step if optional"
+  },
+  "FABER-203": {
+    "message": "Max retries exceeded",
+    "severity": "error",
+    "category": "execution",
+    "recovery": "Evaluate phase failed after max retries. Review and fix issues manually"
+  },
+  "FABER-300": {
+    "message": "Hook execution failed",
+    "severity": "warning",
+    "category": "hooks",
+    "recovery": "Check hook configuration and executable permissions"
+  },
+  "FABER-301": {
+    "message": "Hook timeout exceeded",
+    "severity": "warning",
+    "category": "hooks",
+    "recovery": "Increase hook timeout or optimize hook execution"
+  },
+  "FABER-302": {
+    "message": "Hook validation failed",
+    "severity": "error",
+    "category": "hooks",
+    "recovery": "Check hook type matches configuration (document/script/skill)"
+  },
+  "FABER-303": {
+    "message": "Hook path not found",
+    "severity": "error",
+    "category": "hooks",
+    "recovery": "Verify document or script path exists"
+  },
+  "FABER-400": {
+    "message": "Work plugin not configured",
+    "severity": "error",
+    "category": "integration",
+    "recovery": "Run /fractary-work:init to configure work tracking integration"
+  },
+  "FABER-401": {
+    "message": "Repo plugin not configured",
+    "severity": "error",
+    "category": "integration",
+    "recovery": "Run /fractary-repo:init to configure repository integration"
+  },
+  "FABER-402": {
+    "message": "Work item not found",
+    "severity": "error",
+    "category": "integration",
+    "recovery": "Verify work item ID exists in your work tracking system"
+  },
+  "FABER-403": {
+    "message": "Failed to create branch",
+    "severity": "error",
+    "category": "integration",
+    "recovery": "Check repository permissions and branch naming"
+  },
+  "FABER-404": {
+    "message": "Failed to create specification",
+    "severity": "error",
+    "category": "integration",
+    "recovery": "Check spec plugin configuration and disk space"
+  },
+  "FABER-405": {
+    "message": "Failed to create pull request",
+    "severity": "error",
+    "category": "integration",
+    "recovery": "Check repo permissions, branch status, and PR requirements"
+  },
+  "FABER-500": {
+    "message": "Failed to acquire workflow lock",
+    "severity": "error",
+    "category": "concurrency",
+    "recovery": "Another workflow is running. Wait or check lock status with lock-check.sh"
+  },
+  "FABER-501": {
+    "message": "Concurrent workflow execution detected",
+    "severity": "error",
+    "category": "concurrency",
+    "recovery": "Wait for other workflow to complete or manually release lock"
+  },
+  "FABER-502": {
+    "message": "Stale lock detected",
+    "severity": "warning",
+    "category": "concurrency",
+    "recovery": "Stale lock will be auto-cleaned. Retry workflow execution"
+  }
+}

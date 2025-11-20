@@ -803,6 +803,90 @@ Decision: GO
 Pull Request: https://github.com/acme/app/pull/46 (merged)
 ```
 
+## Workflow Customization
+
+### Using Prompts to Customize Behavior
+
+FABER v2.0 supports powerful customization via the `prompt` field in step configuration:
+
+#### Direct Claude Execution
+
+Steps without skills execute directly using the `prompt` field:
+
+```json
+{
+  "name": "implement",
+  "description": "Implement solution from specification",
+  "prompt": "Implement based on specification, following TDD approach with comprehensive test coverage"
+}
+```
+
+**Benefits**:
+- Full control over execution behavior
+- Project-specific workflows without creating custom skills
+- Easy to adjust without code changes
+
+#### Customizing Plugin Skills
+
+Steps with skills can use prompts to customize behavior:
+
+```json
+{
+  "name": "create-pr",
+  "description": "Create pull request for review",
+  "skill": "fractary-repo:pr-manager",
+  "prompt": "Create PR with: summary of changes, testing checklist, screenshots if UI changed, FABER attribution"
+}
+```
+
+**Benefits**:
+- Customize plugin behavior without forking
+- Add project-specific requirements
+- Maintain reusable plugin skills
+
+### Customization Examples
+
+**Example 1: Testing Requirements**
+```json
+{
+  "name": "test",
+  "description": "Run automated test suite",
+  "prompt": "Run tests with coverage. Require: all tests pass, coverage >= 80% for new code, no HIGH severity linting issues"
+}
+```
+
+**Example 2: Code Review Standards**
+```json
+{
+  "name": "review",
+  "description": "Code quality review",
+  "prompt": "Review focusing on: correctness, security (OWASP Top 10), maintainability. Skip: style nitpicks if linter passes"
+}
+```
+
+**Example 3: Implementation Style**
+```json
+{
+  "name": "implement",
+  "description": "Implement with team conventions",
+  "prompt": "Implement following: 1) TypeScript strict mode, 2) Functional style with React hooks, 3) Error boundaries for UI components, 4) Inline comments for complex logic"
+}
+```
+
+### When to Customize
+
+| Situation | Solution |
+|-----------|----------|
+| Standard workflow sufficient | Use plugin skills without prompts |
+| Need slight behavior change | Add prompt to customize skill |
+| Project-specific requirements | Use prompt for direct execution |
+| Team coding standards | Add prompts with style guidelines |
+| Compliance requirements | Add prompts with audit trail needs |
+
+**See [PROMPT-CUSTOMIZATION.md](./PROMPT-CUSTOMIZATION.md) for comprehensive customization guide.**
+
+---
+
 ## Best Practices
 
 1. **Use guarded mode** for production workflows
@@ -813,9 +897,12 @@ Pull Request: https://github.com/acme/app/pull/46 (merged)
 6. **Test with dry-run first** when trying new configurations
 7. **Preserve session files** for audit trail
 8. **Use descriptive issue titles** for better branch names
+9. **Add prompts for clarity** when steps don't use skills
+10. **Customize with prompts** before forking plugins
 
 ## See Also
 
 - [Configuration Guide](configuration.md) - Configure FABER
+- [Prompt Customization](PROMPT-CUSTOMIZATION.md) - Comprehensive customization guide
 - [Architecture](architecture.md) - System design
 - [README](../README.md) - Quick start

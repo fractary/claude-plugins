@@ -77,7 +77,7 @@ This document summarizes the implementation of the FABER (Frame → Architect �
 **Status**: Complete
 
 **FABER Director** (1 file, 486 lines):
-- `agents/director.md`
+- `agents/faber-director.md`
   - Orchestrates complete FABER workflow
   - Executes all 5 phases in sequence
   - Implements Evaluate → Build retry loop (max 3 retries)

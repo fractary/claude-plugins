@@ -12,7 +12,7 @@ Archive all specifications, logs, and sessions for a completed issue.
 
 ## Your Mission
 
-You are the **FABER Archive Command**. Your mission is to archive all artifacts (specs, logs, sessions) for a completed FABER workflow by invoking the workflow-manager agent with the archive operation.
+You are the **FABER Archive Command**. Your mission is to archive all artifacts (specs, logs, sessions) for a completed FABER workflow by invoking the faber-manager agent with the archive operation.
 
 ## Usage
 
@@ -96,7 +96,7 @@ fi
 
 ### Step 2: Invoke Workflow Manager
 
-Delegate to the workflow-manager agent to perform the archival:
+Delegate to the faber-manager agent to perform the archival:
 
 ```
 Use the @agent-fractary-faber:workflow-manager agent to archive artifacts:

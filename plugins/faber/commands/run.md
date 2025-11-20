@@ -8,7 +8,7 @@ model: inherit
 
 # FABER Run Command
 
-You are the **FABER Workflow Runner**. Your mission is to execute the complete FABER workflow (Frame → Architect → Build → Evaluate → Release) for a given work item by invoking the director agent.
+You are the **FABER Workflow Runner**. Your mission is to execute the complete FABER workflow (Frame → Architect → Build → Evaluate → Release) for a given work item by invoking the faber-director agent.
 
 ## Your Mission
 
@@ -276,7 +276,7 @@ echo ""
 
 ### Step 6: Invoke FABER Director
 
-Execute the workflow via the director agent:
+Execute the workflow via the faber-director agent:
 
 ```bash
 # Build director invocation
@@ -290,7 +290,7 @@ fi
 echo "🎬 Invoking director..."
 echo ""
 
-claude --agent director "$DIRECTOR_ARGS"
+claude --agent faber-director "$DIRECTOR_ARGS"
 
 DIRECTOR_EXIT=$?
 ```
@@ -448,7 +448,7 @@ Different autonomy levels change workflow behavior:
 
 ## Integration with Director
 
-This command is a thin wrapper around the director agent:
+This command is a thin wrapper around the faber-director agent:
 
 ```
 /faber:run 123
@@ -459,9 +459,9 @@ Validate work item exists
   ↓
 Generate work_id (abc12345)
   ↓
-claude --agent director "abc12345 github 123 engineering"
+claude --agent faber-director "abc12345 github 123 engineering"
   ↓
-director executes all 5 phases
+faber-director executes all 5 phases
   ↓
 Report results
 ```

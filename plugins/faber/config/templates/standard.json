@@ -1,0 +1,152 @@
+{
+  "$schema": "../config.schema.json",
+  "schema_version": "2.0",
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow with plugin integrations",
+      "phases": {
+        "frame": {
+          "enabled": true,
+          "description": "Fetch work item, classify, and setup environment",
+          "steps": [
+            {
+              "name": "fetch-work",
+              "description": "Fetch work item details from issue tracker",
+              "skill": "fractary-work:issue-fetcher"
+            },
+            {
+              "name": "classify",
+              "description": "Classify work type (bug, feature, chore, patch)",
+              "skill": "fractary-work:issue-classifier"
+            },
+            {
+              "name": "setup-env",
+              "description": "Create branch and setup environment",
+              "skill": "fractary-repo:branch-manager"
+            }
+          ],
+          "validation": ["work-item-exists", "branch-created"]
+        },
+        "architect": {
+          "enabled": true,
+          "description": "Generate technical specification",
+          "steps": [
+            {
+              "name": "generate-spec",
+              "description": "Generate specification from context",
+              "skill": "fractary-spec:spec-generator",
+              "config": {
+                "use_issue_context": true,
+                "auto_detect_template": true
+              }
+            }
+          ],
+          "validation": ["spec-created", "spec-validated"]
+        },
+        "build": {
+          "enabled": true,
+          "description": "Implement solution and commit",
+          "steps": [
+            {
+              "name": "implement",
+              "description": "Implement solution from specification",
+              "prompt": "Implement based on specification, following project code standards and best practices"
+            },
+            {
+              "name": "commit",
+              "description": "Create semantic commit with conventional format",
+              "skill": "fractary-repo:commit-creator",
+              "prompt": "Create commit using conventional commit format, link to issue, and include co-author attribution",
+              "config": {
+                "conventional_commits": true,
+                "link_to_issue": true
+              }
+            }
+          ],
+          "validation": ["implementation-complete", "committed"]
+        },
+        "evaluate": {
+          "enabled": true,
+          "description": "Test and review implementation",
+          "max_retries": 3,
+          "steps": [
+            {
+              "name": "test",
+              "description": "Run automated test suite",
+              "prompt": "Run automated tests and report results with coverage metrics"
+            },
+            {
+              "name": "review",
+              "description": "Perform code quality review",
+              "prompt": "Code review focusing on: correctness, maintainability, security, and adherence to spec"
+            },
+            {
+              "name": "fix",
+              "description": "Fix issues identified in testing",
+              "prompt": "Address test failures and review issues, then re-run validation",
+              "conditional": "only_if_failures"
+            }
+          ],
+          "validation": ["all-tests-pass", "no-critical-issues"]
+        },
+        "release": {
+          "enabled": true,
+          "description": "Create PR and prepare for merge",
+          "require_approval": true,
+          "steps": [
+            {
+              "name": "create-pr",
+              "description": "Create pull request for review",
+              "skill": "fractary-repo:pr-manager",
+              "prompt": "Create PR with comprehensive summary, test plan, and FABER attribution",
+              "config": {
+                "draft_if_assist": true,
+                "auto_link_issue": true
+              }
+            },
+            {
+              "name": "update-docs",
+              "description": "Update project documentation",
+              "prompt": "Update documentation to reflect changes made in this implementation (README, API docs, etc.)"
+            }
+          ],
+          "validation": ["pr-created", "docs-updated"]
+        }
+      },
+      "hooks": {
+        "pre_frame": [],
+        "post_frame": [],
+        "pre_architect": [],
+        "post_architect": [],
+        "pre_build": [],
+        "post_build": [],
+        "pre_evaluate": [],
+        "post_evaluate": [],
+        "pre_release": [],
+        "post_release": []
+      },
+      "autonomy": {
+        "level": "guarded",
+        "description": "Pauses before release for approval - recommended for production",
+        "pause_before_release": true,
+        "require_approval_for": ["release"],
+        "overrides": {}
+      }
+    }
+  ],
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs"
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_type": "workflow",
+    "log_level": "info",
+    "log_phases": true,
+    "log_sub_steps": false,
+    "log_hooks": false
+  }
+}

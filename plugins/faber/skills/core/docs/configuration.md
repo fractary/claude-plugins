@@ -68,7 +68,7 @@ Director agent configuration.
 ```toml
 [director]
 type = "default"                               # default | custom
-agent_ref = "agents/director.md"         # Agent file path
+agent_ref = "agents/faber-director.md"         # Agent file path
 model = "claude-3.7"                           # AI model
 max_tokens = 4096                              # Max response tokens
 ```
