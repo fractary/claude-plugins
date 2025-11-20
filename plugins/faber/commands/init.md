@@ -4,41 +4,79 @@ Initialize FABER workflow configuration for a project.
 
 ## What This Does
 
-Analyzes your project and generates `.fractary/plugins/faber/config.json` with appropriate settings for your project type.
+Creates `.fractary/plugins/faber/config.json` with the baseline FABER workflow configuration.
+
+**The baseline FABER workflow is issue-centric**:
+- **Frame**: Fetch issue, classify work, create branch
+- **Architect**: Generate specification document
+- **Build**: Implement solution, commit changes
+- **Evaluate**: Run tests, perform review
+- **Release**: Create PR, merge, deploy
+
+**Core artifacts**: Issue + Branch + Spec
 
 **Features**:
-- 🔍 Auto-detects project type (software, infrastructure, application)
-- 📝 Generates configuration from appropriate template
-- ⚙️ Configures default phases and steps
-- 🪝 Sets up hook points for customization
+- 📝 Creates default "workflows" array with standard workflow
+- ⚙️ Configures all 5 FABER phases with basic steps
+- 🪝 Sets up 10 hook arrays (empty, ready for customization)
+- 🔒 Configures safe defaults (autonomy: guarded)
+- 🔌 Sets up plugin integrations (work, repo, spec, logs)
 - ✅ Validates configuration after creation
 
 ## Usage
 
 ```bash
-# Auto-detect project type and generate config
+# Generate default FABER configuration
 /fractary-faber:init
 
-# Specify project type explicitly  
-/fractary-faber:init --type software
+# Dry-run (show what would be created without creating)
+/fractary-faber:init --dry-run
+```
 
-# Analyze without creating config (dry-run)
-/fractary-faber:init --analyze
+## What Gets Created
+
+`.fractary/plugins/faber/config.json` with:
+
+```json
+{
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow",
+      "phases": { ... all 5 phases ... },
+      "hooks": { ... 10 empty hook arrays ... },
+      "autonomy": { "level": "guarded" }
+    }
+  ],
+  "integrations": { ... },
+  "logging": { ... },
+  "safety": { ... }
+}
 ```
 
 ## Implementation
 
 This command should:
-1. Analyze project structure to detect type
-2. Select appropriate template (software/infrastructure/application)
-3. Generate `.fractary/plugins/faber/config.json`
-4. Validate configuration
-5. Report success
+1. Check if config already exists (warn if exists)
+2. Copy from `plugins/faber/config/faber.example.json`
+3. Create `.fractary/plugins/faber/` directory if needed
+4. Write config to `.fractary/plugins/faber/config.json`
+5. Validate configuration
+6. Report success with next steps
 
-Templates are located in `plugins/faber/config/templates/`
+## After Init
+
+After creating the config, customize it for your project:
+
+1. **Validate**: `/fractary-faber:audit`
+2. **Customize phase steps** for your tools (test framework, build system, etc.)
+3. **Add hooks** for your existing scripts
+4. **Configure autonomy level** for your workflow
+5. **Test**: `/fractary-faber:run <work-id> --autonomy dry-run`
 
 ## See Also
 
-- `/fractary-faber:audit` - Validate configuration
-- `/fractary-faber:run` - Execute workflow
-- Config templates: `plugins/faber/config/templates/`
+- `/fractary-faber:audit` - Validate and get customization suggestions
+- `/fractary-faber:run` - Execute workflow for a work item
+- Example config: `plugins/faber/config/faber.example.json`
+- Documentation: `plugins/faber/docs/CONFIGURATION.md`

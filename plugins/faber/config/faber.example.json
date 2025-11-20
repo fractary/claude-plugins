@@ -1,18 +1,11 @@
 {
-  "$schema": "https://fractary.io/schemas/faber-config-v1.json",
-  "schema_version": "1.0",
-  "project": {
-    "name": "my-project",
-    "type": "software",
-    "issue_system": "github",
-    "source_control": "github"
-  },
-  "workflow": {
-    "version": "2.0",
-    "manager_skill": "faber-manager",
-    "director_skill": "faber-director"
-  },
-  "phases": {
+  "$schema": "https://fractary.io/schemas/faber-config-v2.json",
+  "schema_version": "2.0",
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)",
+      "phases": {
     "frame": {
       "enabled": true,
       "description": "Frame: Fetch work item, classify, setup environment",
@@ -135,7 +128,7 @@
       ]
     }
   },
-  "hooks": {
+      "hooks": {
     "pre_frame": [],
     "post_frame": [],
     "pre_architect": [
@@ -175,13 +168,21 @@
       }
     ]
   },
-  "autonomy": {
+      "autonomy": {
     "level": "guarded",
     "description": "Autonomy levels: dry-run, assist, guarded, autonomous",
     "pause_before_release": true,
     "require_approval_for": [
       "release"
     ]
+      }
+    }
+  ],
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs"
   },
   "logging": {
     "use_logs_plugin": true,
@@ -190,14 +191,6 @@
     "log_phases": true,
     "log_sub_steps": true,
     "log_hooks": true
-  },
-  "integrations": {
-    "work_plugin": "fractary-work",
-    "repo_plugin": "fractary-repo",
-    "spec_plugin": "fractary-spec",
-    "docs_plugin": "fractary-docs",
-    "file_plugin": "fractary-file",
-    "logs_plugin": "fractary-logs"
   },
   "safety": {
     "protected_paths": [

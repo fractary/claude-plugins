@@ -43,20 +43,17 @@ Performs comprehensive validation of `.fractary/plugins/faber/config.json`:
 ### 1. Configuration File
 - ✅ File exists at `.fractary/plugins/faber/config.json`
 - ✅ Valid JSON syntax
-- ✅ Schema version present and supported
+- ✅ Schema version is "2.0"
 
-### 2. Project Configuration
-- ✅ `project.name` defined
-- ✅ `project.type` valid (software, infrastructure, application)
-- ✅ `project.issue_system` configured
-- ✅ `project.source_control` configured
+### 2. Workflows Array
+- ✅ `workflows` array exists and is not empty
+- ✅ At least one workflow defined (typically "default")
+- ✅ Each workflow has required fields: `id`, `description`, `phases`, `hooks`, `autonomy`
+- ✅ Workflow IDs are unique
 
-### 3. Workflow Configuration
-- ✅ `workflow.version` is "2.0"
-- ✅ `workflow.manager_skill` is "faber-manager"
-- ✅ `workflow.director_skill` is "faber-director"
+### 3. Workflow Validation (for each workflow)
 
-### 4. Phases (All 5 Required)
+#### Phases (All 5 Required)
 - ✅ **Frame** phase defined with steps
 - ✅ **Architect** phase defined with steps
 - ✅ **Build** phase defined with steps
@@ -69,7 +66,7 @@ For each phase:
 - ✅ `steps` array with at least one step
 - ✅ `validation` criteria defined
 
-### 5. Hooks (10 Phase-Level Hooks)
+#### Hooks (10 Phase-Level Hooks)
 - ✅ `pre_frame` array present
 - ✅ `post_frame` array present
 - ✅ `pre_architect` array present
@@ -86,24 +83,26 @@ For each hook:
 - ✅ Required fields present (name, description)
 - ✅ Referenced files/skills exist
 
-### 6. Autonomy Configuration
+#### Autonomy Configuration
 - ✅ `autonomy.level` valid (dry-run, assist, guarded, autonomous)
 - ✅ `autonomy.pause_before_release` defined
 - ✅ `autonomy.require_approval_for` array present
 
-### 7. Logging Configuration
+### 4. Global Configuration
+
+#### Logging Configuration
 - ✅ `logging.use_logs_plugin` is true
 - ✅ `logging.log_type` is "workflow"
 - ✅ `logging.log_level` valid
 
-### 8. Integrations
+#### Integrations
 - ✅ `integrations.work_plugin` configured
 - ✅ `integrations.repo_plugin` configured
 - ✅ `integrations.spec_plugin` configured
 - ✅ `integrations.logs_plugin` configured
 - ✅ Referenced plugins are installed
 
-### 9. Safety Configuration
+#### Safety Configuration
 - ✅ `safety.protected_paths` defined
 - ✅ `safety.require_confirm_for` defined
 

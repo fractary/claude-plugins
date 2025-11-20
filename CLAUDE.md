@@ -528,45 +528,45 @@ faber-director (lightweight command parser)
 **Configuration Structure**:
 ```json
 {
-  "project": {
-    "name": "my-project",
-    "type": "software",
-    "issue_system": "github",
-    "source_control": "github"
-  },
-  "workflow": {
-    "version": "2.0",
-    "manager_skill": "faber-manager",
-    "director_skill": "faber-director"
-  },
-  "phases": {
-    "frame": { "enabled": true, "steps": [...], "validation": [...] },
-    "architect": { "enabled": true, "steps": [...], "validation": [...] },
-    "build": { "enabled": true, "steps": [...], "validation": [...] },
-    "evaluate": { "enabled": true, "steps": [...], "validation": [...] },
-    "release": { "enabled": true, "steps": [...], "validation": [...] }
-  },
-  "hooks": {
-    "pre_frame": [], "post_frame": [],
-    "pre_architect": [], "post_architect": [],
-    "pre_build": [], "post_build": [],
-    "pre_evaluate": [], "post_evaluate": [],
-    "pre_release": [], "post_release": []
-  },
-  "autonomy": {
-    "level": "guarded",
-    "pause_before_release": true,
-    "require_approval_for": ["release"]
-  },
-  "logging": {
-    "use_logs_plugin": true,
-    "log_type": "workflow"
-  },
+  "schema_version": "2.0",
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow (Issue → Branch → Spec)",
+      "phases": {
+        "frame": { "enabled": true, "steps": [...], "validation": [...] },
+        "architect": { "enabled": true, "steps": [...], "validation": [...] },
+        "build": { "enabled": true, "steps": [...], "validation": [...] },
+        "evaluate": { "enabled": true, "steps": [...], "validation": [...] },
+        "release": { "enabled": true, "steps": [...], "validation": [...] }
+      },
+      "hooks": {
+        "pre_frame": [], "post_frame": [],
+        "pre_architect": [], "post_architect": [],
+        "pre_build": [], "post_build": [],
+        "pre_evaluate": [], "post_evaluate": [],
+        "pre_release": [], "post_release": []
+      },
+      "autonomy": {
+        "level": "guarded",
+        "pause_before_release": true,
+        "require_approval_for": ["release"]
+      }
+    }
+  ],
   "integrations": {
     "work_plugin": "fractary-work",
     "repo_plugin": "fractary-repo",
     "spec_plugin": "fractary-spec",
     "logs_plugin": "fractary-logs"
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_type": "workflow"
+  },
+  "safety": {
+    "protected_paths": [],
+    "require_confirm_for": []
   }
 }
 ```
@@ -577,13 +577,10 @@ faber-director (lightweight command parser)
 
 **Initialization**:
 ```bash
-# Auto-detect project type and generate config
+# Generate default FABER configuration
 /fractary-faber:init
 
-# Or specify project type
-/fractary-faber:init --type software
-/fractary-faber:init --type infrastructure
-/fractary-faber:init --type application
+# Creates .fractary/plugins/faber/config.json with baseline workflow
 ```
 
 **Validation**:
