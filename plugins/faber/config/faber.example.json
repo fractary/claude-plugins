@@ -169,12 +169,13 @@
     ]
   },
       "autonomy": {
-    "level": "guarded",
-    "description": "Autonomy levels: dry-run, assist, guarded, autonomous",
-    "pause_before_release": true,
-    "require_approval_for": [
-      "release"
-    ]
+        "level": "guarded",
+        "description": "Autonomy levels: dry-run, assist, guarded, autonomous",
+        "pause_before_release": true,
+        "require_approval_for": [
+          "release"
+        ],
+        "overrides": {}
       }
     }
   ],
