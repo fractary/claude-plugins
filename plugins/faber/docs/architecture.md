@@ -234,7 +234,7 @@ User
       │               ├─ work-manager (Agent)
       │               └─ repo-manager (Agent)
       └─ /fractary-faber:status (Command)
-          └─ Reads session files
+          └─ Reads workflow state and logs
 ```
 
 ### Invocation Chain Example
@@ -286,61 +286,66 @@ workflow-manager invokes architect skill...
    ├─ Generate work_id: "abc12345"
    └─ Load configuration
 
-3. Session Creation
-   └─ .faber/sessions/abc12345.json
+3. State Creation
+   └─ .fractary/plugins/faber/state.json
        ├─ work_id
        ├─ metadata (source, domain, timestamps)
-       ├─ stages (frame, architect, build, evaluate, release)
+       ├─ current_phase
+       ├─ phases (frame, architect, build, evaluate, release)
        └─ history []
 
 4. Phase Execution
    Each phase:
-   ├─ Update session (stage → started)
+   ├─ Update state (phase → started)
    ├─ Execute phase operations
    ├─ Generate outputs
-   ├─ Update session (stage → completed, data)
+   ├─ Update state (phase → completed, data)
+   ├─ Create workflow log entry (fractary-logs)
    └─ Post status card
 
-5. Session Updates
+5. State Updates
    After each phase:
-   └─ .faber/sessions/abc12345.json
-       ├─ stages.frame.status = "completed"
-       ├─ stages.frame.data = {work_type, branch_name}
-       ├─ stages.architect.status = "completed"
-       ├─ stages.architect.data = {spec_file, spec_url}
-       └─ ...
+   ├─ .fractary/plugins/faber/state.json (current state)
+   │   ├─ phases.frame.status = "completed"
+   │   ├─ phases.frame.data = {work_type, branch_name}
+   │   ├─ phases.architect.status = "completed"
+   │   ├─ phases.architect.data = {spec_file, spec_url}
+   │   └─ ...
+   └─ fractary-logs workflow entry (historical audit trail)
 
 6. Final Output
    ├─ Pull request created
-   ├─ Session file preserved
+   ├─ State file preserved (current workflow state)
+   ├─ Workflow log preserved (complete audit trail)
    └─ Status cards posted
 ```
 
 ### Configuration Flow
 
 ```
-1. Configuration File (.faber.config.toml)
-   ├─ [project] metadata
-   ├─ [defaults] settings
-   ├─ [workflow] behavior
-   └─ [systems.*] platform configs
+1. Configuration File (.fractary/plugins/faber/config.json)
+   ├─ schema_version: "2.0"
+   ├─ workflows[]: Array of workflow configurations
+   ├─ integrations: Plugin references (work, repo, spec, logs)
+   ├─ logging: Workflow logging configuration
+   └─ safety: Protected paths and confirmation rules
 
 2. Config Loader (skills/core/scripts/config-loader.sh)
-   ├─ Reads TOML file
-   ├─ Converts to JSON (Python)
-   ├─ Validates required fields
-   └─ Returns JSON
+   ├─ Reads JSON file from .fractary/plugins/faber/config.json
+   ├─ Validates schema version and required fields
+   ├─ Expands environment variables
+   └─ Returns validated JSON
 
 3. Config Consumption
    Agents/Skills read config:
-   ├─ PROJECT=$(echo $CONFIG | jq -r '.project.name')
-   ├─ ISSUE_SYS=$(echo $CONFIG | jq -r '.project.issue_system')
+   ├─ WORKFLOW=$(echo $CONFIG | jq -r '.workflows[0]')
+   ├─ WORK_PLUGIN=$(echo $CONFIG | jq -r '.integrations.work_plugin')
    └─ Use config values to make decisions
 
 4. Platform Routing
    Skill uses config to route:
-   ├─ FILE_SYSTEM=$(echo $CONFIG | jq -r '.project.file_system')
-   └─ "$SKILL_DIR/scripts/$FILE_SYSTEM/upload.sh"
+   ├─ Determine platform from primitive plugin config
+   └─ "@agent-fractary-repo:repo-manager" handles routing internally
 ```
 
 ### Session State Flow
@@ -379,36 +384,56 @@ Phase Transitions:
 - Node.js: Requires npm, async complexity
 - Inline bash in agents: Context explosion
 
-### Why TOML for Configuration?
+### Why JSON for Configuration?
 
-**Decision**: Use TOML format for `.faber.config.toml`
+**Decision**: Use JSON format for `.fractary/plugins/faber/config.json` (v2.0)
 
 **Rationale**:
-- Human-readable and editable
-- Supports comments (unlike JSON)
-- Standard for project config (like Cargo.toml, pyproject.toml)
-- Easy conversion to JSON for processing
+- Native processing without conversion (direct jq usage)
+- Standard plugin configuration format across all Fractary plugins
+- Supports complex nested structures (workflows array, phase configurations)
+- Easy validation with JSON Schema
+- No parsing errors from indentation or special characters
+- Consistent with plugin ecosystem standards
+
+**Evolution from v1.x**:
+- v1.x used TOML (`.faber.config.toml`) for human-readability
+- v2.0 switched to JSON for consistency, validation, and zero-conversion overhead
+- Migration guide available at MIGRATION-v2.md
 
 **Alternatives Considered**:
-- JSON: No comments, less readable
-- YAML: Indentation issues, complex spec
+- TOML: Requires Python conversion, inconsistent with plugin ecosystem
+- YAML: Indentation issues, complex spec, parsing complexity
 - Custom format: Non-standard, reinventing wheel
 
-### Why Session Files?
+### Why Dual-State Tracking?
 
-**Decision**: Store workflow state in JSON session files
+**Decision**: Use both current state file and historical workflow logs (v2.0)
 
 **Rationale**:
-- Persistent across phases
-- Debuggable (just read the JSON file)
-- Resumable (can continue after failure)
-- Audit trail for compliance
-- No database needed
+- **Current State** (`.fractary/plugins/faber/state.json`):
+  - Single-workflow state for resume/retry
+  - Lightweight, always current
+  - Enables workflow continuation after interruption
+- **Historical Logs** (fractary-logs plugin):
+  - Complete audit trail across all workflows
+  - Searchable history with timestamps
+  - Compliance and debugging support
+  - Parallel workflow tracking
+
+**Benefits of Dual Approach**:
+- Separation of concerns (current vs historical)
+- No state file accumulation (only one current state)
+- Rich historical data without state file bloat
+- Integration with logging infrastructure
 
 **Alternatives Considered**:
+- Session files per workflow (v1.x): Accumulation problem, no centralized history
 - In-memory only: Lost on crash
 - Database: Overkill, adds dependency
 - Git commits: Clutters history
+
+See [STATE-TRACKING.md](STATE-TRACKING.md) for detailed implementation.
 
 ### Why 3 Layers?
 
@@ -439,6 +464,30 @@ Phase Transitions:
 - No retries: Fail immediately (too brittle)
 - Unlimited retries: Risk infinite loop
 - Manual retry only: More user intervention
+
+### Why Prompt Customization?
+
+**Decision**: Support custom execution patterns in phase prompts (v2.0)
+
+**Rationale**:
+- Different teams have different workflow preferences
+- Some phases benefit from guided step-by-step execution
+- Flexible prompt patterns without code changes
+- Supports autonomous, guided, and step-by-step execution modes
+
+**Supported Patterns**:
+- **Autonomous**: Phase executes completely without user interaction
+- **Guided**: Phase executes with periodic user confirmation
+- **Step-by-step**: Each operation requires explicit user approval
+- **Custom**: Project-specific patterns defined in configuration
+
+**Benefits**:
+- Configurable autonomy level per phase
+- No skill code changes needed
+- Project-specific workflow customization
+- Guardrails for production changes
+
+See [PROMPT-CUSTOMIZATION.md](PROMPT-CUSTOMIZATION.md) for detailed implementation.
 
 ## Context Efficiency
 
@@ -518,21 +567,24 @@ mkdir -p skills/repo-manager/scripts/gitlab/
 # No code changes needed - routing is automatic!
 ```
 
-**Step 3: Add Configuration** (Config)
-```toml
-# config/faber.example.toml
-[project]
-repo_system = "gitlab"  # New option
-
-[systems.repo_config]
-gitlab_url = "https://gitlab.com"
-gitlab_token = "${GITLAB_TOKEN}"
+**Step 3: Update Repo Plugin Configuration**
+```json
+// .fractary/plugins/repo/config.json
+{
+  "platform": "gitlab",
+  "gitlab": {
+    "url": "${GITLAB_URL}",
+    "token": "${GITLAB_TOKEN}"
+  }
+}
 ```
+
+Note: Platform-specific configuration lives in the primitive plugin (fractary-repo), not in FABER config.
 
 **Step 4: Test**
 ```bash
-# Set config
-repo_system = "gitlab"
+# Update repo plugin configuration
+# Edit .fractary/plugins/repo/config.json to set platform = "gitlab"
 
 # Run workflow - automatically uses GitLab scripts!
 /faber:run 123
@@ -551,9 +603,14 @@ mkdir -p domains/design/
 ```
 
 **Step 2: Update Configuration**
-```toml
-[defaults]
-work_domain = "design"
+```json
+// .fractary/plugins/faber/config.json
+{
+  "workflows": [{
+    "id": "design-workflow",
+    "description": "Design-focused FABER workflow"
+  }]
+}
 ```
 
 **Step 3: Domain-Specific Workflows**
@@ -594,12 +651,13 @@ Total:                ~11-29 minutes
 ### Scalability
 
 **Current Limits**:
-- Session files: ~1KB each (1M sessions = 1GB)
+- State file: Single file, ~1-2KB (one active workflow)
+- Workflow logs: ~1KB per workflow (managed by fractary-logs plugin)
 - Concurrent workflows: Limited by LLM rate limits
 - Repository size: No hard limit (uses git)
 
 **Future Scaling**:
-- Session database for large teams
+- Multi-workflow state management for parallel workflows
 - Distributed execution for parallel workflows
 - Caching layer for codebase analysis
 
@@ -619,9 +677,10 @@ Total:                ~11-29 minutes
 
 ### Audit Trail
 
-- Complete session history
-- All operations logged
+- Complete workflow history via fractary-logs plugin
+- All operations logged with timestamps
 - Git commits traceable to work items
+- Dual-state tracking for current and historical data
 
 ## See Also
 

@@ -90,47 +90,61 @@ Add your Claude Code OAuth token to repository secrets:
 
 ### 3. Create FABER Configuration
 
-Create `.faber.config.toml` in your repository root:
+Create `.fractary/plugins/faber/config.json` in your repository:
 
-```toml
-[project]
-name = "my-project"
-issue_system = "github"
-source_control = "github"
-
-[defaults]
-preset = "software-guarded"
-autonomy = "guarded"  # Recommended: requires approval before release
-
-[workflow]
-max_evaluate_retries = 3
-auto_merge = false    # Require manual merge for safety
-
-[safety]
-require_confirm_for = ["release", "merge_to_main"]
-protected_paths = [".github/**", "*.env", "secrets/**"]
-
-[systems.work_config]
-platform = "github"
-
-[systems.repo_config]
-platform = "github"
-default_branch = "main"
+```json
+{
+  "schema_version": "2.0",
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow",
+      "phases": {
+        "frame": { "enabled": true },
+        "architect": { "enabled": true },
+        "build": { "enabled": true },
+        "evaluate": { "enabled": true },
+        "release": { "enabled": true }
+      },
+      "autonomy": {
+        "level": "guarded",
+        "pause_before_release": true,
+        "require_approval_for": ["release"]
+      }
+    }
+  ],
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs"
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_type": "workflow"
+  },
+  "safety": {
+    "protected_paths": [".github/**", "*.env", "secrets/**"],
+    "require_confirm_for": ["release", "merge_to_main"]
+  }
+}
 ```
-
-**Presets available** in `plugins/faber/presets/`:
-- `software-guarded.toml` - Recommended for production (requires approval)
-- `software-autonomous.toml` - Fully automated (use with caution)
-- `software-assist.toml` - Stops before release
-- `software-dryrun.toml` - Simulation only
 
 **Quick setup:**
 ```bash
-cp plugins/faber/presets/software-guarded.toml .faber.config.toml
-git add .faber.config.toml
+# Initialize FABER configuration
+/fractary-faber:init
+
+# Or copy from example template
+cp plugins/faber/config/faber.example.json .fractary/plugins/faber/config.json
+
+# Commit configuration
+git add .fractary/plugins/faber/config.json
 git commit -m "Add FABER configuration"
 git push
 ```
+
+**Note**: v2.0 uses JSON configuration (`.fractary/plugins/faber/config.json`). If you have a v1.x TOML config (`.faber.config.toml`), see [MIGRATION-v2.md](MIGRATION-v2.md) for upgrade instructions.
 
 ### 4. Try It Out
 
@@ -149,9 +163,14 @@ git push
 Control how much automation FABER applies:
 
 #### `dry-run` - Simulation Only
-```toml
-[defaults]
-autonomy = "dry-run"
+```json
+{
+  "workflows": [{
+    "autonomy": {
+      "level": "dry-run"
+    }
+  }]
+}
 ```
 - Simulates all phases
 - **No actual changes made**
@@ -159,9 +178,15 @@ autonomy = "dry-run"
 - Ideal for testing
 
 #### `assist` - Stops Before Release
-```toml
-[defaults]
-autonomy = "assist"
+```json
+{
+  "workflows": [{
+    "autonomy": {
+      "level": "assist",
+      "stop_before": "release"
+    }
+  }]
+}
 ```
 - Executes Frame → Architect → Build → Evaluate
 - **Stops before Release**
@@ -169,9 +194,16 @@ autonomy = "assist"
 - Good for learning FABER
 
 #### `guarded` - Pauses at Release (Recommended)
-```toml
-[defaults]
-autonomy = "guarded"
+```json
+{
+  "workflows": [{
+    "autonomy": {
+      "level": "guarded",
+      "pause_before_release": true,
+      "require_approval_for": ["release"]
+    }
+  }]
+}
 ```
 - Executes all phases
 - **Pauses at Release for approval**
@@ -180,9 +212,14 @@ autonomy = "guarded"
 - **Recommended for production use**
 
 #### `autonomous` - Fully Automated
-```toml
-[defaults]
-autonomy = "autonomous"
+```json
+{
+  "workflows": [{
+    "autonomy": {
+      "level": "autonomous"
+    }
+  }]
+}
 ```
 - Executes all phases without pausing
 - Creates PR and optionally merges
@@ -193,37 +230,48 @@ autonomy = "autonomous"
 
 Protect critical files and operations:
 
-```toml
-[safety]
-# Operations requiring explicit approval
-require_confirm_for = [
-    "release",
-    "merge_to_main",
-    "deploy_production"
-]
-
-# Files that should never be auto-modified
-protected_paths = [
-    ".github/**",           # Workflow files
-    "*.env",                # Environment files
-    "**/.env*",             # Hidden env files
-    "secrets/**",           # Secrets directory
-    "**/credentials*",      # Credential files
-    "infra/prod/**",        # Production infrastructure
-    "terraform.tfstate"     # Terraform state
-]
+```json
+{
+  "safety": {
+    "require_confirm_for": [
+      "release",
+      "merge_to_main",
+      "deploy_production"
+    ],
+    "protected_paths": [
+      ".github/**",
+      "*.env",
+      "**/.env*",
+      "secrets/**",
+      "**/credentials*",
+      "infra/prod/**",
+      "terraform.tfstate"
+    ]
+  }
+}
 ```
 
 ### Workflow Settings
 
-Control retry behavior and merging:
+Control retry behavior in phase configuration:
 
-```toml
-[workflow]
-max_evaluate_retries = 3          # Retry build+evaluate up to 3 times
-auto_merge = false                # Require manual merge
-auto_close_work_item = true       # Close issue when PR merged
-create_commit_per_phase = false   # Single commit vs. multiple
+```json
+{
+  "workflows": [{
+    "phases": {
+      "evaluate": {
+        "enabled": true,
+        "max_retries": 3,
+        "retry_on_failure": true
+      },
+      "release": {
+        "enabled": true,
+        "auto_merge": false,
+        "auto_close_work_item": true
+      }
+    }
+  }]
+}
 ```
 
 ---
@@ -347,7 +395,7 @@ Progress:
 - Evaluate: pending
 - Release: pending
 
-Session File: .faber/sessions/abc12345.json
+State File: .fractary/plugins/faber/state.json
 ```
 
 ### 4. Control Commands
@@ -528,7 +576,7 @@ Pending:
 ○ Release
 
 Last Update: 30 seconds ago
-Session: .faber/sessions/abc12345.json
+State: .fractary/plugins/faber/state.json
 ```
 
 ### Example 4: Test and Retry
@@ -593,18 +641,21 @@ FABER requires a configuration file to run.
 
 Setup Instructions:
 
-1. Create configuration in repository root:
-   cp plugins/faber/presets/software-guarded.toml .faber.config.toml
+1. Initialize configuration:
+   /fractary-faber:init
 
-2. Customize settings (optional):
-   vim .faber.config.toml
+2. Or copy example template:
+   cp plugins/faber/config/faber.example.json .fractary/plugins/faber/config.json
 
-3. Commit the configuration:
-   git add .faber.config.toml
+3. Customize settings (optional):
+   vim .fractary/plugins/faber/config.json
+
+4. Commit the configuration:
+   git add .fractary/plugins/faber/config.json
    git commit -m "Add FABER configuration"
    git push
 
-4. Mention @faber again to start workflow
+5. Mention @faber again to start workflow
 
 Documentation:
 - [FABER Setup Guide](https://docs.fractary.com/faber/setup)
@@ -634,7 +685,7 @@ These are **repository-level permissions**. The workflow can only modify the rep
 
 #### 1. Configuration-Based Safety
 
-All safety rules are defined in `.faber.config.toml`:
+All safety rules are defined in `.fractary/plugins/faber/config.json`:
 - Protected paths prevent modification
 - Confirmation gates require approval
 - Autonomy levels control automation degree
@@ -643,17 +694,22 @@ All safety rules are defined in `.faber.config.toml`:
 
 Default protected paths (never auto-modified):
 
-```toml
-protected_paths = [
-    ".github/**",           # Workflow files
-    "*.env",                # Environment files
-    "**/.env*",             # Hidden env files
-    "secrets/**",           # Secrets directory
-    "**/credentials*",      # Credential files
-    "infra/prod/**",        # Production infrastructure
-    "terraform.tfstate",    # Terraform state
-    "*.pem", "*.key"        # Certificate/key files
-]
+```json
+{
+  "safety": {
+    "protected_paths": [
+      ".github/**",
+      "*.env",
+      "**/.env*",
+      "secrets/**",
+      "**/credentials*",
+      "infra/prod/**",
+      "terraform.tfstate",
+      "*.pem",
+      "*.key"
+    ]
+  }
+}
 ```
 
 Add project-specific paths as needed.
@@ -677,7 +733,8 @@ Operations requiring explicit approval (in guarded mode):
 
 All workflow activity is logged:
 - Issue comments show every phase completion
-- Session state persisted in `.faber/sessions/{work_id}.json`
+- Current state in `.fractary/plugins/faber/state.json`
+- Historical logs via fractary-logs plugin
 - All commits reference issue ID
 - PRs link back to original issue
 
@@ -704,8 +761,8 @@ All workflow activity is logged:
 ```
 
 **Solution:**
-1. Create `.faber.config.toml` in repository root
-2. Use a preset: `cp plugins/faber/presets/software-guarded.toml .faber.config.toml`
+1. Initialize FABER configuration: `/fractary-faber:init`
+2. Or copy template: `cp plugins/faber/config/faber.example.json .fractary/plugins/faber/config.json`
 3. Commit and push
 4. Try mentioning `@faber` again
 
@@ -717,10 +774,11 @@ All workflow activity is logged:
 ```
 
 **Solution:**
-1. Check TOML syntax: https://www.toml-lint.com/
+1. Check JSON syntax: https://jsonlint.com/
 2. Review error message for specific issues
-3. Compare with example: `plugins/faber/config/faber.example.toml`
-4. Check required fields: `project.name`, `project.issue_system`, `project.source_control`
+3. Compare with example: `plugins/faber/config/faber.example.json`
+4. Validate schema version is "2.0"
+5. Check required fields: `workflows`, `integrations`
 
 ### Permission Errors
 
@@ -755,7 +813,7 @@ Failed to fetch issue #123
 
 **Solution:**
 1. Check GitHub Actions logs for details
-2. Review session file: `.faber/sessions/{work_id}.json`
+2. Review state file: `.fractary/plugins/faber/state.json`
 3. Check error message in issue comments
 4. Fix the underlying issue
 5. Retry: `@faber retry`
@@ -769,9 +827,9 @@ No active workflow session found
 
 **Solution:**
 1. Start a workflow first: `@faber run this issue`
-2. Check if session file exists: `.faber/sessions/`
-3. Work ID might be from different issue
-4. Session might have been cleaned up (old workflows)
+2. Check if state file exists: `.fractary/plugins/faber/state.json`
+3. State file tracks single active workflow
+4. Check workflow logs via fractary-logs plugin for historical data
 
 ### Approval Not Working
 
@@ -782,16 +840,16 @@ No active workflow session found
 
 **Solution:**
 1. Check workflow is actually paused: `@faber status`
-2. Verify autonomy mode is `guarded` in config
+2. Verify autonomy level is "guarded" in config
 3. Ensure workflow reached release phase
-4. Check session state in `.faber/sessions/{work_id}.json`
+4. Check state in `.fractary/plugins/faber/state.json`
 
 ### Getting Help
 
 If you encounter issues not covered here:
 
 1. **Check logs**: GitHub Actions → FABER Workflow → View run details
-2. **Review session**: `.faber/sessions/{work_id}.json`
+2. **Review state**: `.fractary/plugins/faber/state.json`
 3. **Check documentation**: `plugins/faber/docs/`
 4. **Create issue**: https://github.com/fractary/claude-plugins/issues
 5. **Community**: [Discord](https://discord.gg/fractary)
@@ -817,10 +875,10 @@ Each command creates a new work_id and session.
 
 ### Custom Workflows
 
-Override configuration per-issue by editing `.faber.config.toml` in a branch:
+Override configuration per-issue by editing `.fractary/plugins/faber/config.json` in a branch:
 
 1. Create branch: `config-changes`
-2. Edit `.faber.config.toml`
+2. Edit `.fractary/plugins/faber/config.json`
 3. Push branch
 4. Create issue referencing the branch
 5. `@faber run this issue` will use branch config
@@ -865,7 +923,7 @@ See [Claude Code Pricing](https://claude.com/pricing).
 
 ### Can FABER work with monorepos?
 
-**Yes.** Configure paths and modules in `.faber.config.toml`. FABER respects your project structure.
+**Yes.** Configure paths and modules in `.fractary/plugins/faber/config.json`. FABER respects your project structure.
 
 ### Does FABER support multiple languages?
 
@@ -875,24 +933,27 @@ See [Claude Code Pricing](https://claude.com/pricing).
 
 ## Version History
 
+- **v2.0.0** (2025-11-20): FABER v2.0 Architecture
+  - Universal workflow-manager (60% context reduction)
+  - JSON configuration (`.fractary/plugins/faber/config.json`)
+  - Dual-state tracking (state + logs)
+  - Prompt customization support
+  - Phase-level hooks
+
 - **v1.1.0** (2025-10-31): GitHub integration added
   - `@faber` mention support
   - Intent parsing (full workflow, single phase, status, control)
   - Status card posting to issues
   - Approval workflow for guarded mode
 
-- **v1.0.1** (2025-10-30): Core FABER framework
-  - Frame → Architect → Build → Evaluate → Release workflow
-  - Session management
-  - Configuration system
-  - Autonomy levels
-
 ---
 
 ## Additional Resources
 
 - **FABER Architecture**: `specs/SPEC-00002-faber-architecture.md`
-- **Configuration Reference**: `plugins/faber/config/faber.example.toml`
+- **Configuration Reference**: `plugins/faber/config/faber.example.json`
+- **Configuration Guide**: `plugins/faber/docs/configuration.md`
+- **Migration Guide**: `plugins/faber/docs/MIGRATION-v2.md`
 - **Command Reference**: `plugins/faber/commands/`
 - **Agent Documentation**: `plugins/faber/agents/`
 - **Plugin Standards**: `docs/standards/FRACTARY-PLUGIN-STANDARDS.md`

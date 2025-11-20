@@ -63,7 +63,7 @@ Pull Request / Production
 - Work item details (title, description, labels)
 - Work type classification (/bug, /feature, /chore, /patch)
 - Git branch created
-- Session initialized
+- State initialized
 
 **Operations**:
 1. Fetch work item from tracking system
@@ -71,9 +71,9 @@ Pull Request / Production
 3. Classify work type based on labels/content
 4. Generate branch name (e.g., `feat/123-add-authentication`)
 5. Create git branch from default branch
-6. Create session file (`.faber/sessions/<work_id>.json`)
+6. Create state file (`.fractary/plugins/faber/state.json`)
 7. Post Frame start status card
-8. Update session with Frame complete
+8. Update state with Frame complete
 
 **Time**: ~1-2 minutes
 
@@ -101,7 +101,7 @@ Pull Request / Production
 5. Commit specification to branch
 6. Upload specification to storage (if configured)
 7. Post Architect status with spec URL
-8. Update session with Architect complete
+8. Update state with Architect complete
 
 **Specification Contents**:
 - Work item summary
@@ -139,7 +139,7 @@ Pull Request / Production
 6. Commit changes with semantic message
 7. Push branch to remote
 8. Post Build status
-9. Update session with Build complete
+9. Update state with Build complete
 
 **Commit Message Format**:
 ```
@@ -178,13 +178,13 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 3. Validate against specification
 4. Make GO/NO-GO decision
 5. If NO-GO and retries remain:
-   - Update session with NO-GO
+   - Update state with NO-GO
    - Return to Build phase
 6. If NO-GO and no retries remain:
    - Fail workflow
 7. If GO:
    - Post Evaluate success
-   - Update session with GO decision
+   - Update state with GO decision
    - Proceed to Release
 
 **Decision Criteria**:
@@ -225,7 +225,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
    - Merge pull request
    - Delete branch (optional)
 6. Post Release complete status
-7. Update session with Release complete
+7. Update state with Release complete
 
 **Pull Request Format**:
 ```markdown
@@ -363,9 +363,18 @@ Build ──→ Evaluate ──→ GO ──→ Release
 
 ### Retry Configuration
 
-```toml
-[workflow]
-max_evaluate_retries = 3  # Default
+```json
+{
+  "workflows": [{
+    "phases": {
+      "evaluate": {
+        "enabled": true,
+        "max_retries": 3,
+        "retry_on_failure": true
+      }
+    }
+  }]
+}
 ```
 
 **Values**:
@@ -378,16 +387,16 @@ max_evaluate_retries = 3  # Default
 
 **On NO-GO Decision**:
 1. Increment retry counter
-2. Check if retry_count < max_evaluate_retries
+2. Check if retry_count < max_retries
 3. If yes:
-   - Update session with retry_count
+   - Update state with retry_count
    - Return to Build phase
    - Re-implement with evaluation feedback
    - Run Evaluate again
 4. If no:
    - Fail workflow
    - Post error status card
-   - Preserve session for debugging
+   - Preserve state for debugging
 
 **What Changes on Retry**:
 - Build phase re-executes with evaluation feedback
@@ -398,15 +407,15 @@ max_evaluate_retries = 3  # Default
 **What Doesn't Change**:
 - Frame data (work item, branch)
 - Architect data (specification)
-- Session metadata
+- Workflow metadata
 
 ### Retry Tracking
 
-Session file tracks retries:
+State file tracks retries:
 
 ```json
 {
-  "stages": {
+  "phases": {
     "build": {
       "status": "completed",
       "data": {
@@ -424,17 +433,21 @@ Session file tracks retries:
 }
 ```
 
-## Session Management
+## State Management
 
-### Session Files
+### Dual-State Tracking (v2.0)
 
-Location: `.faber/sessions/<work_id>.json`
+FABER v2.0 uses a dual-state tracking approach for optimal workflow management:
+
+#### Current State
+
+**Location**: `.fractary/plugins/faber/state.json`
 
 **Purpose**:
-- Track workflow state across phases
+- Track current workflow state
 - Enable workflow resumption
-- Provide audit trail
-- Debug workflow issues
+- Single active workflow tracking
+- Lightweight and always current
 
 **Format**:
 ```json
@@ -447,11 +460,12 @@ Location: `.faber/sessions/<work_id>.json`
     "created_at": "2025-10-22T10:30:00Z",
     "updated_at": "2025-10-22T10:45:00Z"
   },
-  "stages": {
+  "current_phase": "build",
+  "phases": {
     "frame": {
       "status": "completed",
       "data": {
-        "work_type": "/feature",
+        "work_type": "feature",
         "branch_name": "feat/123-add-auth"
       }
     },
@@ -463,70 +477,72 @@ Location: `.faber/sessions/<work_id>.json`
       }
     },
     "build": {
-      "status": "completed",
+      "status": "in_progress",
       "data": {
         "retry_count": 0
       }
     },
     "evaluate": {
-      "status": "completed",
-      "data": {
-        "decision": "go",
-        "retry_count": 0
-      }
+      "status": "pending"
     },
     "release": {
-      "status": "completed",
-      "data": {
-        "pr_url": "https://github.com/org/repo/pull/45",
-        "pr_number": 45
-      }
+      "status": "pending"
     }
   },
-  "history": [
-    {
-      "timestamp": "2025-10-22T10:30:00Z",
-      "stage": "frame",
-      "status": "started"
-    },
-    {
-      "timestamp": "2025-10-22T10:32:00Z",
-      "stage": "frame",
-      "status": "completed"
-    }
-    // ... more history
-  ]
+  "history": []
 }
 ```
 
-### Session Lifecycle
+#### Historical Logs
 
-1. **Create**: Session created at workflow start (Frame phase)
+**Location**: Managed by `fractary-logs` plugin
+
+**Purpose**:
+- Complete audit trail across all workflows
+- Searchable historical data
+- Compliance and debugging
+- Parallel workflow tracking
+
+**Benefits of Dual Approach**:
+- **Current State**: Always reflects single active workflow, enables resume
+- **Historical Logs**: Complete audit trail, no accumulation in state file
+- **Separation of Concerns**: Current vs. historical tracking
+- **Scalability**: Single state file + centralized log management
+
+See [STATE-TRACKING.md](STATE-TRACKING.md) for detailed implementation.
+
+### State Lifecycle
+
+1. **Create**: State created at workflow start (Frame phase)
 2. **Update**: Updated after each phase completes
 3. **Query**: Can be queried via `/faber:status`
-4. **Preserve**: Persists after workflow completes (success or failure)
+4. **Complete**: State preserved, workflow logged to fractary-logs
+5. **New Workflow**: State overwritten for next workflow
 
-### Session Operations
+### State Operations
 
-**Create Session**:
+**Create State**:
 ```bash
-# Automatically created by director
-# Via: skills/core/scripts/session-create.sh
+# Automatically created by workflow-manager
+# Via: skills/core scripts
 ```
 
-**Update Session**:
+**Update State**:
 ```bash
 # Automatically updated after each phase
-# Via: skills/core/scripts/session-update.sh
+# Via: skills/core scripts
 ```
 
-**Query Session**:
+**Query State**:
 ```bash
 # View status
-/faber:status abc12345
+/faber:status
 
-# Raw session file
-cat .faber/sessions/abc12345.json
+# Raw state file
+cat .fractary/plugins/faber/state.json
+
+# View historical logs
+# (via fractary-logs plugin commands)
 ```
 
 ## Status Cards
@@ -653,8 +669,8 @@ To approve:
 # Check what failed
 /faber:status abc12345
 
-# View session details
-cat .faber/sessions/abc12345.json | jq .
+# View state details
+cat .fractary/plugins/faber/state.json | jq .
 
 # Fix issues manually
 
@@ -895,7 +911,7 @@ Steps with skills can use prompts to customize behavior:
 4. **Check status frequently** during execution
 5. **Keep max_evaluate_retries reasonable** (2-4)
 6. **Test with dry-run first** when trying new configurations
-7. **Preserve session files** for audit trail
+7. **Preserve workflow logs** for audit trail (via fractary-logs plugin)
 8. **Use descriptive issue titles** for better branch names
 9. **Add prompts for clarity** when steps don't use skills
 10. **Customize with prompts** before forking plugins
