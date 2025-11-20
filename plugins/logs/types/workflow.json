@@ -1,0 +1,213 @@
+{
+  "type": "workflow",
+  "version": "1.0",
+  "description": "FABER workflow execution logs for historical tracking",
+  "schema": {
+    "type": "object",
+    "required": ["timestamp", "work_id", "event_type", "phase"],
+    "properties": {
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Event timestamp (ISO 8601)"
+      },
+      "work_id": {
+        "type": "string",
+        "description": "Work item identifier"
+      },
+      "issue_number": {
+        "type": "string",
+        "description": "External issue number"
+      },
+      "event_type": {
+        "type": "string",
+        "enum": [
+          "workflow_start",
+          "workflow_complete",
+          "workflow_fail",
+          "workflow_cancel",
+          "phase_start",
+          "phase_complete",
+          "phase_fail",
+          "step_start",
+          "step_complete",
+          "step_fail",
+          "hook_execute",
+          "approval_request",
+          "approval_granted",
+          "approval_denied",
+          "retry_attempt",
+          "artifact_create",
+          "error"
+        ],
+        "description": "Type of workflow event"
+      },
+      "phase": {
+        "type": "string",
+        "enum": ["frame", "architect", "build", "evaluate", "release", "none"],
+        "description": "FABER phase where event occurred"
+      },
+      "step": {
+        "type": "string",
+        "description": "Sub-step within phase (if applicable)"
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable event message"
+      },
+      "details": {
+        "type": "object",
+        "description": "Event-specific details",
+        "additionalProperties": true
+      },
+      "artifacts": {
+        "type": "array",
+        "description": "Artifacts created/modified",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["branch", "spec", "commit", "pr", "deployment", "tag", "document"]
+            },
+            "path": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error information (if event_type is error or *_fail)",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": "string"
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "description": "Additional metadata",
+        "properties": {
+          "autonomy_level": {
+            "type": "string"
+          },
+          "retry_count": {
+            "type": "integer"
+          },
+          "duration_ms": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "timestamp": "2025-11-19T15:00:00Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "workflow_start",
+      "phase": "none",
+      "message": "Starting FABER workflow for issue #158",
+      "details": {
+        "config_version": "2.0",
+        "manager_skill": "faber-manager"
+      },
+      "metadata": {
+        "autonomy_level": "guarded"
+      }
+    },
+    {
+      "timestamp": "2025-11-19T15:01:00Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "phase_start",
+      "phase": "frame",
+      "message": "Starting Frame phase",
+      "details": {
+        "steps": ["fetch-work", "classify", "setup-env"]
+      }
+    },
+    {
+      "timestamp": "2025-11-19T15:02:00Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "step_complete",
+      "phase": "frame",
+      "step": "fetch-work",
+      "message": "Fetched work item details from GitHub",
+      "details": {
+        "issue_title": "Review faber workflow configuration",
+        "issue_type": "feature"
+      },
+      "metadata": {
+        "duration_ms": 1500
+      }
+    },
+    {
+      "timestamp": "2025-11-19T15:10:00Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "artifact_create",
+      "phase": "frame",
+      "step": "setup-env",
+      "message": "Created branch feat/158-review-faber-workflow-config",
+      "artifacts": [
+        {
+          "type": "branch",
+          "path": "feat/158-review-faber-workflow-config"
+        }
+      ]
+    },
+    {
+      "timestamp": "2025-11-19T15:10:30Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "phase_complete",
+      "phase": "frame",
+      "message": "Frame phase completed successfully",
+      "metadata": {
+        "duration_ms": 570000
+      }
+    },
+    {
+      "timestamp": "2025-11-19T15:11:00Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "hook_execute",
+      "phase": "architect",
+      "message": "Executing pre_architect hook: architecture-standards",
+      "details": {
+        "hook_type": "document",
+        "hook_path": "docs/architecture/STANDARDS.md"
+      }
+    },
+    {
+      "timestamp": "2025-11-19T15:45:00Z",
+      "work_id": "158",
+      "issue_number": "158",
+      "event_type": "approval_request",
+      "phase": "release",
+      "message": "Approval required before proceeding with release",
+      "details": {
+        "reason": "autonomy_level=guarded requires approval for release phase"
+      }
+    }
+  ],
+  "storage": {
+    "default_path": "logs/workflow/",
+    "file_naming": "{year}/{month}/workflow-{work_id}-{timestamp}.json",
+    "retention_days": 90,
+    "archive_after_days": 30
+  }
+}
