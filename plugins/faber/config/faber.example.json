@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/config.schema.json",
   "schema_version": "2.0",
+  "_comment": "IMPORTANT: Always keep the 'default' workflow. Custom workflows should be ADDED to this array, not replace the default workflow.",
   "workflows": [
     {
       "id": "default",

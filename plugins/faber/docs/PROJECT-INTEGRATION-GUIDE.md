@@ -81,6 +81,29 @@ Map your workflow steps to FABER's 5 phases:
 
 Edit `.fractary/plugins/faber/config.json` to match your tools.
 
+#### ⚠️ Important: Adding Custom Workflows
+
+If you need to add custom workflows for specific scenarios (e.g., hotfix, infrastructure, documentation), **always keep the default workflow**:
+
+```json
+{
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow"
+      // KEEP THIS - it's your baseline workflow
+    },
+    {
+      "id": "hotfix",
+      "description": "Expedited workflow for critical patches"
+      // ADD custom workflows alongside default
+    }
+  ]
+}
+```
+
+The default workflow is your fallback for general development and serves as a reference implementation.
+
 See complete example: `plugins/faber/config/faber.example.json`
 
 ### Step 5: Add Hooks for Existing Scripts

@@ -13,6 +13,51 @@ Specialized FABER plugins (like `faber-cloud`, `faber-app`) extend the core FABE
 
 **Key principle**: All workflows centralize in `.fractary/plugins/faber/config.json` for unified management and easy GitHub app integration.
 
+## ⚠️ Critical: Preserve the Default Workflow
+
+**IMPORTANT**: When adding custom workflows, **ALWAYS keep the default workflow**. Custom workflows should be **added alongside** the default workflow, not replace it.
+
+**Why keep the default workflow?**
+- ✅ Provides a standard software development baseline that works for most issues
+- ✅ Gives teams a fallback for general development tasks
+- ✅ Serves as a reference implementation for custom workflows
+- ✅ Ensures FABER works out-of-the-box even with custom plugins installed
+
+**Example of correct workflows array:**
+```json
+{
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)"
+      // ... default workflow is RETAINED
+    },
+    {
+      "id": "cloud",
+      "description": "Infrastructure workflow (Terraform → Deploy → Monitor)"
+      // ... custom workflow is ADDED
+    },
+    {
+      "id": "hotfix",
+      "description": "Expedited workflow for critical patches"
+      // ... another custom workflow is ADDED
+    }
+  ]
+}
+```
+
+**How to use multiple workflows:**
+```bash
+# Use default workflow (general development)
+/fractary-faber:run 123
+
+# Use cloud workflow (infrastructure changes)
+/fractary-faber:run 456 --workflow cloud
+
+# Use hotfix workflow (critical patches)
+/fractary-faber:run 789 --workflow hotfix
+```
+
 ## Architecture
 
 ### Core FABER (baseline)
@@ -321,6 +366,13 @@ function initFaberCloudWorkflow() {
   // 2. Load existing config
   const config = readJSON(coreConfigPath)
 
+  // 2a. CRITICAL: Verify default workflow exists
+  const defaultWorkflow = config.workflows.find(w => w.id === 'default')
+  if (!defaultWorkflow) {
+    error("Default workflow not found. This should never happen. Re-run /fractary-faber:init")
+    return
+  }
+
   // 3. Check for duplicates
   const existingCloud = config.workflows.find(w => w.id === 'cloud')
   if (existingCloud) {
@@ -331,13 +383,13 @@ function initFaberCloudWorkflow() {
   // 4. Load cloud workflow template
   const cloudWorkflow = readJSON('plugins/faber-cloud/docs/workflows/cloud.json')
 
-  // 5. Add to workflows array
+  // 5. Add to workflows array (PRESERVE default workflow)
   if (existingCloud) {
-    // Replace existing
+    // Replace existing cloud workflow ONLY (keep default!)
     const index = config.workflows.findIndex(w => w.id === 'cloud')
     config.workflows[index] = cloudWorkflow
   } else {
-    // Add new
+    // Add new cloud workflow alongside default
     config.workflows.push(cloudWorkflow)
   }
 

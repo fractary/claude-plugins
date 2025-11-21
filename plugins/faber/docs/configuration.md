@@ -96,10 +96,50 @@ The configuration uses JSON format and follows the standard Fractary plugin conf
 
 ### Workflows Array
 
-Projects can define multiple workflows for different scenarios:
-- **default** - Standard feature development
-- **hotfix** - Fast-track critical fixes
-- **documentation** - Docs-only changes
+Projects can define multiple workflows for different scenarios. The `/fractary-faber:init` command creates a baseline configuration with the **default** workflow.
+
+#### ⚠️ Important: Always Keep the Default Workflow
+
+**CRITICAL**: The default workflow should **ALWAYS be retained** even when adding custom workflows. Custom workflows are **added alongside** the default workflow, not as replacements.
+
+**Example of correct configuration:**
+```json
+{
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard feature development"
+      // ... ALWAYS RETAINED as baseline workflow
+    },
+    {
+      "id": "hotfix",
+      "description": "Fast-track critical fixes"
+      // ... custom workflow ADDED
+    },
+    {
+      "id": "documentation",
+      "description": "Docs-only changes"
+      // ... another custom workflow ADDED
+    }
+  ]
+}
+```
+
+**Why keep the default workflow?**
+- ✅ Provides a working baseline for general development tasks
+- ✅ Serves as fallback when custom workflows don't apply
+- ✅ Acts as reference implementation for creating custom workflows
+- ✅ Ensures FABER works out-of-the-box
+
+**How to use multiple workflows:**
+```bash
+# Use default workflow (when --workflow not specified)
+/fractary-faber:run 123
+
+# Use specific custom workflow
+/fractary-faber:run 456 --workflow hotfix
+/fractary-faber:run 789 --workflow documentation
+```
 
 Each workflow defines its own phases, hooks, and autonomy level.
 
