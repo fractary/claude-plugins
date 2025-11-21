@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://fractary.io/schemas/faber-config-v2.json",
+  "$id": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/config.schema.json",
   "title": "FABER Configuration Schema",
   "description": "JSON Schema for FABER v2.0 workflow configuration",
   "type": "object",
