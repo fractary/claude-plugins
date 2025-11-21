@@ -43,9 +43,14 @@ vim .fractary/plugins/faber/config.json
 
 ## Configuration File Location
 
-**New location (v2.0)**:
+**Directory structure (v2.0)**:
 ```
-.fractary/plugins/faber/config.json
+.fractary/plugins/faber/
+├── config.json              # Main configuration (references workflows)
+└── workflows/               # Workflow definition files
+    ├── default.json         # Standard FABER workflow
+    ├── hotfix.json          # Expedited hotfix workflow
+    └── custom.json          # Your custom workflows
 ```
 
 **Old location (v1.x) - NO LONGER USED**:
@@ -53,13 +58,17 @@ vim .fractary/plugins/faber/config.json
 .faber.config.toml
 ```
 
-The configuration uses JSON format and follows the standard Fractary plugin configuration pattern.
+The configuration uses JSON format and follows the standard Fractary plugin configuration pattern. Workflows are now stored as separate files (referenced by config.json) instead of being embedded inline.
 
 ## Configuration Structure
 
 **The baseline FABER workflow is issue-centric**:
 - Core workflow: **Frame** → **Architect** → **Build** → **Evaluate** → **Release**
 - Core artifacts: **Issue** + **Branch** + **Spec**
+
+### Main Configuration File (config.json)
+
+The main configuration file references workflows stored in separate files:
 
 ```json
 {
@@ -68,22 +77,13 @@ The configuration uses JSON format and follows the standard Fractary plugin conf
   "workflows": [
     {
       "id": "default",
-      "description": "Standard FABER workflow",
-      "phases": {
-        "frame": { ... },
-        "architect": { ... },
-        "build": { ... },
-        "evaluate": { ... },
-        "release": { ... }
-      },
-      "hooks": {
-        "pre_frame": [], "post_frame": [],
-        "pre_architect": [], "post_architect": [],
-        "pre_build": [], "post_build": [],
-        "pre_evaluate": [], "post_evaluate": [],
-        "pre_release": [], "post_release": []
-      },
-      "autonomy": { ... }
+      "file": "./workflows/default.json",
+      "description": "Standard FABER workflow"
+    },
+    {
+      "id": "hotfix",
+      "file": "./workflows/hotfix.json",
+      "description": "Expedited workflow for critical fixes"
     }
   ],
   "integrations": { ... },
@@ -92,11 +92,44 @@ The configuration uses JSON format and follows the standard Fractary plugin conf
 }
 ```
 
+### Workflow Files (workflows/*.json)
+
+Each workflow file contains the complete phase definitions, hooks, and autonomy settings:
+
+```json
+{
+  "$schema": "../workflow.schema.json",
+  "id": "default",
+  "description": "Standard FABER workflow",
+  "phases": {
+    "frame": { ... },
+    "architect": { ... },
+    "build": { ... },
+    "evaluate": { ... },
+    "release": { ... }
+  },
+  "hooks": {
+    "pre_frame": [], "post_frame": [],
+    "pre_architect": [], "post_architect": [],
+    "pre_build": [], "post_build": [],
+    "pre_evaluate": [], "post_evaluate": [],
+    "pre_release": [], "post_release": []
+  },
+  "autonomy": { ... }
+}
+```
+
+**Benefits of separate workflow files**:
+- **Maintainability**: Each workflow in its own file (easier to edit)
+- **Version control**: Fewer merge conflicts
+- **Reusability**: Share workflows across projects
+- **Plugin extensibility**: Specialized plugins provide workflow templates
+
 ## Configuration Sections
 
 ### Workflows Array
 
-Projects can define multiple workflows for different scenarios. The `/fractary-faber:init` command creates a baseline configuration with the **default** workflow.
+Projects can define multiple workflows for different scenarios. The `/fractary-faber:init` command creates workflow templates and references them in config.json.
 
 #### ⚠️ Important: Always Keep the Default Workflow
 
@@ -108,21 +141,37 @@ Projects can define multiple workflows for different scenarios. The `/fractary-f
   "workflows": [
     {
       "id": "default",
+      "file": "./workflows/default.json",
       "description": "Standard feature development"
-      // ... ALWAYS RETAINED as baseline workflow
+      // ALWAYS RETAINED as baseline workflow
     },
     {
       "id": "hotfix",
+      "file": "./workflows/hotfix.json",
       "description": "Fast-track critical fixes"
-      // ... custom workflow ADDED
+      // custom workflow ADDED
     },
     {
       "id": "documentation",
+      "file": "./workflows/documentation.json",
       "description": "Docs-only changes"
-      // ... another custom workflow ADDED
+      // another custom workflow ADDED
     }
   ]
 }
+```
+
+**Creating custom workflows:**
+```bash
+# Copy a template as starting point
+cp .fractary/plugins/faber/workflows/default.json .fractary/plugins/faber/workflows/documentation.json
+
+# Edit the new workflow file
+vim .fractary/plugins/faber/workflows/documentation.json
+
+# Add reference to config.json workflows array
+# Then validate
+/fractary-faber:audit
 ```
 
 **Why keep the default workflow?**

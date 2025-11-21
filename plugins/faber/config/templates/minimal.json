@@ -1,102 +1,20 @@
 {
   "$schema": "../config.schema.json",
   "schema_version": "2.0",
+  "_comment": "Minimal template with just the default workflow (for simple projects)",
   "workflows": [
     {
       "id": "default",
-      "description": "Minimal FABER workflow - essential phases only",
-      "phases": {
-        "frame": {
-          "enabled": true,
-          "description": "Fetch work item and setup environment",
-          "steps": [
-            {
-              "name": "fetch-work",
-              "description": "Fetch work item details"
-            },
-            {
-              "name": "setup-env",
-              "description": "Create branch and setup environment"
-            }
-          ],
-          "validation": ["work-item-exists", "branch-created"]
-        },
-        "architect": {
-          "enabled": true,
-          "description": "Generate specification",
-          "steps": [
-            {
-              "name": "generate-spec",
-              "description": "Generate technical specification"
-            }
-          ],
-          "validation": ["spec-created"]
-        },
-        "build": {
-          "enabled": true,
-          "description": "Implement solution",
-          "steps": [
-            {
-              "name": "implement",
-              "description": "Implement the solution",
-              "prompt": "Implement based on specification"
-            },
-            {
-              "name": "commit",
-              "description": "Commit changes",
-              "prompt": "Create commit with conventional format"
-            }
-          ],
-          "validation": ["implementation-complete"]
-        },
-        "evaluate": {
-          "enabled": true,
-          "description": "Test and validate",
-          "max_retries": 2,
-          "steps": [
-            {
-              "name": "test",
-              "description": "Run tests"
-            }
-          ],
-          "validation": ["tests-pass"]
-        },
-        "release": {
-          "enabled": true,
-          "description": "Create pull request",
-          "require_approval": true,
-          "steps": [
-            {
-              "name": "create-pr",
-              "description": "Create pull request"
-            }
-          ],
-          "validation": ["pr-created"]
-        }
-      },
-      "hooks": {
-        "pre_frame": [],
-        "post_frame": [],
-        "pre_architect": [],
-        "post_architect": [],
-        "pre_build": [],
-        "post_build": [],
-        "pre_evaluate": [],
-        "post_evaluate": [],
-        "pre_release": [],
-        "post_release": []
-      },
-      "autonomy": {
-        "level": "guarded",
-        "description": "Pauses before release for approval",
-        "pause_before_release": true,
-        "require_approval_for": ["release"],
-        "overrides": {}
-      }
+      "file": "./workflows/default.json",
+      "description": "Standard FABER workflow"
     }
   ],
   "integrations": {
     "work_plugin": "fractary-work",
     "repo_plugin": "fractary-repo"
+  },
+  "logging": {
+    "use_logs_plugin": false,
+    "log_level": "info"
   }
 }
