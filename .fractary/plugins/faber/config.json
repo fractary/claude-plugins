@@ -1,0 +1,209 @@
+{
+  "$schema": "https://fractary.io/schemas/faber-config-v2.json",
+  "schema_version": "2.0",
+  "workflows": [
+    {
+      "id": "default",
+      "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)",
+      "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Frame: Fetch work item, classify, setup environment",
+      "steps": [
+        {
+          "name": "fetch-work",
+          "description": "Fetch work item details from issue tracker",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "classify",
+          "description": "Classify work type (feature, bug, chore, etc.)",
+          "skill": "work-classifier"
+        },
+        {
+          "name": "setup-env",
+          "description": "Create branch and setup development environment",
+          "skill": "fractary-repo:branch-manager"
+        }
+      ],
+      "validation": [
+        "work-item-exists",
+        "branch-created"
+      ]
+    },
+    "architect": {
+      "enabled": true,
+      "description": "Architect: Generate technical specification",
+      "steps": [
+        {
+          "name": "generate-spec",
+          "description": "Generate technical specification from requirements",
+          "skill": "fractary-spec:spec-generator",
+          "config": {
+            "use_issue_context": true,
+            "auto_detect_template": true
+          }
+        }
+      ],
+      "validation": [
+        "spec-created",
+        "spec-validated"
+      ]
+    },
+    "build": {
+      "enabled": true,
+      "description": "Build: Implement solution and commit changes",
+      "steps": [
+        {
+          "name": "implement",
+          "description": "Implement the solution based on specification"
+        },
+        {
+          "name": "commit",
+          "description": "Commit implementation with semantic commit message",
+          "skill": "fractary-repo:commit-creator",
+          "config": {
+            "conventional_commits": true,
+            "link_to_issue": true
+          }
+        }
+      ],
+      "validation": [
+        "implementation-complete",
+        "tests-pass"
+      ]
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Evaluate: Test, review, and validate implementation",
+      "max_retries": 3,
+      "steps": [
+        {
+          "name": "test",
+          "description": "Run automated tests (unit, integration, e2e)"
+        },
+        {
+          "name": "review",
+          "description": "Code review and quality checks"
+        },
+        {
+          "name": "fix",
+          "description": "Fix issues found during evaluation",
+          "conditional": "only_if_failures"
+        }
+      ],
+      "validation": [
+        "all-tests-pass",
+        "review-approved",
+        "no-critical-issues"
+      ]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Release: Create PR, update docs, deploy",
+      "require_approval": true,
+      "steps": [
+        {
+          "name": "create-pr",
+          "description": "Create pull request with comprehensive description",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "draft_if_assist": true,
+            "auto_link_issue": true
+          }
+        },
+        {
+          "name": "update-docs",
+          "description": "Update project documentation",
+          "skill": "fractary-docs:docs-manager",
+          "config": {
+            "auto_detect_changes": true
+          }
+        }
+      ],
+      "validation": [
+        "pr-created",
+        "ci-pass",
+        "docs-updated"
+      ]
+    }
+  },
+      "hooks": {
+    "pre_frame": [],
+    "post_frame": [],
+    "pre_architect": [
+      {
+        "type": "document",
+        "name": "architecture-standards",
+        "path": "docs/architecture/STANDARDS.md",
+        "description": "Load architecture standards for design phase"
+      }
+    ],
+    "post_architect": [],
+    "pre_build": [
+      {
+        "type": "document",
+        "name": "coding-standards",
+        "path": "docs/development/CODING_STANDARDS.md",
+        "description": "Load coding standards before implementation"
+      }
+    ],
+    "post_build": [],
+    "pre_evaluate": [],
+    "post_evaluate": [],
+    "pre_release": [
+      {
+        "type": "skill",
+        "name": "final-review",
+        "skill": "code-review",
+        "description": "Final code review before release"
+      }
+    ],
+    "post_release": [
+      {
+        "type": "script",
+        "name": "notify-team",
+        "path": "./scripts/notify-release.sh",
+        "description": "Notify team of release completion"
+      }
+    ]
+  },
+      "autonomy": {
+        "level": "guarded",
+        "description": "Autonomy levels: dry-run, assist, guarded, autonomous",
+        "pause_before_release": true,
+        "require_approval_for": [
+          "release"
+        ],
+        "overrides": {}
+      }
+    }
+  ],
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs"
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_type": "workflow",
+    "log_level": "info",
+    "log_phases": true,
+    "log_sub_steps": true,
+    "log_hooks": true
+  },
+  "safety": {
+    "protected_paths": [
+      "secrets/**",
+      "infra/prod/**",
+      ".env*",
+      "credentials/**"
+    ],
+    "require_confirm_for": [
+      "deploy",
+      "merge_to_main",
+      "tag_release"
+    ]
+  }
+}
