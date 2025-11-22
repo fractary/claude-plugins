@@ -62,11 +62,13 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 
 **Acceptance Criteria**:
 - [ ] ALL workflows use worktrees (single and multi-item)
-- [ ] Each issue gets its own worktree: `../repo-wt-feat-123-description`
+- [ ] Worktrees created as subfolders: `.worktrees/feat-123-description` (within Claude's scope)
 - [ ] Prevents scenario: start #123, pause, start #124 → no conflict
 - [ ] State files isolated: each worktree has its own `.fractary/plugins/faber/state.json`
 - [ ] Branch-manager detects existing worktree for issue and reuses it
 - [ ] No duplicate worktrees created for same issue
+- [ ] Worktrees cleaned up automatically on PR merge (via `--worktree-cleanup` flag)
+- [ ] Manual cleanup available: `/repo:worktree-cleanup --merged`
 
 ### Multi-Item Processing Support
 **As a** developer managing multiple work items
@@ -95,9 +97,12 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 - **FR9**: Command MUST provide clear error messages if workflow not found
 - **FR10**: Multi-item processing MUST use comma-separated syntax (no spaces): `123,124,125`
 - **FR11**: ALL workflows (single and multi) MUST use worktrees to prevent interference
-- **FR12**: faber-director MUST be a skill (not an agent) to retain context and enable skill→agent invocation
-- **FR13**: branch-manager skill MUST detect existing worktree for issue and reuse (not create duplicate)
-- **FR14**: branch-manager skill MUST track worktree→issue mapping for reuse detection
+- **FR12**: Worktrees MUST be created as subfolders (`.worktrees/{branch-slug}`) to remain within Claude's working directory scope
+- **FR13**: faber-director MUST be a skill (not an agent) to retain context and enable skill→agent invocation
+- **FR14**: branch-manager skill MUST detect existing worktree for issue and reuse (not create duplicate)
+- **FR15**: branch-manager skill MUST track worktree→issue mapping for reuse detection
+- **FR16**: pr-merge command MUST support `--worktree-cleanup` flag to automatically remove worktrees after merge
+- **FR17**: Worktree registry MUST be updated when worktrees are created or removed
 
 ## Non-Functional Requirements
 
@@ -131,10 +136,11 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
                   ├─ Frame phase: fetch issue #123
                   ├─ Calls branch-manager with --worktree
                   │   └─ branch-manager checks: worktree exists for #123?
-                  │       ├─ Yes → switch to existing worktree
-                  │       └─ No → create new worktree: ../repo-wt-feat-123-*
+                  │       ├─ Yes → switch to .worktrees/feat-123-* (reuse)
+                  │       └─ No → create .worktrees/feat-123-* (subfolder)
+                  ├─ Working directory: .worktrees/feat-123-* (within scope ✅)
                   ├─ Executes all phases in worktree
-                  ├─ State: {worktree}/.fractary/plugins/faber/state.json
+                  ├─ State: .worktrees/feat-123-*/.fractary/plugins/faber/state.json
                   └─ Isolated from any other workflows
 ```
 
@@ -150,17 +156,20 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
               ├─ Determines: multi-item mode
               └─ Invokes faber-manager agents in parallel (3x, all with worktree=true)
                   ├─ faber-manager agent (work_id=123, worktree=true)
-                  │   ├─ Calls branch-manager: check/create worktree for #123
+                  │   ├─ Calls branch-manager: check/create .worktrees/feat-123-*
+                  │   ├─ Working directory: .worktrees/feat-123-* (within scope ✅)
                   │   ├─ Executes all 5 phases in worktree
-                  │   └─ State: {worktree}/.fractary/plugins/faber/state.json
+                  │   └─ State: .worktrees/feat-123-*/.fractary/plugins/faber/state.json
                   ├─ faber-manager agent (work_id=124, worktree=true)
-                  │   ├─ Calls branch-manager: check/create worktree for #124
+                  │   ├─ Calls branch-manager: check/create .worktrees/feat-124-*
+                  │   ├─ Working directory: .worktrees/feat-124-* (within scope ✅)
                   │   ├─ Executes all 5 phases in worktree
-                  │   └─ State: {worktree}/.fractary/plugins/faber/state.json
+                  │   └─ State: .worktrees/feat-124-*/.fractary/plugins/faber/state.json
                   └─ faber-manager agent (work_id=125, worktree=true)
-                      ├─ Calls branch-manager: check/create worktree for #125
+                      ├─ Calls branch-manager: check/create .worktrees/feat-125-*
+                      ├─ Working directory: .worktrees/feat-125-* (within scope ✅)
                       ├─ Executes all 5 phases in worktree
-                      └─ State: {worktree}/.fractary/plugins/faber/state.json
+                      └─ State: .worktrees/feat-125-*/.fractary/plugins/faber/state.json
 
 Key:
 - All workflows use worktrees (prevents interference)
@@ -228,10 +237,11 @@ The `fractary-repo:branch-manager` skill is enhanced to detect and reuse existin
 1. Check worktree registry: ~/.fractary/repo/worktrees.json
    {
      "123": {
-       "worktree_path": "../repo-wt-feat-123-description",
+       "worktree_path": ".worktrees/feat-123-description",
        "branch": "feat/123-description",
        "created": "2025-11-22T14:30:00Z",
-       "last_used": "2025-11-22T15:45:00Z"
+       "last_used": "2025-11-22T15:45:00Z",
+       "repo_root": "/path/to/repo"
      }
    }
 
@@ -258,6 +268,45 @@ The `fractary-repo:branch-manager` skill is enhanced to detect and reuse existin
 - ✅ Centralized in repo plugin (reusable across all plugins)
 
 **Location**: This logic lives in `fractary-repo:branch-manager` skill, NOT in faber plugin
+
+### Worktree Cleanup on PR Merge (NEW)
+
+The `fractary-repo:pr-merge` command is enhanced to automatically clean up worktrees.
+
+**File**: `plugins/repo/commands/pr-merge.md` (MODIFIED)
+
+**Cleanup Integration**:
+```bash
+# Automatic cleanup (recommended)
+/repo:pr-merge 123 --delete-branch --worktree-cleanup
+
+Flow:
+1. Merge PR #123
+2. Delete remote branch (if --delete-branch)
+3. Delete local branch
+4. Check worktree registry for branch
+5. If worktree exists:
+   - Remove worktree directory: .worktrees/feat-123-*
+   - Remove from registry
+   - Clean up .fractary state files
+6. Return success
+
+# Manual cleanup (if needed later)
+/repo:worktree-cleanup --merged
+```
+
+**FABER Release Phase Integration**:
+The Release phase should recommend cleanup after PR merge:
+```
+✅ PR merged successfully
+ℹ️  Worktree cleanup recommended: /repo:pr-merge 123 --worktree-cleanup
+   Or use: /repo:worktree-cleanup --merged
+```
+
+**Why in pr-merge**:
+- Natural workflow endpoint
+- Ensures cleanup happens when work is done
+- Prevents accumulation of stale worktrees
 
 ### Skill→Agent Invocation Pattern
 
@@ -413,9 +462,13 @@ Run: /faber:audit to validate configuration
 - `plugins/faber/docs/MIGRATION-v2.md`: Add `/faber:run` → `/faber:manage` migration guide
 - `plugins/faber/README.md`: Update command references, document skill-based architecture
 - `plugins/faber/agents/faber-manager.md`: Ensure agent expects workflow config + worktree parameter (ALWAYS true)
-- `plugins/repo/skills/branch-manager/SKILL.md`: Add worktree reuse logic (check registry before create)
+- `plugins/repo/skills/branch-manager/SKILL.md`: Add worktree reuse logic (check registry before create), use `.worktrees/` subfolder
 - `plugins/repo/skills/branch-manager/scripts/check-worktree.sh`: Check if worktree exists for work_id
 - `plugins/repo/skills/branch-manager/scripts/register-worktree.sh`: Add/update worktree registry entry
+- `plugins/repo/skills/branch-manager/scripts/create-worktree.sh`: Create worktree in `.worktrees/` subfolder (not parallel directory)
+- `plugins/repo/commands/pr-merge.md`: Add `--worktree-cleanup` flag for automatic worktree removal
+- `plugins/repo/skills/pr-manager/SKILL.md`: Add worktree cleanup logic on merge
+- `.gitignore`: Add `.worktrees/` to ignore worktree directories
 
 ### New Registry File
 - `~/.fractary/repo/worktrees.json`: Tracks work_id → worktree mapping for reuse detection
@@ -449,11 +502,13 @@ Run: /faber:audit to validate configuration
 **Test single-item workflow execution with worktree**:
 1. Run `/faber:manage 123` on test repository
 2. Verify faber-manager receives workflow config + worktree=true
-3. Verify branch-manager creates worktree: `../repo-wt-feat-123-*`
-4. Verify agent executes all 5 phases in worktree
-5. Verify state is tracked in worktree's `state.json`
-6. Verify worktree registered in `~/.fractary/repo/worktrees.json`
-7. Verify logs are written via fractary-logs plugin
+3. Verify branch-manager creates worktree: `.worktrees/feat-123-*` (subfolder ✅)
+4. Verify working directory switch succeeds (within Claude's scope)
+5. Verify agent executes all 5 phases in worktree
+6. Verify state is tracked in worktree's `state.json`
+7. Verify worktree registered in `~/.fractary/repo/worktrees.json`
+8. Verify logs are written via fractary-logs plugin
+9. Verify `.worktrees/` is in `.gitignore`
 
 **Test worktree reuse**:
 1. Run `/faber:manage 123` (creates worktree)
@@ -471,6 +526,26 @@ Run: /faber:audit to validate configuration
 4. Verify both workflows run independently
 5. Verify no cross-contamination of branches or state
 6. Verify each has isolated `.fractary/plugins/faber/state.json`
+
+**Test worktree cleanup on PR merge**:
+1. Run `/faber:manage 123` (complete workflow, creates PR)
+2. Verify worktree exists: `.worktrees/feat-123-*`
+3. Verify registry entry exists in `~/.fractary/repo/worktrees.json`
+4. Run `/repo:pr-merge 123 --delete-branch --worktree-cleanup`
+5. Verify PR merged successfully
+6. Verify remote branch deleted
+7. Verify local branch deleted
+8. Verify worktree directory removed: `.worktrees/feat-123-*`
+9. Verify registry entry removed from `~/.fractary/repo/worktrees.json`
+10. Verify state files cleaned up
+
+**Test manual worktree cleanup**:
+1. Create multiple worktrees for issues 100, 101, 102
+2. Merge PRs for 100 and 101 (without --worktree-cleanup)
+3. Run `/repo:worktree-cleanup --merged`
+4. Verify worktrees for 100 and 101 removed
+5. Verify worktree for 102 remains (not merged)
+6. Verify registry updated correctly
 
 **Test multi-item workflow execution**:
 1. Run `/faber:manage 100,101,102`
@@ -673,9 +748,16 @@ ALL faber-manager instances (single and multi) MUST:
 6. Worktree persists after completion (for review, cleanup handled separately)
 
 **Worktree naming convention** (managed by repo plugin):
-- Pattern: `{repo-name}-wt-{branch-slug}`
-- Location: Sibling directory to main repository
-- Example: `claude-plugins-wt-feat-123-fix-command`
+- Pattern: `.worktrees/{branch-slug}`
+- Location: **Subfolder inside main repository** (CRITICAL for Claude's working directory scope)
+- Example: `/path/to/repo/.worktrees/feat-123-fix-command`
+- Why subfolder: Parallel directories (`../repo-wt-*`) are outside Claude's project scope
+
+**Working Directory Scope Issue**:
+- Claude cannot switch to directories outside the project root
+- Parallel worktrees (`../repo-wt-*`) are inaccessible
+- Subfolder worktrees (`.worktrees/*`) remain within scope
+- Enables proper working directory switching within agent context
 
 ### Workflow Configuration Format
 
