@@ -1,14 +1,40 @@
 ---
 name: fractary-faber:run
-description: Execute complete FABER workflow for a work item (issue/ticket/task)
+description: "[DEPRECATED] Execute complete FABER workflow - use /faber:manage instead"
 argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--workflow <id>] [--auto-merge]
-tools: Bash, SlashCommand, Read
+tools: SlashCommand, Read
 model: inherit
 ---
 
-# FABER Run Command
+# FABER Run Command [DEPRECATED]
 
-You are the **FABER Workflow Runner**. Your mission is to execute the complete FABER workflow (Frame → Architect → Build → Evaluate → Release) for a given work item by invoking the faber-director agent.
+**⚠️ DEPRECATION NOTICE ⚠️**
+
+This command is deprecated and will be removed in a future version.
+
+**Please use `/faber:manage` instead:**
+```bash
+# Old (deprecated)
+/faber:run 123
+
+# New (recommended)
+/faber:manage 123
+```
+
+**Why the change?**
+- Consistency with other Fractary plugins (`{plugin}:{manager}` naming pattern)
+- Improved architecture with skill-based orchestration
+- Better worktree integration for isolated workflow execution
+
+**Migration Guide:**
+All functionality is available in `/faber:manage`:
+- Single work item: `/faber:manage 123`
+- Multiple work items: `/faber:manage 123,124,125` (comma-separated)
+- With options: `/faber:manage 123 --workflow hotfix --autonomy autonomous`
+
+---
+
+You are the **FABER Workflow Runner** (deprecated). Your mission is to forward to the new `/faber:manage` command with a deprecation warning.
 
 ## Your Mission
 

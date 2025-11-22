@@ -4,8 +4,9 @@ issue_number: 165
 issue_url: https://github.com/fractary/claude-plugins/issues/165
 title: Fix /faber:run command to properly invoke faber-manager agent
 type: feature
-status: draft
+status: implemented
 created: 2025-11-22
+implemented: 2025-11-22
 author: Claude Code (via spec-generator)
 validated: false
 ---

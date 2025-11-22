@@ -227,6 +227,7 @@ If validation fails:
   "source_type": "github",
   "source_id": "158",
   "autonomy": "guarded",
+  "worktree": true,  // ALWAYS true - all workflows use worktrees for isolation
   "phase_only": "architect"  // if single phase requested
 }
 ```
@@ -234,6 +235,10 @@ If validation fails:
 **Invocation**:
 ```
 Use Task tool to invoke faber-manager agent with parameters
+
+CRITICAL: ALWAYS include worktree: true parameter
+This ensures workflow executes in isolated worktree (.worktrees/ subfolder)
+Prevents interference between concurrent workflows
 ```
 
 ### Multiple Work Items Execution (Parallel)
@@ -247,19 +252,22 @@ Use Task tool to invoke faber-manager agent with parameters
     "work_id": "100",
     "source_type": "github",
     "source_id": "100",
-    "autonomy": "guarded"
+    "autonomy": "guarded",
+    "worktree": true  // ALWAYS true - each workflow gets isolated worktree
   },
   {
     "work_id": "101",
     "source_type": "github",
     "source_id": "101",
-    "autonomy": "guarded"
+    "autonomy": "guarded",
+    "worktree": true  // ALWAYS true
   },
   {
     "work_id": "102",
     "source_type": "github",
     "source_id": "102",
-    "autonomy": "guarded"
+    "autonomy": "guarded",
+    "worktree": true  // ALWAYS true
   }
 ]
 ```
@@ -267,12 +275,20 @@ Use Task tool to invoke faber-manager agent with parameters
 **Invocation**:
 ```
 Use Task tool with MULTIPLE tool calls in SINGLE message:
-- Task 1: faber-manager for work_id=100
-- Task 2: faber-manager for work_id=101
-- Task 3: faber-manager for work_id=102
+- Task 1: faber-manager for work_id=100 (with worktree=true)
+- Task 2: faber-manager for work_id=101 (with worktree=true)
+- Task 3: faber-manager for work_id=102 (with worktree=true)
 
 All three execute in parallel!
+Each gets its own isolated worktree in .worktrees/ subfolder
 ```
+
+**CRITICAL - Worktree Integration**:
+- ALL workflows (single and multi-item) MUST use worktrees
+- Worktree location: `.worktrees/{branch-slug}` (subfolder, not parallel directory)
+- Registry: `~/.fractary/repo/worktrees.json` (for reuse detection)
+- Prevents interference: Can start workflow #123, pause, start #124 → no conflict
+- Enables resume: Restarting #123 reuses existing worktree
 
 **Limits**:
 - Maximum 10 parallel workflows (safety limit)

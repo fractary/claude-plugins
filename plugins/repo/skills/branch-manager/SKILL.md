@@ -64,7 +64,9 @@ You receive structured operation requests:
   "parameters": {
     "branch_name": "feat/123-add-export",
     "base_branch": "main",
-    "force": false
+    "force": false,
+    "worktree": true,
+    "work_id": "123"
   }
 }
 ```
@@ -76,6 +78,28 @@ You receive structured operation requests:
 **Optional Parameters**:
 - `force` (boolean) - Force creation even if branch exists (default: false)
 - `checkout` (boolean) - Checkout branch after creation (default: true)
+- `worktree` (boolean) - Create/reuse worktree for isolated execution (default: false)
+- `work_id` (string) - Work item ID for worktree registry tracking (required if worktree=true)
+
+**Worktree Mode** (when `worktree=true`):
+The branch-manager will:
+1. Check worktree registry (`~/.fractary/repo/worktrees.json`) for existing worktree mapped to `work_id`
+2. If worktree exists:
+   - Reuse existing worktree (switch to it)
+   - Update registry timestamp
+   - Return existing worktree path
+3. If worktree does NOT exist:
+   - Create branch (if needed)
+   - Create worktree in `.worktrees/{branch-slug}` subfolder
+   - Register worktree in registry with `work_id` mapping
+   - Switch to worktree directory
+   - Return new worktree path
+
+**Benefits**:
+- Prevents workflow interference (multiple workflows can run concurrently)
+- Enables workflow resume (restarting same work_id reuses same worktree)
+- Isolates state (each worktree has own `.fractary/plugins/faber/state.json`)
+- Stays in Claude's scope (`.worktrees/` is subfolder, not parallel directory)
 </INPUTS>
 
 <WORKFLOW>
@@ -113,7 +137,61 @@ Use repo-common skill to load configuration.
 - Check base_branch is not in invalid state
 - Ensure base_branch is not a protected branch being used unsafely
 
-**4. CHECK PROTECTED BRANCHES:**
+**Worktree Mode Validation:**
+- If worktree=true, verify work_id is provided
+- If work_id is missing when worktree=true, ERROR: "work_id required for worktree mode"
+
+**4. CHECK WORKTREE REGISTRY (if worktree=true):**
+
+```bash
+# Registry location
+REGISTRY_FILE="$HOME/.fractary/repo/worktrees.json"
+
+# Ensure registry directory exists
+mkdir -p "$(dirname "$REGISTRY_FILE")"
+
+# Initialize registry if doesn't exist
+if [ ! -f "$REGISTRY_FILE" ]; then
+    echo '{}' > "$REGISTRY_FILE"
+fi
+
+# Check if work_id has existing worktree
+EXISTING_WORKTREE=$(jq -r --arg work_id "$WORK_ID" '.[$work_id].worktree_path // empty' "$REGISTRY_FILE")
+
+if [ -n "$EXISTING_WORKTREE" ]; then
+    # Check if worktree still exists (path validation)
+    if [ -d "$EXISTING_WORKTREE" ]; then
+        echo "✅ Found existing worktree for work_id $WORK_ID"
+        echo "   Path: $EXISTING_WORKTREE"
+
+        # Update registry timestamp
+        jq --arg work_id "$WORK_ID" --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+           '.[$work_id].last_used = $timestamp' \
+           "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
+
+        # Switch to worktree directory
+        cd "$EXISTING_WORKTREE"
+
+        # Return early - reusing existing worktree
+        WORKTREE_REUSED=true
+        WORKTREE_PATH="$EXISTING_WORKTREE"
+        BRANCH_NAME=$(jq -r --arg work_id "$WORK_ID" '.[$work_id].branch' "$REGISTRY_FILE")
+
+        # Skip to completion message
+        goto STEP_8
+    else
+        echo "⚠️  Worktree path no longer exists, removing stale registry entry"
+        # Remove stale entry
+        jq --arg work_id "$WORK_ID" 'del(.[$work_id])' \
+           "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
+    fi
+fi
+
+echo "🆕 No existing worktree found, will create new worktree"
+WORKTREE_REUSED=false
+```
+
+**5. CHECK PROTECTED BRANCHES:**
 
 ```
 PROTECTED_BRANCHES = config.defaults.protected_branches
@@ -122,7 +200,7 @@ if branch_name in PROTECTED_BRANCHES:
     EXIT CODE 10
 ```
 
-**5. INVOKE HANDLER:**
+**6. INVOKE HANDLER:**
 
 Invoke the active source control handler skill.
 
@@ -133,24 +211,67 @@ Invoke the active source control handler skill.
 
 **DO NOT** use any other handler name pattern. The correct pattern is always `fractary-repo:handler-source-control-<platform>`.
 
+**Branch Creation** (if not reusing worktree):
 Use the Skill tool with:
 - command: `fractary-repo:handler-source-control-<platform>` (where <platform> is from config)
-- Pass parameters: {branch_name, base_branch, force, checkout}
+- Pass parameters: {branch_name, base_branch, force, checkout: false}  (checkout=false for worktree mode)
 
 The handler will:
 - Check if branch already exists
 - Create branch from base branch
-- Optionally checkout the new branch
 - Return branch creation details with commit SHA
 
-**6. VALIDATE RESPONSE:**
+**Worktree Creation** (if worktree=true and not reused):
+```bash
+# Get repository root
+REPO_ROOT=$(git rev-parse --show-toplevel)
 
-- Check handler returned success status
+# Generate worktree path
+BRANCH_SLUG=$(echo "$BRANCH_NAME" | sed 's/\//-/g')  # feat/123-add-export → feat-123-add-export
+WORKTREE_PATH="$REPO_ROOT/.worktrees/$BRANCH_SLUG"
+
+# Create worktree directory
+git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to create worktree at $WORKTREE_PATH"
+    exit 1
+fi
+
+echo "✅ Worktree created: $WORKTREE_PATH"
+
+# Register worktree in registry
+jq --arg work_id "$WORK_ID" \
+   --arg worktree_path "$WORKTREE_PATH" \
+   --arg branch "$BRANCH_NAME" \
+   --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+   --arg last_used "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+   --arg repo_root "$REPO_ROOT" \
+   '.[$work_id] = {
+      "worktree_path": $worktree_path,
+      "branch": $branch,
+      "created": $created,
+      "last_used": $last_used,
+      "repo_root": $repo_root
+   }' \
+   "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
+
+echo "✅ Worktree registered in registry"
+
+# Switch to worktree directory
+cd "$WORKTREE_PATH"
+echo "✅ Switched to worktree directory: $WORKTREE_PATH"
+```
+
+**7. VALIDATE RESPONSE:**
+
+- Check handler returned success status (if branch was created)
 - Verify branch was created (check Git status)
 - Capture commit SHA of branch creation point
-- Confirm branch is in expected state
+- If worktree mode: Confirm worktree directory exists and is accessible
+- Confirm current directory is worktree (if worktree mode)
 
-**7. UPDATE REPO CACHE:**
+**8. UPDATE REPO CACHE:**
 
 After successful branch creation/checkout, update the repo plugin cache to reflect the new branch:
 
@@ -164,8 +285,33 @@ This proactively updates:
 - Issue ID (extracted from new branch name)
 - PR number (will be empty for newly created branch)
 
-**8. OUTPUT COMPLETION MESSAGE:**
+**9. OUTPUT COMPLETION MESSAGE:**
 
+**If worktree reused:**
+```
+✅ COMPLETED: Branch Manager
+Operation: create-branch (worktree reused)
+Work ID: {work_id}
+Branch: {branch_name}
+Worktree: {worktree_path} (reused existing)
+───────────────────────────────────────
+Next: Continue workflow in existing worktree
+```
+
+**If worktree created:**
+```
+✅ COMPLETED: Branch Manager
+Operation: create-branch (worktree created)
+Work ID: {work_id}
+Branch Created: {branch_name}
+Base Branch: {base_branch}
+Worktree: {worktree_path}
+Commit SHA: {commit_sha}
+───────────────────────────────────────
+Next: Make changes in worktree and commit
+```
+
+**If normal mode (no worktree):**
 ```
 ✅ COMPLETED: Branch Manager
 Operation: create-branch

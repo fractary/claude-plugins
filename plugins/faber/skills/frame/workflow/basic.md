@@ -134,7 +134,7 @@ Domain-specific environment preparation:
 
 For engineering work, prepare the development environment:
 
-**Create Branch**:
+**Create Branch with Worktree**:
 ```markdown
 Use the @agent-fractary-repo:repo-manager agent with the following request:
 {
@@ -143,16 +143,33 @@ Use the @agent-fractary-repo:repo-manager agent with the following request:
     "work_id": "{work_id}",
     "source_id": "{source_id}",
     "work_type": "{work_type}",
-    "description": "{work_item_title}"
+    "description": "{work_item_title}",
+    "worktree": true
   }
 }
 ```
 
+**CRITICAL**: The `worktree: true` parameter ensures the workflow executes in an isolated worktree.
+
 The repo-manager will:
 - Generate branch name (e.g., `feat/123-add-export`)
-- Create branch from default branch (usually `main`)
-- Checkout the new branch
-- Return branch name
+- Check registry (`~/.fractary/repo/worktrees.json`) for existing worktree
+- If worktree exists for this work_id:
+  - Reuse existing worktree (enables resume)
+  - Switch to worktree directory: `.worktrees/feat-123-add-export`
+  - Update registry timestamp
+- If worktree does NOT exist:
+  - Create branch from default branch (usually `main`)
+  - Create worktree in `.worktrees/feat-123-add-export` subfolder
+  - Register worktree in registry
+  - Switch to worktree directory
+- Return branch name and worktree path
+
+**Benefits of Worktree Execution**:
+- Prevents workflow interference (can run #123, pause, run #124 without conflicts)
+- Enables resume (restarting #123 reuses same worktree)
+- Isolates state files (each worktree has own `.fractary/plugins/faber/state.json`)
+- Stays within Claude's working directory scope (`.worktrees/` is subfolder, not parallel dir)
 
 **Store Branch Information**:
 ```bash
