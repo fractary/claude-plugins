@@ -140,16 +140,24 @@ Use the @agent-fractary-repo:repo-manager agent with the following request:
 {
   "operation": "create-branch",
   "parameters": {
+    "mode": "description",
     "work_id": "{work_id}",
-    "source_id": "{source_id}",
-    "work_type": "{work_type}",
+    "prefix": "{branch_prefix}",
     "description": "{work_item_title}",
+    "base_branch": "main",
     "worktree": true
   }
 }
 ```
 
 **CRITICAL**: The `worktree: true` parameter ensures the workflow executes in an isolated worktree.
+
+**Branch Prefix Mapping**: Map work_type to branch prefix:
+- `/bug` → `fix`
+- `/feature` → `feat`
+- `/chore` → `chore`
+- `/patch` → `hotfix`
+- Default → `feat`
 
 The repo-manager will:
 - Generate branch name (e.g., `feat/123-add-export`)
