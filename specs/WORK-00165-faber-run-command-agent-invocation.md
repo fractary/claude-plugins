@@ -62,20 +62,24 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 
 **Acceptance Criteria**:
 - [ ] Command accepts single work ID: `/faber:manage 123`
-- [ ] Command accepts multiple work IDs: `/faber:manage 123 124 125`
-- [ ] Multiple items are processed via director → agent pattern
-- [ ] Each item maintains separate state tracking
+- [ ] Command accepts multiple work IDs (comma-separated): `/faber:manage 123,124,125`
+- [ ] Comma detection triggers faber-director invocation (not faber-manager)
+- [ ] faber-director spawns separate faber-manager instances in parallel
+- [ ] Each instance uses its own worktree (via `--worktree` flag)
+- [ ] Each item maintains separate state tracking in its worktree
 
 ## Functional Requirements
 
 - **FR1**: Command MUST load workflow configuration from `.fractary/plugins/faber/config.json` before invoking agent
-- **FR2**: Command MUST invoke faber-manager agent (not faber-director) for single work items
-- **FR3**: Command MUST pass workflow configuration to the agent in structured format
-- **FR4**: Command MUST support `--workflow <id>` flag to override default workflow
-- **FR5**: Command MUST support `--autonomy <level>` flag (dry-run, assist, guarded, autonomous)
-- **FR6**: Command MUST validate workflow configuration exists before invocation
-- **FR7**: Command MUST provide clear error messages if workflow not found
-- **FR8**: Command (when renamed to `/faber:manage`) MUST support multi-item processing via director pattern
+- **FR2**: Command MUST invoke faber-manager agent for single work items (no comma in work_id)
+- **FR3**: Command MUST invoke faber-director agent for multiple work items (comma detected in work_id)
+- **FR4**: Command MUST pass workflow configuration to the agent in structured format
+- **FR5**: Command MUST support `--workflow <id>` flag to override default workflow
+- **FR6**: Command MUST support `--autonomy <level>` flag (dry-run, assist, guarded, autonomous)
+- **FR7**: Command MUST validate workflow configuration exists before invocation
+- **FR8**: Command MUST provide clear error messages if workflow not found
+- **FR9**: Multi-item processing MUST use comma-separated syntax (no spaces): `123,124,125`
+- **FR10**: Each parallel workflow instance MUST use a separate worktree (via `--worktree` flag to branch-manager)
 
 ## Non-Functional Requirements
 
@@ -107,15 +111,25 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
               └─ Each phase invokes appropriate skills per workflow definition
 ```
 
-**Multi-Item Flow** (bonus):
+**Multi-Item Flow**:
 ```
-/faber:manage 123 124 125
-  └─ Command (loads config, validates)
+/faber:manage 123,124,125
+  └─ Command (detects comma, loads config, validates)
       └─ Task tool invocation
           └─ faber-director agent (parallel coordinator)
-              ├─ Spawns faber-manager for item 123 (with workflow)
-              ├─ Spawns faber-manager for item 124 (with workflow)
-              └─ Spawns faber-manager for item 125 (with workflow)
+              ├─ Spawns faber-manager for item 123 (with workflow + worktree)
+              │   └─ Creates worktree: ../repo-wt-feat-123-*
+              ├─ Spawns faber-manager for item 124 (with workflow + worktree)
+              │   └─ Creates worktree: ../repo-wt-feat-124-*
+              └─ Spawns faber-manager for item 125 (with workflow + worktree)
+                  └─ Creates worktree: ../repo-wt-feat-125-*
+
+Each faber-manager instance:
+1. Receives workflow configuration
+2. Executes in its own worktree (isolated file system)
+3. Creates branch using branch-manager with --worktree flag
+4. Runs all 5 phases: frame → architect → build → evaluate → release
+5. Maintains state in worktree's .fractary/plugins/faber/state.json
 ```
 
 ### Command Structure
@@ -124,13 +138,16 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 **Old File**: `plugins/faber/commands/faber-run.md` (DEPRECATED)
 
 **Command Responsibilities**:
-1. Parse arguments (work_id(s), flags)
-2. Load workflow configuration from `.fractary/plugins/faber/config.json`
-3. Validate configuration completeness
-4. Determine single vs multi-item processing
-5. Invoke appropriate agent (faber-manager or faber-director)
+1. Parse arguments (work_id, flags)
+2. Detect multi-item request (check if work_id contains comma)
+3. Load workflow configuration from `.fractary/plugins/faber/config.json`
+4. Validate configuration completeness
+5. Invoke appropriate agent:
+   - No comma → faber-manager (single item)
+   - Comma detected → faber-director (multiple items, split by comma)
 6. Pass workflow config + parameters to agent
-7. Return agent response to user
+7. For multi-item: include worktree requirement in parameters
+8. Return agent response to user
 
 **Command MUST NOT**:
 - Execute any workflow logic itself
@@ -139,18 +156,42 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 
 ### Agent Invocation Pattern
 
-The command uses the Task tool to invoke the faber-manager agent. The workflow configuration is passed in the prompt as a JSON object.
+The command uses the Task tool to invoke either faber-manager (single item) or faber-director (multiple items).
 
-Example invocation for single work item (pseudocode):
+**Single Work Item** (no comma):
 ```
-Task(
-  subagent_type="fractary-faber:faber-manager",
-  description="Execute FABER workflow for work item 123",
-  prompt="Execute workflow for work item #123 using the following configuration: {workflow_json}"
-)
+/faber:manage 123
+
+→ Invokes faber-manager:
+  Task(
+    subagent_type="fractary-faber:faber-manager",
+    description="Execute FABER workflow for work item 123",
+    prompt="Execute workflow for work item #123 using configuration: {workflow_json}"
+  )
+
+faber-manager executes all phases in order (frame → architect → build → evaluate → release)
 ```
 
-The agent receives the workflow configuration and executes all phases in order (frame, architect, build, evaluate, release).
+**Multiple Work Items** (comma-separated):
+```
+/faber:manage 123,124,125
+
+→ Command splits: ["123", "124", "125"]
+→ Invokes faber-director:
+  Task(
+    subagent_type="fractary-faber:faber-director",
+    description="Execute FABER workflows for work items 123,124,125",
+    prompt="Execute workflows in parallel for work items: 123, 124, 125
+
+            Use worktrees for each item (isolated execution).
+            Configuration: {workflow_json}"
+  )
+
+faber-director spawns 3 parallel faber-manager instances:
+- Each gets its own worktree (via branch-manager --worktree)
+- Each executes full workflow independently
+- Each maintains separate state tracking
+```
 
 ### Configuration Loading
 
@@ -256,8 +297,10 @@ Run: /faber:audit to validate configuration
 - Single work ID: `/faber:manage 123`
 - With workflow override: `/faber:manage 123 --workflow hotfix`
 - With autonomy override: `/faber:manage 123 --autonomy dry-run`
-- Multiple work IDs: `/faber:manage 123 124 125`
+- Multiple work IDs (comma-separated): `/faber:manage 123,124,125`
+- Comma detection: verify `contains(',')` triggers faber-director
 - Invalid arguments: `/faber:manage` (missing work ID)
+- Invalid multi-item syntax: `/faber:manage 123 124 125` (should fail or warn)
 
 **Test configuration loading**:
 - Load default workflow
@@ -280,11 +323,17 @@ Run: /faber:audit to validate configuration
 4. Verify state is tracked in `state.json`
 5. Verify logs are written via fractary-logs plugin
 
-**Test multi-item workflow execution** (if implemented):
-1. Run `/faber:manage 100 101 102`
-2. Verify faber-director invokes 3 faber-manager instances
-3. Verify each instance has separate state tracking
-4. Verify parallel execution (not sequential)
+**Test multi-item workflow execution**:
+1. Run `/faber:manage 100,101,102`
+2. Verify command detects comma and invokes faber-director (not faber-manager)
+3. Verify faber-director spawns 3 faber-manager instances in parallel
+4. Verify each instance creates its own worktree:
+   - `../repo-wt-feat-100-*`
+   - `../repo-wt-feat-101-*`
+   - `../repo-wt-feat-102-*`
+5. Verify each instance has separate state tracking in its worktree
+6. Verify parallel execution (not sequential)
+7. Verify worktrees are cleaned up after workflow completion
 
 **Test error handling**:
 1. Run command with missing config → clear error message
@@ -308,9 +357,11 @@ Run: /faber:audit to validate configuration
 
 - FABER v2.0 configuration system (`.fractary/plugins/faber/config.json`)
 - faber-manager agent (must accept workflow config in request)
-- faber-director agent (for multi-item support - optional)
+- faber-director agent (for multi-item support with worktrees)
 - fractary-work plugin (for issue fetching)
+- fractary-repo plugin (for branch creation with `--worktree` flag)
 - fractary-logs plugin (for workflow logging)
+- Git worktree support (for parallel workflow execution)
 
 ## Risks and Mitigations
 
@@ -333,6 +384,16 @@ Run: /faber:audit to validate configuration
   - **Likelihood**: Medium
   - **Impact**: Low
   - **Mitigation**: Clear deprecation message explaining consistency with `{plugin}:{manager}` pattern.
+
+- **Risk**: Worktree cleanup failures leave orphaned directories
+  - **Likelihood**: Medium
+  - **Impact**: Medium
+  - **Mitigation**: Implement robust cleanup in faber-director. Add `/repo:worktree-cleanup` command for manual cleanup. Document worktree management best practices.
+
+- **Risk**: Users accidentally use space-separated IDs instead of comma-separated
+  - **Likelihood**: High
+  - **Impact**: Low
+  - **Mitigation**: Detect space-separated pattern and show clear error: "Use comma-separated IDs: /faber:manage 123,124,125"
 
 ## Documentation Updates
 
@@ -384,6 +445,45 @@ Run: /faber:audit to validate configuration
 
 The command MUST use the Task tool to invoke the agent. The workflow configuration must be serialized and passed in the prompt parameter. The agent will parse the configuration and execute the workflow phases accordingly.
 
+### Multi-Item Detection Logic
+
+```pseudo
+work_id = parse_first_argument()
+
+if work_id.contains(','):
+  # Multi-item: invoke faber-director
+  work_ids = work_id.split(',')
+  agent = "fractary-faber:faber-director"
+  params = {
+    "work_ids": work_ids,
+    "workflow": workflow_config,
+    "use_worktrees": true  # REQUIRED for parallel execution
+  }
+else:
+  # Single item: invoke faber-manager
+  agent = "fractary-faber:faber-manager"
+  params = {
+    "work_id": work_id,
+    "workflow": workflow_config
+  }
+
+Task(subagent_type=agent, prompt=JSON.stringify(params))
+```
+
+### Worktree Integration
+
+For multi-item workflows, each faber-manager instance MUST:
+1. Receive `use_worktrees=true` parameter from faber-director
+2. Pass `--worktree` flag when invoking branch-manager skill
+3. Execute all operations within its assigned worktree
+4. Track state in worktree's `.fractary/plugins/faber/state.json`
+5. Clean up worktree on successful completion (via faber-director)
+
+**Worktree naming convention** (managed by repo plugin):
+- Pattern: `{repo-name}-wt-{branch-slug}`
+- Location: Sibling directory to main repository
+- Example: `claude-plugins-wt-feat-123-fix-command`
+
 ### Workflow Configuration Format
 
 The workflow configuration passed to the agent includes:
@@ -395,8 +495,22 @@ The workflow configuration passed to the agent includes:
 
 ### State Tracking
 
-The faber-manager agent maintains state in `.fractary/plugins/faber/state.json` to enable workflow resume and retry capabilities. The command does not manage state directly.
+**Single-item**: faber-manager maintains state in `.fractary/plugins/faber/state.json`
+
+**Multi-item**: Each faber-manager instance maintains state in its worktree:
+- `{worktree}/.fractary/plugins/faber/state.json`
+- Isolated from other instances
+- Enables independent resume/retry per workflow
+
+The command does not manage state directly.
 
 ### Error Handling Philosophy
 
 All errors should be actionable. Instead of "Configuration invalid", say "Workflow 'custom' missing required phase 'architect'. Run /faber:audit to validate configuration."
+
+**Space-separated ID detection**:
+If user provides `/faber:manage 123 124`, detect and error:
+```
+Error: Invalid syntax - use comma-separated IDs (no spaces)
+Correct: /faber:manage 123,124
+```
