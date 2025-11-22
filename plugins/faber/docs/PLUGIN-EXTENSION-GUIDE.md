@@ -122,9 +122,12 @@ plugins/faber-{type}/
 │   │   └── scripts/
 │   └── ...
 ├── config/
-│   └── workflows/            # Workflow templates (source)
-│       ├── {type}.json       # Workflow definition
-│       └── README.md         # Workflow documentation
+│   ├── workflows/            # Workflow templates (source)
+│   │   ├── {type}.json       # Workflow definition
+│   │   └── README.md         # Workflow documentation
+│   └── issue-templates/      # GitHub issue templates (source)
+│       ├── {type}.yml        # Issue template for this workflow
+│       └── README.md         # Template documentation
 └── README.md
 ```
 
@@ -389,7 +392,270 @@ The "cloud" workflow will be available:
 - Workflow selection: `/fractary-faber:run --help`
 ```
 
-### Step 5: Implement Init Logic (Template-Copy Pattern)
+### Step 5: Create GitHub Issue Templates (Recommended)
+
+Provide GitHub issue templates that mirror your workflow definitions. These templates will be copied to the project's `.github/ISSUE_TEMPLATE/` directory during initialization.
+
+**Why include issue templates:**
+- Provides workflow selection at issue creation time
+- Pre-populates metadata and labels aligned with specific workflows
+- Ensures issues have the right structure for the workflow they'll follow
+- Makes custom workflows discoverable to users
+
+#### Template Structure in Plugin
+
+Store issue templates in your plugin's `config/issue-templates/` directory:
+
+```
+plugins/faber-cloud/
+├── config/
+│   ├── workflows/            # Workflow definitions
+│   │   └── cloud.json
+│   └── issue-templates/      # Issue templates
+│       ├── cloud.yml         # Template for cloud workflow
+│       └── README.md         # Documentation
+```
+
+#### Example: Cloud Infrastructure Template
+
+**File**: `plugins/faber-cloud/config/issue-templates/cloud.yml`
+
+```yaml
+name: Cloud Infrastructure Change
+description: Infrastructure workflow using Terraform and AWS
+title: "[Infrastructure]: "
+labels: ["type:infrastructure", "workflow:cloud"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue will follow the **cloud FABER workflow**:
+        Frame → Architect (cost estimate) → Build (Terraform) → Evaluate (security scan) → Release (apply)
+
+  - type: dropdown
+    id: change-type
+    attributes:
+      label: Change Type
+      description: What type of infrastructure change?
+      options:
+        - New resource
+        - Update existing resource
+        - Delete resource
+        - Configuration change
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Target Environment
+      description: Which environment will this affect?
+      options:
+        - Development
+        - Staging
+        - Production
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Infrastructure Description
+      description: What infrastructure should be created/modified?
+      placeholder: Describe the infrastructure components...
+    validations:
+      required: true
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: AWS Resources
+      description: What AWS resources will be affected?
+      placeholder: |
+        - EC2 instances
+        - S3 buckets
+        - RDS databases
+        - etc.
+
+  - type: textarea
+    id: cost-estimate
+    attributes:
+      label: Expected Cost Impact
+      description: Estimated monthly cost change
+      placeholder: |
+        Current: $X/month
+        New: $Y/month
+        Increase: $Z/month
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security Considerations
+      description: Have you considered security implications?
+      options:
+        - label: Security groups configured properly
+        - label: IAM roles follow least privilege
+        - label: Encryption enabled where applicable
+        - label: Compliance requirements reviewed
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback Plan
+      description: How can this change be reverted if needed?
+```
+
+#### Copy Templates During Init
+
+Modify your init command to copy both workflow definitions AND issue templates:
+
+**Updated implementation** (extend Step 4's init logic):
+
+```javascript
+function initFaberCloudWorkflow() {
+  // ... existing workflow copy logic ...
+
+  // Copy issue template
+  const issueTemplateDir = '.github/ISSUE_TEMPLATE'
+  const templateSource = 'plugins/faber-cloud/config/issue-templates/cloud.yml'
+  const templateTarget = '.github/ISSUE_TEMPLATE/cloud.yml'
+
+  // Create .github/ISSUE_TEMPLATE directory if needed
+  if (!exists(issueTemplateDir)) {
+    mkdir(issueTemplateDir, { recursive: true })
+    log("Created .github/ISSUE_TEMPLATE directory")
+  }
+
+  // Copy issue template
+  if (exists(templateTarget)) {
+    warn("Cloud issue template already exists, skipping copy")
+  } else {
+    copyFile(templateSource, templateTarget)
+    log("Copied cloud issue template to .github/ISSUE_TEMPLATE/cloud.yml")
+  }
+
+  // Report success with issue template info
+  success(`Cloud workflow added to FABER
+
+  Files created:
+    - .fractary/plugins/faber/workflows/cloud.json (workflow definition)
+    - .github/ISSUE_TEMPLATE/cloud.yml (issue template)
+
+  Files modified:
+    - .fractary/plugins/faber/config.json (added workflow reference)
+
+  Usage:
+    1. Create issue using "Cloud Infrastructure Change" template
+    2. Run: /fractary-faber:run <issue-number>
+    3. FABER detects "workflow:cloud" label and uses cloud workflow
+
+  Customize:
+    - Workflow: .fractary/plugins/faber/workflows/cloud.json
+    - Template: .github/ISSUE_TEMPLATE/cloud.yml
+  `)
+}
+```
+
+#### Multiple Templates Example
+
+If your plugin provides multiple workflows, provide corresponding templates:
+
+```
+plugins/faber-cloud/config/issue-templates/
+├── cloud-aws.yml       # AWS-specific infrastructure
+├── cloud-gcp.yml       # GCP-specific infrastructure
+├── cloud-azure.yml     # Azure-specific infrastructure
+└── README.md           # Template documentation
+```
+
+Your init command should copy the appropriate template:
+
+```bash
+# Copy AWS template
+/fractary-faber-cloud:init --provider aws
+# Copies: cloud-aws.yml → .github/ISSUE_TEMPLATE/cloud-aws.yml
+
+# Copy GCP template
+/fractary-faber-cloud:init --provider gcp
+# Copies: cloud-gcp.yml → .github/ISSUE_TEMPLATE/cloud-gcp.yml
+```
+
+#### Template Best Practices
+
+1. **Label mapping**: Use `workflow:{id}` label to map to workflow ID
+   ```yaml
+   labels: ["type:infrastructure", "workflow:cloud"]
+   ```
+
+2. **Workflow documentation**: Include markdown explaining the workflow
+   ```yaml
+   - type: markdown
+     attributes:
+       value: |
+         This issue follows the **cloud workflow**:
+         Frame → Architect (cost) → Build (Terraform) → Evaluate → Release
+   ```
+
+3. **Domain-specific fields**: Include fields relevant to your workflow
+   - Infrastructure: environment, resources, cost estimate
+   - Application: feature type, UI/API, dependencies
+   - Documentation: doc type, audience, scope
+
+4. **Validation**: Use required fields for critical information
+   ```yaml
+   validations:
+     required: true
+   ```
+
+5. **Checklists**: Include pre-flight checks
+   ```yaml
+   - type: checkboxes
+     id: prerequisites
+     attributes:
+       label: Prerequisites
+       options:
+         - label: Design approved
+         - label: Cost estimated
+   ```
+
+#### Documentation in README
+
+Document the template in `config/issue-templates/README.md`:
+
+```markdown
+# Cloud Infrastructure Issue Templates
+
+This directory contains GitHub issue templates for the faber-cloud plugin workflows.
+
+## Templates
+
+### cloud.yml
+Maps to the `cloud` workflow for general infrastructure changes.
+
+**Labels**: `type:infrastructure`, `workflow:cloud`
+**Workflow**: Frame → Architect (cost) → Build (Terraform) → Evaluate → Release
+
+**Fields**:
+- Change Type: Type of infrastructure modification
+- Target Environment: dev/staging/production
+- Infrastructure Description: What to create/modify
+- AWS Resources: Affected resource types
+- Cost Estimate: Expected monthly cost impact
+- Security Considerations: Security checklist
+- Rollback Plan: How to revert changes
+
+## Usage
+
+After running `/fractary-faber-cloud:init`, users can:
+
+1. Go to GitHub → Issues → New Issue
+2. Select "Cloud Infrastructure Change" template
+3. Fill out the form
+4. Issue is created with `workflow:cloud` label
+5. Run `/fractary-faber:run <issue-number>` to execute cloud workflow
+```
+
+### Step 6: Implement Init Logic (Template-Copy Pattern)
 
 The init command should programmatically copy workflow templates and add references:
 
@@ -482,6 +748,27 @@ function initFaberCloudWorkflow() {
     Modify phases, steps, and hooks as needed
   `)
 }
+```
+
+### Step 7: Update Testing Flow
+
+When testing your plugin integration, verify both workflow and issue template installation:
+
+```bash
+# Test integration
+1. /fractary-faber:init                    # Core FABER
+2. /fractary-faber-cloud:init              # Your plugin
+
+# Verify files created
+3. ls .fractary/plugins/faber/workflows/   # Should show cloud.json
+4. ls .github/ISSUE_TEMPLATE/              # Should show cloud.yml
+
+# Verify config
+5. cat .fractary/plugins/faber/config.json # Should reference cloud workflow
+
+# Test issue template
+6. Create test issue using "Cloud Infrastructure Change" template on GitHub
+7. /fractary-faber:run <issue-number>      # Should auto-detect workflow from label
 ```
 
 ## Best Practices

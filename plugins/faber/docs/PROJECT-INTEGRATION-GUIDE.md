@@ -167,11 +167,140 @@ To add custom workflows:
 See complete example: `plugins/faber/config/faber.example.json`
 See workflow templates: `plugins/faber/config/workflows/`
 
-### Step 5: Add Hooks for Existing Scripts
+### Step 5: Create GitHub Issue Templates (Recommended)
+
+Create GitHub issue templates that mirror your FABER workflows to provide workflow selection at issue creation time.
+
+**Why this helps:**
+- Users select the appropriate workflow when creating issues
+- Templates can pre-populate labels, metadata, and checklists aligned with specific workflows
+- Ensures issues have the right structure for the workflow they'll follow
+- Makes custom workflows discoverable to team members
+
+**Example structure:**
+```
+.github/ISSUE_TEMPLATE/
+├── config.yml           # Optional: Configure template chooser
+├── feature.yml          # Maps to "default" FABER workflow
+├── hotfix.yml           # Maps to "hotfix" FABER workflow
+└── documentation.yml    # Maps to "documentation" FABER workflow
+```
+
+**Example: Feature template** (`.github/ISSUE_TEMPLATE/feature.yml`):
+```yaml
+name: Feature Request
+description: Standard feature development workflow
+title: "[Feature]: "
+labels: ["type:feature", "workflow:default"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue will follow the **default FABER workflow**:
+        Frame → Architect → Build → Evaluate → Release
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What feature should be implemented?
+      placeholder: Describe the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this feature is complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any additional information that would help with implementation
+      placeholder: Technical details, related issues, screenshots, etc.
+```
+
+**Example: Hotfix template** (`.github/ISSUE_TEMPLATE/hotfix.yml`):
+```yaml
+name: Hotfix
+description: Expedited workflow for critical patches
+title: "[HOTFIX]: "
+labels: ["type:hotfix", "priority:critical", "workflow:hotfix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue will follow the **hotfix FABER workflow** (expedited).
+
+        ⚠️ Use only for critical production issues requiring immediate attention.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: What is the impact?
+      options:
+        - Critical - Production down
+        - High - Major functionality impaired
+        - Medium - Limited functionality affected
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What is broken?
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: User Impact
+      description: Who is affected and how?
+    validations:
+      required: true
+```
+
+**Example: config.yml** (`.github/ISSUE_TEMPLATE/config.yml`):
+```yaml
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/your-org/your-repo/wiki
+    about: Check our documentation for guides and references
+  - name: 💬 Discussions
+    url: https://github.com/your-org/your-repo/discussions
+    about: Ask questions and discuss ideas
+```
+
+**Workflow mapping:**
+- `workflow:default` label → FABER uses default workflow
+- `workflow:hotfix` label → FABER uses hotfix workflow
+- `workflow:documentation` label → FABER uses documentation workflow
+
+When running FABER, it can detect the workflow label:
+```bash
+# Automatically detects workflow from issue labels
+/fractary-faber:run 123
+
+# Or explicitly specify workflow
+/fractary-faber:run 123 --workflow hotfix
+```
+
+### Step 6: Add Hooks for Existing Scripts
 
 Reference your existing scripts via hooks instead of rewriting them.
 
-### Step 6: Configure Autonomy Level
+### Step 7: Configure Autonomy Level
 
 Choose appropriate autonomy based on your team's preferences:
 - **dry-run**: Simulate only (for testing)
@@ -179,14 +308,14 @@ Choose appropriate autonomy based on your team's preferences:
 - **guarded**: Pause for approval before release (recommended)
 - **autonomous**: Full automation (use with caution)
 
-### Step 7: Validate Configuration
+### Step 8: Validate Configuration
 
 ```bash
 /fractary-faber:audit
 /fractary-faber:audit --verbose
 ```
 
-### Step 8: Test Incrementally
+### Step 9: Test Incrementally
 
 Start with individual phases, then progress to full workflow execution:
 
