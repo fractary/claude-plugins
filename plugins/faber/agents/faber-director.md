@@ -31,8 +31,9 @@ Extract from invocation:
 - `source_type` (required): Issue tracker (github, jira, linear, manual)
 - `source_id` (required): External issue ID
 - `work_domain` (required): Domain (engineering, design, writing, data)
-- `auto_merge` (optional): Auto-merge on release (true/false, default from config)
 - `autonomy` (optional): Autonomy level override (dry-run, assist, guarded, autonomous)
+- `workflow_id` (optional): Workflow to use (default, hotfix, etc.). If not specified, inferred from issue labels/metadata
+- `auto_merge` (optional): Auto-merge on release (true/false, default from config)
 </INPUTS>
 
 ## Intent Parsing (GitHub Mentions)
@@ -389,18 +390,43 @@ fi
 ```bash
 #!/bin/bash
 
-# Parse input parameters
+# Parse positional parameters (required)
 WORK_ID="$1"
 SOURCE_TYPE="$2"
 SOURCE_ID="$3"
 WORK_DOMAIN="$4"
-AUTONOMY="${5:-}"
-AUTO_MERGE="${6:-}"
+
+# Parse optional named parameters
+shift 4
+AUTONOMY=""
+WORKFLOW_ID=""
+AUTO_MERGE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --autonomy)
+            AUTONOMY="$2"
+            shift 2
+            ;;
+        --workflow)
+            WORKFLOW_ID="$2"
+            shift 2
+            ;;
+        --auto-merge)
+            AUTO_MERGE="true"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 2
+            ;;
+    esac
+done
 
 # Validate required parameters
 if [ -z "$WORK_ID" ] || [ -z "$SOURCE_TYPE" ] || [ -z "$SOURCE_ID" ] || [ -z "$WORK_DOMAIN" ]; then
     echo "Error: Missing required parameters" >&2
-    echo "Usage: director <work_id> <source_type> <source_id> <work_domain> [autonomy] [auto_merge]" >&2
+    echo "Usage: director <work_id> <source_type> <source_id> <work_domain> [--autonomy <level>] [--workflow <id>] [--auto-merge]" >&2
     exit 2
 fi
 
@@ -415,16 +441,97 @@ echo "Domain: $WORK_DOMAIN"
 echo ""
 ```
 
-### 2. Route to Workflow Manager
+### 2. Infer Workflow (if not specified)
+
+If `--workflow` was not provided, infer the workflow from issue metadata:
+
+```bash
+if [ -z "$WORKFLOW_ID" ]; then
+    echo "🔍 Inferring workflow from issue metadata..."
+
+    # Load configuration to get workflow inference rules
+    CONFIG_FILE=".fractary/plugins/faber/config.json"
+
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "⚠️  No config found, using first workflow (default)"
+        WORKFLOW_ID="default"
+    else
+        # Fetch issue details to get labels
+        case "$SOURCE_TYPE" in
+            github)
+                # Use gh CLI to get issue labels
+                ISSUE_LABELS=$(gh issue view "$SOURCE_ID" --json labels --jq '.labels[].name' 2>/dev/null || echo "")
+                ;;
+            jira|linear)
+                # For Jira/Linear, would use their APIs here
+                # For now, fall back to default
+                ISSUE_LABELS=""
+                ;;
+            *)
+                ISSUE_LABELS=""
+                ;;
+        esac
+
+        # Load workflow inference rules from config
+        INFERENCE_RULES=$(jq -r '.workflow_inference // {}' "$CONFIG_FILE" 2>/dev/null || echo "{}")
+
+        # Try to match labels to workflows
+        MATCHED_WORKFLOW=""
+        if [ -n "$ISSUE_LABELS" ]; then
+            while IFS= read -r label; do
+                # Check if this label maps to a workflow
+                MAPPED=$(echo "$INFERENCE_RULES" | jq -r --arg label "$label" '.label_mapping[$label] // ""')
+                if [ -n "$MAPPED" ]; then
+                    MATCHED_WORKFLOW="$MAPPED"
+                    echo "  ✅ Matched label '$label' → workflow '$MATCHED_WORKFLOW'"
+                    break
+                fi
+            done <<< "$ISSUE_LABELS"
+        fi
+
+        # Use matched workflow or fall back to default
+        if [ -n "$MATCHED_WORKFLOW" ]; then
+            WORKFLOW_ID="$MATCHED_WORKFLOW"
+        else
+            # Fall back to first workflow in config
+            WORKFLOW_ID=$(jq -r '.workflows[0].id // "default"' "$CONFIG_FILE")
+            echo "  ℹ️  No matching labels, using first workflow: '$WORKFLOW_ID'"
+        fi
+    fi
+else
+    echo "📋 Using specified workflow: $WORKFLOW_ID"
+fi
+
+echo ""
+```
+
+### 3. Route to Workflow Manager
 
 The director's primary responsibility is to route to the faber-manager agent, which handles all phase orchestration:
 
 ```bash
 echo "📍 Routing to faber-manager..."
+echo "   Workflow: $WORKFLOW_ID"
 echo ""
 
+# Build faber-manager arguments
+MANAGER_ARGS="$WORK_ID $SOURCE_TYPE $SOURCE_ID $WORK_DOMAIN"
+
+# Add optional parameters
+if [ -n "$AUTONOMY" ]; then
+    MANAGER_ARGS="$MANAGER_ARGS --autonomy $AUTONOMY"
+fi
+
+if [ -n "$WORKFLOW_ID" ]; then
+    MANAGER_ARGS="$MANAGER_ARGS --workflow $WORKFLOW_ID"
+fi
+
+if [ -n "$AUTO_MERGE" ]; then
+    MANAGER_ARGS="$MANAGER_ARGS --auto-merge"
+fi
+
 # Invoke faber-manager with all parameters
-claude --agent faber-manager "$WORK_ID $SOURCE_TYPE $SOURCE_ID $WORK_DOMAIN $AUTONOMY '' '' $AUTO_MERGE"
+claude --agent faber-manager "$MANAGER_ARGS"
 
 WORKFLOW_EXIT=$?
 

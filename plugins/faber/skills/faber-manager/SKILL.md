@@ -63,6 +63,7 @@ You receive workflow execution requests from the faber-manager agent:
 - `source_id` (string): External issue ID
 
 **Optional:**
+- `workflow_id` (string): Workflow to use (e.g., default, hotfix). If not specified, uses first workflow in config
 - `autonomy` (string): Override autonomy level (dry-run, assist, guarded, autonomous)
 - `start_from_phase` (string): Resume from specific phase
 - `stop_at_phase` (string): Stop after specific phase
@@ -156,6 +157,13 @@ For each workflow in the config workflows array:
       },
       "hooks": {...},
       "autonomy": {...}
+    },
+    "hotfix": {
+      "id": "hotfix",
+      "description": "...",
+      "phases": {...},
+      "hooks": {...},
+      "autonomy": {...}
     }
   },
   "integrations": {...},
@@ -163,6 +171,36 @@ For each workflow in the config workflows array:
   "safety": {...}
 }
 ```
+
+### Step 1.5: Select Active Workflow
+
+**Action**: Determine which workflow to use based on `workflow_id` parameter
+
+**Selection Logic**:
+1. **If `workflow_id` parameter provided**: Use specified workflow
+   ```
+   ACTIVE_WORKFLOW = workflows[workflow_id]
+   ```
+
+2. **If `workflow_id` not provided**: Use first workflow in config
+   ```
+   ACTIVE_WORKFLOW = workflows[Object.keys(workflows)[0]]
+   ```
+
+3. **Validation**:
+   - Verify selected workflow exists in loaded workflows
+   - If not found, fail with clear error: "Workflow '{workflow_id}' not found in configuration"
+
+**Example**:
+```bash
+# If workflow_id = "hotfix"
+ACTIVE_WORKFLOW=$(echo "$CONFIG" | jq -r '.workflows.hotfix')
+
+# If workflow_id not provided
+ACTIVE_WORKFLOW=$(echo "$CONFIG" | jq -r '.workflows | to_entries[0].value')
+```
+
+**Result**: All subsequent steps use ACTIVE_WORKFLOW for phase definitions, hooks, and autonomy settings.
 
 ### Step 2: Load or Create Workflow State
 

@@ -14,18 +14,22 @@ Executes Frame + Architect + Build phases which include:
 ## Usage
 
 ```bash
-/fractary-faber:build <work-id>
+/fractary-faber:build <work-id> [--workflow <id>]
 ```
 
 ## Arguments
 
 - `<work-id>` (required): Work item ID (e.g., 158)
+- `--workflow <id>` (optional): Workflow to use (e.g., default, hotfix). If not specified, inferred from issue metadata or defaults to first workflow.
 
 ## Examples
 
 ```bash
 # Execute build phase for issue #158
 /fractary-faber:build 158
+
+# Execute build phase with specific workflow
+/fractary-faber:build 158 --workflow hotfix
 
 # This will:
 # 1. Check if frame is complete, if not: run frame

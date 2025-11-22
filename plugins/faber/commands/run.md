@@ -1,7 +1,7 @@
 ---
 name: fractary-faber:run
 description: Execute complete FABER workflow for a work item (issue/ticket/task)
-argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--auto-merge]
+argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--workflow <id>] [--auto-merge]
 tools: Bash, SlashCommand, Read
 model: inherit
 ---
@@ -70,6 +70,7 @@ INPUT="$1"
 DOMAIN_OVERRIDE=""
 AUTONOMY_OVERRIDE=""
 AUTO_MERGE=""
+WORKFLOW_OVERRIDE=""
 
 # Process flags
 shift
@@ -81,6 +82,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --autonomy)
             AUTONOMY_OVERRIDE="$2"
+            shift 2
+            ;;
+        --workflow)
+            WORKFLOW_OVERRIDE="$2"
             shift 2
             ;;
         --auto-merge)
@@ -282,8 +287,17 @@ Execute the workflow via the faber-director agent:
 # Build director invocation
 DIRECTOR_ARGS="$WORK_ID $SOURCE_TYPE $ISSUE_ID $WORK_DOMAIN"
 
+# Add optional parameters
+if [ -n "$AUTONOMY_OVERRIDE" ]; then
+    DIRECTOR_ARGS="$DIRECTOR_ARGS --autonomy $AUTONOMY_OVERRIDE"
+fi
+
+if [ -n "$WORKFLOW_OVERRIDE" ]; then
+    DIRECTOR_ARGS="$DIRECTOR_ARGS --workflow $WORKFLOW_OVERRIDE"
+fi
+
 if [ -n "$AUTO_MERGE" ]; then
-    DIRECTOR_ARGS="$DIRECTOR_ARGS $AUTO_MERGE"
+    DIRECTOR_ARGS="$DIRECTOR_ARGS --auto-merge"
 fi
 
 # Invoke director

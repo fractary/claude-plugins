@@ -75,12 +75,70 @@ Reference workflows in `.fractary/plugins/faber/config.json`:
 
 ### Selecting Workflow
 
-```bash
-# Use default workflow
-/faber run 123
+FABER provides three ways to select which workflow to use:
 
+#### 1. Explicit Selection (Highest Priority)
+
+Use the `--workflow` flag to explicitly specify which workflow to use:
+
+```bash
 # Use specific workflow
-/faber run 123 --workflow hotfix
+/fractary-faber:run 123 --workflow hotfix
+/fractary-faber:frame 456 --workflow default
+```
+
+#### 2. Automatic Inference from Issue Labels (Smart Default)
+
+When `--workflow` is not specified, FABER automatically infers the workflow from issue labels:
+
+```bash
+# Issue #123 has label "hotfix" → automatically uses hotfix workflow
+/fractary-faber:run 123
+
+# Issue #456 has label "feature" → automatically uses default workflow
+/fractary-faber:run 456
+```
+
+**Configuration** (`config.json`):
+```json
+{
+  "workflow_inference": {
+    "label_mapping": {
+      "hotfix": "hotfix",
+      "urgent": "hotfix",
+      "critical": "hotfix",
+      "security": "hotfix",
+      "bug": "default",
+      "feature": "default",
+      "enhancement": "default"
+    }
+  }
+}
+```
+
+**How it works:**
+1. FABER fetches issue labels from the work tracking system (GitHub, Jira, Linear)
+2. Checks if any label matches a key in `label_mapping`
+3. Uses the mapped workflow (e.g., label "urgent" → workflow "hotfix")
+4. If multiple labels match, uses the first match
+5. If no labels match, falls back to first workflow in config
+
+#### 3. Default Fallback (Last Resort)
+
+If no `--workflow` flag is provided AND no labels match, uses the first workflow in the `workflows` array:
+
+```bash
+# No --workflow flag, issue has no matching labels → uses workflows[0] (typically "default")
+/fractary-faber:run 789
+```
+
+**Selection Priority:**
+```
+1. --workflow flag (explicit)
+   ↓
+2. Issue label mapping (inferred)
+   ↓
+3. First workflow in config (fallback)
 ```
 
 ## Creating Custom Workflows
