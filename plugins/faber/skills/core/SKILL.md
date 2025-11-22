@@ -1,17 +1,17 @@
 ---
 name: core
-description: Core utilities for FABER workflow management - config loading, session management, status cards
+description: Core utilities for FABER workflow management - config loading, state management, status cards
 ---
 
 # FABER Core Skill
 
-Provides core utilities for FABER workflows including configuration management, session tracking, and status card generation.
+Provides core utilities for FABER workflows including configuration management, state tracking, and status card generation.
 
 ## Purpose
 
 This skill contains the fundamental operations needed by all FABER workflows:
 - Load and parse configuration
-- Create and manage workflow sessions
+- Manage workflow state (read, update, write)
 - Generate and post status cards to work tracking systems
 - Handle template variable substitution
 
@@ -36,59 +36,62 @@ config_json=$(./scripts/config-loader.sh)
 work_system=$(echo "$config_json" | jq -r '.project.issue_system')
 ```
 
-### Create Session
+### Read State
 
-Creates a new FABER workflow session.
+Reads the current FABER workflow state.
 
 ```bash
-./scripts/session-create.sh <work_id> <issue_id> <domain>
+./scripts/state-read.sh <state_file>
 ```
 
 **Parameters:**
-- `work_id`: Unique FABER work identifier (8-char hex)
-- `issue_id`: External issue ID (e.g., GitHub issue number)
-- `domain`: Work domain (engineering, design, writing, data)
+- `state_file`: Path to state file (`.fractary/plugins/faber/state.json`)
 
-**Returns:** Session JSON with metadata
+**Returns:** State JSON with workflow progress
 
 **Example:**
 ```bash
-session_json=$(./scripts/session-create.sh abc12345 123 engineering)
+state_json=$(./scripts/state-read.sh ".fractary/plugins/faber/state.json")
 ```
 
-### Update Session
+### Update Phase State
 
-Updates an existing workflow session with phase progress.
+Updates a specific phase in the FABER workflow state.
 
 ```bash
-./scripts/session-update.sh <session_id> <stage> <status> [data_json]
+./scripts/state-update-phase.sh <phase> <status> [data_json]
 ```
 
 **Parameters:**
-- `session_id`: Session identifier (same as work_id)
-- `stage`: FABER stage (frame, architect, build, evaluate, release)
-- `status`: Stage status (started, in_progress, completed, failed)
-- `data_json` (optional): Additional stage-specific data as JSON
+- `phase`: FABER phase (frame, architect, build, evaluate, release)
+- `status`: Phase status (pending, in_progress, completed, failed)
+- `data_json` (optional): Additional phase-specific data as JSON
 
-**Returns:** Updated session JSON
+**Returns:** Updated state JSON
 
 **Example:**
 ```bash
-./scripts/session-update.sh abc12345 frame completed '{"work_type": "/feature"}'
+./scripts/state-update-phase.sh frame completed '{"work_type": "feature"}'
 ```
 
-### Get Session Status
+### Write State
 
-Retrieves current session status.
+Writes the complete FABER workflow state.
 
 ```bash
-./scripts/session-status.sh <session_id>
+./scripts/state-write.sh <state_file>
 ```
 
 **Parameters:**
-- `session_id`: Session identifier
+- `state_file`: Path to state file (`.fractary/plugins/faber/state.json`)
+- Input: State JSON via stdin
 
-**Returns:** Session status JSON
+**Returns:** Success/failure status
+
+**Example:**
+```bash
+echo "$STATE_JSON" | ./scripts/state-write.sh ".fractary/plugins/faber/state.json"
+```
 
 ### Post Status Card
 

@@ -328,8 +328,8 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
     echo ""
 
     # Check if paused at release
-    SESSION_JSON=$("$SCRIPT_DIR/skills/core/scripts/session-status.sh" "$WORK_ID" 2>/dev/null)
-    RELEASE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.release.status // "unknown"')
+    STATE_JSON=$("$SCRIPT_DIR/skills/core/scripts/state-read.sh" ".fractary/plugins/faber/state.json" 2>/dev/null)
+    RELEASE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.release.status // "unknown"')
 
     if [ "$RELEASE_STATUS" = "pending" ] || [ "$RELEASE_STATUS" = "unknown" ]; then
         echo "Workflow paused at Release phase."
@@ -341,7 +341,7 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
         echo "  /faber:status $WORK_ID"
     else
         # Extract PR URL
-        PR_URL=$(echo "$SESSION_JSON" | jq -r '.stages.release.data.pr_url // "N/A"')
+        PR_URL=$(echo "$STATE_JSON" | jq -r '.phases.release.data.pr_url // "N/A"')
 
         if [ "$PR_URL" != "N/A" ]; then
             echo "Pull Request: $PR_URL"
@@ -366,11 +366,11 @@ else
     echo ""
     echo "📋 Troubleshooting:"
     echo ""
-    echo "1. Check session status:"
+    echo "1. Check workflow status:"
     echo "   /faber:status $WORK_ID"
     echo ""
-    echo "2. View session file:"
-    echo "   cat .faber/sessions/${WORK_ID}.json"
+    echo "2. View state file:"
+    echo "   cat .fractary/plugins/faber/state.json"
     echo ""
     echo "3. Check logs for errors in the output above"
     echo ""

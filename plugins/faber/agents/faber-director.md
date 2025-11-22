@@ -116,14 +116,14 @@ Check if this is a GitHub mention invocation:
 
 **Implementation:**
 ```bash
-# Read session state
-SESSION_JSON=$("$CORE_SKILL/session-status.sh" "$WORK_ID")
+# Read workflow state
+STATE_JSON=$("$CORE_SKILL/state-read.sh" ".fractary/plugins/faber/state.json")
 
-if [ $? -ne 0 ] || [ -z "$SESSION_JSON" ]; then
-    echo "No active workflow session found for this issue."
+if [ $? -ne 0 ] || [ -z "$STATE_JSON" ]; then
+    echo "No active workflow state found for this issue."
     gh issue comment "$SOURCE_ID" --body "📊 **No Active FABER Workflow**
 
-No workflow session found. To start a workflow:
+No workflow state found. To start a workflow:
 \`\`\`
 @faber run this issue
 \`\`\`"
@@ -131,12 +131,12 @@ No workflow session found. To start a workflow:
 fi
 
 # Extract current status
-CURRENT_PHASE=$(echo "$SESSION_JSON" | jq -r '.current_phase // "unknown"')
-FRAME_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.frame.status // "pending"')
-ARCHITECT_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.architect.status // "pending"')
-BUILD_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.build.status // "pending"')
-EVALUATE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.evaluate.status // "pending"')
-RELEASE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.release.status // "pending"')
+CURRENT_PHASE=$(echo "$STATE_JSON" | jq -r '.current_phase // "unknown"')
+FRAME_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.frame.status // "pending"')
+ARCHITECT_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.architect.status // "pending"')
+BUILD_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.build.status // "pending"')
+EVALUATE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.evaluate.status // "pending"')
+RELEASE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.release.status // "pending"')
 
 # Post status card
 gh issue comment "$SOURCE_ID" --body "📊 **FABER Workflow Status**
@@ -151,7 +151,7 @@ gh issue comment "$SOURCE_ID" --body "📊 **FABER Workflow Status**
 - Evaluate: $EVALUATE_STATUS
 - Release: $RELEASE_STATUS
 
-**Session File:** \`.faber/sessions/$WORK_ID.json\`"
+**State File:** \`.fractary/plugins/faber/state.json\`"
 
 exit 0
 ```
@@ -182,9 +182,9 @@ exit 0
 
 **Implementation:**
 ```bash
-# Read session state
-SESSION_JSON=$("$CORE_SKILL/session-status.sh" "$WORK_ID")
-CURRENT_STATE=$(echo "$SESSION_JSON" | jq -r '.state // "unknown"')
+# Read workflow state
+STATE_JSON=$("$CORE_SKILL/state-read.sh" ".fractary/plugins/faber/state.json")
+CURRENT_STATE=$(echo "$STATE_JSON" | jq -r '.state // "unknown"')
 
 case "$INTENT_TYPE" in
     approve)
@@ -203,7 +203,7 @@ Current state: $CURRENT_STATE"
         fi
         ;;
     retry)
-        FAILED_PHASE=$(echo "$SESSION_JSON" | jq -r '.failed_phase // "unknown"')
+        FAILED_PHASE=$(echo "$STATE_JSON" | jq -r '.failed_phase // "unknown"')
         echo "🔄 Retrying $FAILED_PHASE phase"
         # Set retry flag
         RETRY_FROM_PHASE="$FAILED_PHASE"
@@ -405,10 +405,19 @@ AUTO_MERGE=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --autonomy)
+            if [ -z "$2" ] || [[ "$2" == --* ]]; then
+                echo "Error: --autonomy requires a value" >&2
+                echo "Valid values: dry-run, assist, guarded, autonomous" >&2
+                exit 2
+            fi
             AUTONOMY="$2"
             shift 2
             ;;
         --workflow)
+            if [ -z "$2" ] || [[ "$2" == --* ]]; then
+                echo "Error: --workflow requires a value (workflow ID)" >&2
+                exit 2
+            fi
             WORKFLOW_ID="$2"
             shift 2
             ;;
