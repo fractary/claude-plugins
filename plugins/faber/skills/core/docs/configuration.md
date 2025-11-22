@@ -164,16 +164,16 @@ s3_endpoint = ""  # Optional: for S3-compatible services
 local_storage_path = ".faber/artifacts"
 ```
 
-### [session]
+### [session] (DEPRECATED in v2.0)
 
-Session management settings.
+**NOTE:** Session management has been replaced by state management in FABER v2.0.
 
-```toml
-[session]
-session_storage = ".faber/sessions"    # Session directory
-session_ttl_hours = 168                # TTL (default: 1 week)
-auto_cleanup_sessions = true           # Auto-cleanup expired sessions
-```
+In v2.0, workflow state is stored in `.fractary/plugins/faber/state.json` instead of per-work-id session files. This provides:
+- Single source of truth for current workflow
+- Simpler state management
+- Better integration with fractary-logs plugin for historical tracking
+
+For v2.0 configuration, see the main FABER configuration documentation.
 
 ### [notifications]
 

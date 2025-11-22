@@ -6,11 +6,11 @@ set -euo pipefail
 
 # Check arguments
 if [ $# -lt 5 ]; then
-    echo "Usage: $0 <session_id> <issue_id> <stage> <message> <options_json>" >&2
+    echo "Usage: $0 <work_id> <issue_id> <stage> <message> <options_json>" >&2
     exit 2
 fi
 
-SESSION_ID="$1"
+WORK_ID="$1"
 ISSUE_ID="$2"
 STAGE="$3"
 MESSAGE="$4"
@@ -37,15 +37,14 @@ if [ "$POST_STATUS_CARDS" != "true" ]; then
     exit 0
 fi
 
-# Load session to get context
-SESSION_STORAGE=$(echo "$CONFIG_JSON" | jq -r '.session.session_storage // ".faber/sessions"')
-SESSION_FILE="$SESSION_STORAGE/${SESSION_ID}.json"
+# Load workflow state to get context
+STATE_FILE=".fractary/plugins/faber/state.json"
 
-if [ ! -f "$SESSION_FILE" ]; then
-    echo "Warning: Session file not found, posting without session context" >&2
-    SESSION_JSON='{}'
+if [ ! -f "$STATE_FILE" ]; then
+    echo "Warning: State file not found, posting without workflow context" >&2
+    STATE_JSON='{}'
 else
-    SESSION_JSON=$(cat "$SESSION_FILE")
+    STATE_JSON=$(cat "$STATE_FILE")
 fi
 
 # Create timestamp
@@ -75,7 +74,7 @@ $MESSAGE
 **Options:** $OPTIONS_MD
 
 \`\`\`yaml
-session: $SESSION_ID
+work_id: $WORK_ID
 stage: $STAGE
 timestamp: $TIMESTAMP
 \`\`\`"
@@ -86,14 +85,14 @@ else
         sed "s/{stage}/$STAGE/g" | \
         sed "s/{message}/$MESSAGE/g" | \
         sed "s/{options}/$OPTIONS_MD/g" | \
-        sed "s/{session_id}/$SESSION_ID/g" | \
+        sed "s/{work_id}/$WORK_ID/g" | \
         sed "s/{timestamp}/$TIMESTAMP/g")
 fi
 
 # Add metadata if enabled and style is detailed
 if [ "$INCLUDE_METADATA" = "true" ] && [ "$STATUS_CARD_STYLE" = "detailed" ]; then
-    DOMAIN=$(echo "$SESSION_JSON" | jq -r '.domain // "unknown"')
-    AUTONOMY=$(echo "$SESSION_JSON" | jq -r '.autonomy // "unknown"')
+    DOMAIN=$(echo "$STATE_JSON" | jq -r '.domain // "unknown"')
+    AUTONOMY=$(echo "$STATE_JSON" | jq -r '.autonomy // "unknown"')
 
     STATUS_CARD="$STATUS_CARD
 

@@ -38,6 +38,7 @@ case "$PHASE" in
     *)
         echo "Error: Invalid phase: $PHASE" >&2
         echo "Valid phases: frame, architect, build, evaluate, release" >&2
+        echo "Usage: state-update-phase.sh <phase> <status> [data_json]" >&2
         exit 1
         ;;
 esac
@@ -48,6 +49,7 @@ case "$STATUS" in
     *)
         echo "Error: Invalid status: $STATUS" >&2
         echo "Valid statuses: pending, in_progress, completed, failed" >&2
+        echo "Usage: state-update-phase.sh <phase> <status> [data_json]" >&2
         exit 1
         ;;
 esac

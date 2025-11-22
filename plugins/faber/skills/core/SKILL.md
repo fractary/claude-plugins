@@ -98,11 +98,11 @@ echo "$STATE_JSON" | ./scripts/state-write.sh ".fractary/plugins/faber/state.jso
 Posts a formatted status card to the work tracking system.
 
 ```bash
-./scripts/status-card-post.sh <session_id> <issue_id> <stage> <message> <options_json>
+./scripts/status-card-post.sh <work_id> <issue_id> <stage> <message> <options_json>
 ```
 
 **Parameters:**
-- `session_id`: Session identifier
+- `work_id`: Work identifier
 - `issue_id`: External issue ID
 - `stage`: Current FABER stage
 - `message`: Status message
@@ -153,7 +153,7 @@ Markdown template for status cards posted to work tracking systems.
 
 Variables supported:
 - `{stage}`: Current FABER stage
-- `{session_id}`: Session identifier
+- `{work_id}`: Work identifier
 - `{message}`: Status message
 - `{options}`: Available options
 - `{context_refs}`: Context references (PRs, CI builds, etc.)
@@ -167,11 +167,11 @@ See: `docs/status-cards.md`
 
 Complete specification for status card format, metadata, and usage.
 
-### Session Management
+### State Management
 
-See: `docs/session-management.md`
+See: `docs/state-management.md`
 
-Details on session lifecycle, state transitions, and recovery.
+Details on workflow state lifecycle, state transitions, and recovery.
 
 ### Configuration
 
@@ -187,11 +187,11 @@ Agents should invoke this skill for core utilities:
 # Load configuration
 config_json=$(claude -s core "load config")
 
-# Create session
-session_json=$(claude -s core "create session abc12345 123 engineering")
+# Read workflow state
+state_json=$(claude -s core "read state")
 
-# Update session
-claude -s core "update session abc12345 frame completed"
+# Update phase state
+claude -s core "update phase frame completed"
 
 # Post status card
 claude -s core "post status card abc12345 123 frame 'Frame complete' '[\"proceed\"]'"
@@ -204,7 +204,7 @@ All scripts follow these conventions:
 - Exit code 1: General error
 - Exit code 2: Invalid arguments
 - Exit code 3: Configuration error
-- Exit code 4: Session error
+- Exit code 4: State error
 
 Error messages are written to stderr, results to stdout.
 
@@ -217,14 +217,14 @@ Error messages are written to stderr, results to stdout.
 
 ## File Locations
 
-- **Config file**: `.faber.config.toml` (project root)
-- **Session storage**: `.faber/sessions/` (configurable)
-- **Logs**: `.faber/logs/` (configurable)
+- **Config file**: `.fractary/plugins/faber/config.json` (v2.0)
+- **State file**: `.fractary/plugins/faber/state.json`
+- **Logs**: Managed by `fractary-logs` plugin (workflow log type)
 - **Templates**: `skills/core/templates/`
 
 ## Notes
 
-- This skill is stateless - all state is stored in session files
+- This skill is stateless - all state is stored in the state file
 - Scripts are idempotent where possible
 - All JSON output is minified (single line) for easy parsing
-- Session files use JSON format for universal compatibility
+- State files use JSON format for universal compatibility

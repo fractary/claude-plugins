@@ -405,7 +405,7 @@ AUTO_MERGE=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --autonomy)
-            if [ -z "$2" ] || [[ "$2" == --* ]]; then
+            if [ -z "${2:-}" ] || [[ "${2:-}" == --* ]]; then
                 echo "Error: --autonomy requires a value" >&2
                 echo "Valid values: dry-run, assist, guarded, autonomous" >&2
                 exit 2
@@ -414,7 +414,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --workflow)
-            if [ -z "$2" ] || [[ "$2" == --* ]]; then
+            if [ -z "${2:-}" ] || [[ "${2:-}" == --* ]]; then
                 echo "Error: --workflow requires a value (workflow ID)" >&2
                 exit 2
             fi
@@ -469,7 +469,10 @@ if [ -z "$WORKFLOW_ID" ]; then
         case "$SOURCE_TYPE" in
             github)
                 # Use gh CLI to get issue labels
-                ISSUE_LABELS=$(gh issue view "$SOURCE_ID" --json labels --jq '.labels[].name' 2>/dev/null || echo "")
+                if ! ISSUE_LABELS=$(gh issue view "$SOURCE_ID" --json labels --jq '.labels[].name' 2>&1); then
+                    echo "  ⚠️  Could not fetch issue labels (using default workflow): $ISSUE_LABELS" >&2
+                    ISSUE_LABELS=""
+                fi
                 ;;
             jira|linear)
                 # For Jira/Linear, would use their APIs here
@@ -509,6 +512,49 @@ if [ -z "$WORKFLOW_ID" ]; then
     fi
 else
     echo "📋 Using specified workflow: $WORKFLOW_ID"
+fi
+
+echo ""
+```
+
+### 2.5. Check for Existing Active Workflow
+
+Before starting a new workflow, check if there's already an active workflow in this directory:
+
+```bash
+# Check for existing active workflow
+STATE_FILE=".fractary/plugins/faber/state.json"
+
+if [ -f "$STATE_FILE" ]; then
+    CURRENT_STATUS=$(jq -r '.status // "unknown"' "$STATE_FILE" 2>/dev/null)
+    CURRENT_WORK_ID=$(jq -r '.work_id // "unknown"' "$STATE_FILE" 2>/dev/null)
+
+    if [ "$CURRENT_STATUS" = "active" ] || [ "$CURRENT_STATUS" = "in_progress" ]; then
+        echo "⚠️  Warning: Active workflow already exists in this directory"
+        echo "   Work ID: $CURRENT_WORK_ID"
+        echo "   Status: $CURRENT_STATUS"
+        echo ""
+        echo "Options:"
+        echo "  1. Use git worktrees for concurrent workflows:"
+        echo "     /repo:branch-create \"description\" --work-id $WORK_ID --worktree"
+        echo ""
+        echo "  2. Complete or cancel the existing workflow first"
+        echo ""
+        echo "  3. Continue anyway (will overwrite existing state)"
+        echo ""
+
+        # In guarded/assist mode, require confirmation
+        if [ "$AUTONOMY" != "autonomous" ] && [ "$AUTONOMY" != "dry-run" ]; then
+            read -p "Continue and overwrite existing workflow? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Cancelled by user"
+                exit 0
+            fi
+        else
+            echo "ℹ️  Autonomous mode: Overwriting existing workflow state"
+        fi
+    fi
 fi
 
 echo ""
