@@ -7,11 +7,6 @@
       "id": "default",
       "file": "./workflows/default.json",
       "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)"
-    },
-    {
-      "id": "hotfix",
-      "file": "./workflows/hotfix.json",
-      "description": "Expedited workflow for critical fixes (skips Architect phase)"
     }
   ],
   "integrations": {
