@@ -177,16 +177,72 @@ Create GitHub issue templates that mirror your FABER workflows to provide workfl
 - Ensures issues have the right structure for the workflow they'll follow
 - Makes custom workflows discoverable to team members
 
+#### Template Ordering Strategy
+
+GitHub displays templates in **alphabetical order** by filename. Use numeric prefixes to control the order based on workflow frequency and type.
+
+**Recommended numbering system:**
+```
+00-09: Flexible/General   (Most common - blank/general issues)
+10-19: Create/New         (Creating new features, components, etc.)
+20-29: Update/Modify      (Updating existing functionality)
+30-39: Audit/Inspect      (Review, analysis, investigation)
+40-49: Urgent/Critical    (Hotfixes, security patches)
+50-59: Maintenance        (Documentation, chores, dependencies)
+```
+
 **Example structure:**
 ```
 .github/ISSUE_TEMPLATE/
-├── config.yml           # Optional: Configure template chooser
-├── feature.yml          # Maps to "default" FABER workflow
-├── hotfix.yml           # Maps to "hotfix" FABER workflow
-└── documentation.yml    # Maps to "documentation" FABER workflow
+├── config.yml              # Configure template chooser + blank_issues_enabled
+├── 00-blank.yml            # Flexible template (appears FIRST)
+├── 10-feature.yml          # New feature (Create category)
+├── 11-bug.yml              # Bug fix (Create category)
+├── 20-enhancement.yml      # Enhancement to existing feature (Update category)
+├── 30-audit.yml            # Code review, investigation (Audit category)
+├── 40-hotfix.yml           # Critical fixes (Urgent category)
+└── 50-documentation.yml    # Documentation updates (Maintenance category)
 ```
 
-**Example: Feature template** (`.github/ISSUE_TEMPLATE/feature.yml`):
+This ordering ensures:
+- Most flexible option appears first (00-blank.yml)
+- Common operations (create new work) appear near the top
+- Specialized operations (audits, hotfixes) appear further down
+- Logical grouping by workflow type
+
+#### Template Examples
+
+**00-blank.yml** - Minimal, flexible template (appears FIRST):
+```yaml
+name: General Issue
+description: Flexible template for any type of work
+title: ""
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for any issue that doesn't fit other categories.
+        This is the most flexible option - customize as needed.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe what needs to be done
+      placeholder: What is this issue about?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any additional information
+      placeholder: Links, screenshots, related issues, etc.
+```
+
+**10-feature.yml** - New feature template (Create category):
 ```yaml
 name: Feature Request
 description: Standard feature development workflow
@@ -227,7 +283,75 @@ body:
       placeholder: Technical details, related issues, screenshots, etc.
 ```
 
-**Example: Hotfix template** (`.github/ISSUE_TEMPLATE/hotfix.yml`):
+**11-bug.yml** - Bug fix template (Create category):
+```yaml
+name: Bug Report
+description: Report a bug or defect
+title: "[Bug]: "
+labels: ["type:bug", "workflow:default"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report a bug to be fixed via FABER workflow.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What's wrong?
+      description: Describe the bug
+      placeholder: What happened? What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Go to...
+        2. Click on...
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected and how?
+```
+
+**30-audit.yml** - Audit/investigation template (Audit category):
+```yaml
+name: Audit / Investigation
+description: Code review, investigation, or analysis task
+title: "[Audit]: "
+labels: ["type:audit", "workflow:default"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for code reviews, investigations, or analysis tasks.
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What should be reviewed or investigated?
+      placeholder: Which files, components, or systems?
+    validations:
+      required: true
+
+  - type: textarea
+    id: objectives
+    attributes:
+      label: Objectives
+      description: What are you looking for?
+      placeholder: Security issues, performance problems, technical debt, etc.
+```
+
+**40-hotfix.yml** - Hotfix template (Urgent category):
 ```yaml
 name: Hotfix
 description: Expedited workflow for critical patches
@@ -270,9 +394,43 @@ body:
       required: true
 ```
 
-**Example: config.yml** (`.github/ISSUE_TEMPLATE/config.yml`):
+**50-documentation.yml** - Documentation template (Maintenance category):
 ```yaml
-blank_issues_enabled: false
+name: Documentation
+description: Documentation updates or improvements
+title: "[Docs]: "
+labels: ["type:docs", "workflow:default"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for documentation updates, improvements, or additions.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What needs to be documented?
+      description: Describe the documentation need
+      placeholder: What should be added, updated, or clarified?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Which documentation areas are affected?
+      placeholder: README, API docs, user guides, etc.
+```
+
+#### config.yml - Template Chooser Configuration
+
+**`.github/ISSUE_TEMPLATE/config.yml`:**
+
+**⚠️ CRITICAL: Always enable blank issues for FABER workflows**
+
+```yaml
+blank_issues_enabled: true  # REQUIRED: Must be true for FABER flexibility
 contact_links:
   - name: 📚 Documentation
     url: https://github.com/your-org/your-repo/wiki
@@ -281,6 +439,12 @@ contact_links:
     url: https://github.com/your-org/your-repo/discussions
     about: Ask questions and discuss ideas
 ```
+
+**Why `blank_issues_enabled: true` is required:**
+- FABER workflows can be initiated from issues created outside templates (API, integrations, manual creation)
+- Allows team members to create quick issues without template overhead when appropriate
+- Prevents blocking FABER execution when issue doesn't match a specific template
+- Templates provide guidance but shouldn't be mandatory constraints
 
 **Workflow mapping:**
 - `workflow:default` label → FABER uses default workflow

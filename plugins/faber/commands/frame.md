@@ -14,12 +14,13 @@ Executes the Frame phase which includes:
 ## Usage
 
 ```bash
-/fractary-faber:frame <work-id>
+/fractary-faber:frame <work-id> [--workflow <id>]
 ```
 
 ## Arguments
 
 - `<work-id>` (required): Work item ID (e.g., 158, PROJ-456)
+- `--workflow <id>` (optional): Workflow to use (e.g., default, hotfix). If not specified, inferred from issue metadata or defaults to first workflow.
 
 ## Examples
 
@@ -29,6 +30,9 @@ Executes the Frame phase which includes:
 
 # Execute frame phase for Jira ticket
 /fractary-faber:frame PROJ-456
+
+# Execute frame phase with specific workflow
+/fractary-faber:frame 158 --workflow hotfix
 ```
 
 ## What Gets Created

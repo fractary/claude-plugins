@@ -16,18 +16,22 @@ Executes the Release phase which includes:
 ## Usage
 
 ```bash
-/fractary-faber:release <work-id>
+/fractary-faber:release <work-id> [--workflow <id>]
 ```
 
 ## Arguments
 
 - `<work-id>` (required): Work item ID (e.g., 158)
+- `--workflow <id>` (optional): Workflow to use (e.g., default, hotfix). If not specified, inferred from issue metadata or defaults to first workflow.
 
 ## Examples
 
 ```bash
 # Execute release phase for issue #158
 /fractary-faber:release 158
+
+# Execute release phase with specific workflow
+/fractary-faber:release 158 --workflow hotfix
 
 # This will:
 # 1. Check prerequisites (all phases complete)

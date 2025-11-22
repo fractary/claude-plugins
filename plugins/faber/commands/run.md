@@ -1,7 +1,7 @@
 ---
-name: faber:run
+name: fractary-faber:run
 description: Execute complete FABER workflow for a work item (issue/ticket/task)
-argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--auto-merge]
+argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--workflow <id>] [--auto-merge]
 tools: Bash, SlashCommand, Read
 model: inherit
 ---
@@ -70,6 +70,7 @@ INPUT="$1"
 DOMAIN_OVERRIDE=""
 AUTONOMY_OVERRIDE=""
 AUTO_MERGE=""
+WORKFLOW_OVERRIDE=""
 
 # Process flags
 shift
@@ -81,6 +82,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --autonomy)
             AUTONOMY_OVERRIDE="$2"
+            shift 2
+            ;;
+        --workflow)
+            WORKFLOW_OVERRIDE="$2"
             shift 2
             ;;
         --auto-merge)
@@ -282,8 +287,17 @@ Execute the workflow via the faber-director agent:
 # Build director invocation
 DIRECTOR_ARGS="$WORK_ID $SOURCE_TYPE $ISSUE_ID $WORK_DOMAIN"
 
+# Add optional parameters
+if [ -n "$AUTONOMY_OVERRIDE" ]; then
+    DIRECTOR_ARGS="$DIRECTOR_ARGS --autonomy $AUTONOMY_OVERRIDE"
+fi
+
+if [ -n "$WORKFLOW_OVERRIDE" ]; then
+    DIRECTOR_ARGS="$DIRECTOR_ARGS --workflow $WORKFLOW_OVERRIDE"
+fi
+
 if [ -n "$AUTO_MERGE" ]; then
-    DIRECTOR_ARGS="$DIRECTOR_ARGS $AUTO_MERGE"
+    DIRECTOR_ARGS="$DIRECTOR_ARGS --auto-merge"
 fi
 
 # Invoke director
@@ -314,8 +328,8 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
     echo ""
 
     # Check if paused at release
-    SESSION_JSON=$("$SCRIPT_DIR/skills/core/scripts/session-status.sh" "$WORK_ID" 2>/dev/null)
-    RELEASE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.release.status // "unknown"')
+    STATE_JSON=$("$SCRIPT_DIR/skills/core/scripts/state-read.sh" ".fractary/plugins/faber/state.json" 2>/dev/null)
+    RELEASE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.release.status // "unknown"')
 
     if [ "$RELEASE_STATUS" = "pending" ] || [ "$RELEASE_STATUS" = "unknown" ]; then
         echo "Workflow paused at Release phase."
@@ -327,7 +341,7 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
         echo "  /faber:status $WORK_ID"
     else
         # Extract PR URL
-        PR_URL=$(echo "$SESSION_JSON" | jq -r '.stages.release.data.pr_url // "N/A"')
+        PR_URL=$(echo "$STATE_JSON" | jq -r '.phases.release.data.pr_url // "N/A"')
 
         if [ "$PR_URL" != "N/A" ]; then
             echo "Pull Request: $PR_URL"
@@ -352,11 +366,11 @@ else
     echo ""
     echo "📋 Troubleshooting:"
     echo ""
-    echo "1. Check session status:"
+    echo "1. Check workflow status:"
     echo "   /faber:status $WORK_ID"
     echo ""
-    echo "2. View session file:"
-    echo "   cat .faber/sessions/${WORK_ID}.json"
+    echo "2. View state file:"
+    echo "   cat .fractary/plugins/faber/state.json"
     echo ""
     echo "3. Check logs for errors in the output above"
     echo ""

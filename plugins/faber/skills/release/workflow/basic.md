@@ -289,7 +289,7 @@ RELEASE_DATA=$(cat <<EOF
 EOF
 )
 
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "release" "completed" "$RELEASE_DATA"
+"$CORE_SKILL/state-update-phase.sh" "release" "completed" "$RELEASE_DATA"
 ```
 
 ### 11. Post Release Complete

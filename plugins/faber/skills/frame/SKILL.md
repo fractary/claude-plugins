@@ -203,7 +203,7 @@ The workflow is selected based on configuration or defaults to `basic.md`.
 <DOCUMENTATION>
 Frame skill documents its work through:
 
-1. **Session Updates** - Frame results stored in `.faber/sessions/{work_id}.json`
+1. **State Updates** - Frame results stored in `.fractary/plugins/faber/state.json`
 2. **Status Notifications** - Start/complete posted to work tracking system
 3. **Console Output** - Detailed execution log
 4. **Environment Artifacts** - Branch, worktree, allocated resources

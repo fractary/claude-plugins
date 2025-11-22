@@ -1,5 +1,5 @@
 ---
-name: faber:mention
+name: fractary-faber:mention
 description: GitHub mention entry point - triggered by @faber mentions in issues/PRs
 argument-hint: (no arguments - context from GitHub Actions)
 tools: Bash, Read
@@ -420,18 +420,18 @@ if [ $DIRECTOR_EXIT -eq 0 ]; then
     echo "✅ FABER Workflow Complete"
     echo "========================================"
 
-    # Read session to get results
-    SESSION_JSON=$("$SCRIPT_DIR/skills/core/scripts/session-status.sh" "$WORK_ID" 2>/dev/null)
+    # Read workflow state to get results
+    STATE_JSON=$("$SCRIPT_DIR/skills/core/scripts/state-read.sh" ".fractary/plugins/faber/state.json" 2>/dev/null)
 
-    if [ -n "$SESSION_JSON" ]; then
-        RELEASE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.release.status // "unknown"')
-        PR_URL=$(echo "$SESSION_JSON" | jq -r '.stages.release.data.pr_url // ""')
+    if [ -n "$STATE_JSON" ]; then
+        RELEASE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.release.status // "unknown"')
+        PR_URL=$(echo "$STATE_JSON" | jq -r '.phases.release.data.pr_url // ""')
 
         # Build completion message
         COMPLETION_MESSAGE="✅ **FABER Workflow Complete**
 
 **Work ID:** \`$WORK_ID\`
-**Duration:** $(echo "$SESSION_JSON" | jq -r '.duration // "N/A"')
+**Duration:** $(echo "$STATE_JSON" | jq -r '.duration // "N/A"')
 
 "
 

@@ -14,6 +14,18 @@
       "description": "Expedited workflow for critical fixes (skips Architect phase)"
     }
   ],
+  "workflow_inference": {
+    "_comment": "Maps issue labels to workflows. Used when --workflow is not explicitly specified.",
+    "label_mapping": {
+      "hotfix": "hotfix",
+      "urgent": "hotfix",
+      "critical": "hotfix",
+      "security": "hotfix",
+      "bug": "default",
+      "feature": "default",
+      "enhancement": "default"
+    }
+  },
   "integrations": {
     "work_plugin": "fractary-work",
     "repo_plugin": "fractary-repo",

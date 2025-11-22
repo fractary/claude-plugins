@@ -31,8 +31,9 @@ Extract from invocation:
 - `source_type` (required): Issue tracker (github, jira, linear, manual)
 - `source_id` (required): External issue ID
 - `work_domain` (required): Domain (engineering, design, writing, data)
-- `auto_merge` (optional): Auto-merge on release (true/false, default from config)
 - `autonomy` (optional): Autonomy level override (dry-run, assist, guarded, autonomous)
+- `workflow_id` (optional): Workflow to use (default, hotfix, etc.). If not specified, inferred from issue labels/metadata
+- `auto_merge` (optional): Auto-merge on release (true/false, default from config)
 </INPUTS>
 
 ## Intent Parsing (GitHub Mentions)
@@ -115,14 +116,14 @@ Check if this is a GitHub mention invocation:
 
 **Implementation:**
 ```bash
-# Read session state
-SESSION_JSON=$("$CORE_SKILL/session-status.sh" "$WORK_ID")
+# Read workflow state
+STATE_JSON=$("$CORE_SKILL/state-read.sh" ".fractary/plugins/faber/state.json")
 
-if [ $? -ne 0 ] || [ -z "$SESSION_JSON" ]; then
-    echo "No active workflow session found for this issue."
+if [ $? -ne 0 ] || [ -z "$STATE_JSON" ]; then
+    echo "No active workflow state found for this issue."
     gh issue comment "$SOURCE_ID" --body "📊 **No Active FABER Workflow**
 
-No workflow session found. To start a workflow:
+No workflow state found. To start a workflow:
 \`\`\`
 @faber run this issue
 \`\`\`"
@@ -130,12 +131,12 @@ No workflow session found. To start a workflow:
 fi
 
 # Extract current status
-CURRENT_PHASE=$(echo "$SESSION_JSON" | jq -r '.current_phase // "unknown"')
-FRAME_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.frame.status // "pending"')
-ARCHITECT_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.architect.status // "pending"')
-BUILD_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.build.status // "pending"')
-EVALUATE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.evaluate.status // "pending"')
-RELEASE_STATUS=$(echo "$SESSION_JSON" | jq -r '.stages.release.status // "pending"')
+CURRENT_PHASE=$(echo "$STATE_JSON" | jq -r '.current_phase // "unknown"')
+FRAME_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.frame.status // "pending"')
+ARCHITECT_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.architect.status // "pending"')
+BUILD_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.build.status // "pending"')
+EVALUATE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.evaluate.status // "pending"')
+RELEASE_STATUS=$(echo "$STATE_JSON" | jq -r '.phases.release.status // "pending"')
 
 # Post status card
 gh issue comment "$SOURCE_ID" --body "📊 **FABER Workflow Status**
@@ -150,7 +151,7 @@ gh issue comment "$SOURCE_ID" --body "📊 **FABER Workflow Status**
 - Evaluate: $EVALUATE_STATUS
 - Release: $RELEASE_STATUS
 
-**Session File:** \`.faber/sessions/$WORK_ID.json\`"
+**State File:** \`.fractary/plugins/faber/state.json\`"
 
 exit 0
 ```
@@ -181,9 +182,9 @@ exit 0
 
 **Implementation:**
 ```bash
-# Read session state
-SESSION_JSON=$("$CORE_SKILL/session-status.sh" "$WORK_ID")
-CURRENT_STATE=$(echo "$SESSION_JSON" | jq -r '.state // "unknown"')
+# Read workflow state
+STATE_JSON=$("$CORE_SKILL/state-read.sh" ".fractary/plugins/faber/state.json")
+CURRENT_STATE=$(echo "$STATE_JSON" | jq -r '.state // "unknown"')
 
 case "$INTENT_TYPE" in
     approve)
@@ -202,14 +203,14 @@ Current state: $CURRENT_STATE"
         fi
         ;;
     retry)
-        FAILED_PHASE=$(echo "$SESSION_JSON" | jq -r '.failed_phase // "unknown"')
+        FAILED_PHASE=$(echo "$STATE_JSON" | jq -r '.failed_phase // "unknown"')
         echo "🔄 Retrying $FAILED_PHASE phase"
         # Set retry flag
         RETRY_FROM_PHASE="$FAILED_PHASE"
         ;;
     cancel)
         echo "🛑 Cancelling workflow"
-        "$CORE_SKILL/session-update.sh" "$WORK_ID" "cancelled" "cancelled"
+        "$CORE_SKILL/state-cancel.sh" "Cancelled by @$COMMENTER"
         gh issue comment "$SOURCE_ID" --body "🛑 **Workflow Cancelled**
 
 Workflow \`$WORK_ID\` has been cancelled by @$COMMENTER."
@@ -389,18 +390,52 @@ fi
 ```bash
 #!/bin/bash
 
-# Parse input parameters
+# Parse positional parameters (required)
 WORK_ID="$1"
 SOURCE_TYPE="$2"
 SOURCE_ID="$3"
 WORK_DOMAIN="$4"
-AUTONOMY="${5:-}"
-AUTO_MERGE="${6:-}"
+
+# Parse optional named parameters
+shift 4
+AUTONOMY=""
+WORKFLOW_ID=""
+AUTO_MERGE=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --autonomy)
+            if [ -z "${2:-}" ] || [[ "${2:-}" == --* ]]; then
+                echo "Error: --autonomy requires a value" >&2
+                echo "Valid values: dry-run, assist, guarded, autonomous" >&2
+                exit 2
+            fi
+            AUTONOMY="$2"
+            shift 2
+            ;;
+        --workflow)
+            if [ -z "${2:-}" ] || [[ "${2:-}" == --* ]]; then
+                echo "Error: --workflow requires a value (workflow ID)" >&2
+                exit 2
+            fi
+            WORKFLOW_ID="$2"
+            shift 2
+            ;;
+        --auto-merge)
+            AUTO_MERGE="true"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 2
+            ;;
+    esac
+done
 
 # Validate required parameters
 if [ -z "$WORK_ID" ] || [ -z "$SOURCE_TYPE" ] || [ -z "$SOURCE_ID" ] || [ -z "$WORK_DOMAIN" ]; then
     echo "Error: Missing required parameters" >&2
-    echo "Usage: director <work_id> <source_type> <source_id> <work_domain> [autonomy] [auto_merge]" >&2
+    echo "Usage: director <work_id> <source_type> <source_id> <work_domain> [--autonomy <level>] [--workflow <id>] [--auto-merge]" >&2
     exit 2
 fi
 
@@ -415,16 +450,143 @@ echo "Domain: $WORK_DOMAIN"
 echo ""
 ```
 
-### 2. Route to Workflow Manager
+### 2. Infer Workflow (if not specified)
+
+If `--workflow` was not provided, infer the workflow from issue metadata:
+
+```bash
+if [ -z "$WORKFLOW_ID" ]; then
+    echo "🔍 Inferring workflow from issue metadata..."
+
+    # Load configuration to get workflow inference rules
+    CONFIG_FILE=".fractary/plugins/faber/config.json"
+
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "⚠️  No config found, using first workflow (default)"
+        WORKFLOW_ID="default"
+    else
+        # Fetch issue details to get labels
+        case "$SOURCE_TYPE" in
+            github)
+                # Use gh CLI to get issue labels
+                if ! ISSUE_LABELS=$(gh issue view "$SOURCE_ID" --json labels --jq '.labels[].name' 2>&1); then
+                    echo "  ⚠️  Could not fetch issue labels (using default workflow): $ISSUE_LABELS" >&2
+                    ISSUE_LABELS=""
+                fi
+                ;;
+            jira|linear)
+                # For Jira/Linear, would use their APIs here
+                # For now, fall back to default
+                ISSUE_LABELS=""
+                ;;
+            *)
+                ISSUE_LABELS=""
+                ;;
+        esac
+
+        # Load workflow inference rules from config
+        INFERENCE_RULES=$(jq -r '.workflow_inference // {}' "$CONFIG_FILE" 2>/dev/null || echo "{}")
+
+        # Try to match labels to workflows
+        MATCHED_WORKFLOW=""
+        if [ -n "$ISSUE_LABELS" ]; then
+            while IFS= read -r label; do
+                # Check if this label maps to a workflow
+                MAPPED=$(echo "$INFERENCE_RULES" | jq -r --arg label "$label" '.label_mapping[$label] // ""')
+                if [ -n "$MAPPED" ]; then
+                    MATCHED_WORKFLOW="$MAPPED"
+                    echo "  ✅ Matched label '$label' → workflow '$MATCHED_WORKFLOW'"
+                    break
+                fi
+            done <<< "$ISSUE_LABELS"
+        fi
+
+        # Use matched workflow or fall back to default
+        if [ -n "$MATCHED_WORKFLOW" ]; then
+            WORKFLOW_ID="$MATCHED_WORKFLOW"
+        else
+            # Fall back to first workflow in config
+            WORKFLOW_ID=$(jq -r '.workflows[0].id // "default"' "$CONFIG_FILE")
+            echo "  ℹ️  No matching labels, using first workflow: '$WORKFLOW_ID'"
+        fi
+    fi
+else
+    echo "📋 Using specified workflow: $WORKFLOW_ID"
+fi
+
+echo ""
+```
+
+### 2.5. Check for Existing Active Workflow
+
+Before starting a new workflow, check if there's already an active workflow in this directory:
+
+```bash
+# Check for existing active workflow
+STATE_FILE=".fractary/plugins/faber/state.json"
+
+if [ -f "$STATE_FILE" ]; then
+    CURRENT_STATUS=$(jq -r '.status // "unknown"' "$STATE_FILE" 2>/dev/null)
+    CURRENT_WORK_ID=$(jq -r '.work_id // "unknown"' "$STATE_FILE" 2>/dev/null)
+
+    if [ "$CURRENT_STATUS" = "active" ] || [ "$CURRENT_STATUS" = "in_progress" ]; then
+        echo "⚠️  Warning: Active workflow already exists in this directory"
+        echo "   Work ID: $CURRENT_WORK_ID"
+        echo "   Status: $CURRENT_STATUS"
+        echo ""
+        echo "Options:"
+        echo "  1. Use git worktrees for concurrent workflows:"
+        echo "     /repo:branch-create \"description\" --work-id $WORK_ID --worktree"
+        echo ""
+        echo "  2. Complete or cancel the existing workflow first"
+        echo ""
+        echo "  3. Continue anyway (will overwrite existing state)"
+        echo ""
+
+        # In guarded/assist mode, require confirmation
+        if [ "$AUTONOMY" != "autonomous" ] && [ "$AUTONOMY" != "dry-run" ]; then
+            read -p "Continue and overwrite existing workflow? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo "Cancelled by user"
+                exit 0
+            fi
+        else
+            echo "ℹ️  Autonomous mode: Overwriting existing workflow state"
+        fi
+    fi
+fi
+
+echo ""
+```
+
+### 3. Route to Workflow Manager
 
 The director's primary responsibility is to route to the faber-manager agent, which handles all phase orchestration:
 
 ```bash
 echo "📍 Routing to faber-manager..."
+echo "   Workflow: $WORKFLOW_ID"
 echo ""
 
+# Build faber-manager arguments
+MANAGER_ARGS="$WORK_ID $SOURCE_TYPE $SOURCE_ID $WORK_DOMAIN"
+
+# Add optional parameters
+if [ -n "$AUTONOMY" ]; then
+    MANAGER_ARGS="$MANAGER_ARGS --autonomy $AUTONOMY"
+fi
+
+if [ -n "$WORKFLOW_ID" ]; then
+    MANAGER_ARGS="$MANAGER_ARGS --workflow $WORKFLOW_ID"
+fi
+
+if [ -n "$AUTO_MERGE" ]; then
+    MANAGER_ARGS="$MANAGER_ARGS --auto-merge"
+fi
+
 # Invoke faber-manager with all parameters
-claude --agent faber-manager "$WORK_ID $SOURCE_TYPE $SOURCE_ID $WORK_DOMAIN $AUTONOMY '' '' $AUTO_MERGE"
+claude --agent faber-manager "$MANAGER_ARGS"
 
 WORKFLOW_EXIT=$?
 
