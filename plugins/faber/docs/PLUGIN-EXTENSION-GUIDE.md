@@ -23,27 +23,40 @@ Specialized FABER plugins (like `faber-cloud`, `faber-app`) extend the core FABE
 - ✅ Serves as a reference implementation for custom workflows
 - ✅ Ensures FABER works out-of-the-box even with custom plugins installed
 
-**Example of correct workflows array:**
+**Example of correct workflows array in config.json:**
 ```json
 {
   "workflows": [
     {
       "id": "default",
+      "file": "./workflows/default.json",
       "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)"
       // ... default workflow is RETAINED
     },
     {
       "id": "cloud",
+      "file": "./workflows/cloud.json",
       "description": "Infrastructure workflow (Terraform → Deploy → Monitor)"
       // ... custom workflow is ADDED
     },
     {
       "id": "hotfix",
+      "file": "./workflows/hotfix.json",
       "description": "Expedited workflow for critical patches"
       // ... another custom workflow is ADDED
     }
   ]
 }
+```
+
+**Workflow files structure:**
+```
+.fractary/plugins/faber/
+├── config.json              # Main config (references all workflows)
+└── workflows/               # Workflow definition files
+    ├── default.json         # Standard FABER workflow
+    ├── cloud.json           # Infrastructure workflow (from faber-cloud plugin)
+    └── hotfix.json          # Hotfix workflow
 ```
 
 **How to use multiple workflows:**
@@ -77,16 +90,19 @@ faber/
 ```
 faber-cloud/
   ├── commands/
-  │   └── init.md              # ADDS "cloud" workflow to core config
+  │   └── init.md              # Copies workflow templates to project
   ├── skills/                   # Cloud-specific skills
   │   ├── terraform-manager/
   │   ├── aws-deployer/
   │   ├── cost-estimator/
   │   └── security-scanner/
-  └── docs/
-      └── workflows/            # Workflow templates for cloud
-          └── infrastructure.json
+  └── config/
+      └── workflows/            # Workflow templates (copied during init)
+          ├── cloud.json        # Infrastructure workflow
+          └── README.md         # Workflow documentation
 ```
+
+**Template-Copy Pattern**: During plugin initialization, workflow templates are copied from `plugins/faber-cloud/config/workflows/` to `.fractary/plugins/faber/workflows/` and referenced in the main config.
 
 ## Creating a Specialized Plugin
 
@@ -99,17 +115,20 @@ plugins/faber-{type}/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
 ├── commands/
-│   └── init.md              # Init command (adds workflow)
+│   └── init.md              # Init command (copies workflow templates)
 ├── skills/
 │   ├── {skill-name}/
 │   │   ├── SKILL.md
 │   │   └── scripts/
 │   └── ...
-├── docs/
-│   └── workflows/            # Workflow templates
-│       └── {type}.json
+├── config/
+│   └── workflows/            # Workflow templates (source)
+│       ├── {type}.json       # Workflow definition
+│       └── README.md         # Workflow documentation
 └── README.md
 ```
+
+**Note**: Workflow templates are stored in `config/workflows/` in the plugin and copied to `.fractary/plugins/faber/workflows/` during project initialization.
 
 ### Step 2: Define Specialized Skills
 
@@ -139,12 +158,17 @@ Invoked by faber-cloud workflows in the build and evaluate phases.
 
 ### Step 3: Create Workflow Template
 
-Define a workflow that uses your specialized skills:
+Define a workflow that uses your specialized skills.
 
-**Example**: `docs/workflows/cloud.json`
+**Location**: `config/workflows/cloud.json` (in your plugin directory)
+
+This file will be copied to `.fractary/plugins/faber/workflows/cloud.json` during project initialization.
+
+**Example**: `plugins/faber-cloud/config/workflows/cloud.json`
 
 ```json
 {
+  "$schema": "../../../faber/config/workflow.schema.json",
   "id": "cloud",
   "description": "Infrastructure workflow (Terraform → Deploy → Monitor)",
   "phases": {
@@ -290,7 +314,7 @@ Define a workflow that uses your specialized skills:
 
 ### Step 4: Create Init Command
 
-The init command **adds** your workflow to the core FABER config:
+The init command **copies workflow templates** and **adds references** to the core FABER config using the **template-copy pattern**:
 
 **Example**: `commands/init.md`
 
@@ -301,7 +325,14 @@ Initialize cloud infrastructure workflow for FABER.
 
 ## What This Does
 
-Adds a "cloud" workflow to `.fractary/plugins/faber/config.json` that uses cloud-specific skills for infrastructure management.
+1. Copies workflow template from plugin to project
+2. Adds workflow reference to `.fractary/plugins/faber/config.json`
+
+**Files created:**
+- `.fractary/plugins/faber/workflows/cloud.json` (workflow definition)
+
+**Files modified:**
+- `.fractary/plugins/faber/config.json` (adds workflow reference)
 
 ## Prerequisites
 
@@ -318,17 +349,27 @@ Adds a "cloud" workflow to `.fractary/plugins/faber/config.json` that uses cloud
 /fractary-faber-cloud:init --env staging
 ```
 
-## Implementation
+## Implementation (Template-Copy Pattern)
 
 This command should:
 1. Check if core FABER config exists (require `/fractary-faber:init` first)
-2. Load existing config from `.fractary/plugins/faber/config.json`
-3. Check if "cloud" workflow already exists (warn if duplicate)
-4. Load workflow template from `plugins/faber-cloud/docs/workflows/cloud.json`
-5. Add workflow to config's `workflows` array
-6. Write updated config back to `.fractary/plugins/faber/config.json`
-7. Validate complete configuration
-8. Report success with usage instructions
+2. Create `.fractary/plugins/faber/workflows/` directory if needed
+3. Copy workflow template:
+   - From: `plugins/faber-cloud/config/workflows/cloud.json`
+   - To: `.fractary/plugins/faber/workflows/cloud.json`
+4. Load existing config from `.fractary/plugins/faber/config.json`
+5. Check if "cloud" workflow reference already exists (warn if duplicate)
+6. Add workflow reference to config's `workflows` array:
+   ```json
+   {
+     "id": "cloud",
+     "file": "./workflows/cloud.json",
+     "description": "Infrastructure workflow (Terraform → Deploy → Monitor)"
+   }
+   ```
+7. Write updated config back to `.fractary/plugins/faber/config.json`
+8. Validate configuration and workflow file
+9. Report success with usage instructions
 
 ## After Initialization
 
@@ -348,12 +389,12 @@ The "cloud" workflow will be available:
 - Workflow selection: `/fractary-faber:run --help`
 ```
 
-### Step 5: Implement Init Logic
+### Step 5: Implement Init Logic (Template-Copy Pattern)
 
-The init command should programmatically:
+The init command should programmatically copy workflow templates and add references:
 
 ```javascript
-// Pseudocode for init implementation
+// Pseudocode for init implementation using template-copy pattern
 
 function initFaberCloudWorkflow() {
   // 1. Check prerequisites
@@ -363,55 +404,82 @@ function initFaberCloudWorkflow() {
     return
   }
 
-  // 2. Load existing config
+  // 2. Create workflows directory if needed
+  const workflowsDir = '.fractary/plugins/faber/workflows'
+  if (!exists(workflowsDir)) {
+    mkdir(workflowsDir)
+  }
+
+  // 3. Copy workflow template
+  const templatePath = 'plugins/faber-cloud/config/workflows/cloud.json'
+  const targetPath = '.fractary/plugins/faber/workflows/cloud.json'
+
+  if (exists(targetPath)) {
+    warn("Cloud workflow file already exists, skipping copy")
+  } else {
+    copyFile(templatePath, targetPath)
+    log("Copied cloud workflow template")
+  }
+
+  // 4. Load existing config
   const config = readJSON(coreConfigPath)
 
-  // 2a. CRITICAL: Verify default workflow exists
+  // 5. CRITICAL: Verify default workflow reference exists
   const defaultWorkflow = config.workflows.find(w => w.id === 'default')
   if (!defaultWorkflow) {
     error("Default workflow not found. This should never happen. Re-run /fractary-faber:init")
     return
   }
 
-  // 3. Check for duplicates
-  const existingCloud = config.workflows.find(w => w.id === 'cloud')
-  if (existingCloud) {
-    warn("Cloud workflow already exists. Overwrite? (y/n)")
-    if (!confirm()) return
-  }
-
-  // 4. Load cloud workflow template
-  const cloudWorkflow = readJSON('plugins/faber-cloud/docs/workflows/cloud.json')
-
-  // 5. Add to workflows array (PRESERVE default workflow)
-  if (existingCloud) {
-    // Replace existing cloud workflow ONLY (keep default!)
-    const index = config.workflows.findIndex(w => w.id === 'cloud')
-    config.workflows[index] = cloudWorkflow
-  } else {
-    // Add new cloud workflow alongside default
-    config.workflows.push(cloudWorkflow)
-  }
-
-  // 6. Write updated config
-  writeJSON(coreConfigPath, config)
-
-  // 7. Validate
-  const validation = validateConfig(config)
-  if (!validation.valid) {
-    error("Configuration validation failed", validation.errors)
+  // 6. Check for duplicate reference
+  const existingCloudRef = config.workflows.find(w => w.id === 'cloud')
+  if (existingCloudRef) {
+    warn("Cloud workflow reference already exists in config")
     return
   }
 
-  // 8. Report success
-  success(`Cloud workflow added to FABER config
+  // 7. Add workflow reference to config (NOT the full workflow)
+  const workflowRef = {
+    "id": "cloud",
+    "file": "./workflows/cloud.json",
+    "description": "Infrastructure workflow (Terraform → Deploy → Monitor)"
+  }
+
+  // 8. Add reference to workflows array (PRESERVE default workflow)
+  config.workflows.push(workflowRef)
+
+  // 9. Write updated config
+  writeJSON(coreConfigPath, config)
+
+  // 10. Validate configuration
+  const configValidation = validateConfig(config)
+  if (!configValidation.valid) {
+    error("Configuration validation failed", configValidation.errors)
+    return
+  }
+
+  // 11. Validate workflow file
+  const workflowValidation = validateWorkflowFile(targetPath)
+  if (!workflowValidation.valid) {
+    error("Workflow file validation failed", workflowValidation.errors)
+    return
+  }
+
+  // 12. Report success
+  success(`Cloud workflow added to FABER
+
+  Files created:
+    - .fractary/plugins/faber/workflows/cloud.json
+
+  Files modified:
+    - .fractary/plugins/faber/config.json (added workflow reference)
 
   Usage:
     /fractary-faber:run <work-id> --workflow cloud
 
   Customize:
-    Edit .fractary/plugins/faber/config.json
-    Modify the "cloud" workflow as needed
+    Edit .fractary/plugins/faber/workflows/cloud.json
+    Modify phases, steps, and hooks as needed
   `)
 }
 ```
