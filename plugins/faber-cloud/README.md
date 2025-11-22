@@ -58,6 +58,46 @@ Focus: Infrastructure architecture, engineering, deployment, and lifecycle manag
 
 ---
 
+## What's New in v2.4.0 - FABER Workflow Integration
+
+**Complete FABER Workflow Support** (#162): Infrastructure lifecycle orchestration using FABER framework
+
+- **Workflow-Based Execution**: Complete Frame → Architect → Build → Evaluate → Release workflows for infrastructure
+  - `infrastructure-deploy` - Standard deployment workflow (Guarded autonomy)
+  - `infrastructure-audit` - Non-destructive audit and compliance (Autonomous)
+  - `infrastructure-teardown` - Safe infrastructure destruction (Assist autonomy)
+
+- **Workflow Files**: Workflows defined in separate JSON files instead of inline configuration
+  - Template-copy pattern: Plugin workflows copied to project during init
+  - Location: `.fractary/plugins/faber-cloud/workflows/*.json`
+  - Reduces config.json size by ~70%
+  - Easier customization and versioning
+
+- **Dual-Mode Operation**:
+  - **Workflow Mode**: Execute complete FABER workflow for work items
+    - Example: `/fractary-faber-cloud:manage 123 --workflow infrastructure-deploy`
+  - **Direct Mode**: Execute individual operations (existing behavior)
+    - Example: `/fractary-faber-cloud:manage deploy-apply --env test`
+
+- **Work Item Integration**: Associate infrastructure changes with GitHub Issues, Jira, or Linear
+  - Automatic branch creation from work items
+  - Specification generation and review
+  - Pull request creation with deployment documentation
+
+- **Enhanced Autonomy Control**:
+  - Guarded: Pauses before deployment for approval (recommended for production)
+  - Assist: Requires approval at each major step
+  - Autonomous: Fully automated (audit workflows only)
+  - Dry-run: Preview without making changes
+
+**Documentation**:
+- [Workflow Guide](config/workflows/README.md) - Complete workflow documentation with examples
+- [Configuration Schema](config/config.schema.json) - Updated schema with workflow support
+
+**Migration**: Existing configurations continue to work. Workflows are opt-in through `/fractary-faber-cloud:init`
+
+---
+
 ## What's New in v2.2.0 (SPEC-00013)
 
 **Command Reorganization**: Commands renamed for clarity and FABER phase alignment
@@ -232,12 +272,38 @@ Route natural language requests to appropriate operations:
 /fractary-faber-cloud:director "analyze costs for test environment"
 ```
 
-### Infrastructure Commands (Simplified)
+### Infrastructure Commands
 
-**Direct Commands:**
+#### FABER Workflow Mode (NEW in v2.4.0)
+
+Execute complete workflows for work items:
 
 ```bash
-# Adopt existing infrastructure (NEW in v2.3.0)
+# Standard deployment workflow (Frame → Architect → Build → Evaluate → Release)
+/fractary-faber-cloud:manage 123
+/fractary-faber-cloud:manage 123 --workflow infrastructure-deploy
+
+# Non-destructive audit workflow
+/fractary-faber-cloud:manage 456 --workflow infrastructure-audit
+
+# Safe infrastructure teardown workflow
+/fractary-faber-cloud:manage 789 --workflow infrastructure-teardown
+
+# Override autonomy level
+/fractary-faber-cloud:manage 123 --autonomy dry-run
+```
+
+See [Workflow Guide](config/workflows/README.md) for detailed workflow documentation.
+
+#### Direct Commands
+
+Individual infrastructure operations:
+
+```bash
+# Initialize plugin configuration
+/fractary-faber-cloud:init --provider=aws --iac=terraform
+
+# Adopt existing infrastructure (v2.3.0)
 /fractary-faber-cloud:adopt
 /fractary-faber-cloud:adopt --project-root=./my-project
 /fractary-faber-cloud:adopt --dry-run

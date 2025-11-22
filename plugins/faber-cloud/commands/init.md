@@ -64,11 +64,17 @@ This is an exception to the normal pattern because it's a one-time setup command
 3. Detect project information from Git (or prompt)
 4. Prompt for provider (AWS, GCP) and IaC tool (Terraform, Pulumi)
 5. For AWS: Get account ID via `aws sts get-caller-identity`, prompt for region
-6. Read template from `skills/cloud-common/templates/faber-cloud.json.template`
+6. Read template from `plugins/faber-cloud/config/config.example.json`
 7. Substitute all placeholders with user values
 8. Create config directory: `.fractary/plugins/faber-cloud/`
-9. Save to `.fractary/plugins/faber-cloud/config.json`
-10. Display configuration summary and next steps
+9. Create workflows directory: `.fractary/plugins/faber-cloud/workflows/`
+10. Copy workflow templates:
+    - `plugins/faber-cloud/config/workflows/infrastructure-deploy.json` → `.fractary/plugins/faber-cloud/workflows/infrastructure-deploy.json`
+    - `plugins/faber-cloud/config/workflows/infrastructure-audit.json` → `.fractary/plugins/faber-cloud/workflows/infrastructure-audit.json`
+    - `plugins/faber-cloud/config/workflows/infrastructure-teardown.json` → `.fractary/plugins/faber-cloud/workflows/infrastructure-teardown.json`
+11. Save config to `.fractary/plugins/faber-cloud/config.json`
+12. Validate configuration (including workflow file references)
+13. Display configuration summary and next steps
 </IMPLEMENTATION>
 
 Create `.fractary/plugins/faber-cloud/config.json` configuration file for this project.
@@ -89,9 +95,12 @@ Set up cloud infrastructure automation configuration by:
 
 3. **Generate Configuration**
    - Check for existing `faber-cloud.json` and migrate to `config.json` if found
-   - Use template from `skills/cloud-common/templates/faber-cloud.json.template`
+   - Use template from `plugins/faber-cloud/config/config.example.json`
    - Substitute detected values
-   - Create `.fractary/plugins/faber-cloud/config.json`
+   - Create `.fractary/plugins/faber-cloud/` directory
+   - Create `.fractary/plugins/faber-cloud/workflows/` directory
+   - Copy workflow templates to project
+   - Save config to `.fractary/plugins/faber-cloud/config.json`
 
 4. **Validate Setup**
    - Verify AWS profiles exist
@@ -152,15 +161,53 @@ command -v pulumi && pulumi version
 
 ## Configuration Template
 
-Source: `skills/cloud-common/templates/faber-cloud.json.template`
+Source: `plugins/faber-cloud/config/config.example.json`
+
+This template includes workflow file references:
+```json
+{
+  "workflows": [
+    {
+      "id": "infrastructure-deploy",
+      "file": "./workflows/infrastructure-deploy.json"
+    },
+    {
+      "id": "infrastructure-audit",
+      "file": "./workflows/infrastructure-audit.json"
+    },
+    {
+      "id": "infrastructure-teardown",
+      "file": "./workflows/infrastructure-teardown.json"
+    }
+  ]
+}
+```
 
 Placeholders to substitute:
 - `{{PROJECT_NAME}}` - Project name from Git
-- `{{NAMESPACE}}` - Namespace (org-project pattern)
+- `{{SUBSYSTEM}}` - Subsystem name (if applicable)
 - `{{ORGANIZATION}}` - Organization from Git remote
+- `{{HOSTING_PROVIDER}}` - Cloud provider (aws, gcp, azure)
 - `{{AWS_ACCOUNT_ID}}` - From `aws sts get-caller-identity`
 - `{{AWS_REGION}}` - From AWS config or default to us-east-1
-- `{{TERRAFORM_DIR}}` - Detected Terraform directory path
+- `{{IAC_TOOL}}` - IaC tool (terraform, pulumi)
+
+## What Gets Created
+
+**Directory structure**:
+```
+.fractary/plugins/faber-cloud/
+├── config.json                           # Main configuration (references workflows)
+└── workflows/                            # Workflow definition files
+    ├── infrastructure-deploy.json        # Standard deployment workflow
+    ├── infrastructure-audit.json         # Non-destructive audit workflow
+    └── infrastructure-teardown.json      # Safe destruction workflow
+```
+
+**Workflow files** are copied from `plugins/faber-cloud/config/workflows/` and contain:
+- Complete FABER phase definitions (Frame → Architect → Build → Evaluate → Release)
+- Infrastructure-specific hooks
+- Autonomy settings for each workflow type
 
 ## Interactive Prompts
 
@@ -236,12 +283,23 @@ AWS Profiles:
   ✓ Test: corthuxa-core-test-deploy
   ✓ Prod: corthuxa-core-prod-deploy
 
-Configuration saved to: .fractary/plugins/faber-cloud/config.json
+Workflows:
+  ✓ infrastructure-deploy (Standard deployment)
+  ✓ infrastructure-audit (Non-destructive audit)
+  ✓ infrastructure-teardown (Safe destruction)
+
+Files created:
+  ✓ .fractary/plugins/faber-cloud/config.json
+  ✓ .fractary/plugins/faber-cloud/workflows/infrastructure-deploy.json
+  ✓ .fractary/plugins/faber-cloud/workflows/infrastructure-audit.json
+  ✓ .fractary/plugins/faber-cloud/workflows/infrastructure-teardown.json
 
 Next steps:
   - Review configuration: cat .fractary/plugins/faber-cloud/config.json
+  - Review workflows: ls .fractary/plugins/faber-cloud/workflows/
+  - Customize workflows: Edit workflow files in .fractary/plugins/faber-cloud/workflows/
   - Validate setup: /fractary-faber-cloud:validate
-  - Deploy infrastructure: /fractary-faber-cloud:deploy-apply --env test
+  - Deploy infrastructure: /fractary-faber-cloud:manage <work-id> --workflow infrastructure-deploy
 ```
 
 ## Error Handling
@@ -269,8 +327,15 @@ Next steps:
 ## Implementation Notes
 
 - MUST create `.fractary/plugins/faber-cloud/` directory if it doesn't exist
+- MUST create `.fractary/plugins/faber-cloud/workflows/` directory
+- MUST copy workflow templates from `plugins/faber-cloud/config/workflows/` to project:
+  - infrastructure-deploy.json
+  - infrastructure-audit.json
+  - infrastructure-teardown.json
 - MUST check for existing `faber-cloud.json` and migrate to `config.json` if found
-- MUST validate JSON syntax after generation
+- MUST use config template from `plugins/faber-cloud/config/config.example.json`
+- MUST validate JSON syntax after generation (config + all workflow files)
+- MUST validate workflow file references in config.json
 - SHOULD run profile validation if AWS detected
 - SHOULD offer to create `.gitignore` entry for sensitive configs
 - MUST handle case where config already exists (ask to overwrite)

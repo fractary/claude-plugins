@@ -1,0 +1,125 @@
+{
+  "$schema": "../workflow.schema.json",
+  "id": "hotfix",
+  "description": "Expedited workflow for critical fixes (Frame → Build → Evaluate → Release, skips Architect)",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Fetch work item and setup environment",
+      "steps": [
+        {
+          "name": "fetch-work",
+          "description": "Fetch work item details from issue tracker",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "setup-env",
+          "description": "Create hotfix branch from production",
+          "skill": "fractary-repo:branch-manager",
+          "config": {
+            "branch_prefix": "hotfix",
+            "base_branch": "main"
+          }
+        }
+      ],
+      "validation": ["work-item-exists", "branch-created"]
+    },
+    "architect": {
+      "enabled": false,
+      "description": "Skipped for hotfix workflow - small fixes don't need full specification"
+    },
+    "build": {
+      "enabled": true,
+      "description": "Implement fix and commit",
+      "steps": [
+        {
+          "name": "implement",
+          "description": "Implement the fix quickly and safely",
+          "prompt": "Implement minimal fix addressing the issue, avoid scope creep"
+        },
+        {
+          "name": "commit",
+          "description": "Create commit with fix type",
+          "skill": "fractary-repo:commit-creator",
+          "config": {
+            "conventional_commits": true,
+            "commit_type": "fix",
+            "link_to_issue": true
+          }
+        }
+      ],
+      "validation": ["fix-applied", "committed"]
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Quick validation of fix",
+      "max_retries": 2,
+      "steps": [
+        {
+          "name": "test",
+          "description": "Run tests to verify fix works",
+          "prompt": "Run tests focusing on the fixed issue and regression testing"
+        },
+        {
+          "name": "fix",
+          "description": "Address test failures if any",
+          "prompt": "Fix any test failures, keeping changes minimal",
+          "conditional": "only_if_failures"
+        }
+      ],
+      "validation": ["tests-pass", "no-regressions"]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Create PR with high priority flag",
+      "require_approval": true,
+      "steps": [
+        {
+          "name": "create-pr",
+          "description": "Create pull request marked as hotfix",
+          "skill": "fractary-repo:pr-manager",
+          "prompt": "Create PR with [HOTFIX] prefix, clear description of the issue and fix",
+          "config": {
+            "draft_if_assist": false,
+            "auto_link_issue": true,
+            "labels": ["hotfix", "high-priority"]
+          }
+        }
+      ],
+      "validation": ["pr-created"]
+    }
+  },
+  "hooks": {
+    "pre_frame": [],
+    "post_frame": [],
+    "pre_architect": [],
+    "post_architect": [],
+    "pre_build": [],
+    "post_build": [],
+    "pre_evaluate": [],
+    "post_evaluate": [],
+    "pre_release": [
+      {
+        "type": "skill",
+        "name": "security-check",
+        "skill": "security-scanner",
+        "description": "Quick security scan before hotfix release"
+      }
+    ],
+    "post_release": [
+      {
+        "type": "script",
+        "name": "notify-team",
+        "path": "./scripts/notify-hotfix.sh",
+        "description": "Notify team of hotfix PR"
+      }
+    ]
+  },
+  "autonomy": {
+    "level": "assist",
+    "description": "Assisted mode for hotfixes - human oversight on critical path",
+    "pause_before_release": true,
+    "require_approval_for": ["release"],
+    "overrides": {}
+  }
+}

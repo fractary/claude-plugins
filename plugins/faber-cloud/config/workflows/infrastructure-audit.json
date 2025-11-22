@@ -1,0 +1,177 @@
+{
+  "$schema": "../../../faber/config/workflow.schema.json",
+  "id": "infrastructure-audit",
+  "description": "Non-destructive infrastructure audit workflow (Inspect → Analyze → Report)",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Frame: Identify environment and scope for audit",
+      "steps": [
+        {
+          "name": "fetch-work",
+          "description": "Fetch audit work item (optional)",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "identify-environment",
+          "description": "Identify environment to audit (test, staging, production)",
+          "prompt": "Determine which environment to audit, verify AWS profile configuration, confirm read-only access"
+        },
+        {
+          "name": "create-audit-branch",
+          "description": "Create branch for audit findings (optional)",
+          "skill": "fractary-repo:branch-manager",
+          "config": {
+            "branch_prefix": "audit",
+            "base_branch": "main"
+          }
+        }
+      ],
+      "validation": ["environment-identified", "access-verified"]
+    },
+    "architect": {
+      "enabled": false,
+      "description": "Architect phase disabled for audit workflow (no changes planned)"
+    },
+    "build": {
+      "enabled": false,
+      "description": "Build phase disabled for audit workflow (no code changes)"
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Evaluate: Run comprehensive infrastructure audits",
+      "max_retries": 1,
+      "steps": [
+        {
+          "name": "configuration-audit",
+          "description": "Audit infrastructure configuration validity",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "config-valid",
+            "check_syntax": true,
+            "check_references": true
+          }
+        },
+        {
+          "name": "drift-detection",
+          "description": "Detect drift between code and actual infrastructure",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "drift",
+            "generate_diff": true
+          }
+        },
+        {
+          "name": "security-audit",
+          "description": "Audit security posture and vulnerabilities",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "security",
+            "tools": ["checkov", "tfsec"],
+            "severity_threshold": "medium"
+          }
+        },
+        {
+          "name": "cost-analysis",
+          "description": "Analyze current and projected infrastructure costs",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "cost",
+            "include_monthly_breakdown": true,
+            "compare_with_budget": true
+          }
+        },
+        {
+          "name": "iam-health-check",
+          "description": "Check IAM permissions and policy health",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "iam-health",
+            "check_overprivileged": true,
+            "check_unused": true
+          }
+        },
+        {
+          "name": "compliance-check",
+          "description": "Verify compliance with organizational policies",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "full",
+            "policies": ["naming", "tagging", "encryption", "networking"]
+          }
+        }
+      ],
+      "validation": ["audits-complete", "findings-documented"]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Release: Generate audit report and recommendations",
+      "require_approval": false,
+      "steps": [
+        {
+          "name": "generate-audit-report",
+          "description": "Generate comprehensive audit report",
+          "prompt": "Compile audit findings into structured report: executive summary, detailed findings by category, risk assessment, remediation recommendations"
+        },
+        {
+          "name": "prioritize-findings",
+          "description": "Prioritize audit findings by severity and impact",
+          "prompt": "Categorize findings: critical (immediate action), high (30 days), medium (90 days), low (backlog). Include estimated effort for remediation"
+        },
+        {
+          "name": "create-remediation-issues",
+          "description": "Create work items for high-priority findings",
+          "skill": "fractary-work:issue-creator",
+          "config": {
+            "auto_create_for_severity": ["critical", "high"]
+          }
+        },
+        {
+          "name": "commit-report",
+          "description": "Commit audit report to repository",
+          "skill": "fractary-repo:commit-creator",
+          "prompt": "Commit audit report with type 'docs', include audit date and environment in message",
+          "config": {
+            "conventional_commits": true,
+            "commit_type": "docs",
+            "scope": "audit"
+          }
+        }
+      ],
+      "validation": ["report-generated", "findings-prioritized", "issues-created"]
+    }
+  },
+  "hooks": {
+    "pre_frame": [],
+    "post_frame": [],
+    "pre_architect": [],
+    "post_architect": [],
+    "pre_build": [],
+    "post_build": [],
+    "pre_evaluate": [
+      {
+        "type": "document",
+        "name": "audit-checklist",
+        "path": "docs/infrastructure/AUDIT_CHECKLIST.md",
+        "description": "Load audit checklist and compliance requirements"
+      }
+    ],
+    "post_evaluate": [],
+    "pre_release": [],
+    "post_release": [
+      {
+        "type": "script",
+        "name": "notify-security-team",
+        "path": "./scripts/notify-audit.sh",
+        "description": "Notify security team of audit completion and critical findings"
+      }
+    ]
+  },
+  "autonomy": {
+    "level": "autonomous",
+    "description": "Autonomous mode for audits - non-destructive inspection can run fully automated",
+    "pause_before_release": false,
+    "require_approval_for": [],
+    "overrides": {}
+  }
+}

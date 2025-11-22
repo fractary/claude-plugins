@@ -1,0 +1,248 @@
+{
+  "$schema": "../../../faber/config/workflow.schema.json",
+  "id": "infrastructure-deploy",
+  "description": "Standard infrastructure deployment workflow (Architecture → Engineering → Testing → Deployment)",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Frame: Fetch work item, classify infrastructure change type",
+      "steps": [
+        {
+          "name": "fetch-work",
+          "description": "Fetch infrastructure work item details",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "classify-change",
+          "description": "Classify infrastructure change type (new, update, migration)",
+          "skill": "fractary-work:issue-classifier"
+        },
+        {
+          "name": "setup-env",
+          "description": "Create infrastructure branch and setup environment",
+          "skill": "fractary-repo:branch-manager",
+          "config": {
+            "branch_prefix": "infra",
+            "base_branch": "main"
+          }
+        }
+      ],
+      "validation": ["work-item-exists", "branch-created", "environment-validated"]
+    },
+    "architect": {
+      "enabled": true,
+      "description": "Architect: Design infrastructure architecture",
+      "steps": [
+        {
+          "name": "analyze-requirements",
+          "description": "Analyze infrastructure requirements and constraints",
+          "skill": "fractary-faber-cloud:infra-architect",
+          "prompt": "Analyze requirements: review issue details, identify infrastructure components, determine hosting platform (AWS/GCP/Azure)"
+        },
+        {
+          "name": "design-architecture",
+          "description": "Design infrastructure architecture and generate design document",
+          "skill": "fractary-faber-cloud:infra-architect",
+          "prompt": "Design architecture: create infrastructure diagram, define resource hierarchy, plan networking, document security model"
+        },
+        {
+          "name": "estimate-cost",
+          "description": "Estimate infrastructure costs",
+          "skill": "fractary-faber-cloud:infra-tester",
+          "config": {
+            "test_type": "cost-estimation",
+            "include_monthly_estimate": true
+          }
+        }
+      ],
+      "validation": ["architecture-documented", "cost-estimated", "design-reviewed"]
+    },
+    "build": {
+      "enabled": true,
+      "description": "Build: Generate Infrastructure-as-Code",
+      "steps": [
+        {
+          "name": "generate-iac",
+          "description": "Generate Terraform code from architecture design",
+          "skill": "fractary-faber-cloud:infra-engineer",
+          "prompt": "Generate Terraform code: translate architecture into IaC, follow naming conventions, implement resource dependencies, add documentation"
+        },
+        {
+          "name": "configure-backend",
+          "description": "Configure Terraform backend and state management",
+          "skill": "fractary-faber-cloud:infra-engineer",
+          "config": {
+            "operation": "configure-backend",
+            "enable_state_locking": true
+          }
+        },
+        {
+          "name": "commit-code",
+          "description": "Commit infrastructure code with semantic message",
+          "skill": "fractary-repo:commit-creator",
+          "prompt": "Create commit with type 'feat' for new infrastructure or 'refactor' for updates, include infrastructure scope",
+          "config": {
+            "conventional_commits": true,
+            "commit_type": "feat",
+            "link_to_issue": true
+          }
+        }
+      ],
+      "validation": ["iac-generated", "backend-configured", "code-committed"]
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Evaluate: Validate, test, and audit infrastructure code",
+      "max_retries": 3,
+      "steps": [
+        {
+          "name": "validate-terraform",
+          "description": "Validate Terraform configuration syntax and structure",
+          "skill": "fractary-faber-cloud:infra-validator",
+          "prompt": "Run terraform validate, check syntax, verify module references, validate variable definitions"
+        },
+        {
+          "name": "security-scan",
+          "description": "Run security scans (checkov, tfsec, terrascan)",
+          "skill": "fractary-faber-cloud:infra-tester",
+          "config": {
+            "test_type": "security",
+            "tools": ["checkov", "tfsec"],
+            "fail_on_critical": true
+          }
+        },
+        {
+          "name": "compliance-check",
+          "description": "Check compliance with organizational policies",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "compliance",
+            "policies": ["naming", "tagging", "networking"]
+          }
+        },
+        {
+          "name": "cost-review",
+          "description": "Review estimated infrastructure costs",
+          "skill": "fractary-faber-cloud:infra-tester",
+          "config": {
+            "test_type": "cost-estimation",
+            "compare_with_budget": true
+          }
+        },
+        {
+          "name": "fix-issues",
+          "description": "Fix issues identified in validation and testing",
+          "prompt": "Address validation errors, fix security vulnerabilities, optimize costs if needed, then re-run validation",
+          "conditional": "only_if_failures"
+        }
+      ],
+      "validation": ["terraform-valid", "security-passed", "compliance-passed", "cost-approved"]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Release: Plan, review, and deploy infrastructure changes",
+      "require_approval": true,
+      "steps": [
+        {
+          "name": "generate-plan",
+          "description": "Generate Terraform deployment plan",
+          "skill": "fractary-faber-cloud:infra-planner",
+          "prompt": "Run terraform plan, capture resource changes, identify potential risks, estimate deployment time"
+        },
+        {
+          "name": "review-plan",
+          "description": "Review deployment plan for approval",
+          "prompt": "Review terraform plan output: verify expected changes, check for unintended deletions, confirm resource dependencies"
+        },
+        {
+          "name": "deploy-infrastructure",
+          "description": "Apply infrastructure changes (terraform apply)",
+          "skill": "fractary-faber-cloud:infra-deployer",
+          "config": {
+            "require_plan_approval": true,
+            "auto_approve": false,
+            "create_backup": true
+          }
+        },
+        {
+          "name": "verify-deployment",
+          "description": "Verify infrastructure deployed successfully",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "health",
+            "check_connectivity": true
+          }
+        },
+        {
+          "name": "create-pr",
+          "description": "Create pull request documenting infrastructure changes",
+          "skill": "fractary-repo:pr-manager",
+          "prompt": "Create PR with infrastructure changes summary, deployment plan output, cost impact, rollback plan",
+          "config": {
+            "draft_if_assist": false,
+            "auto_link_issue": true,
+            "labels": ["infrastructure", "terraform"]
+          }
+        }
+      ],
+      "validation": ["plan-generated", "deployment-successful", "health-check-passed", "pr-created"]
+    }
+  },
+  "hooks": {
+    "pre_frame": [],
+    "post_frame": [],
+    "pre_architect": [
+      {
+        "type": "document",
+        "name": "infrastructure-standards",
+        "path": "docs/infrastructure/STANDARDS.md",
+        "description": "Load infrastructure design standards and naming conventions"
+      }
+    ],
+    "post_architect": [
+      {
+        "type": "document",
+        "name": "cost-policy",
+        "path": "docs/infrastructure/COST_POLICY.md",
+        "description": "Review cost policies and budget constraints"
+      }
+    ],
+    "pre_build": [],
+    "post_build": [],
+    "pre_evaluate": [],
+    "post_evaluate": [],
+    "pre_release": [
+      {
+        "type": "skill",
+        "name": "final-security-check",
+        "skill": "infra-tester",
+        "description": "Final security validation before deployment",
+        "config": {
+          "test_type": "security",
+          "strict_mode": true
+        }
+      }
+    ],
+    "post_release": [
+      {
+        "type": "script",
+        "name": "notify-ops-team",
+        "path": "./scripts/notify-deployment.sh",
+        "description": "Notify operations team of infrastructure deployment"
+      }
+    ]
+  },
+  "autonomy": {
+    "level": "guarded",
+    "description": "Guarded mode - pauses before infrastructure deployment for approval (recommended for production)",
+    "pause_before_release": true,
+    "require_approval_for": ["release", "deploy-infrastructure"],
+    "overrides": {
+      "production": {
+        "level": "assist",
+        "pause_before_release": true,
+        "require_approval_for": ["release", "evaluate", "deploy-infrastructure"]
+      }
+    }
+  }
+}

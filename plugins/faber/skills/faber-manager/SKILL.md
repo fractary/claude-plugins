@@ -80,33 +80,87 @@ You receive workflow execution requests from the faber-manager agent:
 **Validation**:
 - File exists
 - Valid JSON format
-- Required fields present (workflow.version, phases)
-- Phase definitions valid (frame, architect, build, evaluate, release)
+- Required fields present (schema_version, workflows, integrations)
+- Workflow definitions valid
 
 **Error Handling**:
 If config missing or invalid:
 1. Log error to fractary-logs
-2. Look for default config in `plugins/faber/config/templates/software.json`
+2. Look for default config in `plugins/faber/config/faber.example.json`
 3. If no default, fail with clear error message
 
 **Extract Configuration Data**:
 ```json
 {
-  "project": {...},
-  "workflow": {
-    "manager_skill": "faber-manager",
-    "director_skill": "faber-director"
+  "schema_version": "2.0",
+  "workflows": [
+    {"id": "default", "file": "./workflows/default.json"}
+  ],
+  "integrations": {...},
+  "logging": {...},
+  "safety": {...}
+}
+```
+
+**Load Workflow Definition**:
+
+For each workflow in the config workflows array:
+
+1. **Check workflow format**:
+   - If workflow has `file` property → Load from file (new format)
+   - If workflow has `phases` property → Use inline definition (backward compatibility)
+
+2. **Load from file** (if file property exists):
+   ```
+   a. Resolve file path relative to config directory
+      Example: "./workflows/default.json" → ".fractary/plugins/faber/workflows/default.json"
+
+   b. Read and parse workflow JSON file
+
+   c. Validate against workflow.schema.json:
+      - Required: id, phases, autonomy
+      - Optional: description, hooks
+
+   d. Merge workflow data into configuration
+   ```
+
+3. **Use inline definition** (if phases property exists):
+   ```
+   a. Extract workflow directly from config
+
+   b. Validate structure
+
+   c. Use as-is (backward compatibility)
+   ```
+
+**Error Handling for Workflow Loading**:
+- **File not found**: Log error, skip this workflow, warn user
+- **Invalid JSON**: Log parse error, skip this workflow
+- **Schema validation fails**: Log validation errors, skip this workflow
+- **No workflows loaded**: Fail with clear error (at least one workflow required)
+
+**Final Configuration Structure** (after loading):
+```json
+{
+  "schema_version": "2.0",
+  "workflows": {
+    "default": {
+      "id": "default",
+      "description": "...",
+      "phases": {
+        "frame": {...},
+        "architect": {...},
+        "build": {...},
+        "evaluate": {...},
+        "release": {...}
+      },
+      "hooks": {...},
+      "autonomy": {...}
+    }
   },
-  "phases": {
-    "frame": {...},
-    "architect": {...},
-    "build": {...},
-    "evaluate": {...},
-    "release": {...}
-  },
-  "hooks": {...},
-  "autonomy": {...},
-  "logging": {...}
+  "integrations": {...},
+  "logging": {...},
+  "safety": {...}
 }
 ```
 

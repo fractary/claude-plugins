@@ -35,17 +35,29 @@ Creates `.fractary/plugins/faber/config.json` with the baseline FABER workflow c
 
 ## What Gets Created
 
-`.fractary/plugins/faber/config.json` with:
+**Directory structure**:
+```
+.fractary/plugins/faber/
+├── config.json              # Main configuration (references workflows)
+└── workflows/               # Workflow definition files
+    ├── default.json         # Standard FABER workflow
+    └── hotfix.json          # Expedited hotfix workflow
+```
+
+**Config file** (`.fractary/plugins/faber/config.json`):
 
 ```json
 {
   "workflows": [
     {
       "id": "default",
-      "description": "Standard FABER workflow",
-      "phases": { ... all 5 phases ... },
-      "hooks": { ... 10 empty hook arrays ... },
-      "autonomy": { "level": "guarded" }
+      "file": "./workflows/default.json",
+      "description": "Standard FABER workflow"
+    },
+    {
+      "id": "hotfix",
+      "file": "./workflows/hotfix.json",
+      "description": "Expedited workflow for critical fixes"
     }
   ],
   "integrations": { ... },
@@ -54,24 +66,33 @@ Creates `.fractary/plugins/faber/config.json` with the baseline FABER workflow c
 }
 ```
 
+**Workflow files** contain the complete phase definitions, hooks, and autonomy settings.
+
 ## Implementation
 
 This command should:
-1. Check if config already exists (warn if exists)
-2. Copy from `plugins/faber/config/faber.example.json`
-3. Create `.fractary/plugins/faber/` directory if needed
-4. Write config to `.fractary/plugins/faber/config.json`
-5. Validate configuration
-6. Report success with next steps
+1. Check if config already exists (warn if exists, offer to backup)
+2. Create `.fractary/plugins/faber/` directory if needed
+3. Create `.fractary/plugins/faber/workflows/` directory
+4. Copy workflow templates:
+   - `plugins/faber/config/workflows/default.json` → `.fractary/plugins/faber/workflows/default.json`
+   - `plugins/faber/config/workflows/hotfix.json` → `.fractary/plugins/faber/workflows/hotfix.json`
+5. Copy config template:
+   - `plugins/faber/config/faber.example.json` → `.fractary/plugins/faber/config.json`
+6. Validate configuration (including workflow file references)
+7. Report success with next steps and file locations
 
 ## After Init
 
 After creating the config, customize it for your project:
 
 1. **Validate**: `/fractary-faber:audit`
-2. **Customize phase steps** for your tools (test framework, build system, etc.)
-3. **Add hooks** for your existing scripts
-4. **Configure autonomy level** for your workflow
+2. **Customize workflows**: Edit `.fractary/plugins/faber/workflows/default.json`
+   - Modify phase steps for your tools (test framework, build system, etc.)
+   - Add hooks for your existing scripts
+   - Adjust autonomy level for your workflow
+3. **Add custom workflows**: Copy and customize templates for specific scenarios
+4. **Reference custom workflows**: Add them to `config.json` workflows array
 5. **Test**: `/fractary-faber:run <work-id> --autonomy dry-run`
 
 ## See Also
