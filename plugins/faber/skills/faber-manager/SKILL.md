@@ -68,6 +68,16 @@ You receive workflow execution requests from the faber-manager agent:
 - `start_from_phase` (string): Resume from specific phase
 - `stop_at_phase` (string): Stop after specific phase
 - `phase_only` (boolean): Execute single phase only (for per-phase commands)
+- `worktree` (boolean): ALWAYS true - Execute workflow in isolated worktree (default: true)
+
+**CRITICAL - Worktree Integration:**
+The `worktree` parameter is ALWAYS set to true by faber-director skill. This ensures:
+- ALL workflows execute in isolated worktrees (`.worktrees/{branch-slug}` subfolder)
+- Multiple workflows can run concurrently without interference
+- Workflows can be paused and resumed (worktree reuse via registry)
+- State files are isolated per worktree (`.fractary/plugins/faber/state.json`)
+
+When `worktree=true`, this skill MUST pass `--worktree` flag to repo-manager when creating branches in the Frame phase.
 </INPUTS>
 
 <WORKFLOW>

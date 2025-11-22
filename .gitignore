@@ -34,5 +34,7 @@ node_modules
 # Status plugin test installation artifacts
 .claude/status/
 
+# FABER workflow worktrees (isolated workflow execution)
+.worktrees/
 
 /.tmp/

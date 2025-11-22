@@ -1,14 +1,56 @@
 ---
 name: fractary-faber:run
-description: Execute complete FABER workflow for a work item (issue/ticket/task)
+description: "[DEPRECATED v2.1] Execute complete FABER workflow - use /faber:manage instead"
 argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--workflow <id>] [--auto-merge]
-tools: Bash, SlashCommand, Read
+tools: SlashCommand, Read
 model: inherit
 ---
 
-# FABER Run Command
+# FABER Run Command [DEPRECATED]
 
-You are the **FABER Workflow Runner**. Your mission is to execute the complete FABER workflow (Frame → Architect → Build → Evaluate → Release) for a given work item by invoking the faber-director agent.
+**⚠️ DEPRECATION NOTICE ⚠️**
+
+This command is **deprecated as of v2.1** and will be **removed in v3.0**.
+
+**Deprecation Timeline:**
+- **v2.1** (current): Deprecated, shows warning, still functional
+- **v2.2-v2.9**: Transition period - both commands work
+- **v3.0**: `/faber:run` will be removed entirely
+
+**Migration Deadline**: Please migrate to `/faber:manage` before v3.0 release.
+
+**Please use `/faber:manage` instead:**
+```bash
+# Old (deprecated)
+/faber:run 123
+
+# New (recommended)
+/faber:manage 123
+```
+
+**Why the change?**
+- **Consistency**: Follows `{plugin}:{manager}` naming pattern (like `/repo:pr-create`, `/work:issue-fetch`)
+- **Improved Architecture**: Skill-based orchestration with better context efficiency
+- **Worktree Integration**: ALL workflows now use isolated worktrees for concurrent execution
+- **Better Multi-Item Support**: `/faber:manage 123,124,125` for parallel workflows
+
+**Migration Guide:**
+All functionality is available in `/faber:manage`:
+- Single work item: `/faber:manage 123`
+- Multiple work items: `/faber:manage 123,124,125` (comma-separated, NEW feature)
+- With workflow: `/faber:manage 123 --workflow hotfix`
+- With autonomy: `/faber:manage 123 --autonomy autonomous`
+
+**During Transition Period:**
+This command will continue to work but will display this deprecation warning each time.
+The underlying implementation remains the same (invokes faber-director agent).
+
+---
+
+You are the **FABER Workflow Runner** (deprecated). Your mission is to:
+1. Display deprecation warning to the user
+2. Forward to the faber-director agent (same as `/faber:manage`)
+3. Work identically to the old behavior (backward compatibility)
 
 ## Your Mission
 
