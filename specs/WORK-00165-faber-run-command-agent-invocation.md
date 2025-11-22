@@ -63,23 +63,26 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 **Acceptance Criteria**:
 - [ ] Command accepts single work ID: `/faber:manage 123`
 - [ ] Command accepts multiple work IDs (comma-separated): `/faber:manage 123,124,125`
-- [ ] Comma detection triggers faber-director invocation (not faber-manager)
-- [ ] faber-director spawns separate faber-manager instances in parallel
-- [ ] Each instance uses its own worktree (via `--worktree` flag)
-- [ ] Each item maintains separate state tracking in its worktree
+- [ ] Command ALWAYS invokes faber-director skill (not conditional)
+- [ ] faber-director skill determines single vs multi-item processing
+- [ ] faber-director invokes 1 faber-manager agent (single) or N agents (multi)
+- [ ] Each multi-item instance uses its own worktree (via `--worktree` flag)
+- [ ] Each item maintains separate state tracking (in worktree if multi)
 
 ## Functional Requirements
 
-- **FR1**: Command MUST load workflow configuration from `.fractary/plugins/faber/config.json` before invoking agent
-- **FR2**: Command MUST invoke faber-manager agent for single work items (no comma in work_id)
-- **FR3**: Command MUST invoke faber-director agent for multiple work items (comma detected in work_id)
-- **FR4**: Command MUST pass workflow configuration to the agent in structured format
-- **FR5**: Command MUST support `--workflow <id>` flag to override default workflow
-- **FR6**: Command MUST support `--autonomy <level>` flag (dry-run, assist, guarded, autonomous)
-- **FR7**: Command MUST validate workflow configuration exists before invocation
-- **FR8**: Command MUST provide clear error messages if workflow not found
-- **FR9**: Multi-item processing MUST use comma-separated syntax (no spaces): `123,124,125`
-- **FR10**: Each parallel workflow instance MUST use a separate worktree (via `--worktree` flag to branch-manager)
+- **FR1**: Command MUST load workflow configuration from `.fractary/plugins/faber/config.json`
+- **FR2**: Command MUST ALWAYS invoke faber-director skill (no conditional logic)
+- **FR3**: Command MUST pass workflow configuration + work_id to faber-director skill
+- **FR4**: faber-director skill MUST determine single vs multi-item processing
+- **FR5**: faber-director skill MUST invoke faber-manager agent(s) with appropriate parameters
+- **FR6**: Command MUST support `--workflow <id>` flag to override default workflow
+- **FR7**: Command MUST support `--autonomy <level>` flag (dry-run, assist, guarded, autonomous)
+- **FR8**: Command MUST validate workflow configuration exists before skill invocation
+- **FR9**: Command MUST provide clear error messages if workflow not found
+- **FR10**: Multi-item processing MUST use comma-separated syntax (no spaces): `123,124,125`
+- **FR11**: Each parallel workflow instance MUST use a separate worktree (via `--worktree` flag to branch-manager)
+- **FR12**: faber-director MUST be a skill (not an agent) to retain context and enable skill→agent invocation
 
 ## Non-Functional Requirements
 
@@ -100,36 +103,46 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
           └─ Claude improvises (doesn't use workflow)
 ```
 
-**New (Fixed) Flow**:
+**New (Fixed) Flow - Single Item**:
 ```
 /faber:manage 123
-  └─ Command (loads config, validates)
-      └─ Task tool invocation
-          └─ faber-manager agent
-              ├─ Receives workflow config
-              ├─ Executes phases: frame → architect → build → evaluate → release
-              └─ Each phase invokes appropriate skills per workflow definition
+  └─ Command (loads config, validates, invokes skill)
+      └─ Skill invocation (faber-director)
+          └─ faber-director skill
+              ├─ Identifies workflow
+              ├─ Parses work_id: "123" (no comma)
+              ├─ Determines: single-item mode
+              └─ Invokes faber-manager agent
+                  ├─ Receives workflow config
+                  ├─ Executes phases: frame → architect → build → evaluate → release
+                  └─ Each phase invokes appropriate skills per workflow definition
 ```
 
-**Multi-Item Flow**:
+**New (Fixed) Flow - Multi-Item**:
 ```
 /faber:manage 123,124,125
-  └─ Command (detects comma, loads config, validates)
-      └─ Task tool invocation
-          └─ faber-director agent (parallel coordinator)
-              ├─ Spawns faber-manager for item 123 (with workflow + worktree)
-              │   └─ Creates worktree: ../repo-wt-feat-123-*
-              ├─ Spawns faber-manager for item 124 (with workflow + worktree)
-              │   └─ Creates worktree: ../repo-wt-feat-124-*
-              └─ Spawns faber-manager for item 125 (with workflow + worktree)
-                  └─ Creates worktree: ../repo-wt-feat-125-*
+  └─ Command (loads config, validates, invokes skill)
+      └─ Skill invocation (faber-director)
+          └─ faber-director skill
+              ├─ Identifies workflow
+              ├─ Parses work_id: "123,124,125" (comma detected)
+              ├─ Splits: ["123", "124", "125"]
+              ├─ Determines: multi-item mode (use worktrees)
+              └─ Invokes faber-manager agents in parallel (3x)
+                  ├─ faber-manager agent (work_id=123, worktree=true)
+                  │   ├─ Creates worktree: ../repo-wt-feat-123-*
+                  │   ├─ Executes all 5 phases in worktree
+                  │   └─ State: {worktree}/.fractary/plugins/faber/state.json
+                  ├─ faber-manager agent (work_id=124, worktree=true)
+                  │   ├─ Creates worktree: ../repo-wt-feat-124-*
+                  │   ├─ Executes all 5 phases in worktree
+                  │   └─ State: {worktree}/.fractary/plugins/faber/state.json
+                  └─ faber-manager agent (work_id=125, worktree=true)
+                      ├─ Creates worktree: ../repo-wt-feat-125-*
+                      ├─ Executes all 5 phases in worktree
+                      └─ State: {worktree}/.fractary/plugins/faber/state.json
 
-Each faber-manager instance:
-1. Receives workflow configuration
-2. Executes in its own worktree (isolated file system)
-3. Creates branch using branch-manager with --worktree flag
-4. Runs all 5 phases: frame → architect → build → evaluate → release
-5. Maintains state in worktree's .fractary/plugins/faber/state.json
+Key: Skill invokes multiple agents in parallel (skill→agents pattern)
 ```
 
 ### Command Structure
@@ -139,59 +152,96 @@ Each faber-manager instance:
 
 **Command Responsibilities**:
 1. Parse arguments (work_id, flags)
-2. Detect multi-item request (check if work_id contains comma)
-3. Load workflow configuration from `.fractary/plugins/faber/config.json`
-4. Validate configuration completeness
-5. Invoke appropriate agent:
-   - No comma → faber-manager (single item)
-   - Comma detected → faber-director (multiple items, split by comma)
-6. Pass workflow config + parameters to agent
-7. For multi-item: include worktree requirement in parameters
-8. Return agent response to user
+2. Load workflow configuration from `.fractary/plugins/faber/config.json`
+3. Validate configuration completeness
+4. ALWAYS invoke faber-director skill (no conditional logic)
+5. Pass to skill:
+   - work_id (single or comma-separated)
+   - workflow configuration
+   - flags (--workflow, --autonomy)
+6. Return skill response to user
+
+**Simplified**: Command is a thin wrapper - parse, load config, invoke skill, return result
 
 **Command MUST NOT**:
 - Execute any workflow logic itself
-- Invoke skills directly
-- Make assumptions about workflow structure
+- Detect single vs multi-item (that's the skill's job)
+- Invoke agents directly (must go through skill)
 
-### Agent Invocation Pattern
+### Skill Structure (NEW)
 
-The command uses the Task tool to invoke either faber-manager (single item) or faber-director (multiple items).
+**File**: `plugins/faber/skills/faber-director/SKILL.md` (NEW)
 
-**Single Work Item** (no comma):
+**faber-director Skill Responsibilities**:
+1. Receive work_id + workflow config from command
+2. Parse work_id to detect single vs multi-item (check for comma)
+3. For single-item:
+   - Invoke faber-manager agent with workflow config
+4. For multi-item:
+   - Split work_id by comma: `["123", "124", "125"]`
+   - Invoke multiple faber-manager agents in parallel (using Task tool)
+   - Pass `worktree=true` parameter to each agent
+   - Coordinate parallel execution
+   - Aggregate results
+5. Return results to command
+
+**Why Skill (not Agent)**:
+- ✅ Retains conversation context from command
+- ✅ Can invoke multiple agents in parallel (skill→agents works, agent→agents doesn't)
+- ✅ Simpler architecture (no agent-to-agent calls)
+- ✅ Follows pattern: commands invoke skills, skills invoke agents
+
+### Skill→Agent Invocation Pattern
+
+The command ALWAYS invokes the faber-director skill using the Skill tool. The skill then determines whether to invoke 1 or multiple faber-manager agents.
+
+**Command Invocation** (same for single and multi):
 ```
-/faber:manage 123
+/faber:manage 123  OR  /faber:manage 123,124,125
 
-→ Invokes faber-manager:
-  Task(
-    subagent_type="fractary-faber:faber-manager",
-    description="Execute FABER workflow for work item 123",
-    prompt="Execute workflow for work item #123 using configuration: {workflow_json}"
+→ Command invokes faber-director skill:
+  Skill(
+    skill="fractary-faber:faber-director"
   )
 
-faber-manager executes all phases in order (frame → architect → build → evaluate → release)
+  Then passes via conversation context:
+  - work_id: "123" or "123,124,125"
+  - workflow: {workflow_config}
+  - autonomy: "guarded" (or user override)
 ```
 
-**Multiple Work Items** (comma-separated):
+**Skill Logic** (faber-director):
 ```
-/faber:manage 123,124,125
+1. Receive parameters from command
+2. Parse work_id:
+   - No comma → single-item mode
+   - Comma → multi-item mode
+3. Single-item mode:
+   Task(
+     subagent_type="fractary-faber:faber-manager",
+     description="Execute FABER workflow for work item 123",
+     prompt="Execute workflow for #123. Config: {workflow_json}"
+   )
 
-→ Command splits: ["123", "124", "125"]
-→ Invokes faber-director:
-  Task(
-    subagent_type="fractary-faber:faber-director",
-    description="Execute FABER workflows for work items 123,124,125",
-    prompt="Execute workflows in parallel for work items: 123, 124, 125
-
-            Use worktrees for each item (isolated execution).
-            Configuration: {workflow_json}"
-  )
-
-faber-director spawns 3 parallel faber-manager instances:
-- Each gets its own worktree (via branch-manager --worktree)
-- Each executes full workflow independently
-- Each maintains separate state tracking
+4. Multi-item mode:
+   Split work_id → ["123", "124", "125"]
+   For each ID in parallel:
+     Task(
+       subagent_type="fractary-faber:faber-manager",
+       description="Execute FABER workflow for work item {id}",
+       prompt="Execute workflow for #{id}.
+               Use worktree: true
+               Config: {workflow_json}"
+     )
+   Aggregate results and return
 ```
+
+**Key Architecture**:
+- Command → Skill (using Skill tool)
+- Skill → Agent(s) (using Task tool)
+- No conditional logic in command
+- All orchestration in skill
+- Skill retains context, can invoke multiple agents
 
 ### Configuration Loading
 
@@ -280,15 +330,19 @@ Run: /faber:audit to validate configuration
 ## Files to Create/Modify
 
 ### New Files
-- `plugins/faber/commands/faber-manage.md`: New command implementation with proper agent invocation
+- `plugins/faber/commands/faber-manage.md`: New command implementation (invokes faber-director skill)
+- `plugins/faber/skills/faber-director/SKILL.md`: Orchestration skill (single vs multi-item logic)
+- `plugins/faber/skills/faber-director/workflow/single-item.md`: Single-item workflow steps
+- `plugins/faber/skills/faber-director/workflow/multi-item.md`: Multi-item workflow steps (worktrees)
 - `plugins/faber/docs/commands/faber-manage.md`: User-facing command documentation
+- `plugins/faber/docs/skills/faber-director.md`: Skill documentation
 
 ### Modified Files
-- `plugins/faber/commands/faber-run.md`: Add deprecation notice and forwarding logic
-- `plugins/faber/.claude-plugin/plugin.json`: Register new command
+- `plugins/faber/commands/faber-run.md`: Add deprecation notice and forwarding to faber-manage
+- `plugins/faber/.claude-plugin/plugin.json`: Register new command and skill
 - `plugins/faber/docs/MIGRATION-v2.md`: Add `/faber:run` → `/faber:manage` migration guide
-- `plugins/faber/README.md`: Update command references
-- `plugins/faber/agents/faber-manager.md`: Ensure agent expects workflow config in request
+- `plugins/faber/README.md`: Update command references, document skill-based architecture
+- `plugins/faber/agents/faber-manager.md`: Ensure agent expects workflow config + worktree parameter
 
 ## Testing Strategy
 
@@ -356,12 +410,14 @@ Run: /faber:audit to validate configuration
 ## Dependencies
 
 - FABER v2.0 configuration system (`.fractary/plugins/faber/config.json`)
-- faber-manager agent (must accept workflow config in request)
-- faber-director agent (for multi-item support with worktrees)
+- faber-manager agent (must accept workflow config + worktree parameter)
+- faber-director skill (NEW - orchestration layer for single/multi-item)
 - fractary-work plugin (for issue fetching)
 - fractary-repo plugin (for branch creation with `--worktree` flag)
 - fractary-logs plugin (for workflow logging)
 - Git worktree support (for parallel workflow execution)
+- Skill tool (for command→skill invocation)
+- Task tool (for skill→agent invocation)
 
 ## Risks and Mitigations
 
@@ -441,33 +497,69 @@ Run: /faber:audit to validate configuration
 
 ## Implementation Notes
 
-### Critical: Agent Invocation Pattern
+### Critical: Command→Skill→Agent Pattern
 
-The command MUST use the Task tool to invoke the agent. The workflow configuration must be serialized and passed in the prompt parameter. The agent will parse the configuration and execute the workflow phases accordingly.
+The architecture follows a clear 3-layer pattern:
+1. **Command** (faber-manage) - Parse args, load config, invoke skill
+2. **Skill** (faber-director) - Orchestrate: determine single vs multi, invoke agent(s)
+3. **Agent(s)** (faber-manager) - Execute: run workflow phases
 
-### Multi-Item Detection Logic
+The command uses the Skill tool to invoke the faber-director skill. The skill then uses the Task tool to invoke one or more faber-manager agents.
+
+### Command Invocation (Simplified)
+
+The command does NOT do conditional logic. It ALWAYS invokes the faber-director skill:
 
 ```pseudo
+# Command logic (faber-manage.md)
 work_id = parse_first_argument()
+workflow_config = load_config()
+validate_config(workflow_config)
+
+# ALWAYS invoke skill (no conditional)
+Skill(skill="fractary-faber:faber-director")
+
+# Pass parameters via conversation context:
+# - work_id: "123" or "123,124,125"
+# - workflow: workflow_config
+# - autonomy: user_override or default
+```
+
+### Skill Detection Logic (faber-director)
+
+The skill determines single vs multi-item and invokes appropriate agent(s):
+
+```pseudo
+# Skill logic (faber-director/SKILL.md)
+work_id = receive_from_command()
+workflow = receive_from_command()
 
 if work_id.contains(','):
-  # Multi-item: invoke faber-director
+  # Multi-item mode
   work_ids = work_id.split(',')
-  agent = "fractary-faber:faber-director"
-  params = {
-    "work_ids": work_ids,
-    "workflow": workflow_config,
-    "use_worktrees": true  # REQUIRED for parallel execution
-  }
-else:
-  # Single item: invoke faber-manager
-  agent = "fractary-faber:faber-manager"
-  params = {
-    "work_id": work_id,
-    "workflow": workflow_config
-  }
 
-Task(subagent_type=agent, prompt=JSON.stringify(params))
+  results = []
+  for each id in work_ids (parallel):
+    result = Task(
+      subagent_type="fractary-faber:faber-manager",
+      prompt={
+        "work_id": id,
+        "workflow": workflow,
+        "worktree": true
+      }
+    )
+    results.append(result)
+
+  return aggregate(results)
+else:
+  # Single-item mode
+  return Task(
+    subagent_type="fractary-faber:faber-manager",
+    prompt={
+      "work_id": work_id,
+      "workflow": workflow
+    }
+  )
 ```
 
 ### Worktree Integration
