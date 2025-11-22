@@ -36,13 +36,45 @@ This command follows the standard space-separated syntax:
 
 Unified command for managing complete infrastructure lifecycle through the infra-manager agent.
 
-## Usage
+The manage command supports two modes of operation:
 
+**1. WORKFLOW MODE** - Execute complete FABER workflows for work items:
+```bash
+/fractary-faber-cloud:manage <work-item-id> [--workflow <name>] [options]
+```
+
+**2. DIRECT MODE** - Execute individual infrastructure operations:
 ```bash
 /fractary-faber-cloud:manage <operation> [options]
 ```
 
-## Operations
+## Workflow Mode
+
+Execute complete FABER workflows (Frame → Architect → Build → Evaluate → Release) for infrastructure work items:
+
+```bash
+# Use default workflow (infrastructure-deploy)
+/fractary-faber-cloud:manage 123
+
+# Use specific workflow
+/fractary-faber-cloud:manage 456 --workflow infrastructure-audit
+/fractary-faber-cloud:manage 789 --workflow infrastructure-teardown
+
+# Override autonomy level
+/fractary-faber-cloud:manage 123 --workflow infrastructure-deploy --autonomy dry-run
+```
+
+### Available Workflows
+
+| Workflow | Description | Autonomy | Use Case |
+|----------|-------------|----------|----------|
+| `infrastructure-deploy` | Standard deployment | Guarded | New infrastructure, updates, migrations |
+| `infrastructure-audit` | Non-destructive audit | Autonomous | Health checks, compliance, cost analysis |
+| `infrastructure-teardown` | Safe destruction | Assist | Decommissioning, cleanup |
+
+See `.fractary/plugins/faber-cloud/workflows/README.md` for detailed workflow documentation.
+
+## Direct Mode Operations
 
 | Operation | Description | Example |
 |-----------|-------------|---------|

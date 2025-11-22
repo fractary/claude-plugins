@@ -1,0 +1,221 @@
+{
+  "$schema": "../../../faber/config/workflow.schema.json",
+  "id": "infrastructure-teardown",
+  "description": "Safe infrastructure destruction workflow (Plan → Review → Backup → Destroy → Verify)",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Frame: Identify resources to destroy and confirm intent",
+      "steps": [
+        {
+          "name": "fetch-work",
+          "description": "Fetch teardown work item",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "identify-resources",
+          "description": "Identify infrastructure resources to destroy",
+          "prompt": "List all resources in scope for destruction, verify environment (must NOT be production without explicit approval), confirm no dependencies"
+        },
+        {
+          "name": "create-teardown-branch",
+          "description": "Create branch for teardown operation",
+          "skill": "fractary-repo:branch-manager",
+          "config": {
+            "branch_prefix": "teardown",
+            "base_branch": "main"
+          }
+        }
+      ],
+      "validation": ["work-item-exists", "resources-identified", "branch-created"]
+    },
+    "architect": {
+      "enabled": true,
+      "description": "Architect: Analyze destruction impact and dependencies",
+      "steps": [
+        {
+          "name": "analyze-dependencies",
+          "description": "Analyze resource dependencies and impact",
+          "prompt": "Identify dependent resources, check for data dependencies, determine destruction order, flag resources with persistent data"
+        },
+        {
+          "name": "plan-data-backup",
+          "description": "Plan backup strategy for persistent data",
+          "prompt": "Identify databases, S3 buckets, EBS volumes with data, plan backup/export strategy, document retention requirements"
+        },
+        {
+          "name": "estimate-savings",
+          "description": "Estimate cost savings from teardown",
+          "skill": "fractary-faber-cloud:infra-tester",
+          "config": {
+            "test_type": "cost-estimation",
+            "calculate_savings": true
+          }
+        }
+      ],
+      "validation": ["dependencies-analyzed", "backup-planned", "savings-estimated"]
+    },
+    "build": {
+      "enabled": true,
+      "description": "Build: Generate destruction plan and backup scripts",
+      "steps": [
+        {
+          "name": "generate-destroy-plan",
+          "description": "Generate Terraform destroy plan",
+          "skill": "fractary-faber-cloud:infra-planner",
+          "config": {
+            "operation": "destroy",
+            "save_plan": true
+          }
+        },
+        {
+          "name": "create-backup-scripts",
+          "description": "Create backup scripts for data preservation",
+          "prompt": "Generate scripts to backup databases, export S3 data, snapshot volumes before destruction"
+        },
+        {
+          "name": "document-teardown",
+          "description": "Document teardown procedure and rollback plan",
+          "prompt": "Document: resources to be destroyed, backup procedures, estimated timeline, rollback plan if needed"
+        }
+      ],
+      "validation": ["destroy-plan-generated", "backups-scripted", "teardown-documented"]
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Evaluate: Review destruction plan and execute backups",
+      "max_retries": 2,
+      "steps": [
+        {
+          "name": "review-destroy-plan",
+          "description": "Review Terraform destroy plan for correctness",
+          "prompt": "Review destroy plan: verify only intended resources, check for protected resources, confirm no production data loss"
+        },
+        {
+          "name": "execute-backups",
+          "description": "Execute data backups before destruction",
+          "prompt": "Run backup scripts, verify backup completion, validate backup integrity, document backup locations"
+        },
+        {
+          "name": "verify-backup-integrity",
+          "description": "Verify backup integrity and accessibility",
+          "prompt": "Test backup restoration, verify data completeness, confirm backup storage location, document recovery procedures"
+        },
+        {
+          "name": "final-safety-check",
+          "description": "Final safety check before destruction",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "pre-teardown",
+            "check_protected_resources": true
+          }
+        }
+      ],
+      "validation": ["plan-reviewed", "backups-complete", "safety-checks-passed"]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Release: Execute infrastructure destruction and verify",
+      "require_approval": true,
+      "steps": [
+        {
+          "name": "confirm-destruction",
+          "description": "Final confirmation before destruction",
+          "prompt": "CRITICAL: Confirm destruction intent. This action CANNOT be undone. Type environment name to confirm: [environment]"
+        },
+        {
+          "name": "execute-teardown",
+          "description": "Execute infrastructure destruction (terraform destroy)",
+          "skill": "fractary-faber-cloud:infra-teardown",
+          "config": {
+            "require_confirmation": true,
+            "backup_state": true,
+            "delete_state_after": false
+          }
+        },
+        {
+          "name": "verify-destruction",
+          "description": "Verify all resources destroyed successfully",
+          "skill": "fractary-faber-cloud:infra-auditor",
+          "config": {
+            "audit_type": "post-teardown",
+            "check_resource_existence": true
+          }
+        },
+        {
+          "name": "cleanup-artifacts",
+          "description": "Clean up Terraform state and temporary files",
+          "prompt": "Archive Terraform state to backup location, remove local state files, clean up temporary files, document final state"
+        },
+        {
+          "name": "document-completion",
+          "description": "Document teardown completion",
+          "skill": "fractary-repo:commit-creator",
+          "prompt": "Commit teardown documentation with type 'chore', include destroyed resources list and backup locations",
+          "config": {
+            "conventional_commits": true,
+            "commit_type": "chore",
+            "scope": "teardown"
+          }
+        }
+      ],
+      "validation": ["destruction-confirmed", "resources-destroyed", "verification-complete", "documentation-complete"]
+    }
+  },
+  "hooks": {
+    "pre_frame": [],
+    "post_frame": [
+      {
+        "type": "script",
+        "name": "environment-check",
+        "path": "./scripts/check-environment.sh",
+        "description": "Verify environment is not production (unless explicitly approved)"
+      }
+    ],
+    "pre_architect": [],
+    "post_architect": [],
+    "pre_build": [],
+    "post_build": [],
+    "pre_evaluate": [
+      {
+        "type": "document",
+        "name": "teardown-checklist",
+        "path": "docs/infrastructure/TEARDOWN_CHECKLIST.md",
+        "description": "Load teardown safety checklist"
+      }
+    ],
+    "post_evaluate": [],
+    "pre_release": [
+      {
+        "type": "skill",
+        "name": "final-environment-verification",
+        "skill": "infra-auditor",
+        "description": "Final verification that correct environment is targeted",
+        "config": {
+          "strict_environment_check": true
+        }
+      }
+    ],
+    "post_release": [
+      {
+        "type": "script",
+        "name": "notify-ops-team",
+        "path": "./scripts/notify-teardown.sh",
+        "description": "Notify operations team of infrastructure teardown completion"
+      }
+    ]
+  },
+  "autonomy": {
+    "level": "assist",
+    "description": "Assisted mode - requires explicit human approval at each major step for safety",
+    "pause_before_release": true,
+    "require_approval_for": ["architect", "build", "evaluate", "release", "execute-teardown"],
+    "overrides": {
+      "production": {
+        "level": "dry-run",
+        "pause_before_release": true,
+        "require_approval_for": ["frame", "architect", "build", "evaluate", "release"]
+      }
+    }
+  }
+}

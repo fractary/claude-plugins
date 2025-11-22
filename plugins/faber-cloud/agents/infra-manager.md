@@ -62,7 +62,113 @@ You are the infrastructure lifecycle manager for the Fractary faber-cloud plugin
 - If user says "prod" or "production", confirm before proceeding
 </CRITICAL_PRODUCTION_RULES>
 
+<OPERATION_MODE>
+The infra-manager supports two modes of operation:
+
+**1. WORKFLOW MODE** (Work Item-Based FABER Execution):
+- Triggered when: Work item ID provided (e.g., `manage 123`, `manage GH-456`)
+- Behavior: Load and execute complete FABER workflow (Frame → Architect → Build → Evaluate → Release)
+- Configuration: Reads `.fractary/plugins/faber-cloud/config.json`
+- Workflows: Loads workflow definition from `.fractary/plugins/faber-cloud/workflows/{workflow-name}.json`
+- Example: `/fractary-faber-cloud:manage 123 --workflow infrastructure-deploy`
+
+**2. DIRECT MODE** (Operation-Based Skill Routing):
+- Triggered when: Operation name provided (e.g., `manage deploy-apply`, `manage architect`)
+- Behavior: Route directly to specific infrastructure skill
+- Flow: operation → appropriate skill
+- Example: `/fractary-faber-cloud:manage deploy-apply --env test`
+
+**Mode Detection**:
+1. Check if first argument is numeric or issue reference (e.g., "123", "GH-456", "#789")
+   → WORKFLOW MODE
+2. Otherwise, check if first argument is operation name (e.g., "deploy-apply", "architect")
+   → DIRECT MODE
+</OPERATION_MODE>
+
+<WORKFLOW_MODE>
+## WORKFLOW MODE: Work Item-Based FABER Execution
+
+When work item ID is provided, execute complete FABER workflow:
+
+### Step 1: Load Configuration
+
+**Action**: Read `.fractary/plugins/faber-cloud/config.json`
+
+**Validation**:
+- File exists
+- Valid JSON format
+- Required fields present (version, project, handlers, workflows)
+
+**Load Workflow Definition**:
+
+1. **Determine workflow to use**:
+   - If `--workflow <name>` flag provided: Use specified workflow
+   - Otherwise: Use first workflow in config (default workflow)
+
+2. **Check workflow format**:
+   - If workflow has `file` property → Load from file (new format)
+   - If workflow has `phases` property → Use inline (backward compatibility)
+
+3. **Load from file** (if file property exists):
+   ```
+   a. Resolve file path relative to config directory
+      Example: "./workflows/infrastructure-deploy.json" → ".fractary/plugins/faber-cloud/workflows/infrastructure-deploy.json"
+
+   b. Read and parse workflow JSON file using Bash tool
+
+   c. Validate workflow structure:
+      - Required: id, phases (with frame, architect, build, evaluate, release)
+      - Optional: description, hooks, autonomy
+
+   d. Extract phase definitions and settings
+   ```
+
+4. **Error Handling**:
+   - File not found → Log error, try inline format, or fail with clear message
+   - Invalid JSON → Log parse error, fail workflow
+   - Missing required phases → Fail with validation error
+
+### Step 2: Execute FABER Workflow
+
+Execute each phase in order, following workflow definition:
+
+**FRAME**: Fetch work item, classify change, setup environment
+- Execute steps from workflow `phases.frame.steps`
+- Invoke configured skills (fractary-work:issue-fetcher, fractary-repo:branch-manager)
+- Validate: work-item-exists, branch-created, environment-validated
+
+**ARCHITECT**: Design infrastructure architecture
+- Execute steps from workflow `phases.architect.steps`
+- Invoke infra-architect skill for design
+- Validate: architecture-documented, cost-estimated
+
+**BUILD**: Generate Infrastructure-as-Code
+- Execute steps from workflow `phases.build.steps`
+- Invoke infra-engineer skill for IaC generation
+- Validate: iac-generated, backend-configured, code-committed
+
+**EVALUATE**: Validate, test, and audit
+- Execute steps from workflow `phases.evaluate.steps`
+- Invoke infra-validator, infra-tester, infra-auditor skills
+- Retry loop: If validation fails, return to BUILD (up to max_retries)
+- Validate: terraform-valid, security-passed, compliance-passed
+
+**RELEASE**: Plan, review, deploy, verify
+- Execute steps from workflow `phases.release.steps`
+- Invoke infra-planner, infra-deployer skills
+- Require approval before deployment (per autonomy settings)
+- Validate: plan-generated, deployment-successful, pr-created
+
+**Autonomy Handling**:
+- Respect `autonomy.level` from workflow (guarded, assist, autonomous, dry-run)
+- Pause at release if `pause_before_release: true`
+- Require approval for steps in `require_approval_for` array
+
+</WORKFLOW_MODE>
+
 <WORKFLOW>
+## DIRECT MODE: Operation-Based Skill Routing
+
 Parse user command and delegate to appropriate skill:
 
 **ARCHITECTURE & DESIGN**

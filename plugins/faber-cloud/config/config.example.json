@@ -1,0 +1,94 @@
+{
+  "$schema": "./config.schema.json",
+  "version": "1.0",
+
+  "project": {
+    "name": "{{PROJECT_NAME}}",
+    "subsystem": "{{SUBSYSTEM}}",
+    "organization": "{{ORGANIZATION}}"
+  },
+
+  "handlers": {
+    "hosting": {
+      "active": "{{HOSTING_PROVIDER}}",
+      "aws": {
+        "account_id": "{{AWS_ACCOUNT_ID}}",
+        "region": "{{AWS_REGION}}",
+        "profiles": {
+          "discover_deploy": "{{PROJECT_NAME}}-{{SUBSYSTEM}}-discover-deploy",
+          "test_deploy": "{{PROJECT_NAME}}-{{SUBSYSTEM}}-test-deploy",
+          "prod_deploy": "{{PROJECT_NAME}}-{{SUBSYSTEM}}-prod-deploy"
+        }
+      },
+      "gcp": {
+        "project_id": "{{PROJECT_NAME}}-{{SUBSYSTEM}}",
+        "region": "us-central1"
+      }
+    },
+
+    "iac": {
+      "active": "{{IAC_TOOL}}",
+      "terraform": {
+        "directory": "./infrastructure/terraform",
+        "var_file_pattern": "{environment}.tfvars",
+        "backend": {
+          "type": "s3",
+          "bucket": "{{PROJECT_NAME}}-terraform-state",
+          "key": "{project}/terraform.tfstate"
+        }
+      },
+      "pulumi": {
+        "stack_pattern": "{project}-{environment}"
+      }
+    }
+  },
+
+  "resource_naming": {
+    "pattern": "{project}-{subsystem}-{environment}-{resource}",
+    "separator": "-"
+  },
+
+  "environments": {
+    "test": {
+      "auto_approve": false,
+      "require_confirmation": false
+    },
+    "prod": {
+      "auto_approve": false,
+      "require_confirmation": true
+    }
+  },
+
+  "logging": {
+    "backend": "s3",
+    "s3_bucket": "{{PROJECT_NAME}}-devops-logs",
+    "local_cache_days": 7
+  },
+
+  "workflows": [
+    {
+      "id": "infrastructure-deploy",
+      "file": "./workflows/infrastructure-deploy.json",
+      "description": "Standard infrastructure deployment workflow"
+    },
+    {
+      "id": "infrastructure-audit",
+      "file": "./workflows/infrastructure-audit.json",
+      "description": "Non-destructive infrastructure audit"
+    },
+    {
+      "id": "infrastructure-teardown",
+      "file": "./workflows/infrastructure-teardown.json",
+      "description": "Safe infrastructure destruction workflow"
+    }
+  ],
+
+  "hooks": {
+    "pre-plan": [],
+    "post-plan": [],
+    "pre-deploy": [],
+    "post-deploy": [],
+    "pre-destroy": [],
+    "post-destroy": []
+  }
+}
