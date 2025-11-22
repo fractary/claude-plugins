@@ -88,6 +88,65 @@ Extract work_id and optional flags from user input:
 - Detect space-separated IDs (e.g., `123 124`) → error with helpful message
 - Detect comma-separated IDs (e.g., `123,124`) → valid (passed to skill)
 
+**Input Sanitization:**
+
+1. **Empty work_id check:**
+```
+If work_id is empty or only whitespace:
+  Error: work_id is required
+  Usage: /faber:manage <work_id>
+```
+
+2. **Invalid characters check:**
+```
+Valid formats:
+  - Numeric: 123, 456
+  - Comma-separated numeric: 123,124,125
+  - Alphanumeric (for Jira/Linear): PROJ-123, LIN-456
+  - Comma-separated alphanumeric: PROJ-123,PROJ-124
+
+Invalid formats (reject with error):
+  - Special chars: 123!@#, 123$%
+  - Negative numbers: -1, -123
+  - Floats: 123.45
+  - Empty entries: 123,,125 (detect and error)
+  - Spaces: "123 124" (already handled above)
+
+Pattern: ^[A-Z0-9,-]+$ (alphanumeric, comma, hyphen only)
+```
+
+3. **Comma-separated list validation:**
+```
+If work_id contains comma:
+  - Split by comma
+  - Check for empty entries (e.g., "123,,125")
+  - Validate each ID individually
+  - Check count doesn't exceed limit (max 20)
+
+If empty entries detected:
+  Error: Invalid work_id list contains empty entries
+  You provided: 123,,125
+  Correct format: 123,124,125
+
+If too many items:
+  Error: Too many work items (limit: 20)
+  You provided: 25 items
+  Consider processing in batches
+```
+
+4. **Reasonable limits:**
+```
+MAX_WORK_ITEMS = 20  # Safety limit for parallel execution
+
+If count > MAX_WORK_ITEMS:
+  Error: Too many work items (limit: 20)
+  You provided: {count} items
+
+  To process many items, use multiple commands:
+    /faber:manage 1,2,3,...,20
+    /faber:manage 21,22,23,...,40
+```
+
 **Space-Separated Detection:**
 If user provides `/faber:manage 123 124 125`:
 ```
@@ -95,6 +154,26 @@ Error: Invalid syntax - use comma-separated IDs (no spaces)
 
 Correct: /faber:manage 123,124,125
 Incorrect: /faber:manage 123 124 125
+```
+
+**Invalid Character Detection:**
+If user provides `/faber:manage 123!@#`:
+```
+Error: Invalid work_id format
+
+work_id can only contain:
+  - Letters (A-Z, a-z)
+  - Numbers (0-9)
+  - Hyphens (-)
+  - Commas (,) for multiple items
+
+Examples:
+  ✅ 123
+  ✅ PROJ-456
+  ✅ 123,124,125
+  ❌ 123!@#
+  ❌ -1
+  ❌ 123.45
 ```
 
 ## Step 2: Load Configuration
@@ -377,6 +456,68 @@ This is handled by:
 - faber-director skill (passes worktree=true to agents)
 - faber-manager skill (passes --worktree to branch-manager)
 - branch-manager skill (creates/reuses worktrees)
+
+### Working Directory Transitions
+
+**Initial State** (when command starts):
+```
+Current Directory: /path/to/repo (main working directory)
+```
+
+**After Frame Phase** (branch-manager creates worktree):
+```
+Current Directory: /path/to/repo/.worktrees/feat-123-description
+```
+
+**Directory Tracking**:
+- **Repo Root**: Always accessible via `git rev-parse --show-toplevel`
+- **Original Path**: Captured in registry as `repo_root`
+- **Worktree Path**: Active working directory for workflow execution
+- **State Files**: Located in worktree's `.fractary/plugins/faber/state.json`
+
+**Why Subfolder Matters**:
+- ✅ Claude can switch to `.worktrees/feat-123-*` (within project scope)
+- ❌ Claude cannot switch to `../repo-wt-feat-123-*` (outside project scope)
+- ✅ All file operations work normally (Read, Write, Edit tools)
+- ✅ Git commands work (worktree is a full working directory)
+
+**Example Workflow**:
+```
+1. User runs: /faber:manage 123
+   → CWD: /path/to/repo
+
+2. Command invokes: faber-director skill
+   → CWD: /path/to/repo (still)
+
+3. Skill invokes: faber-manager agent
+   → CWD: /path/to/repo (agent context)
+
+4. Frame phase: branch-manager creates worktree
+   → CWD: /path/to/repo/.worktrees/feat-123-description (switched!)
+
+5. Architect, Build, Evaluate phases
+   → CWD: /path/to/repo/.worktrees/feat-123-description (remains)
+
+6. Release phase: creates PR from worktree
+   → CWD: /path/to/repo/.worktrees/feat-123-description (still here)
+
+7. Workflow completes
+   → CWD: /path/to/repo/.worktrees/feat-123-description (stays)
+   → Worktree remains for review/cleanup
+```
+
+**Concurrent Workflows**:
+```
+Terminal 1:
+  /faber:manage 123
+  → CWD: /path/to/repo/.worktrees/feat-123-*
+
+Terminal 2 (while #123 is running):
+  /faber:manage 124
+  → CWD: /path/to/repo/.worktrees/feat-124-*
+
+No conflict! Each workflow has isolated working directory.
+```
 
 ## Autonomy Levels
 

@@ -144,52 +144,37 @@ Use repo-common skill to load configuration.
 **4. CHECK WORKTREE REGISTRY (if worktree=true):**
 
 ```bash
-# Registry location
-REGISTRY_FILE="$HOME/.fractary/repo/worktrees.json"
+# Check if worktree exists for this work_id
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKTREE_CHECK_SCRIPT="$SCRIPT_DIR/scripts/check-worktree.sh"
 
-# Ensure registry directory exists
-mkdir -p "$(dirname "$REGISTRY_FILE")"
+if EXISTING_WORKTREE=$("$WORKTREE_CHECK_SCRIPT" "$WORK_ID" 2>/dev/null); then
+    echo "✅ Found existing worktree for work_id $WORK_ID"
+    echo "   Path: $EXISTING_WORKTREE"
 
-# Initialize registry if doesn't exist
-if [ ! -f "$REGISTRY_FILE" ]; then
-    echo '{}' > "$REGISTRY_FILE"
+    # Update registry timestamp (reuse detected)
+    "$SCRIPT_DIR/scripts/register-worktree.sh" "$WORK_ID" "$EXISTING_WORKTREE" "$BRANCH_NAME"
+
+    # Switch to worktree directory
+    cd "$EXISTING_WORKTREE"
+
+    # Return early - reusing existing worktree
+    WORKTREE_REUSED=true
+    WORKTREE_PATH="$EXISTING_WORKTREE"
+
+    # Skip to completion message (Step 9)
+    goto STEP_9
+else
+    echo "🆕 No existing worktree found, will create new worktree"
+    WORKTREE_REUSED=false
 fi
-
-# Check if work_id has existing worktree
-EXISTING_WORKTREE=$(jq -r --arg work_id "$WORK_ID" '.[$work_id].worktree_path // empty' "$REGISTRY_FILE")
-
-if [ -n "$EXISTING_WORKTREE" ]; then
-    # Check if worktree still exists (path validation)
-    if [ -d "$EXISTING_WORKTREE" ]; then
-        echo "✅ Found existing worktree for work_id $WORK_ID"
-        echo "   Path: $EXISTING_WORKTREE"
-
-        # Update registry timestamp
-        jq --arg work_id "$WORK_ID" --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-           '.[$work_id].last_used = $timestamp' \
-           "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
-
-        # Switch to worktree directory
-        cd "$EXISTING_WORKTREE"
-
-        # Return early - reusing existing worktree
-        WORKTREE_REUSED=true
-        WORKTREE_PATH="$EXISTING_WORKTREE"
-        BRANCH_NAME=$(jq -r --arg work_id "$WORK_ID" '.[$work_id].branch' "$REGISTRY_FILE")
-
-        # Skip to completion message
-        goto STEP_8
-    else
-        echo "⚠️  Worktree path no longer exists, removing stale registry entry"
-        # Remove stale entry
-        jq --arg work_id "$WORK_ID" 'del(.[$work_id])' \
-           "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
-    fi
-fi
-
-echo "🆕 No existing worktree found, will create new worktree"
-WORKTREE_REUSED=false
 ```
+
+**Note**: Uses `scripts/check-worktree.sh` to check registry and validate worktree path. This script:
+- Checks `~/.fractary/repo/worktrees.json` for work_id mapping
+- Validates worktree directory still exists
+- Removes stale entries automatically
+- Returns worktree path if valid, exits with code 1 if not
 
 **5. CHECK PROTECTED BRANCHES:**
 
@@ -223,45 +208,29 @@ The handler will:
 
 **Worktree Creation** (if worktree=true and not reused):
 ```bash
-# Get repository root
-REPO_ROOT=$(git rev-parse --show-toplevel)
-
-# Generate worktree path
-BRANCH_SLUG=$(echo "$BRANCH_NAME" | sed 's/\//-/g')  # feat/123-add-export → feat-123-add-export
-WORKTREE_PATH="$REPO_ROOT/.worktrees/$BRANCH_SLUG"
-
-# Create worktree directory
-git worktree add "$WORKTREE_PATH" "$BRANCH_NAME"
+# Create worktree using script
+WORKTREE_PATH=$("$SCRIPT_DIR/scripts/create-worktree.sh" "$BRANCH_NAME" "$WORK_ID")
 
 if [ $? -ne 0 ]; then
-    echo "❌ Failed to create worktree at $WORKTREE_PATH"
+    echo "❌ Failed to create worktree"
     exit 1
 fi
 
 echo "✅ Worktree created: $WORKTREE_PATH"
 
 # Register worktree in registry
-jq --arg work_id "$WORK_ID" \
-   --arg worktree_path "$WORKTREE_PATH" \
-   --arg branch "$BRANCH_NAME" \
-   --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-   --arg last_used "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-   --arg repo_root "$REPO_ROOT" \
-   '.[$work_id] = {
-      "worktree_path": $worktree_path,
-      "branch": $branch,
-      "created": $created,
-      "last_used": $last_used,
-      "repo_root": $repo_root
-   }' \
-   "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
-
-echo "✅ Worktree registered in registry"
+"$SCRIPT_DIR/scripts/register-worktree.sh" "$WORK_ID" "$WORKTREE_PATH" "$BRANCH_NAME"
 
 # Switch to worktree directory
 cd "$WORKTREE_PATH"
 echo "✅ Switched to worktree directory: $WORKTREE_PATH"
 ```
+
+**Note**: Uses `scripts/create-worktree.sh` which:
+- Creates worktree in `.worktrees/` subfolder (within repo root)
+- Truncates branch slugs > 80 chars (with hash for uniqueness)
+- Returns worktree path on success
+- Handles long path names gracefully
 
 **7. VALIDATE RESPONSE:**
 
