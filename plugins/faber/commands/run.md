@@ -1,5 +1,5 @@
 ---
-name: faber:run
+name: fractary-faber:run
 description: Execute complete FABER workflow for a work item (issue/ticket/task)
 argument-hint: <work_id> [--domain <domain>] [--autonomy <level>] [--auto-merge]
 tools: Bash, SlashCommand, Read

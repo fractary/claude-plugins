@@ -1,5 +1,5 @@
 ---
-name: faber:mention
+name: fractary-faber:mention
 description: GitHub mention entry point - triggered by @faber mentions in issues/PRs
 argument-hint: (no arguments - context from GitHub Actions)
 tools: Bash, Read
