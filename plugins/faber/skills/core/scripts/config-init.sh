@@ -16,6 +16,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FABER_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TEMPLATES_DIR="$FABER_ROOT/config/templates"
+WORKFLOWS_DIR="$FABER_ROOT/config/workflows"
 DEFAULT_OUTPUT=".fractary/plugins/faber/config.json"
 
 # Defaults
@@ -78,13 +79,36 @@ mkdir -p "$OUTPUT_DIR"
 # Copy template to output
 cp "$TEMPLATE_FILE" "$OUTPUT"
 
+# Create workflows directory and copy workflow templates
+WORKFLOWS_OUTPUT_DIR="$OUTPUT_DIR/workflows"
+mkdir -p "$WORKFLOWS_OUTPUT_DIR"
+
+# Copy workflow templates if they exist
+if [ -d "$WORKFLOWS_DIR" ]; then
+    for workflow_file in "$WORKFLOWS_DIR"/*.json; do
+        if [ -f "$workflow_file" ]; then
+            workflow_basename=$(basename "$workflow_file")
+            cp "$workflow_file" "$WORKFLOWS_OUTPUT_DIR/$workflow_basename"
+            echo "  ✓ Copied workflow: $workflow_basename"
+        fi
+    done
+fi
+
+echo ""
 echo "✓ FABER configuration initialized"
 echo "  Template: $TEMPLATE"
-echo "  Output: $OUTPUT"
+echo "  Config: $OUTPUT"
+echo "  Workflows: $WORKFLOWS_OUTPUT_DIR/"
+echo ""
+echo "Created files:"
+echo "  - $OUTPUT"
+echo "  - $WORKFLOWS_OUTPUT_DIR/default.json"
+echo "  - $WORKFLOWS_OUTPUT_DIR/hotfix.json"
 echo ""
 echo "Next steps:"
 echo "  1. Review and customize: $OUTPUT"
-echo "  2. Validate configuration: plugins/faber/skills/core/scripts/config-validate.sh $OUTPUT"
-echo "  3. Run FABER workflow: /fractary-faber:run <issue-number>"
+echo "  2. Customize workflows: $WORKFLOWS_OUTPUT_DIR/default.json"
+echo "  3. Validate configuration: /fractary-faber:audit"
+echo "  4. Run FABER workflow: /fractary-faber:run <issue-number>"
 
 exit 0
