@@ -271,8 +271,11 @@ body:
 ```
 
 **Example: config.yml** (`.github/ISSUE_TEMPLATE/config.yml`):
+
+**⚠️ CRITICAL: Always enable blank issues for FABER workflows**
+
 ```yaml
-blank_issues_enabled: false
+blank_issues_enabled: true  # REQUIRED: Must be true for FABER flexibility
 contact_links:
   - name: 📚 Documentation
     url: https://github.com/your-org/your-repo/wiki
@@ -281,6 +284,12 @@ contact_links:
     url: https://github.com/your-org/your-repo/discussions
     about: Ask questions and discuss ideas
 ```
+
+**Why `blank_issues_enabled: true` is required:**
+- FABER workflows can be initiated from issues created outside templates (API, integrations, manual creation)
+- Allows team members to create quick issues without template overhead when appropriate
+- Prevents blocking FABER execution when issue doesn't match a specific template
+- Templates provide guidance but shouldn't be mandatory constraints
 
 **Workflow mapping:**
 - `workflow:default` label → FABER uses default workflow
