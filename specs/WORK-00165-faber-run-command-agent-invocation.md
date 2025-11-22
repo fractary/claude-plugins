@@ -55,6 +55,19 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 - [ ] Documentation updated to reflect new command name
 - [ ] Both commands work during transition period (with deprecation warning)
 
+### Worktree Isolation for All Workflows
+**As a** developer running FABER workflows
+**I want** every workflow to use its own isolated worktree
+**So that** workflows never interfere with each other (even if I accidentally start multiple)
+
+**Acceptance Criteria**:
+- [ ] ALL workflows use worktrees (single and multi-item)
+- [ ] Each issue gets its own worktree: `../repo-wt-feat-123-description`
+- [ ] Prevents scenario: start #123, pause, start #124 → no conflict
+- [ ] State files isolated: each worktree has its own `.fractary/plugins/faber/state.json`
+- [ ] Branch-manager detects existing worktree for issue and reuses it
+- [ ] No duplicate worktrees created for same issue
+
 ### Multi-Item Processing Support
 **As a** developer managing multiple work items
 **I want** to process multiple issues in parallel via the command
@@ -66,8 +79,8 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 - [ ] Command ALWAYS invokes faber-director skill (not conditional)
 - [ ] faber-director skill determines single vs multi-item processing
 - [ ] faber-director invokes 1 faber-manager agent (single) or N agents (multi)
-- [ ] Each multi-item instance uses its own worktree (via `--worktree` flag)
-- [ ] Each item maintains separate state tracking (in worktree if multi)
+- [ ] All instances use worktrees (single and multi)
+- [ ] Each item maintains separate state tracking in its worktree
 
 ## Functional Requirements
 
@@ -81,8 +94,10 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
 - **FR8**: Command MUST validate workflow configuration exists before skill invocation
 - **FR9**: Command MUST provide clear error messages if workflow not found
 - **FR10**: Multi-item processing MUST use comma-separated syntax (no spaces): `123,124,125`
-- **FR11**: Each parallel workflow instance MUST use a separate worktree (via `--worktree` flag to branch-manager)
+- **FR11**: ALL workflows (single and multi) MUST use worktrees to prevent interference
 - **FR12**: faber-director MUST be a skill (not an agent) to retain context and enable skill→agent invocation
+- **FR13**: branch-manager skill MUST detect existing worktree for issue and reuse (not create duplicate)
+- **FR14**: branch-manager skill MUST track worktree→issue mapping for reuse detection
 
 ## Non-Functional Requirements
 
@@ -112,10 +127,15 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
               ├─ Identifies workflow
               ├─ Parses work_id: "123" (no comma)
               ├─ Determines: single-item mode
-              └─ Invokes faber-manager agent
-                  ├─ Receives workflow config
-                  ├─ Executes phases: frame → architect → build → evaluate → release
-                  └─ Each phase invokes appropriate skills per workflow definition
+              └─ Invokes faber-manager agent (worktree=true)
+                  ├─ Frame phase: fetch issue #123
+                  ├─ Calls branch-manager with --worktree
+                  │   └─ branch-manager checks: worktree exists for #123?
+                  │       ├─ Yes → switch to existing worktree
+                  │       └─ No → create new worktree: ../repo-wt-feat-123-*
+                  ├─ Executes all phases in worktree
+                  ├─ State: {worktree}/.fractary/plugins/faber/state.json
+                  └─ Isolated from any other workflows
 ```
 
 **New (Fixed) Flow - Multi-Item**:
@@ -127,22 +147,25 @@ The `/faber:run` command currently fails to properly engage the FABER workflow s
               ├─ Identifies workflow
               ├─ Parses work_id: "123,124,125" (comma detected)
               ├─ Splits: ["123", "124", "125"]
-              ├─ Determines: multi-item mode (use worktrees)
-              └─ Invokes faber-manager agents in parallel (3x)
+              ├─ Determines: multi-item mode
+              └─ Invokes faber-manager agents in parallel (3x, all with worktree=true)
                   ├─ faber-manager agent (work_id=123, worktree=true)
-                  │   ├─ Creates worktree: ../repo-wt-feat-123-*
+                  │   ├─ Calls branch-manager: check/create worktree for #123
                   │   ├─ Executes all 5 phases in worktree
                   │   └─ State: {worktree}/.fractary/plugins/faber/state.json
                   ├─ faber-manager agent (work_id=124, worktree=true)
-                  │   ├─ Creates worktree: ../repo-wt-feat-124-*
+                  │   ├─ Calls branch-manager: check/create worktree for #124
                   │   ├─ Executes all 5 phases in worktree
                   │   └─ State: {worktree}/.fractary/plugins/faber/state.json
                   └─ faber-manager agent (work_id=125, worktree=true)
-                      ├─ Creates worktree: ../repo-wt-feat-125-*
+                      ├─ Calls branch-manager: check/create worktree for #125
                       ├─ Executes all 5 phases in worktree
                       └─ State: {worktree}/.fractary/plugins/faber/state.json
 
-Key: Skill invokes multiple agents in parallel (skill→agents pattern)
+Key:
+- All workflows use worktrees (prevents interference)
+- branch-manager handles reuse detection (not faber)
+- Skill invokes multiple agents in parallel (skill→agents pattern)
 ```
 
 ### Command Structure
@@ -176,20 +199,65 @@ Key: Skill invokes multiple agents in parallel (skill→agents pattern)
 1. Receive work_id + workflow config from command
 2. Parse work_id to detect single vs multi-item (check for comma)
 3. For single-item:
-   - Invoke faber-manager agent with workflow config
+   - Invoke faber-manager agent with workflow config + `worktree=true`
 4. For multi-item:
    - Split work_id by comma: `["123", "124", "125"]`
    - Invoke multiple faber-manager agents in parallel (using Task tool)
-   - Pass `worktree=true` parameter to each agent
+   - Pass `worktree=true` to ALL agents
    - Coordinate parallel execution
    - Aggregate results
 5. Return results to command
+
+**Key**: ALWAYS pass `worktree=true` (single and multi) to prevent workflow interference
 
 **Why Skill (not Agent)**:
 - ✅ Retains conversation context from command
 - ✅ Can invoke multiple agents in parallel (skill→agents works, agent→agents doesn't)
 - ✅ Simpler architecture (no agent-to-agent calls)
 - ✅ Follows pattern: commands invoke skills, skills invoke agents
+
+### Branch-Manager Worktree Reuse (NEW)
+
+The `fractary-repo:branch-manager` skill is enhanced to detect and reuse existing worktrees.
+
+**File**: `plugins/repo/skills/branch-manager/SKILL.md` (MODIFIED)
+
+**New Worktree Reuse Logic**:
+```pseudo
+# When invoked with --worktree flag and work_id
+1. Check worktree registry: ~/.fractary/repo/worktrees.json
+   {
+     "123": {
+       "worktree_path": "../repo-wt-feat-123-description",
+       "branch": "feat/123-description",
+       "created": "2025-11-22T14:30:00Z",
+       "last_used": "2025-11-22T15:45:00Z"
+     }
+   }
+
+2. If work_id in registry:
+   a. Verify worktree still exists (path check)
+   b. If exists:
+      - Switch to worktree: cd {worktree_path}
+      - Update last_used timestamp
+      - Return: "Reusing existing worktree for issue #123"
+   c. If not exists:
+      - Remove stale entry from registry
+      - Proceed to create new worktree
+
+3. If work_id NOT in registry:
+   - Create new worktree
+   - Add to registry with work_id mapping
+   - Return: "Created new worktree for issue #123"
+```
+
+**Benefits**:
+- ✅ Prevents duplicate worktrees for same issue
+- ✅ Enables workflow resume (pause #123, restart → same worktree)
+- ✅ Automatic cleanup of stale entries
+- ✅ Centralized in repo plugin (reusable across all plugins)
+
+**Location**: This logic lives in `fractary-repo:branch-manager` skill, NOT in faber plugin
 
 ### Skill→Agent Invocation Pattern
 
@@ -220,7 +288,9 @@ The command ALWAYS invokes the faber-director skill using the Skill tool. The sk
    Task(
      subagent_type="fractary-faber:faber-manager",
      description="Execute FABER workflow for work item 123",
-     prompt="Execute workflow for #123. Config: {workflow_json}"
+     prompt="Execute workflow for #123.
+             Use worktree: true  (ALWAYS, prevents interference)
+             Config: {workflow_json}"
    )
 
 4. Multi-item mode:
@@ -230,7 +300,7 @@ The command ALWAYS invokes the faber-director skill using the Skill tool. The sk
        subagent_type="fractary-faber:faber-manager",
        description="Execute FABER workflow for work item {id}",
        prompt="Execute workflow for #{id}.
-               Use worktree: true
+               Use worktree: true  (ALWAYS)
                Config: {workflow_json}"
      )
    Aggregate results and return
@@ -342,7 +412,13 @@ Run: /faber:audit to validate configuration
 - `plugins/faber/.claude-plugin/plugin.json`: Register new command and skill
 - `plugins/faber/docs/MIGRATION-v2.md`: Add `/faber:run` → `/faber:manage` migration guide
 - `plugins/faber/README.md`: Update command references, document skill-based architecture
-- `plugins/faber/agents/faber-manager.md`: Ensure agent expects workflow config + worktree parameter
+- `plugins/faber/agents/faber-manager.md`: Ensure agent expects workflow config + worktree parameter (ALWAYS true)
+- `plugins/repo/skills/branch-manager/SKILL.md`: Add worktree reuse logic (check registry before create)
+- `plugins/repo/skills/branch-manager/scripts/check-worktree.sh`: Check if worktree exists for work_id
+- `plugins/repo/skills/branch-manager/scripts/register-worktree.sh`: Add/update worktree registry entry
+
+### New Registry File
+- `~/.fractary/repo/worktrees.json`: Tracks work_id → worktree mapping for reuse detection
 
 ## Testing Strategy
 
@@ -370,12 +446,31 @@ Run: /faber:audit to validate configuration
 - Empty phase steps detected
 
 ### Integration Tests
-**Test single-item workflow execution**:
+**Test single-item workflow execution with worktree**:
 1. Run `/faber:manage 123` on test repository
-2. Verify faber-manager agent receives workflow config
-3. Verify agent executes all 5 phases in order
-4. Verify state is tracked in `state.json`
-5. Verify logs are written via fractary-logs plugin
+2. Verify faber-manager receives workflow config + worktree=true
+3. Verify branch-manager creates worktree: `../repo-wt-feat-123-*`
+4. Verify agent executes all 5 phases in worktree
+5. Verify state is tracked in worktree's `state.json`
+6. Verify worktree registered in `~/.fractary/repo/worktrees.json`
+7. Verify logs are written via fractary-logs plugin
+
+**Test worktree reuse**:
+1. Run `/faber:manage 123` (creates worktree)
+2. Workflow pauses at Evaluate phase (waiting for feedback)
+3. Run `/faber:manage 123` again
+4. Verify branch-manager detects existing worktree
+5. Verify no duplicate worktree created
+6. Verify workflow resumes in same worktree
+7. Verify state file shows resume from Evaluate phase
+
+**Test workflow isolation**:
+1. Run `/faber:manage 123` (creates worktree A)
+2. Workflow pauses at Architect phase
+3. Run `/faber:manage 124` (creates worktree B)
+4. Verify both workflows run independently
+5. Verify no cross-contamination of branches or state
+6. Verify each has isolated `.fractary/plugins/faber/state.json`
 
 **Test multi-item workflow execution**:
 1. Run `/faber:manage 100,101,102`
@@ -410,12 +505,15 @@ Run: /faber:audit to validate configuration
 ## Dependencies
 
 - FABER v2.0 configuration system (`.fractary/plugins/faber/config.json`)
-- faber-manager agent (must accept workflow config + worktree parameter)
+- faber-manager agent (must accept workflow config + worktree parameter - ALWAYS true)
 - faber-director skill (NEW - orchestration layer for single/multi-item)
 - fractary-work plugin (for issue fetching)
-- fractary-repo plugin (for branch creation with `--worktree` flag)
+- fractary-repo plugin:
+  - branch-manager skill (enhanced with worktree reuse logic)
+  - worktree registry (`~/.fractary/repo/worktrees.json`)
+  - `--worktree` flag support
 - fractary-logs plugin (for workflow logging)
-- Git worktree support (for parallel workflow execution)
+- Git worktree support (for all workflow execution)
 - Skill tool (for command→skill invocation)
 - Task tool (for skill→agent invocation)
 
@@ -564,12 +662,15 @@ else:
 
 ### Worktree Integration
 
-For multi-item workflows, each faber-manager instance MUST:
-1. Receive `use_worktrees=true` parameter from faber-director
+ALL faber-manager instances (single and multi) MUST:
+1. Receive `worktree=true` parameter from faber-director (ALWAYS)
 2. Pass `--worktree` flag when invoking branch-manager skill
-3. Execute all operations within its assigned worktree
-4. Track state in worktree's `.fractary/plugins/faber/state.json`
-5. Clean up worktree on successful completion (via faber-director)
+3. branch-manager checks registry for existing worktree:
+   - If exists → reuse (enables resume)
+   - If not → create new and register
+4. Execute all operations within assigned worktree
+5. Track state in worktree's `.fractary/plugins/faber/state.json`
+6. Worktree persists after completion (for review, cleanup handled separately)
 
 **Worktree naming convention** (managed by repo plugin):
 - Pattern: `{repo-name}-wt-{branch-slug}`
@@ -587,14 +688,13 @@ The workflow configuration passed to the agent includes:
 
 ### State Tracking
 
-**Single-item**: faber-manager maintains state in `.fractary/plugins/faber/state.json`
+ALL workflows use worktrees, so state is ALWAYS in the worktree:
+- **Location**: `{worktree}/.fractary/plugins/faber/state.json`
+- **Isolation**: Each workflow has its own state file
+- **Resume**: Reusing worktree enables resume from last phase
+- **No conflicts**: Multiple workflows can run simultaneously without interference
 
-**Multi-item**: Each faber-manager instance maintains state in its worktree:
-- `{worktree}/.fractary/plugins/faber/state.json`
-- Isolated from other instances
-- Enables independent resume/retry per workflow
-
-The command does not manage state directly.
+The command and skill do not manage state directly - that's the faber-manager agent's responsibility.
 
 ### Error Handling Philosophy
 
