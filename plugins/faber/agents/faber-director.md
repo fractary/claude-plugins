@@ -209,7 +209,7 @@ Current state: $CURRENT_STATE"
         ;;
     cancel)
         echo "🛑 Cancelling workflow"
-        "$CORE_SKILL/session-update.sh" "$WORK_ID" "cancelled" "cancelled"
+        "$CORE_SKILL/state-cancel.sh" "Cancelled by @$COMMENTER"
         gh issue comment "$SOURCE_ID" --body "🛑 **Workflow Cancelled**
 
 Workflow \`$WORK_ID\` has been cancelled by @$COMMENTER."

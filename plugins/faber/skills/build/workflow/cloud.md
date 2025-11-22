@@ -101,8 +101,8 @@ This will:
 # Check that engineer completed successfully
 if [ $? -ne 0 ]; then
     echo "❌ Infrastructure engineer failed"
-    # Update session with failure
-    "$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "failed" "{\"error\": \"Engineer failed\"}"
+    # Update state with failure
+    "$CORE_SKILL/state-update-phase.sh" "build" "failed" "{\"error\": \"Engineer failed\"}"
     exit 1
 fi
 
@@ -159,7 +159,7 @@ BUILD_DATA=$(cat <<EOF
 EOF
 )
 
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "completed" "$BUILD_DATA"
+"$CORE_SKILL/state-update-phase.sh" "build" "completed" "$BUILD_DATA"
 ```
 
 ### 8. Post Build Complete
@@ -254,8 +254,8 @@ commit_on_success = true  # Commit after generation
 If the engineer skill fails:
 ```bash
 # Error is already reported by engineer
-# Update session and exit
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "failed" \
+# Update state and exit
+"$CORE_SKILL/state-update-phase.sh" "build" "failed" \
   "{\"error\": \"Infrastructure engineer failed\", \"retry_count\": $RETRY_COUNT}"
 exit 1
 ```
@@ -265,8 +265,8 @@ exit 1
 If Terraform validation fails:
 ```bash
 # Engineer will have already reported validation errors
-# Session update and exit
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "failed" \
+# State update and exit
+"$CORE_SKILL/state-update-phase.sh" "build" "failed" \
   "{\"error\": \"Terraform validation failed\", \"retry_count\": $RETRY_COUNT}"
 exit 1
 ```
@@ -278,7 +278,7 @@ If commit fails:
 # Code generated but not committed
 # Report error, user can investigate
 echo "❌ Commit failed - Terraform code generated but not committed"
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "failed" \
+"$CORE_SKILL/state-update-phase.sh" "build" "failed" \
   "{\"error\": \"Git commit failed\", \"retry_count\": $RETRY_COUNT}"
 exit 1
 ```

@@ -236,9 +236,9 @@ EOF
 )
 
 if [ "$DECISION" = "go" ]; then
-    "$CORE_SKILL/session-update.sh" "$WORK_ID" "evaluate" "completed" "$EVALUATE_DATA"
+    "$CORE_SKILL/state-update-phase.sh" "evaluate" "completed" "$EVALUATE_DATA"
 else
-    "$CORE_SKILL/session-update.sh" "$WORK_ID" "evaluate" "in_progress" "$EVALUATE_DATA"
+    "$CORE_SKILL/state-update-phase.sh" "evaluate" "in_progress" "$EVALUATE_DATA"
 fi
 ```
 

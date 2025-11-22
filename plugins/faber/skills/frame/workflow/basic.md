@@ -33,12 +33,12 @@ Extract work item information:
 - **State**: Current state (open, closed, etc.)
 - **Assignees**: Assigned users
 
-**Error Handling**: If work item fetch fails, update session with error and exit:
+**Error Handling**: If work item fetch fails, update state with error and exit:
 ```bash
 if [ $? -ne 0 ]; then
     echo "❌ Failed to fetch work item from ${source_type}"
-    # Update session with error
-    "$CORE_SKILL/session-update.sh" "$WORK_ID" "frame" "failed" '{"error": "Failed to fetch work item"}'
+    # Update state with error
+    "$CORE_SKILL/state-update-phase.sh" "frame" "failed" '{"error": "Failed to fetch work item"}'
     # Post error notification
     "$CORE_SKILL/status-card-post.sh" "$WORK_ID" "$SOURCE_ID" "frame" "Frame failed: Could not fetch work item" '["retry"]'
     exit 1
@@ -189,9 +189,9 @@ For data work:
 - Load data sources
 - Prepare analysis environment
 
-### Step 6: Update Session State
+### Step 6: Update Workflow State
 
-Update the session with Frame results:
+Update the workflow state with Frame results:
 
 ```bash
 # Build Frame data JSON
@@ -208,11 +208,11 @@ FRAME_DATA=$(cat <<EOF
 EOF
 )
 
-# Update session
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "frame" "completed" "$FRAME_DATA"
+# Update state
+"$CORE_SKILL/state-update-phase.sh" "frame" "completed" "$FRAME_DATA"
 ```
 
-This stores all Frame results for use by subsequent phases.
+This stores all Frame results in `.fractary/plugins/faber/state.json` for use by subsequent phases.
 
 ### Step 7: Post Frame Complete Notification
 
@@ -261,13 +261,13 @@ Frame phase succeeds when:
 - ✅ Work type classified
 - ✅ Frame start notification posted
 - ✅ Domain environment prepared (branch created for engineering)
-- ✅ Session updated with Frame data
+- ✅ Workflow state updated with Frame data
 - ✅ Frame complete notification posted
 
 ## Error Recovery
 
 ### Work Item Fetch Failure
-- **Action**: Update session, post error notification, exit with code 1
+- **Action**: Update state, post error notification, exit with code 1
 - **Recovery**: User can retry Frame phase
 
 ### Classification Failure
@@ -275,12 +275,12 @@ Frame phase succeeds when:
 - **Recovery**: Automatic (use default)
 
 ### Branch Creation Failure
-- **Action**: Update session, post error notification, exit with code 1
+- **Action**: Update state, post error notification, exit with code 1
 - **Recovery**: User can retry Frame phase
 
-### Session Update Failure
+### State Update Failure
 - **Action**: Log error, retry once, exit with code 1 if persistent
-- **Recovery**: Check session file permissions
+- **Recovery**: Check state file permissions and ensure `.fractary/plugins/faber/` directory exists
 
 ## Configuration
 

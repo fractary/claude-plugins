@@ -339,9 +339,9 @@ echo "Key Decisions:"
 echo "$KEY_DECISIONS" | jq -r '.[]'
 ```
 
-### Step 7: Update Session State
+### Step 7: Update Workflow State
 
-Update the session with Architect results:
+Update the workflow state with Architect results:
 
 ```bash
 # Build Architect data JSON
@@ -355,8 +355,8 @@ ARCHITECT_DATA=$(cat <<EOF
 EOF
 )
 
-# Update session
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "architect" "completed" "$ARCHITECT_DATA"
+# Update state
+"$CORE_SKILL/state-update-phase.sh" "architect" "completed" "$ARCHITECT_DATA"
 ```
 
 ### Step 8: Post Architect Complete Notification

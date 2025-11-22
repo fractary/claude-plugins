@@ -138,9 +138,9 @@ Use the @agent-fractary-repo:repo-manager agent with the following request:
 }
 ```
 
-Store commit information for session update.
+Store commit information for state update.
 
-### 6. Update Session
+### 6. Update Workflow State
 ```bash
 BUILD_DATA=$(cat <<EOF
 {
@@ -151,7 +151,7 @@ BUILD_DATA=$(cat <<EOF
 EOF
 )
 
-"$CORE_SKILL/session-update.sh" "$WORK_ID" "build" "completed" "$BUILD_DATA"
+"$CORE_SKILL/state-update-phase.sh" "build" "completed" "$BUILD_DATA"
 ```
 
 ### 7. Post Build Complete
