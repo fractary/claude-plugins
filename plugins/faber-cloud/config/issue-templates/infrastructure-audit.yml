@@ -1,0 +1,120 @@
+name: Infrastructure Audit
+description: Non-destructive infrastructure audit workflow (Inspect → Analyze → Report)
+title: "[Audit]: "
+labels: ["type:audit", "workflow:infrastructure-audit", "infrastructure"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue will follow the **infrastructure-audit FABER workflow**:
+        Frame → Evaluate (audits) → Release (report)
+
+        **Workflow characteristics:**
+        - ✅ Non-destructive (read-only operations)
+        - ✅ Autonomous mode (runs fully automated)
+        - ✅ Safe for production environments
+        - ✅ Generates comprehensive audit reports
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Target Environment
+      description: Which environment should be audited?
+      options:
+        - Development
+        - Staging
+        - Production
+        - All environments
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: audit-types
+    attributes:
+      label: Audit Types
+      description: Select which audits to run (all selected by default)
+      options:
+        - label: Configuration validity (syntax, references)
+          required: false
+        - label: Drift detection (code vs actual infrastructure)
+          required: false
+        - label: Security audit (checkov, tfsec)
+          required: false
+        - label: Cost analysis (current and projected costs)
+          required: false
+        - label: IAM health check (permissions, policies)
+          required: false
+        - label: Compliance check (organizational policies)
+          required: false
+
+  - type: textarea
+    id: audit-scope
+    attributes:
+      label: Audit Scope
+      description: What infrastructure should be audited?
+      placeholder: |
+        - All resources
+        - Specific services (e.g., EC2, RDS, S3)
+        - Specific resource names/tags
+        - Cost threshold (e.g., resources >$100/month)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity-threshold
+    attributes:
+      label: Security Severity Threshold
+      description: Minimum severity level to report
+      options:
+        - Low (report all findings)
+        - Medium (skip low-severity issues)
+        - High (only critical and high severity)
+        - Critical (only show critical issues)
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: compliance-policies
+    attributes:
+      label: Compliance Policies
+      description: Which organizational policies should be checked?
+      placeholder: |
+        - Naming conventions
+        - Resource tagging
+        - Encryption requirements
+        - Network security rules
+        - Cost allocation tags
+      value: |
+        - Naming conventions
+        - Resource tagging
+        - Encryption requirements
+        - Network security rules
+
+  - type: checkboxes
+    id: deliverables
+    attributes:
+      label: Expected Deliverables
+      description: What should the audit produce?
+      options:
+        - label: Executive summary of findings
+          required: false
+        - label: Detailed findings by category
+          required: false
+        - label: Risk assessment and prioritization
+          required: false
+        - label: Remediation recommendations with effort estimates
+          required: false
+        - label: Auto-create issues for critical/high findings
+          required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any additional information for this audit
+      placeholder: |
+        - Specific concerns or focus areas
+        - Recent changes that need verification
+        - Compliance requirements
+        - Budget constraints to validate against

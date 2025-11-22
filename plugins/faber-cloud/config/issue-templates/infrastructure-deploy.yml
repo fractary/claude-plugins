@@ -1,0 +1,203 @@
+name: Infrastructure Deployment
+description: Standard infrastructure deployment workflow (Architecture → Engineering → Testing → Deployment)
+title: "[Infrastructure]: "
+labels: ["type:infrastructure", "workflow:infrastructure-deploy", "terraform"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue will follow the **infrastructure-deploy FABER workflow**:
+        Frame → Architect (design) → Build (Terraform) → Evaluate (test/scan) → Release (deploy)
+
+        **Workflow characteristics:**
+        - ⚙️ Full FABER lifecycle (all 5 phases)
+        - 🛡️ Guarded mode (pauses before deployment)
+        - 🔒 Security scanning (checkov, tfsec)
+        - 💰 Cost estimation and review
+        - ✅ Compliance checking
+
+  - type: dropdown
+    id: change-type
+    attributes:
+      label: Change Type
+      description: What type of infrastructure change?
+      options:
+        - New resource (create new infrastructure)
+        - Update existing resource (modify configuration)
+        - Migration (move between environments/regions)
+        - Refactor (restructure without functional changes)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Target Environment
+      description: Which environment will this affect?
+      options:
+        - Development
+        - Staging
+        - Production
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Cloud Platform
+      description: Which cloud platform?
+      options:
+        - AWS
+        - GCP
+        - Azure
+        - Multi-cloud
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Infrastructure Description
+      description: What infrastructure should be created/modified?
+      placeholder: |
+        Describe the infrastructure components and their purpose.
+
+        Example:
+        - Create new RDS PostgreSQL database for user authentication
+        - Add S3 bucket for document storage with lifecycle policies
+        - Update EC2 instance types for cost optimization
+    validations:
+      required: true
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Infrastructure Resources
+      description: What specific resources will be created/modified?
+      placeholder: |
+        List the infrastructure resources:
+
+        - EC2 instances (type, count, purpose)
+        - RDS databases (engine, size, HA requirements)
+        - S3 buckets (storage class, lifecycle)
+        - VPC components (subnets, security groups, NAT gateways)
+        - IAM roles and policies
+        - Load balancers, auto-scaling groups
+        - CloudWatch alarms, monitoring
+    validations:
+      required: true
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture Overview
+      description: High-level architecture or design approach
+      placeholder: |
+        Describe the architecture:
+
+        - Network design (VPC, subnets, routing)
+        - Data flow and dependencies
+        - High availability considerations
+        - Disaster recovery approach
+        - Security model (encryption, access control)
+
+  - type: textarea
+    id: cost-estimate
+    attributes:
+      label: Expected Cost Impact
+      description: Estimated monthly cost change
+      placeholder: |
+        Current monthly cost: $X
+        New monthly cost: $Y
+        Increase/decrease: $Z
+
+        Budget approval: [Yes/No/Pending]
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: security-requirements
+    attributes:
+      label: Security Requirements
+      description: Security considerations (all required for production)
+      options:
+        - label: Encryption at rest enabled for data stores
+          required: false
+        - label: Encryption in transit (TLS/SSL) configured
+          required: false
+        - label: Security groups follow least privilege principle
+          required: false
+        - label: IAM roles use least privilege access
+          required: false
+        - label: VPC and network security configured properly
+          required: false
+        - label: Secrets stored in secure storage (not hardcoded)
+          required: false
+        - label: Compliance requirements reviewed
+          required: false
+
+  - type: checkboxes
+    id: compliance-policies
+    attributes:
+      label: Compliance & Standards
+      description: Organizational policies to validate
+      options:
+        - label: Naming conventions followed
+          required: false
+        - label: Resource tagging complete (owner, cost-center, environment)
+          required: false
+        - label: Backup and retention policies defined
+          required: false
+        - label: Monitoring and alerting configured
+          required: false
+        - label: Documentation updated
+          required: false
+
+  - type: textarea
+    id: testing-plan
+    attributes:
+      label: Testing Plan
+      description: How will this infrastructure be tested?
+      placeholder: |
+        - Configuration validation (terraform validate)
+        - Security scanning (checkov, tfsec)
+        - Cost review against budget
+        - Integration testing
+        - Performance testing (if applicable)
+
+  - type: textarea
+    id: rollback-plan
+    attributes:
+      label: Rollback Plan
+      description: How can this change be reverted if needed?
+      placeholder: |
+        Describe the rollback procedure:
+
+        1. Keep previous Terraform state backed up
+        2. Document manual steps if needed
+        3. Identify data that needs preservation
+        4. Estimated rollback time
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: What does this infrastructure depend on?
+      placeholder: |
+        - Existing infrastructure components
+        - External services or APIs
+        - Configuration or secrets that need to be set up
+        - Team approvals needed
+
+  - type: textarea
+    id: deployment-window
+    attributes:
+      label: Deployment Window
+      description: When should this be deployed?
+      placeholder: |
+        - Preferred deployment time (consider business hours, maintenance windows)
+        - Any scheduling constraints
+        - Estimated deployment duration

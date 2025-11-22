@@ -1,0 +1,252 @@
+name: Infrastructure Teardown
+description: Safe infrastructure destruction workflow (Plan → Review → Backup → Destroy → Verify)
+title: "[TEARDOWN]: "
+labels: ["type:teardown", "workflow:infrastructure-teardown", "destructive", "requires-approval"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue will follow the **infrastructure-teardown FABER workflow**:
+        Frame → Architect (analyze) → Build (plan) → Evaluate (backup) → Release (destroy)
+
+        **⚠️ CRITICAL WORKFLOW CHARACTERISTICS:**
+        - 🔴 **DESTRUCTIVE** - Resources will be permanently deleted
+        - 🛑 **ASSIST MODE** - Requires approval at each major step
+        - 💾 **BACKUP REQUIRED** - Data must be backed up before destruction
+        - 🔒 **PRODUCTION PROTECTION** - Extra safeguards for production environments
+        - ⏱️ **CANNOT BE UNDONE** - Destruction is irreversible
+
+        **Use this workflow only when:**
+        - ✅ Decommissioning unused infrastructure
+        - ✅ Cleaning up test/development environments
+        - ✅ Replacing infrastructure (teardown + deploy)
+        - ❌ NOT for temporary troubleshooting
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Target Environment
+      description: Which environment contains resources to destroy?
+      options:
+        - Development
+        - Staging
+        - Production (REQUIRES ADDITIONAL APPROVAL)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: How urgent is this teardown?
+      options:
+        - Routine (scheduled decommission)
+        - Urgent (cost optimization, security issue)
+        - Emergency (incident response, compliance)
+    validations:
+      required: true
+
+  - type: textarea
+    id: resources-to-destroy
+    attributes:
+      label: Resources to Destroy
+      description: List all infrastructure resources that will be destroyed
+      placeholder: |
+        Provide detailed list of resources:
+
+        - EC2 instances (instance IDs, names)
+        - RDS databases (identifiers, engines)
+        - S3 buckets (names, approximate data size)
+        - VPC components (VPC ID, subnets, NAT gateways)
+        - Load balancers, auto-scaling groups
+        - IAM roles and policies
+        - CloudWatch alarms, monitoring
+
+        **Be as specific as possible** - vague descriptions will delay approval
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Teardown Justification
+      description: Why are these resources being destroyed?
+      placeholder: |
+        Explain the business reason:
+
+        - Project completed/cancelled
+        - Migrating to new infrastructure
+        - Cost optimization (resources unused/underutilized)
+        - Security issue requiring rebuild
+        - Temporary test environment cleanup
+        - Consolidation with other resources
+    validations:
+      required: true
+
+  - type: textarea
+    id: data-inventory
+    attributes:
+      label: Data Inventory
+      description: What data exists in these resources?
+      placeholder: |
+        Identify all persistent data:
+
+        **Databases:**
+        - Database name, size, last backup date
+        - Data retention requirements
+
+        **S3 Buckets:**
+        - Bucket name, object count, total size
+        - Data classification (public, internal, confidential)
+
+        **EBS Volumes:**
+        - Volume IDs, sizes, snapshot availability
+
+        **Other Storage:**
+        - EFS, FSx, Glacier, etc.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: data-handling
+    attributes:
+      label: Data Handling Plan
+      description: How will data be preserved or disposed of?
+      options:
+        - label: No data to preserve (stateless resources only)
+          required: false
+        - label: Data backed up to long-term storage
+          required: false
+        - label: Data exported and archived
+          required: false
+        - label: Data migrated to new infrastructure
+          required: false
+        - label: Data approved for deletion (retention period expired)
+          required: false
+        - label: Snapshots/backups created before destruction
+          required: false
+
+  - type: textarea
+    id: backup-plan
+    attributes:
+      label: Backup Strategy
+      description: Detailed backup plan before destruction
+      placeholder: |
+        Describe backup approach:
+
+        **For each data source:**
+        1. Backup method (snapshot, export, dump, replication)
+        2. Backup destination (S3, archive storage, other region)
+        3. Backup validation approach
+        4. Retention period
+        5. Recovery testing plan
+
+        **Example:**
+        - RDS: Final snapshot to S3, 90-day retention, test restore to dev
+        - S3: Sync to glacier storage, 7-year retention per compliance
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependency-analysis
+    attributes:
+      label: Dependency Analysis
+      description: What depends on these resources?
+      placeholder: |
+        Identify all dependencies:
+
+        - Applications or services using this infrastructure
+        - Other infrastructure components that depend on these resources
+        - External integrations or APIs
+        - Team workflows or processes
+        - Monitoring, logging, alerting systems
+
+        **Impact assessment:**
+        - Will anything break when these resources are destroyed?
+        - What needs to be reconfigured or updated?
+    validations:
+      required: true
+
+  - type: textarea
+    id: cost-savings
+    attributes:
+      label: Expected Cost Savings
+      description: Estimated monthly cost savings from teardown
+      placeholder: |
+        Current monthly cost: $X
+        After teardown: $Y
+        Monthly savings: $Z
+        Annual savings: $Z × 12 = $A
+
+        Itemize by resource type if possible.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety-checklist
+    attributes:
+      label: Safety Checklist
+      description: Pre-teardown safety verification
+      options:
+        - label: Verified this is NOT production (or have production approval)
+          required: true
+        - label: Confirmed no active users or traffic
+          required: true
+        - label: Verified all data is backed up or approved for deletion
+          required: true
+        - label: Checked for dependent resources and services
+          required: true
+        - label: Documented rollback plan (if feasible)
+          required: true
+        - label: Notified stakeholders of planned teardown
+          required: true
+        - label: Scheduled teardown for appropriate maintenance window
+          required: true
+
+  - type: textarea
+    id: rollback-plan
+    attributes:
+      label: Rollback Plan
+      description: Can this be rolled back? How?
+      placeholder: |
+        Describe rollback feasibility:
+
+        **If teardown needs to be reversed:**
+        - Can infrastructure be recreated from Terraform code?
+        - Can data be restored from backups?
+        - How long would restoration take?
+        - What is the RPO/RTO?
+
+        **Note:** Most teardowns CANNOT be fully rolled back - plan accordingly!
+    validations:
+      required: true
+
+  - type: textarea
+    id: approval-chain
+    attributes:
+      label: Required Approvals
+      description: Who needs to approve this teardown?
+      placeholder: |
+        List all required approvals:
+
+        - Technical lead: [Name]
+        - Product owner: [Name]
+        - Infrastructure team: [Name]
+        - Security team: [Name] (if sensitive data)
+        - Finance: [Name] (for budget impact)
+        - Compliance: [Name] (if regulated data)
+
+        **For production:** Manager and director approval required
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information relevant to this teardown
+      placeholder: |
+        - Historical context
+        - Previous attempts or related changes
+        - Special considerations
+        - Lessons learned from similar teardowns
