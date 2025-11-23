@@ -40,8 +40,7 @@ Creates `.fractary/plugins/faber/config.json` with the baseline FABER workflow c
 .fractary/plugins/faber/
 ├── config.json              # Main configuration (references workflows)
 └── workflows/               # Workflow definition files
-    ├── default.json         # Standard FABER workflow
-    └── hotfix.json          # Expedited hotfix workflow
+    └── default.json         # Standard FABER workflow
 ```
 
 **Config file** (`.fractary/plugins/faber/config.json`):
@@ -53,11 +52,6 @@ Creates `.fractary/plugins/faber/config.json` with the baseline FABER workflow c
       "id": "default",
       "file": "./workflows/default.json",
       "description": "Standard FABER workflow"
-    },
-    {
-      "id": "hotfix",
-      "file": "./workflows/hotfix.json",
-      "description": "Expedited workflow for critical fixes"
     }
   ],
   "integrations": { ... },
@@ -74,9 +68,8 @@ This command should:
 1. Check if config already exists (warn if exists, offer to backup)
 2. Create `.fractary/plugins/faber/` directory if needed
 3. Create `.fractary/plugins/faber/workflows/` directory
-4. Copy workflow templates:
+4. Copy workflow template:
    - `plugins/faber/config/workflows/default.json` → `.fractary/plugins/faber/workflows/default.json`
-   - `plugins/faber/config/workflows/hotfix.json` → `.fractary/plugins/faber/workflows/hotfix.json`
 5. Copy config template:
    - `plugins/faber/config/faber.example.json` → `.fractary/plugins/faber/config.json`
 6. Validate configuration (including workflow file references)

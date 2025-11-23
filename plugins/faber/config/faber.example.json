@@ -7,20 +7,11 @@
       "id": "default",
       "file": "./workflows/default.json",
       "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)"
-    },
-    {
-      "id": "hotfix",
-      "file": "./workflows/hotfix.json",
-      "description": "Expedited workflow for critical fixes (skips Architect phase)"
     }
   ],
   "workflow_inference": {
     "_comment": "Maps issue labels to workflows. Used when --workflow is not explicitly specified.",
     "label_mapping": {
-      "hotfix": "hotfix",
-      "urgent": "hotfix",
-      "critical": "hotfix",
-      "security": "hotfix",
       "bug": "default",
       "feature": "default",
       "enhancement": "default"
