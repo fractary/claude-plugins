@@ -86,10 +86,16 @@ When `worktree=true`, this skill MUST pass `--worktree` flag to repo-manager whe
 
 ### Step 1: Load Configuration
 
-**Action**: Read and parse `.fractary/plugins/faber/config.json`
+**CRITICAL**: Load configuration from the **project working directory**, NOT the plugin installation directory.
+
+**Config Location**: `.fractary/plugins/faber/config.json` (relative to project root / current working directory)
+
+**Common Mistake**: Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/faber/` - that's the plugin installation directory, not the project config location.
+
+**Action**: Read and parse `.fractary/plugins/faber/config.json` from the project working directory
 
 **Validation**:
-- File exists
+- File exists in project directory
 - Valid JSON format
 - Required fields present (schema_version, workflows, integrations)
 - Workflow definitions valid

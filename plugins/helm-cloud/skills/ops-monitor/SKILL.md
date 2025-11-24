@@ -33,7 +33,7 @@ What this skill receives:
 - service: Optional specific service to check (or all if not specified)
 - metric: Optional specific metric to query
 - timeframe: Time period for analysis (default: 1h)
-- config: Configuration from .fractary/plugins/faber-cloud/config/devops.json
+- config: Configuration from `.fractary/plugins/faber-cloud/config/devops.json` **(in project working directory)**
 </INPUTS>
 
 <WORKFLOW>
@@ -49,8 +49,11 @@ ${service ? "Service: " + service : "Checking all services"}
 **EXECUTE STEPS:**
 
 **Step 1: Load Configuration and Registry**
-- Read: .fractary/plugins/faber-cloud/config/devops.json
-- Read: .fractary/plugins/faber-cloud/deployments/${environment}/registry.json
+
+**CRITICAL**: Load files from the **project working directory**, NOT the plugin installation directory.
+
+- Read: `.fractary/plugins/faber-cloud/config/devops.json` (from project working directory)
+- Read: `.fractary/plugins/faber-cloud/deployments/${environment}/registry.json` (from project working directory)
 - Extract: List of deployed resources to monitor
 - Output: "✓ Found ${resource_count} resources to monitor"
 

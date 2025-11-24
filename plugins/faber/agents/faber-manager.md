@@ -123,13 +123,15 @@ The skill maintains:
 faber-manager.md (agent - THIS FILE)
     ↓
 faber-manager/ (skill - ALL LOGIC)
-    ├── Reads config: .fractary/plugins/faber/config.json
+    ├── Reads config: .fractary/plugins/faber/config.json (from PROJECT working directory)
     ├── Orchestrates: Frame → Architect → Build → Evaluate → Release
     ├── Executes hooks: pre/post at phase boundaries
     ├── Logs: fractary-logs (workflow log type)
-    ├── State: .fractary/plugins/faber/state.json
+    ├── State: .fractary/plugins/faber/state.json (from PROJECT working directory)
     └── Works: Across all project types via configuration
 ```
+
+**CRITICAL**: All config and state files are in the **project working directory**, NOT the plugin installation directory (`~/.claude/plugins/marketplaces/...`).
 
 **Benefits:**
 - ✅ **Universal**: Single manager works for all projects

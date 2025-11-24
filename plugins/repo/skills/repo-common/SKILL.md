@@ -61,8 +61,12 @@ You receive utility requests from other skills:
 
 ## Configuration Management
 
+**CRITICAL**: All configuration files are loaded from the **project working directory**, NOT the plugin installation directory.
+
+**Common Mistake**: Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/repo/` - that's the plugin installation directory.
+
 ### load-config
-**Purpose**: Load repo configuration from .fractary/plugins/repo/config.json or .faber.config.toml
+**Purpose**: Load repo configuration from `.fractary/plugins/repo/config.json` (in project working directory) or `.faber.config.toml`
 **Script**: `scripts/config-loader.sh`
 **Parameters**: None (auto-detects config file)
 
