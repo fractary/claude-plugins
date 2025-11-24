@@ -442,7 +442,7 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
 
 ## Roadmap
 
-### v0.4 (Current - Phases 1-4 Complete)
+### v0.5 (Current - Phases 1-5 Complete)
 **Phase 1: Core Structure** ✅ COMPLETE
 - ✅ Core plugin structure (directory layout, manifest)
 - ✅ Configuration management (config.json schema)
@@ -473,6 +473,18 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
 - ✅ Production approval workflows
 - ✅ Automatic backup coordination
 
+**Phase 5: Backup and Rollback** ✅ COMPLETE
+- ✅ backup command for creating database backups
+- ✅ rollback command for restoring from backups
+- ✅ backup-manager skill for backup orchestration
+- ✅ Prisma create-backup script (pg_dump, mysqldump, sqlite3)
+- ✅ Prisma restore-backup script with verification
+- ✅ Backup metadata tracking (backups.json)
+- ✅ Compression support (gzip)
+- ✅ Multiple backup formats (SQL, custom, directory)
+- ✅ Safety backups before rollback operations
+- ✅ Retention management
+
 **Phase 7: Monitoring (Partial)** ✅ COMPLETE
 - ✅ Status command for configuration and database checking
 
@@ -480,22 +492,18 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
 - Initialize and configure plugin
 - Create local development databases
 - Initialize Prisma schemas
-- **Generate migrations from schema changes**
-- **Deploy migrations with safety checks (dev, staging, production)**
-- **Preview migrations before deployment (dry-run)**
+- Generate migrations from schema changes
+- Deploy migrations with safety checks (dev, staging, production)
+- Preview migrations before deployment (dry-run)
+- **Create database backups (local, compressed)**
+- **Rollback migrations using backups**
 - **Automatic backups before production migrations**
+- **Safety backups before rollback operations**
 - Check configuration and database status
 - Environment-specific settings (dev, staging, production)
 - Production safety (approval prompts, protected environments)
 
-### v0.5 (Next - Phase 5)
-**Phase 5: Backup and Rollback** 📋 PLANNED
-- 📋 backup-manager skill
-- 📋 rollback-manager skill
-- 📋 AWS RDS snapshot integration
-- 📋 Backup/restore commands
-
-### v0.6 (Planned - Phase 6)
+### v0.6 (Next - Phase 6)
 **Phase 6: Production Safety** 📋 PLANNED
 - 📋 Enhanced approval workflows
 - 📋 Automatic backup enforcement
