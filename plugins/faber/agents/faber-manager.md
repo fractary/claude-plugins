@@ -4,6 +4,7 @@ description: Universal FABER workflow manager - orchestrates all 5 phases across
 tools: Bash, Skill
 model: inherit
 color: orange
+skills: [faber-manager]
 ---
 
 # Universal FABER Manager
