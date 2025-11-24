@@ -340,20 +340,26 @@ If operation is `push-branch` and skill returns exit code 13 (branch out of sync
 
 **Special handling for create-branch operation with spec_create flag:**
 
-If operation is `create-branch` and skill returns success AND `parameters.spec_create` is true:
+If operation is `create-branch` AND `parameters.spec_create` is true:
 
-1. **Check preconditions for spec creation**:
+1. **Handle "branch already exists" case (exit code 10)**:
+   - If skill returns exit code 10 (branch already exists), this is NOT a failure for spec creation purposes
+   - Checkout the existing branch to ensure we're on the correct branch
+   - Log: "Branch already exists, checking it out for spec creation..."
+   - Proceed to spec creation (treat as success case for spec creation purposes)
+
+2. **Check preconditions for spec creation**:
    - Verify `work_id` is provided (required for spec creation)
    - Check if spec plugin is configured: `.fractary/plugins/spec/config.json` exists
    - If either precondition fails, show appropriate warning (see SPEC_INTEGRATION section) but do NOT fail the operation
 
-2. **If all preconditions met**:
+3. **If all preconditions met**:
    - Output: "📋 Creating specification automatically..."
    - Use SlashCommand tool to invoke: `/fractary-spec:create --work-id {work_id}`
    - Wait for command to complete
    - Capture and display the result
 
-3. **Error handling**:
+4. **Error handling**:
    - If `work_id` is missing:
      ```
      ⚠️ Spec creation skipped: work_id is required
@@ -378,11 +384,18 @@ If operation is `create-branch` and skill returns success AND `parameters.spec_c
    - If spec creation command fails:
      - Display the error message from the command
      - Provide guidance on manual spec creation
-     - Do NOT fail the entire operation (branch was created successfully)
+     - Do NOT fail the entire operation (branch was created/checked out successfully)
 
-4. **Success path**:
+5. **Success path**:
    - Display spec file path returned by the command
    - Include in the final response JSON
+
+**Key principle**: When `--spec-create` is provided, the user's intent is to create a spec for the work item. Whether the branch is newly created or already exists is irrelevant to this intent. The spec creation should proceed as long as:
+1. The branch can be checked out (new or existing)
+2. The `work_id` is provided
+3. The spec plugin is configured
+
+Exit code 10 (branch already exists) should be treated as a success case for spec creation purposes, with the branch simply being checked out instead of created.
 
 **7. RETURN RESPONSE:**
 
@@ -555,11 +568,13 @@ This provides a complete workflow from branch creation to development start with
 ### When to Handle Spec Creation
 
 Handle spec creation if:
-1. The create-branch operation completed successfully (status: "success")
+1. The create-branch operation completed successfully (status: "success") OR returned exit code 10 (branch already exists)
 2. Worktree creation completed successfully (if `create_worktree` was true)
 3. The `spec_create` parameter is true
 4. A `work_id` is available (provided via --work-id parameter)
 5. The fractary-spec plugin is configured (`.fractary/plugins/spec/config.json` exists)
+
+**Important**: Exit code 10 (branch already exists) is NOT a failure for spec creation purposes. When `--spec-create` is provided, the user's intent is to create a spec for the work item, regardless of whether the branch is new or existing. Simply checkout the existing branch and proceed with spec creation.
 
 **Note**: Spec creation happens AFTER branch creation and worktree creation (if applicable), as the spec is typically created while on the issue branch.
 
@@ -575,6 +590,13 @@ SHOULD_CREATE_SPEC=false
 
 if [ "$spec_create" = "true" ]; then
     # User requested spec creation - check preconditions
+
+    # If branch already exists (exit code 10), treat as success for spec creation
+    # Checkout the existing branch
+    if [ "$EXIT_CODE" = "10" ]; then
+        echo "Branch already exists, checking it out for spec creation..."
+        git checkout "$BRANCH_NAME"
+    fi
 
     # Check if spec plugin is configured (not just installed)
     if [ ! -f ".fractary/plugins/spec/config.json" ]; then
@@ -662,7 +684,7 @@ If spec plugin is configured but the `/fractary-spec:create` command fails:
 
 ### Integration Flow Examples
 
-**Example 1: Branch + Spec (success)**
+**Example 1: Branch + Spec (success - new branch)**
 ```
 Input: {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add export", "spec_create": true}}
 
@@ -671,6 +693,18 @@ Input: {"operation": "create-branch", "parameters": {"work_id": "123", "descript
 3. Output: "📋 Creating specification automatically..."
 4. Invoke: /fractary-spec:create --work-id 123
 5. Display: "✅ Specification created: .specs/spec-123.md"
+```
+
+**Example 1b: Branch + Spec (success - existing branch)**
+```
+Input: {"operation": "create-branch", "parameters": {"work_id": "123", "description": "add export", "spec_create": true}}
+
+1. Try to create branch: feat/123-add-export → Exit code 10 (already exists) ✓
+2. Checkout existing branch: feat/123-add-export ✓
+3. Check spec_create=true AND work_id=123 AND spec plugin configured ✓
+4. Output: "📋 Creating specification automatically..."
+5. Invoke: /fractary-spec:create --work-id 123
+6. Display: "✅ Specification created: .specs/spec-123.md"
 ```
 
 **Example 2: Branch + Worktree + Spec (success)**
@@ -707,11 +741,12 @@ Input: {"operation": "create-branch", "parameters": {"work_id": "123", "descript
 
 ### Key Design Principles
 
-1. **Graceful degradation**: Branch creation always succeeds, spec creation is optional
+1. **Graceful degradation**: Branch creation/checkout always succeeds, spec creation is optional
 2. **Clear feedback**: Users always know what happened and what to do next
 3. **No silent failures**: Always inform user if spec creation was skipped or failed
 4. **Respect plugin boundaries**: Use SlashCommand tool, never bypass plugin architecture
 5. **work_id is required**: Cannot create spec without work item ID
+6. **Intent-based behavior**: When `--spec-create` is provided, honor the user's intent to create a spec regardless of whether the branch is new or existing
 
 When skipping due to missing work_id or plugin configuration, show the appropriate warning message (see Error Handling section above).
 
