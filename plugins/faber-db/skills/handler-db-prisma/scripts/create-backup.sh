@@ -254,7 +254,8 @@ case "$DB_TYPE" in
             OUTPUT_FILE="${OUTPUT_FILE}.gz"
             log_info "Compression enabled (gzip)"
 
-            if mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" \
+            # Use MYSQL_PWD environment variable to avoid password exposure in process list
+            if MYSQL_PWD="$DB_PASS" mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" \
                 --single-transaction --routines --triggers "$DB_NAME" 2>/tmp/backup-err.log | gzip > "$OUTPUT_FILE"; then
                 log_info "Backup created and compressed: $OUTPUT_FILE"
             else
@@ -265,7 +266,8 @@ case "$DB_TYPE" in
                 exit $EXIT_CODE
             fi
         else
-            if mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" \
+            # Use MYSQL_PWD environment variable to avoid password exposure in process list
+            if MYSQL_PWD="$DB_PASS" mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" \
                 --single-transaction --routines --triggers -r "$OUTPUT_FILE" "$DB_NAME" 2>&1 | tee /tmp/backup.log; then
                 log_info "Backup created: $OUTPUT_FILE"
             else

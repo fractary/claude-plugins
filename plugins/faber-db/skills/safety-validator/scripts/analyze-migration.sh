@@ -69,9 +69,17 @@ if grep -qiE "DROP\s+TABLE" "$MIGRATION_FILE"; then
     # Extract all DROP TABLE statements
     while IFS= read -r line; do
         LINE_NUM=$(echo "$line" | cut -d: -f1)
-        SQL=$(echo "$line" | cut -d: -f2- | sed 's/"/\\"/g' | xargs)
+        SQL=$(echo "$line" | cut -d: -f2- | xargs)
         TABLE=$(echo "$SQL" | grep -oiE "DROP\s+TABLE\s+[IF\s+EXISTS\s+]*[\"\`]?([a-zA-Z_][a-zA-Z0-9_]*)[\"\`]?" | awk '{print $NF}' | tr -d '"`')
-        DESTRUCTIVE_OPS+=('{"type":"DROP_TABLE","severity":"high","table":"'$TABLE'","line":'$LINE_NUM',"sql":"'$SQL'"}')
+        # Use jq to safely construct JSON and avoid injection vulnerabilities
+        OP_JSON=$(jq -n \
+            --arg type "DROP_TABLE" \
+            --arg severity "high" \
+            --arg table "$TABLE" \
+            --argjson line "$LINE_NUM" \
+            --arg sql "$SQL" \
+            '{type: $type, severity: $severity, table: $table, line: $line, sql: $sql}')
+        DESTRUCTIVE_OPS+=("$OP_JSON")
     done < <(grep -niE "DROP\s+TABLE" "$MIGRATION_FILE")
 fi
 
@@ -83,9 +91,17 @@ if grep -qiE "TRUNCATE\s+(TABLE\s+)?" "$MIGRATION_FILE"; then
 
     while IFS= read -r line; do
         LINE_NUM=$(echo "$line" | cut -d: -f1)
-        SQL=$(echo "$line" | cut -d: -f2- | sed 's/"/\\"/g' | xargs)
+        SQL=$(echo "$line" | cut -d: -f2- | xargs)
         TABLE=$(echo "$SQL" | grep -oiE "TRUNCATE\s+(TABLE\s+)?[\"\`]?([a-zA-Z_][a-zA-Z0-9_]*)[\"\`]?" | awk '{print $NF}' | tr -d '"`')
-        DESTRUCTIVE_OPS+=('{"type":"TRUNCATE","severity":"high","table":"'$TABLE'","line":'$LINE_NUM',"sql":"'$SQL'"}')
+        # Use jq to safely construct JSON and avoid injection vulnerabilities
+        OP_JSON=$(jq -n \
+            --arg type "TRUNCATE" \
+            --arg severity "high" \
+            --arg table "$TABLE" \
+            --argjson line "$LINE_NUM" \
+            --arg sql "$SQL" \
+            '{type: $type, severity: $severity, table: $table, line: $line, sql: $sql}')
+        DESTRUCTIVE_OPS+=("$OP_JSON")
     done < <(grep -niE "TRUNCATE\s+(TABLE\s+)?" "$MIGRATION_FILE")
 fi
 
@@ -107,7 +123,7 @@ if grep -qiE "DELETE\s+FROM" "$MIGRATION_FILE"; then
 
     while IFS= read -r line; do
         LINE_NUM=$(echo "$line" | cut -d: -f1)
-        SQL=$(echo "$line" | cut -d: -f2- | sed 's/"/\\"/g' | xargs)
+        SQL=$(echo "$line" | cut -d: -f2- | xargs)
         TABLE=$(echo "$SQL" | grep -oiE "DELETE\s+FROM\s+[\"\`]?([a-zA-Z_][a-zA-Z0-9_]*)[\"\`]?" | awk '{print $NF}' | tr -d '"`')
 
         if echo "$SQL" | grep -qiE "WHERE"; then
@@ -116,7 +132,15 @@ if grep -qiE "DELETE\s+FROM" "$MIGRATION_FILE"; then
             SEVERITY="high"
         fi
 
-        DESTRUCTIVE_OPS+=('{"type":"DELETE","severity":"'$SEVERITY'","table":"'$TABLE'","line":'$LINE_NUM',"sql":"'$SQL'"}')
+        # Use jq to safely construct JSON and avoid injection vulnerabilities
+        OP_JSON=$(jq -n \
+            --arg type "DELETE" \
+            --arg severity "$SEVERITY" \
+            --arg table "$TABLE" \
+            --argjson line "$LINE_NUM" \
+            --arg sql "$SQL" \
+            '{type: $type, severity: $severity, table: $table, line: $line, sql: $sql}')
+        DESTRUCTIVE_OPS+=("$OP_JSON")
     done < <(grep -niE "DELETE\s+FROM" "$MIGRATION_FILE")
 fi
 
@@ -129,9 +153,17 @@ if grep -qiE "DROP\s+COLUMN" "$MIGRATION_FILE"; then
 
     while IFS= read -r line; do
         LINE_NUM=$(echo "$line" | cut -d: -f1)
-        SQL=$(echo "$line" | cut -d: -f2- | sed 's/"/\\"/g' | xargs)
+        SQL=$(echo "$line" | cut -d: -f2- | xargs)
         COLUMN=$(echo "$SQL" | grep -oiE "DROP\s+COLUMN\s+[\"\`]?([a-zA-Z_][a-zA-Z0-9_]*)[\"\`]?" | awk '{print $NF}' | tr -d '"`')
-        DESTRUCTIVE_OPS+=('{"type":"DROP_COLUMN","severity":"medium","column":"'$COLUMN'","line":'$LINE_NUM',"sql":"'$SQL'"}')
+        # Use jq to safely construct JSON and avoid injection vulnerabilities
+        OP_JSON=$(jq -n \
+            --arg type "DROP_COLUMN" \
+            --arg severity "medium" \
+            --arg column "$COLUMN" \
+            --argjson line "$LINE_NUM" \
+            --arg sql "$SQL" \
+            '{type: $type, severity: $severity, column: $column, line: $line, sql: $sql}')
+        DESTRUCTIVE_OPS+=("$OP_JSON")
     done < <(grep -niE "DROP\s+COLUMN" "$MIGRATION_FILE")
 fi
 
@@ -143,11 +175,12 @@ if grep -qiE "ALTER\s+TABLE" "$MIGRATION_FILE"; then
     fi
 fi
 
-# Build JSON array of destructive operations
+# Build JSON array of destructive operations using jq for safe construction
 if [ ${#DESTRUCTIVE_OPS[@]} -eq 0 ]; then
     DESTRUCTIVE_OPS_JSON="[]"
 else
-    DESTRUCTIVE_OPS_JSON="[$(IFS=,; echo "${DESTRUCTIVE_OPS[*]}")]"
+    # Use jq to properly construct JSON array from individual JSON objects
+    DESTRUCTIVE_OPS_JSON=$(printf '%s\n' "${DESTRUCTIVE_OPS[@]}" | jq -s '.')
 fi
 
 # Determine approval requirements
