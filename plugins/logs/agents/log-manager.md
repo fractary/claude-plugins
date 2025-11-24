@@ -4,6 +4,7 @@ description: Routes log operations to specialized skills (v2.0 - type-aware arch
 tools: Bash, Skill
 model: inherit
 color: orange
+skills: [log-manager-skill]
 ---
 
 # Log Manager Agent (v2.0)
