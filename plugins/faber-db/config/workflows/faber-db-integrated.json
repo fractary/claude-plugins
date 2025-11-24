@@ -1,0 +1,188 @@
+{
+  "$schema": "../../faber/config/workflow.schema.json",
+  "id": "faber-db-integrated",
+  "description": "FABER workflow with complete FABER-DB integration for database-related work",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Fetch work item, classify, and setup environment",
+      "steps": [
+        {
+          "name": "fetch-work",
+          "description": "Fetch work item details from issue tracker",
+          "skill": "fractary-work:issue-fetcher"
+        },
+        {
+          "name": "classify",
+          "description": "Classify work type (bug, feature, chore, patch)",
+          "skill": "fractary-work:issue-classifier"
+        },
+        {
+          "name": "setup-env",
+          "description": "Create branch and setup environment",
+          "skill": "fractary-repo:branch-manager"
+        }
+      ],
+      "validation": ["work-item-exists", "branch-created"]
+    },
+    "architect": {
+      "enabled": true,
+      "description": "Generate technical specification with database schema",
+      "steps": [
+        {
+          "name": "generate-spec",
+          "description": "Generate specification from context",
+          "skill": "fractary-spec:spec-generator",
+          "config": {
+            "use_issue_context": true,
+            "auto_detect_template": true,
+            "include_database_schema": true
+          }
+        }
+      ],
+      "validation": ["spec-created", "spec-validated"]
+    },
+    "build": {
+      "enabled": true,
+      "description": "Implement solution and apply database migrations",
+      "steps": [
+        {
+          "name": "implement",
+          "description": "Implement solution from specification",
+          "prompt": "Implement based on specification, including database schema changes if needed"
+        },
+        {
+          "name": "commit",
+          "description": "Create semantic commit with conventional format",
+          "skill": "fractary-repo:commit-creator",
+          "config": {
+            "conventional_commits": true,
+            "link_to_issue": true
+          }
+        }
+      ],
+      "validation": ["implementation-complete", "committed", "migrations-applied"]
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Test implementation and validate database changes",
+      "max_retries": 3,
+      "steps": [
+        {
+          "name": "test",
+          "description": "Run automated test suite including database tests",
+          "prompt": "Run automated tests with focus on database operations and data integrity"
+        },
+        {
+          "name": "review",
+          "description": "Perform code quality and database review",
+          "prompt": "Review code quality and database migration safety"
+        },
+        {
+          "name": "fix",
+          "description": "Fix issues identified in testing",
+          "prompt": "Address test failures and review issues, re-run validation",
+          "conditional": "only_if_failures"
+        }
+      ],
+      "validation": ["all-tests-pass", "no-critical-issues", "staging-db-healthy"]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Deploy to production with database migration",
+      "require_approval": true,
+      "steps": [
+        {
+          "name": "create-pr",
+          "description": "Create pull request for review",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "draft_if_assist": true,
+            "auto_link_issue": true,
+            "include_migration_details": true
+          }
+        },
+        {
+          "name": "update-docs",
+          "description": "Update project and database documentation",
+          "prompt": "Update documentation including database schema changes"
+        }
+      ],
+      "validation": ["pr-created", "docs-updated", "production-db-healthy"]
+    }
+  },
+  "hooks": {
+    "pre_frame": [],
+    "post_frame": [
+      {
+        "description": "Detect if work item requires database changes",
+        "skill": "fractary-faber-db:faber-coordinator",
+        "operation": "detect-database-needs",
+        "parameters": {
+          "work_item": "${work_item}"
+        }
+      }
+    ],
+    "pre_architect": [],
+    "post_architect": [
+      {
+        "description": "Generate database migrations from specification",
+        "skill": "fractary-faber-db:faber-coordinator",
+        "operation": "coordinate-architect",
+        "parameters": {
+          "spec_file": "${spec_file}"
+        },
+        "conditional": "database_work_detected"
+      }
+    ],
+    "pre_build": [
+      {
+        "description": "Apply migrations to development environment",
+        "skill": "fractary-faber-db:faber-coordinator",
+        "operation": "coordinate-build",
+        "parameters": {
+          "environment": "dev"
+        },
+        "conditional": "migrations_exist"
+      }
+    ],
+    "post_build": [],
+    "pre_evaluate": [
+      {
+        "description": "Deploy migrations to staging and validate",
+        "skill": "fractary-faber-db:faber-coordinator",
+        "operation": "coordinate-evaluate",
+        "parameters": {
+          "environment": "staging"
+        },
+        "conditional": "migrations_exist"
+      }
+    ],
+    "post_evaluate": [],
+    "pre_release": [
+      {
+        "description": "Deploy migrations to production with full safety",
+        "skill": "fractary-faber-db:faber-coordinator",
+        "operation": "coordinate-release",
+        "parameters": {
+          "environment": "production"
+        },
+        "conditional": "migrations_exist"
+      }
+    ],
+    "post_release": []
+  },
+  "autonomy": {
+    "level": "guarded",
+    "description": "Pauses before release for approval - recommended for database changes",
+    "pause_before_release": true,
+    "require_approval_for": ["release"],
+    "overrides": {
+      "database_changes": {
+        "require_backup": true,
+        "validate_safety": true,
+        "health_check_required": true
+      }
+    }
+  }
+}

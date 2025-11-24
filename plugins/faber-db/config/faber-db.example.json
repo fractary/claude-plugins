@@ -29,10 +29,50 @@
     "timeout_seconds": 300
   },
   "safety": {
-    "protected_environments": ["production"],
+    "protected_environments": ["production", "staging"],
     "require_approval_for": ["migrate", "rollback", "seed"],
     "max_auto_rollback_attempts": 1,
-    "health_check_before_deploy": true
+    "health_check_before_deploy": true,
+    "validate_destructive_operations": true,
+    "backup_enforcement": {
+      "production": "required",
+      "staging": "recommended",
+      "dev": "optional"
+    },
+    "destructive_operations": {
+      "drop_table": {
+        "allowed": true,
+        "approval": "enhanced",
+        "require_backup": true
+      },
+      "drop_database": {
+        "allowed": false,
+        "block_reason": "Never allowed via automation"
+      },
+      "drop_schema": {
+        "allowed": false,
+        "block_reason": "Requires manual execution"
+      },
+      "truncate": {
+        "allowed": true,
+        "approval": "enhanced",
+        "row_threshold": 1000
+      },
+      "delete_without_where": {
+        "allowed": true,
+        "approval": "enhanced",
+        "require_backup": true
+      },
+      "drop_column": {
+        "allowed": true,
+        "approval": "standard",
+        "require_backup": true
+      }
+    },
+    "approval_timeouts": {
+      "standard": 300,
+      "enhanced": 600
+    }
   },
   "backup": {
     "provider": "aws-rds-snapshot",
@@ -43,5 +83,73 @@
     "cloud_plugin": "fractary-faber-cloud",
     "work_plugin": "fractary-work",
     "logs_plugin": "fractary-logs"
+  },
+  "faber_integration": {
+    "enabled": true,
+    "description": "FABER workflow integration settings (Phase 8)",
+    "auto_detect_database_work": true,
+    "detection_patterns": {
+      "title_keywords": ["database", "db", "table", "schema", "migration", "model", "entity", "column", "field", "index"],
+      "labels": ["database", "db", "schema", "migration", "prisma"],
+      "description_keywords": ["schema change", "table structure", "database migration", "SQL"]
+    },
+    "auto_generate_migrations": true,
+    "auto_deploy_dev": true,
+    "environments": {
+      "dev": {
+        "auto_migrate": true,
+        "require_approval": false,
+        "health_check_before": false,
+        "health_check_after": true,
+        "backup_required": false
+      },
+      "staging": {
+        "auto_migrate": false,
+        "require_approval": true,
+        "health_check_before": true,
+        "health_check_after": true,
+        "backup_required": false
+      },
+      "production": {
+        "auto_migrate": false,
+        "require_approval": true,
+        "health_check_before": true,
+        "health_check_after": true,
+        "backup_required": true,
+        "validate_safety": true
+      }
+    },
+    "phase_hooks": {
+      "post_frame": {
+        "enabled": true,
+        "operation": "detect-database-needs"
+      },
+      "post_architect": {
+        "enabled": true,
+        "operation": "coordinate-architect",
+        "conditional": "database_work_detected"
+      },
+      "pre_build": {
+        "enabled": true,
+        "operation": "coordinate-build",
+        "conditional": "migrations_exist"
+      },
+      "pre_evaluate": {
+        "enabled": true,
+        "operation": "coordinate-evaluate",
+        "conditional": "migrations_exist"
+      },
+      "pre_release": {
+        "enabled": true,
+        "operation": "coordinate-release",
+        "conditional": "migrations_exist"
+      }
+    },
+    "coordination": {
+      "block_on_health_check_failure": true,
+      "retry_failed_health_checks": true,
+      "max_retry_attempts": 2,
+      "log_coordination_activities": true
+    }
   }
 }
