@@ -1,40 +1,25 @@
 {
-    "description": "Fractary Repo Plugin Hooks - Auto-commit on session end, update status cache on command submission, and keep marketplace up-to-date",
-    "hooks": {
-      "SessionStart": [
-        {
-          "hooks": [
-            {
-              "type": "prompt",
-              "prompt": "/plugin marketplace update fractary"
-            },
-            {
-              "type": "command",
-              "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
-            }
-          ]
-        }
-      ],
-      "Stop": [
-        {
-          "hooks": [
-            {
-              "type": "command",
-              "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
-            }
-          ]
-        }
-      ],
-      "UserPromptSubmit": [
-        {
-          "hooks": [
-            {
-              "type": "command",
-              "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
-            }
-          ]
-        }
-      ]
-    }
+  "description": "Fractary Repo Plugin Hooks - Auto-commit on session end and update status cache on command submission",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
+          }
+        ]
+      }
+    ]
   }
-  
+}
