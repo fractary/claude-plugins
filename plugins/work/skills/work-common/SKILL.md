@@ -44,7 +44,11 @@ PLATFORM=$(echo "$CONFIG_JSON" | jq -r '.handlers["work-tracker"].active')
 - 0: Success - configuration loaded and valid
 - 3: Validation error - config not found or invalid JSON
 
-**Configuration Location:** `.fractary/plugins/work/config.json`
+**CRITICAL**: Configuration must be loaded from the **project working directory**, NOT the plugin installation directory.
+
+**Configuration Location:** `.fractary/plugins/work/config.json` (relative to project root / current working directory)
+
+**Common Mistake:** Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/work/` - that's the plugin installation directory, not the project config location.
 
 **Special Behavior:** When config doesn't exist, the work plugin uses auto-detection (e.g., gh CLI automatically detects the repository). Skills can check if config exists and recommend running `/work:init` to persist settings.
 
@@ -142,7 +146,9 @@ Standard error codes used across all work plugin utilities:
 
 ## Configuration Structure
 
-Expected configuration file at `.fractary/plugins/work/config.json`:
+**CRITICAL**: Configuration must be loaded from the **project working directory**, NOT the plugin installation directory.
+
+Expected configuration file at `.fractary/plugins/work/config.json` (relative to project root / current working directory):
 
 ```json
 {

@@ -108,10 +108,14 @@ Use the handler-storage-{provider} skill to perform {operation}:
 </HANDLERS>
 
 <CONFIGURATION_LOADING>
+**CRITICAL**: Configuration must be loaded from the **project working directory**, NOT the plugin installation directory.
+
+**Common Mistake:** Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/file/` - that's the plugin installation directory, not the project config location.
+
 Configuration is loaded in this priority order:
 
 1. **Provided Config**: Use config from request if present
-2. **Project Config**: `.fractary/plugins/file/config.json`
+2. **Project Config**: `.fractary/plugins/file/config.json` (relative to project root / current working directory)
 3. **Global Config**: `~/.config/fractary/file/config.json`
 4. **Default Config**: Local handler with `./storage` base path
 
