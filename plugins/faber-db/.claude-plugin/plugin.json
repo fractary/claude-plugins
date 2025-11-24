@@ -1,0 +1,8 @@
+{
+  "name": "fractary-faber-db",
+  "version": "1.0.0",
+  "description": "FABER Database Management Plugin - Manage database schemas, migrations, and deployments across multiple environments with production safety guarantees",
+  "commands": "./commands/",
+  "agents": ["./agents/db-manager.md"],
+  "skills": "./skills/"
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "database": {
+    "provider": "postgresql",
+    "hosting": "aws-aurora",
+    "migration_tool": "prisma"
+  },
+  "environments": {
+    "dev": {
+      "connection_string_env": "DEV_DATABASE_URL",
+      "auto_migrate": true,
+      "backup_before_migrate": false
+    },
+    "staging": {
+      "connection_string_env": "STAGING_DATABASE_URL",
+      "auto_migrate": false,
+      "backup_before_migrate": true
+    },
+    "production": {
+      "connection_string_env": "PROD_DATABASE_URL",
+      "auto_migrate": false,
+      "backup_before_migrate": true,
+      "require_approval": true
+    }
+  },
+  "migrations": {
+    "directory": "prisma/migrations",
+    "table": "_prisma_migrations",
+    "timeout_seconds": 300
+  },
+  "safety": {
+    "protected_environments": ["production"],
+    "require_approval_for": ["migrate", "rollback", "seed"],
+    "max_auto_rollback_attempts": 1,
+    "health_check_before_deploy": true
+  },
+  "backup": {
+    "provider": "aws-rds-snapshot",
+    "retention_days": 30,
+    "backup_before_destructive_ops": true
+  },
+  "integration": {
+    "cloud_plugin": "fractary-faber-cloud",
+    "work_plugin": "fractary-work",
+    "logs_plugin": "fractary-logs"
+  }
+}
