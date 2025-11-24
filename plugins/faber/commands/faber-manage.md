@@ -18,7 +18,8 @@ This command follows the `/faber:manage` naming convention for consistency with 
 **NEVER VIOLATE THESE RULES:**
 
 1. **Configuration Loading**
-   - ALWAYS load workflow configuration from `.fractary/plugins/faber/config.json`
+   - ALWAYS load workflow configuration from `.fractary/plugins/faber/config.json` **(in project working directory)**
+   - **CRITICAL**: Load from project directory, NOT plugin installation directory (`~/.claude/plugins/marketplaces/...`)
    - NEVER use old `.faber.config.toml` location
    - ALWAYS validate configuration before proceeding
 

@@ -11,15 +11,19 @@ Shared utilities used across all faber-cloud skills.
 ## Purpose
 
 This skill provides:
-- Configuration loading from `.fractary/plugins/faber-cloud/config.json`
+- Configuration loading from `.fractary/plugins/faber-cloud/config.json` **(in project working directory)**
 - Backward compatibility with `faber-cloud.json` and `devops.json` (deprecated)
 - Pattern substitution (`{project}`, `{environment}`, etc.)
 - Auto-discovery fallbacks when config is missing
 - Validation and error handling
 
+**CRITICAL**: Always load config from the **project working directory**, NOT the plugin installation directory.
+
 ## Configuration Loading
 
-**Primary config file**: `.fractary/plugins/faber-cloud/config.json`
+**Primary config file**: `.fractary/plugins/faber-cloud/config.json` (relative to project root / current working directory)
+
+**Common Mistake**: Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/faber-cloud/` - that's the plugin installation directory, not the project config location.
 
 **Automatic migration** (seamless upgrade):
 - If `config.json` exists: use it (current standard)

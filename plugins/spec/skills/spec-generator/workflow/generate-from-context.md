@@ -79,7 +79,13 @@ Validation is minimal - work_id and template are both optional.
 
 ## Step 3: Load Configuration
 
-Load plugin configuration from `.fractary/plugins/spec/config.json`:
+**CRITICAL**: Load plugin configuration from the **project working directory**, NOT the plugin installation directory.
+
+**Config Location**: `.fractary/plugins/spec/config.json` (relative to project root / current working directory)
+
+**Common Mistake**: Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/spec/` - that's the plugin installation directory, not the project config location.
+
+Load the configuration:
 - Get `storage.local_path` (default: /specs)
 - Get `naming.pattern` and `naming.standalone_pattern`
 - Get `templates.default` (default: spec-basic)

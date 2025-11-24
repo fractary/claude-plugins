@@ -98,7 +98,11 @@ IF force_refresh == false:
 
 ## Step 3: Fetch from Source
 
-Load configuration: .fractary/plugins/codex/config.json
+**CRITICAL**: Load configuration from the **project working directory**, NOT the plugin installation directory.
+
+Load configuration: `.fractary/plugins/codex/config.json` (relative to project root / current working directory)
+
+**Common Mistake**: Do NOT look in `~/.claude/plugins/marketplaces/fractary/plugins/codex/` - that's the plugin installation directory.
 
 Extract codex repository:
   - codex_repo: e.g., "codex.fractary.com"
