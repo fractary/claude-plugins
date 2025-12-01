@@ -44,49 +44,167 @@ Your key capability is **parallelization**: you can spawn multiple faber-manager
 </CRITICAL_RULES>
 
 <INPUTS>
-You receive freeform command text with optional context:
+You receive input from the `/faber:direct` command OR from other sources (GitHub webhooks, etc.):
 
-**Text to Parse** (required):
+**From /faber:direct Command**:
+- `raw_input` (string): Work item ID(s) or natural language request
+  - Examples: "123", "100,101,102", "implement issue 123", "run issues 100 and 101"
+- `workflow_override` (string, optional): Explicit workflow selection
+  - Examples: "default", "hotfix"
+- `autonomy_override` (string, optional): Explicit autonomy level
+  - Values: "dry-run", "assist", "guarded", "autonomous"
+- `working_directory` (string): Project root directory for config loading
+
+**From GitHub Webhooks / Other Sources**:
+- `source_type` (string): github, jira, linear
+- `source_id` (string): Issue/ticket number
+- `repository` (string): Repository context
+- `commenter` (string): Who invoked the command
+
+**Text to Parse** (from raw_input or freeform text):
 - Natural language command (e.g., "@faber implement this issue")
 - May contain multiple work items
 - May specify specific phases
 - May contain control commands (approve, retry, cancel)
 
-**Context** (optional):
-- `source_type` (string): github, jira, linear
-- `source_id` (string): Issue/ticket number
-- `repository` (string): Repository context
-- `commenter` (string): Who invoked the command
-- `autonomy` (string): Autonomy level override
-
 ### Example Invocations
 
-**Single Issue**:
+**From /faber:direct Command**:
+
+```
+# Simple work ID
+raw_input: "123"
+workflow_override: null
+autonomy_override: null
+→ Execute full workflow for issue #123
+```
+
+```
+# Multiple work IDs (comma-separated)
+raw_input: "100,101,102"
+workflow_override: null
+autonomy_override: null
+→ Execute parallel workflows for issues #100, #101, #102
+```
+
+```
+# With overrides
+raw_input: "123"
+workflow_override: "hotfix"
+autonomy_override: "autonomous"
+→ Execute hotfix workflow with autonomous mode
+```
+
+```
+# Natural language
+raw_input: "implement issue 123 and 124"
+workflow_override: null
+autonomy_override: null
+→ Parse to find issues #123, #124, execute parallel workflows
+```
+
+**From GitHub Webhooks**:
+
 ```
 Text: "@faber implement this issue"
 Context: {source_type: "github", source_id: "158"}
+→ Execute full workflow for issue #158
 ```
 
-**Multiple Issues**:
 ```
 Text: "@faber implement issues 100, 101, and 102"
 Context: {source_type: "github", repository: "org/repo"}
+→ Execute parallel workflows for issues #100, #101, #102
 ```
 
-**Phase-Specific**:
 ```
 Text: "@faber do the architect phase for issue 158"
 Context: {source_type: "github", source_id: "158"}
-```
-
-**Batch with Phase**:
-```
-Text: "@faber just frame issues 200-205"
-Context: {source_type: "github"}
+→ Execute frame + architect phases for issue #158
 ```
 </INPUTS>
 
 <WORKFLOW>
+
+## Step 0: Load Configuration
+
+**CRITICAL**: Load configuration FIRST before any other processing.
+
+**Config Location**: `.fractary/plugins/faber/config.json` (in project working directory)
+
+**Action**: Read and parse the configuration file:
+```
+1. Check if `.fractary/plugins/faber/config.json` exists
+2. If not found → use default configuration:
+   - Default workflow: "default"
+   - Default autonomy: "guarded"
+3. If found → parse JSON and extract:
+   - Available workflows (workflows array)
+   - Default autonomy level (from first workflow's autonomy.level)
+   - Integration settings (work_plugin, repo_plugin, etc.)
+```
+
+**Store Configuration**:
+```json
+{
+  "workflows": ["default", "hotfix"],
+  "default_workflow": "default",
+  "default_autonomy": "guarded",
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo"
+  }
+}
+```
+
+**Error Handling**:
+- Config not found: Log warning, use defaults, continue
+- Invalid JSON: Log error, use defaults, continue
+- DO NOT fail the workflow for missing config
+
+## Step 0.5: Fetch Issue Data (ALWAYS)
+
+**CRITICAL**: ALWAYS fetch issue data for EVERY work item, regardless of whether --workflow is provided.
+
+**Why Always Fetch?**
+1. Provides context for workflow execution (title, description, comments)
+2. Enables workflow detection from labels (when --workflow not provided)
+3. Validates the issue exists before starting workflow
+4. Captures issue metadata for logging
+
+**Action**: For each work item identified:
+```
+1. Use /work:issue-fetch {work_id} via SlashCommand tool
+2. Extract from response:
+   - title: Issue title
+   - description: Issue body
+   - labels: Array of labels (for workflow detection)
+   - state: open/closed
+   - url: Issue URL
+3. Store issue data for later use
+```
+
+**Workflow Detection from Labels**:
+If `--workflow` NOT provided:
+```
+1. Look for label matching pattern: workflow:*
+   - Example: workflow:hotfix → use "hotfix" workflow
+   - Example: workflow:default → use "default" workflow
+2. If found, validate workflow exists in config.workflows
+3. If multiple workflow:* labels → error (ambiguous)
+4. If no workflow:* label → use config.default_workflow
+```
+
+**Autonomy Override**:
+Priority order (highest to lowest):
+1. `--autonomy` flag from command (autonomy_override)
+2. Config default (config.default_autonomy)
+3. Hardcoded fallback: "guarded"
+
+**Error Handling**:
+- Issue not found: Report error, suggest checking issue number
+- Issue fetch timeout: Retry once, then report error
+- No labels: Continue (use default workflow)
 
 ## Step 1: Parse Intent
 
@@ -582,19 +700,38 @@ Control → State updates + conditional agent spawn
 
 ## Integration
 
+**Architecture**:
+```
+/faber:direct (lightweight command)
+    ↓ immediately invokes
+faber-director skill (THIS SKILL - intelligence layer)
+    ↓ spawns 1 or N
+faber-manager agent (execution layer)
+```
+
 **Invoked By**:
+- `/faber:direct` command (primary entry point)
 - GitHub webhook (mention handling)
-- CLI commands (via command wrappers)
 - Other skills (programmatic invocation)
 
 **Invokes**:
-- faber-manager agent (for workflow execution)
-- State query functions (for status)
+- `/work:issue-fetch` - To fetch issue data (ALWAYS, for context and workflow detection)
+- `faber-manager` agent - For workflow execution (via Task tool)
+- State query functions - For status queries
 
 **Does NOT Invoke**:
 - Phase skills directly
 - Hook scripts directly
 - Platform-specific handlers
+
+**Responsibilities (Intelligence Layer)**:
+1. Load configuration from `.fractary/plugins/faber/config.json`
+2. Parse user intent (work items, phases, commands)
+3. Fetch issue data (ALWAYS - for context and workflow detection)
+4. Detect workflow from labels (when --workflow not provided)
+5. Apply autonomy override (--autonomy flag > config default)
+6. Decide single vs parallel execution
+7. Spawn faber-manager agent(s) with full context
 
 ## Benefits of Director as Skill
 
@@ -606,7 +743,7 @@ Control → State updates + conditional agent spawn
 4. **Simplicity**: No agent invocation overhead
 5. **Testing**: Easier to test as a pure function
 
-**Comparison to old director.md agent**:
-- Old: Agent that routes to workflow-manager agent
-- New: Skill that spawns faber-manager agent(s)
-- Benefit: Can spawn multiple agents in parallel (parallelization)
+**Comparison to old architecture**:
+- Old: `/faber:manage` command did config loading, workflow detection, THEN invoked director
+- New: `/faber:direct` command immediately invokes director, director does ALL intelligence
+- Benefit: Single responsibility per layer, no fragile multi-step commands
