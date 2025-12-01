@@ -147,7 +147,7 @@ elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
 fi
 
 # Get PR number if PR exists for current branch
-# Optimization: Only check PR when branch changes (saves ~100-200ms network call)
+# Optimization: Only query network when needed (saves ~100-200ms per call)
 PR_NUMBER=""
 CACHED_BRANCH=""
 CACHED_PR_NUMBER=""
@@ -158,8 +158,10 @@ if [ -f "${CACHE_FILE}" ]; then
     CACHED_PR_NUMBER=$(grep '"pr_number"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
 fi
 
-# Detect if we need to refresh PR number (branch changed or first run)
-if [ "$BRANCH" != "$CACHED_BRANCH" ]; then
+# Detect if we need to refresh PR number:
+# - Branch changed (new branch, need fresh lookup)
+# - Same branch but no cached PR (PR may have been created since last check)
+if [ "$BRANCH" != "$CACHED_BRANCH" ] || [ -z "$CACHED_PR_NUMBER" ]; then
     # Try gh CLI first (fastest, most reliable)
     if command -v gh &> /dev/null; then
         PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
