@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://fractary.dev/schemas/docs/etl.schema.json",
   "title": "ETL Documentation Schema",
-  "description": "Schema for ETL/data pipeline documentation with dual-format support (README.md + etl.json)",
+  "description": "Schema for ETL/data pipeline documentation with dual-format support (README.md + etl.json). Enhanced in v1.1 to support general ETL jobs (AWS Glue, custom scripts) in addition to orchestration tools.",
   "type": "object",
   "required": ["etl_name", "version", "description", "pipeline_definition"],
   "properties": {
@@ -27,6 +27,85 @@
       "type": "string",
       "description": "Technical description of what this ETL process does"
     },
+    "loader_version": {
+      "type": "string",
+      "description": "Version of the ETL loader/job code itself (distinct from documentation version)"
+    },
+    "environment": {
+      "type": "string",
+      "description": "Deployment environment for this ETL job",
+      "enum": ["development", "test", "staging", "production"]
+    },
+    "platform_config": {
+      "type": "object",
+      "description": "Platform-specific runtime configuration (Glue workers, memory, timeouts, etc.)",
+      "properties": {
+        "platform_type": {
+          "type": "string",
+          "description": "ETL platform with version (e.g., 'AWS Glue 5.0', 'Airflow 2.5')"
+        },
+        "runtime_version": {
+          "type": "string",
+          "description": "Runtime/engine version (e.g., 'Python 3.10, Spark 3.5')"
+        },
+        "workers": {
+          "type": "object",
+          "description": "Worker configuration for distributed processing",
+          "properties": {
+            "worker_count": {
+              "type": "integer",
+              "description": "Number of workers",
+              "minimum": 1
+            },
+            "worker_type": {
+              "type": "string",
+              "description": "Worker instance type (e.g., 'G.1X', 'm5.xlarge')"
+            }
+          }
+        },
+        "memory_gb": {
+          "type": "number",
+          "description": "Memory allocation in GB"
+        },
+        "timeout_minutes": {
+          "type": "integer",
+          "description": "Job timeout in minutes",
+          "minimum": 1
+        },
+        "custom_config": {
+          "type": "array",
+          "description": "Platform-specific configuration parameters",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Configuration parameter name"
+              },
+              "value": {
+                "type": "string",
+                "description": "Configuration parameter value"
+              }
+            },
+            "required": ["key", "value"]
+          }
+        }
+      }
+    },
+    "transformation_pattern": {
+      "type": "object",
+      "description": "High-level transformation pattern/approach used by this ETL",
+      "properties": {
+        "pattern_name": {
+          "type": "string",
+          "description": "Name of the pattern (e.g., 'Flat Columnar Transformation', 'Star Schema Load')"
+        },
+        "pattern_description": {
+          "type": "string",
+          "description": "Brief description of what the pattern does"
+        }
+      }
+    },
     "pipeline_definition": {
       "type": "object",
       "description": "Definition of the data pipeline flow",
@@ -43,7 +122,7 @@
             },
             "location": {
               "type": "string",
-              "description": "S3 URI, connection string, or endpoint"
+              "description": "S3 URI, connection string, or endpoint (local/cached path)"
             },
             "schema_reference": {
               "type": "string",
@@ -52,6 +131,23 @@
             "format": {
               "type": "string",
               "description": "Data format (json, csv, parquet, avro, etc.)"
+            },
+            "organization": {
+              "type": "string",
+              "description": "Organization providing the source data (for external data sources)"
+            },
+            "origin_url": {
+              "type": "string",
+              "description": "URL where source data originates (for external data sources)",
+              "format": "uri"
+            },
+            "update_frequency": {
+              "type": "string",
+              "description": "How often source data is updated (e.g., 'Annual (October)', 'Daily', 'Real-time')"
+            },
+            "version": {
+              "type": "string",
+              "description": "Version/year of the source data (e.g., '2024', 'v1.2.0')"
             }
           }
         },
@@ -69,7 +165,7 @@
               "operation": {
                 "type": "string",
                 "description": "Type of transformation",
-                "enum": ["filter", "join", "aggregate", "deduplicate", "enrich", "pivot", "union", "custom"]
+                "enum": ["filter", "join", "aggregate", "deduplicate", "enrich", "pivot", "union", "read", "write", "metadata", "custom"]
               },
               "description": {
                 "type": "string",
@@ -78,6 +174,26 @@
               "logic": {
                 "type": "string",
                 "description": "SQL query, code snippet, or reference to implementation"
+              },
+              "language": {
+                "type": "string",
+                "description": "Programming language of the logic snippet",
+                "enum": ["sql", "python", "pyspark", "scala", "java", "r", "bash", "custom"],
+                "default": "sql"
+              },
+              "pattern_details": {
+                "type": "object",
+                "description": "Details about the transformation approach",
+                "properties": {
+                  "approach": {
+                    "type": "string",
+                    "description": "Description of the approach used"
+                  },
+                  "functions": {
+                    "type": "string",
+                    "description": "Key functions or methods used"
+                  }
+                }
               },
               "parameters": {
                 "type": "object",
@@ -99,6 +215,10 @@
               "type": "string",
               "description": "S3 URI, connection string, or table name"
             },
+            "output_path": {
+              "type": "string",
+              "description": "Explicit final output path (may be more specific than location)"
+            },
             "schema_reference": {
               "type": "string",
               "description": "Link to output dataset documentation"
@@ -111,6 +231,209 @@
               "type": "string",
               "enum": ["overwrite", "append", "upsert"],
               "description": "How data is written to destination"
+            },
+            "partitioning_scheme": {
+              "type": "string",
+              "description": "Partitioning strategy (e.g., 'by version', 'by date', 'by region')"
+            },
+            "compression": {
+              "type": "string",
+              "description": "Compression algorithm (e.g., 'snappy', 'gzip', 'zstd', 'none')"
+            }
+          }
+        }
+      }
+    },
+    "enrichment": {
+      "type": "object",
+      "description": "Data enrichment processes (lookups, label mappings, derived fields)",
+      "properties": {
+        "lookup_tables": {
+          "type": "array",
+          "description": "Reference data lookup tables used for enrichment",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the lookup table"
+              },
+              "description": {
+                "type": "string",
+                "description": "What this lookup provides"
+              },
+              "source": {
+                "type": "string",
+                "description": "Path or reference to lookup data"
+              },
+              "join_key": {
+                "type": "string",
+                "description": "Field(s) used to join with main data"
+              }
+            },
+            "required": ["name", "source"]
+          }
+        },
+        "label_mappings": {
+          "type": "array",
+          "description": "Code-to-label mappings for categorical fields",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Field being mapped"
+              },
+              "mapping_count": {
+                "type": "integer",
+                "description": "Number of code-to-label mappings"
+              },
+              "source_file": {
+                "type": "string",
+                "description": "File containing the mappings"
+              },
+              "pattern": {
+                "type": "string",
+                "description": "Output field naming pattern (e.g., '{field}_label')"
+              },
+              "example": {
+                "type": "string",
+                "description": "Example mapping (e.g., '\"1\" -> \"Public\"')"
+              }
+            },
+            "required": ["field", "source_file"]
+          }
+        },
+        "derived_fields": {
+          "type": "array",
+          "description": "Fields derived/computed from source data",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "Name of the derived field"
+              },
+              "derivation_logic": {
+                "type": "string",
+                "description": "Logic used to derive the field"
+              }
+            },
+            "required": ["field", "derivation_logic"]
+          }
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "description": "Infrastructure deployment procedures",
+      "properties": {
+        "infrastructure_tool": {
+          "type": "string",
+          "description": "Infrastructure as code tool (e.g., 'Terraform', 'CloudFormation', 'CDK', 'Pulumi')"
+        },
+        "config_location": {
+          "type": "string",
+          "description": "Path to infrastructure configuration files"
+        },
+        "steps": {
+          "type": "array",
+          "description": "Deployment procedure steps",
+          "items": {
+            "type": "object",
+            "properties": {
+              "step": {
+                "type": "integer",
+                "description": "Step number"
+              },
+              "description": {
+                "type": "string",
+                "description": "What this step does"
+              },
+              "command": {
+                "type": "string",
+                "description": "Command to execute (optional)"
+              }
+            },
+            "required": ["step", "description"]
+          }
+        },
+        "rollback_procedure": {
+          "type": "string",
+          "description": "How to rollback a failed deployment"
+        },
+        "local_development": {
+          "type": "object",
+          "description": "Instructions for running/testing locally",
+          "properties": {
+            "setup_steps": {
+              "type": "array",
+              "description": "Steps to set up local environment",
+              "items": {
+                "type": "string"
+              }
+            },
+            "run_command": {
+              "type": "string",
+              "description": "Command to run locally"
+            },
+            "test_command": {
+              "type": "string",
+              "description": "Command to run tests"
+            }
+          }
+        }
+      }
+    },
+    "related_docs": {
+      "type": "object",
+      "description": "Links to related documentation (schema docs for consumers vs pipeline docs for maintainers)",
+      "properties": {
+        "schema_doc_name": {
+          "type": "string",
+          "description": "Name of the schema documentation"
+        },
+        "schema_doc_link": {
+          "type": "string",
+          "description": "Link to schema documentation"
+        },
+        "data_dict_name": {
+          "type": "string",
+          "description": "Name of the data dictionary"
+        },
+        "data_dict_link": {
+          "type": "string",
+          "description": "Link to data dictionary"
+        },
+        "specs": {
+          "type": "array",
+          "description": "Related specification documents",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Spec identifier"
+              },
+              "link": {
+                "type": "string",
+                "description": "Link to spec"
+              }
+            },
+            "required": ["name", "link"]
+          }
+        },
+        "architecture": {
+          "type": "object",
+          "description": "Related architecture documentation",
+          "properties": {
+            "arch_name": {
+              "type": "string",
+              "description": "Architecture document name"
+            },
+            "arch_link": {
+              "type": "string",
+              "description": "Link to architecture document"
             }
           }
         }
