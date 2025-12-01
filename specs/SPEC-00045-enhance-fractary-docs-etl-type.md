@@ -93,12 +93,12 @@ Add **4 new template sections** and **enhance 3 existing sections** to make `etl
 {{#workers}}
 - **Workers**: {{worker_count}} x {{worker_type}}
 {{/workers}}
-{{#memory}}
+{{#memory_gb}}
 - **Memory**: {{memory_gb}}GB
-{{/memory}}
-{{#timeout}}
+{{/memory_gb}}
+{{#timeout_minutes}}
 - **Timeout**: {{timeout_minutes}} minutes
-{{/timeout}}
+{{/timeout_minutes}}
 {{#custom_config}}
 - **Custom Configuration**: {{custom_config}}
 {{/custom_config}}
@@ -140,7 +140,7 @@ Add **4 new template sections** and **enhance 3 existing sections** to make `etl
 {{#label_mappings}}
 - **{{field}}**: {{mapping_count}} codes → labels
   - Source: {{source_file}}
-  - Pattern: {{field}}_label
+  - Pattern: {{pattern}}
 {{/label_mappings}}
 
 ### Derived Fields
@@ -223,11 +223,15 @@ Revert to previous Terraform state: `terraform apply -target=module.ipeds_hd_glu
 ## Related Documentation
 
 {{#related_docs}}
+{{#schema_doc_link}}
 - **Schema Documentation**: [{{schema_doc_name}}]({{schema_doc_link}})
+{{/schema_doc_link}}
+{{#data_dict_link}}
 - **Data Dictionary**: [{{data_dict_name}}]({{data_dict_link}})
-{{#specs}}
-- **Specifications**: {{#specs}}[{{name}}]({{link}}){{/specs}}
-{{/specs}}
+{{/data_dict_link}}
+{{#specs.length}}
+- **Specifications**: {{#specs}}[{{name}}]({{link}}){{^last}}, {{/last}}{{/specs}}
+{{/specs.length}}
 {{#architecture}}
 - **Architecture**: [{{arch_name}}]({{arch_link}})
 {{/architecture}}
@@ -557,6 +561,10 @@ Add new properties to `types/etl/schema.json`:
           "update_frequency": {
             "type": "string",
             "description": "How often source data is updated"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version/year of the source data (e.g., '2024', 'v1.2.0')"
           }
         }
       }
@@ -626,28 +634,30 @@ Add to `types/etl/standards.md`:
 ```markdown
 ## Platform Configuration Requirements
 
-All ETL documentation MUST include platform configuration details:
+All ETL documentation SHOULD include platform configuration details:
 - Platform type and version
 - Resource allocation (workers, memory)
 - Timeout settings
 - Platform-specific configuration
 
+**Note**: Required for AWS Glue, Databricks, and other configurable platforms. Optional for simple Lambda or script-based ETLs.
+
 ## Data Enrichment Documentation
 
 When ETL includes data enrichment:
-- Document all lookup tables (source, join keys)
-- Document label/code mappings (field names, source files)
-- Document derived field logic
+- SHOULD document all lookup tables (source, join keys)
+- SHOULD document label/code mappings (field names, source files)
+- SHOULD document derived field logic
 
 ## Source and Destination Paths
 
 **Source Documentation**:
-- MUST include origin (organization, URL)
+- SHOULD include origin (organization, URL) for external data sources
 - MUST include cached/local path
 - SHOULD include update frequency
 
 **Destination Documentation**:
-- MUST include explicit output path
+- SHOULD include explicit output path
 - MUST include format and write mode
 - SHOULD include partitioning and compression
 
@@ -656,14 +666,20 @@ When ETL includes data enrichment:
 ETL pipeline documentation serves **pipeline maintainers**.
 Schema documentation serves **data consumers**.
 
-MUST link to schema documentation (separate file/system) to avoid duplication.
+SHOULD link to schema documentation (separate file/system) to avoid duplication.
 
 ## Version and Environment Tracking
 
-All ETL documentation MUST include:
-- Loader/job version
-- Target environment
-- Last updated timestamp
+All ETL documentation SHOULD include:
+- Loader/job version (`loader_version`) - version of the ETL code/job itself
+- Target environment (`environment`) - deployment environment (test, staging, production)
+- Last updated timestamp (`updated`) - when documentation was last modified
+
+**Version Semantics Clarification**:
+- `version` - Document/spec version (semantic versioning for the documentation)
+- `loader_version` - ETL job code version (tracks the actual deployed code version)
+
+Both should be updated independently: `version` when the documentation changes, `loader_version` when the ETL code is redeployed.
 ```
 
 ### Validation Rules
