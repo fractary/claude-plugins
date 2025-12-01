@@ -51,7 +51,7 @@ This command follows the `/faber:manage` naming convention for consistency with 
 - `work_id` (string): Single work ID (e.g., `123`) or comma-separated IDs (e.g., `123,124,125`)
 
 **Optional Flags:**
-- `--workflow <id>`: Workflow ID to use (default: uses first workflow in config)
+- `--workflow <id>`: Workflow ID to use (overrides label detection; if not provided, detects from issue labels like `workflow:*`, then falls back to first workflow in config)
 - `--autonomy <level>`: Autonomy override (dry-run, assist, guarded, autonomous)
 
 **Examples:**
@@ -176,6 +176,110 @@ Examples:
   ❌ -1
   ❌ 123.45
 ```
+
+## Step 1.5: Detect Workflow from Issue Labels
+
+**BEFORE defaulting to first workflow, detect from issue labels:**
+
+This step runs ONLY if `--workflow` flag was NOT provided.
+
+### Implementation
+
+1. **Determine work_id for label detection:**
+   ```
+   IF work_id contains comma (e.g., "48,50,52") THEN
+     detection_work_id = first item (e.g., "48")
+     Log: "Using first work item for workflow detection: #48"
+   ELSE
+     detection_work_id = work_id
+   END
+   ```
+
+2. **Fetch issue labels using work plugin:**
+   ```
+   Use SlashCommand tool: /fractary-work:issue-fetch {detection_work_id}
+   ```
+
+   **Expected response format:**
+   ```json
+   {
+     "result": {
+       "id": "48",
+       "title": "Add CSV export",
+       "labels": ["workflow:dataset-evaluate", "priority:high", "enhancement"]
+     }
+   }
+   ```
+
+3. **Parse workflow from labels:**
+   ```
+   workflow_labels = filter labels matching pattern "workflow:*"
+
+   IF workflow_labels is empty THEN
+     detected_workflow = null
+   ELSE IF workflow_labels has exactly one match THEN
+     detected_workflow = extract text after "workflow:" (e.g., "dataset-evaluate")
+   ELSE
+     ERROR: Multiple workflow labels found: {workflow_labels}
+     Ask user to remove conflicting labels or use --workflow flag
+   END
+   ```
+
+4. **Validate detected workflow exists in config:**
+   ```
+   IF detected_workflow is not null THEN
+     IF detected_workflow NOT IN config.workflows THEN
+       ERROR: Workflow '{detected_workflow}' from label not found in config
+       Available workflows: {list config.workflows}
+       Use --workflow flag to override or fix the label
+     END
+   END
+   ```
+
+### Priority Order for Workflow Selection
+1. **Explicit `--workflow` flag** (highest priority - user override)
+2. **Label detection** (`workflow:*` labels) - MUST exist in config
+3. **First workflow in config** (fallback - only if no label found)
+
+### Example: Successful Detection
+```
+Issue #48 has labels: ["workflow:dataset-evaluate", "priority:high"]
+
+1. No --workflow flag provided
+2. Fetch issue #48 via /fractary-work:issue-fetch 48
+3. Filter labels: found "workflow:dataset-evaluate"
+4. Extract workflow_id: "dataset-evaluate"
+5. Validate: "dataset-evaluate" exists in config.workflows ✓
+6. Use dataset-evaluate workflow
+```
+
+### Example: Workflow Not Found Error
+```
+Issue #48 has labels: ["workflow:custom-flow", "priority:high"]
+
+1. No --workflow flag provided
+2. Fetch issue #48
+3. Detect label: workflow:custom-flow
+4. Validate: "custom-flow" NOT in config.workflows
+
+ERROR: Workflow 'custom-flow' from label not found in configuration
+Available workflows: default, hotfix, dataset-evaluate
+Fix: Remove invalid label OR use --workflow flag to override
+```
+
+### Multi-Item Behavior
+When processing multiple work items (e.g., `/faber:manage 48,50,52`):
+- Workflow is detected from **FIRST work item only** (#48)
+- All items in batch will use the **same workflow**
+- If items require different workflows, run separate commands
+
+### Error Handling
+| Scenario | Action |
+|----------|--------|
+| Issue fetch fails | Log warning, continue with fallback |
+| Detected workflow not in config | **ERROR** - do not fallback silently |
+| Multiple `workflow:*` labels | **ERROR** - ambiguous, ask user to fix |
+| No workflow labels | Continue with fallback (first workflow) |
 
 ## Step 2: Load Configuration
 
@@ -434,6 +538,35 @@ This command ONLY reads from the NEW location. If users have old `.faber.config.
 1. Run `/faber:init` to generate new config
 2. Migrate settings manually if needed
 3. Remove old `.faber.config.toml`
+
+## Workflow Detection from Labels
+
+When `--workflow` flag is not provided, this command automatically detects the workflow from issue labels.
+
+**Label Pattern Recognized:**
+- `workflow:{workflow_id}` (e.g., `workflow:dataset-evaluate`)
+
+**Priority Order:**
+1. `--workflow` flag (explicit user override)
+2. Label detection (`workflow:*`) - MUST exist in config or errors
+3. First workflow in config (fallback - only if no label found)
+
+**Example:**
+```bash
+# Issue #48 has label "workflow:dataset-evaluate"
+/faber:manage 48
+# → Detects and uses "dataset-evaluate" workflow
+
+# Override with explicit flag
+/faber:manage 48 --workflow hotfix
+# → Uses "hotfix" workflow (ignores label)
+```
+
+**Strict Validation:**
+If a `workflow:*` label is detected but the workflow doesn't exist in config, the command will **error** (not silently fallback). This respects the user's explicit intent and prevents running the wrong workflow.
+
+**Multi-Item Batches:**
+When processing multiple work items (e.g., `48,50,52`), the workflow is detected from the **first item only**. All items use the same workflow. Run separate commands if items need different workflows.
 
 ## Comma-Separated Syntax (Multi-Item)
 
