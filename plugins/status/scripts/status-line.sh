@@ -196,10 +196,10 @@ if [ -n "$ISSUE_ID" ]; then
   if [ -n "$GITHUB_REPO" ]; then
     # Create clickable link to GitHub issue
     ISSUE_URL="${GITHUB_REPO}/issues/${ISSUE_ID}"
-    STATUS_LINE="${STATUS_LINE}$(format_status_link "#${ISSUE_ID}" "$ISSUE_URL" "$MAGENTA")"
+    STATUS_LINE="${STATUS_LINE}$(format_status_link "WORK#${ISSUE_ID}" "$ISSUE_URL" "$MAGENTA")"
   else
     # Fallback: non-clickable
-    STATUS_LINE="${STATUS_LINE} ${MAGENTA}#${ISSUE_ID}${NC}"
+    STATUS_LINE="${STATUS_LINE} ${MAGENTA}WORK#${ISSUE_ID}${NC}"
   fi
 fi
 
