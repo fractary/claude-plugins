@@ -1,5 +1,10 @@
 # Fractary Claude Plugins - Git Attributes
 # Enforce consistent line endings across all platforms
+#
+# IMPORTANT: Shell scripts must have executable permissions!
+# Git stores the executable bit in the index. New .sh files must be added with:
+#   git update-index --chmod=+x path/to/script.sh
+# Or configure git hooks: git config core.hooksPath .githooks
 
 # Force Unix LF line endings for shell scripts
 *.sh text eol=lf
