@@ -302,7 +302,6 @@
           "./commands/faber.md",
           "./commands/init.md",
           "./commands/mention.md",
-          "./commands/run.md",
           "./commands/status.md"
         ],
         "agents": [
