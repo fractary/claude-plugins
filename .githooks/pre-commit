@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Pre-commit hook: Auto-fix shell script permissions
+# This hook ensures all .sh files have executable permissions in git
+#
+# To enable: git config core.hooksPath .githooks
+
+FIXED_FILES=()
+
+# Use while read to handle filenames with spaces safely
+git diff --cached --name-only --diff-filter=ACM | grep '\.sh$' | while IFS= read -r file; do
+    # Check if file exists (not deleted)
+    if [ -f "$file" ]; then
+        # Get current mode in git index (use cut instead of awk)
+        MODE=$(git ls-files -s "$file" 2>/dev/null | cut -d' ' -f1)
+
+        # Check for any non-executable mode (not 100755)
+        if [ -n "$MODE" ] && [ "$MODE" != "100755" ]; then
+            # File is not executable, fix it
+            git update-index --chmod=+x "$file"
+            echo "  +x $file"
+        fi
+    fi
+done | {
+    # Collect output to check if any files were fixed
+    output=$(cat)
+    if [ -n "$output" ]; then
+        echo "Auto-fixed executable permissions on shell scripts:"
+        echo "$output"
+        echo ""
+        echo "Permissions have been staged. Proceeding with commit."
+    fi
+}
+
+exit 0
