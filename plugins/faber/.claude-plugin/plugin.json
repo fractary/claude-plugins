@@ -4,7 +4,6 @@
   "description": "Universal SDLC workflow framework - Frame → Architect → Build → Evaluate → Release",
   "commands": "./commands/",
   "agents": [
-    "./agents/faber-director.md",
     "./agents/faber-manager.md"
   ],
   "skills": "./skills/"
