@@ -28,16 +28,16 @@ From the session log, the workflow was interrupted before the Frame phase comple
 2. faber-manager questioned the workflow mismatch (dataset-development vs dataset-evaluate)
 3. The session was interrupted before any branch/worktree creation occurred
 
-However, there may be a deeper issue:
+The worktree was never created because the **workflow never reached the Frame phase**. The execution chain was broken by:
+1. The "Unknown skill: faber-manager" error (Issue 3) - prevented faber-director from invoking faber-manager
+2. The wrong workflow selection (Issue 2) - caused faber-manager to question the mismatch and interrupt
 
-**Potential Causes**:
-1. **Workflow never executed** - The Frame phase never ran due to early interruption
-2. **`--worktree` flag not passed** - When faber-director invokes the repo plugin, the `--worktree` flag may not be properly passed through the chain
-3. **Missing integration** - The Frame phase may not properly invoke `/repo:branch-create --worktree`
+**This is an INDIRECT fix**: By fixing Issues 2 and 3 (agent invocation and workflow detection), the workflow will now execute properly through to the Frame phase, which creates the worktree. The worktree creation code in `frame/workflow/basic.md` was already correct - it just never got executed.
 
-**Investigation Required**:
-- Verify that `worktree: true` parameter flows from faber-director → faber-manager → frame skill → repo plugin
-- Check if the frame skill's `workflow/basic.md` correctly invokes branch creation with `--worktree` flag
+**Verification**: The worktree parameter flow was audited and is correctly documented:
+- `faber-director` passes `worktree: true` to faber-manager (lines 73-80 of faber-manager/SKILL.md)
+- `faber-manager` passes `--worktree` to repo-manager (line 80)
+- `frame/workflow/basic.md` shows `worktree: true` in branch creation (lines 138-151)
 
 ### Issue 2: Wrong Workflow Selected
 
