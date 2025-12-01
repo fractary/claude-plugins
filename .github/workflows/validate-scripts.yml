@@ -1,0 +1,54 @@
+name: Validate Shell Scripts
+
+on:
+  push:
+    paths:
+      - '**.sh'
+      - '.githooks/**'
+  pull_request:
+    paths:
+      - '**.sh'
+      - '.githooks/**'
+
+jobs:
+  test-hooks:
+    name: Test Git Hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run pre-commit hook tests
+        run: ./.githooks/test-pre-commit.sh
+
+  check-permissions:
+    name: Verify Script Permissions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check .sh files have executable permissions
+        run: |
+          echo "Checking shell script permissions..."
+
+          # Find all .sh files with non-executable permissions in git
+          NON_EXEC=$(git ls-files '*.sh' | while read -r file; do
+            mode=$(git ls-files -s "$file" | cut -d' ' -f1)
+            if [ "$mode" != "100755" ]; then
+              echo "$file ($mode)"
+            fi
+          done)
+
+          if [ -n "$NON_EXEC" ]; then
+            echo ""
+            echo "ERROR: The following .sh files do not have executable permissions:"
+            echo "$NON_EXEC"
+            echo ""
+            echo "To fix, run:"
+            echo "  git ls-files '*.sh' | xargs -I {} git update-index --chmod=+x {}"
+            echo ""
+            echo "Or enable the pre-commit hook:"
+            echo "  git config core.hooksPath .githooks"
+            exit 1
+          fi
+
+          echo "All shell scripts have correct permissions (100755)"
