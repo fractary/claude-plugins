@@ -51,7 +51,7 @@ This command follows the `/faber:manage` naming convention for consistency with 
 - `work_id` (string): Single work ID (e.g., `123`) or comma-separated IDs (e.g., `123,124,125`)
 
 **Optional Flags:**
-- `--workflow <id>`: Workflow ID to use (default: uses first workflow in config)
+- `--workflow <id>`: Workflow ID to use (overrides label detection; if not provided, detects from issue labels like `workflow:*` or `faber:*`, then falls back to first workflow in config)
 - `--autonomy <level>`: Autonomy override (dry-run, assist, guarded, autonomous)
 
 **Examples:**
@@ -176,6 +176,52 @@ Examples:
   ❌ -1
   ❌ 123.45
 ```
+
+## Step 1.5: Detect Workflow from Issue Labels
+
+**BEFORE defaulting to first workflow, detect from issue labels:**
+
+This step runs ONLY if `--workflow` flag was NOT provided.
+
+1. **Fetch issue labels using work plugin:**
+   ```
+   Use SlashCommand tool: /fractary-work:issue-fetch {work_id}
+   Extract labels from response
+   ```
+
+2. **Detect workflow from labels:**
+   - Look for `workflow:{workflow_id}` pattern (e.g., `workflow:dataset-evaluate`)
+   - If multiple work_ids (comma-separated), use first one for detection
+
+3. **Set detected workflow:**
+   ```
+   IF label matches "workflow:{id}" THEN
+     detected_workflow = extracted {id}
+     Log: "Detected workflow from label: {id}"
+   ELSE
+     detected_workflow = null (will use first workflow in config)
+   END
+   ```
+
+**Priority Order for Workflow Selection:**
+1. **Explicit `--workflow` flag** (highest priority - user override)
+2. **Label detection** (`workflow:*` labels)
+3. **First workflow in config** (fallback - lowest priority)
+
+**Example:**
+```
+Issue #48 has labels: ["workflow:dataset-evaluate", "priority:high"]
+
+1. No --workflow flag provided
+2. Detect label: workflow:dataset-evaluate
+3. Extract workflow_id: dataset-evaluate
+4. Use dataset-evaluate workflow (NOT first in config)
+```
+
+**Error Handling:**
+- If issue fetch fails → Log warning, continue with fallback
+- If detected workflow not in config → Log warning, use fallback
+- If no labels → Continue with fallback (first workflow)
 
 ## Step 2: Load Configuration
 
@@ -434,6 +480,31 @@ This command ONLY reads from the NEW location. If users have old `.faber.config.
 1. Run `/faber:init` to generate new config
 2. Migrate settings manually if needed
 3. Remove old `.faber.config.toml`
+
+## Workflow Detection from Labels
+
+When `--workflow` flag is not provided, this command automatically detects the workflow from issue labels.
+
+**Label Pattern Recognized:**
+- `workflow:{workflow_id}` (e.g., `workflow:dataset-evaluate`)
+
+**Priority Order:**
+1. `--workflow` flag (explicit user override)
+2. Label detection (`workflow:*`)
+3. First workflow in config (fallback)
+
+**Example:**
+```bash
+# Issue #48 has label "workflow:dataset-evaluate"
+/faber:manage 48
+# → Detects and uses "dataset-evaluate" workflow
+
+# Override with explicit flag
+/faber:manage 48 --workflow hotfix
+# → Uses "hotfix" workflow (ignores label)
+```
+
+This prevents the common issue of accidentally using the wrong workflow when the issue clearly indicates which one to use.
 
 ## Comma-Separated Syntax (Multi-Item)
 

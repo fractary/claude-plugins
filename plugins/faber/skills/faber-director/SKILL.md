@@ -23,8 +23,10 @@ Your key capability is **parallelization**: you can spawn multiple faber-manager
    - NEVER execute work items sequentially when parallel is possible
    - Use Task tool with multiple invocations in single message for parallelization
 
-3. **Routing Only**
-   - ALWAYS route to faber-manager agent(s)
+3. **Routing Only - Use Task Tool for Agents**
+   - ALWAYS route to faber-manager agent(s) using **Task tool** with `subagent_type`
+   - ALWAYS use full prefix: `subagent_type="fractary-faber:faber-manager"`
+   - NEVER use Skill tool for faber-manager (it's an AGENT, not a skill)
    - NEVER execute workflow phases directly
    - NEVER invoke phase skills directly
    - This skill is a ROUTER only
@@ -232,14 +234,38 @@ If validation fails:
 }
 ```
 
-**Invocation**:
-```
-Use Task tool to invoke faber-manager agent with parameters
+**Invocation - CRITICAL: Use Task Tool, NOT Skill Tool**:
 
-CRITICAL: ALWAYS include worktree: true parameter
-This ensures workflow executes in isolated worktree (.worktrees/ subfolder)
-Prevents interference between concurrent workflows
+The faber-manager is an **AGENT**, not a skill. You MUST use the Task tool with `subagent_type`.
+
+**CORRECT - Task tool with subagent_type**:
 ```
+Task(
+  subagent_type="fractary-faber:faber-manager",
+  description="Execute FABER workflow for issue #158",
+  prompt='{
+    "work_id": "158",
+    "source_type": "github",
+    "source_id": "158",
+    "autonomy": "guarded",
+    "worktree": true
+  }'
+)
+```
+
+**WRONG - These will fail with "Unknown skill" error**:
+```
+Skill(skill="faber-manager")  // WRONG: faber-manager is an AGENT
+Skill(skill="fractary-faber:faber-manager")  // WRONG: still using Skill tool
+Task(subagent_type="faber-manager")  // WRONG: missing fractary-faber: prefix
+```
+
+**Key Points**:
+1. ALWAYS use `Task` tool (not `Skill` tool)
+2. ALWAYS use full prefix: `fractary-faber:faber-manager`
+3. ALWAYS include `worktree: true` parameter
+4. This ensures workflow executes in isolated worktree (.worktrees/ subfolder)
+5. Prevents interference between concurrent workflows
 
 ### Multiple Work Items Execution (Parallel)
 
@@ -272,16 +298,31 @@ Prevents interference between concurrent workflows
 ]
 ```
 
-**Invocation**:
+**Invocation - Parallel with Task Tool**:
+
+Use Task tool with MULTIPLE tool calls in a SINGLE message for parallel execution:
+
 ```
-Use Task tool with MULTIPLE tool calls in SINGLE message:
-- Task 1: faber-manager for work_id=100 (with worktree=true)
-- Task 2: faber-manager for work_id=101 (with worktree=true)
-- Task 3: faber-manager for work_id=102 (with worktree=true)
+// All three Task calls in ONE message = parallel execution
+Task(
+  subagent_type="fractary-faber:faber-manager",
+  description="Execute FABER workflow for issue #100",
+  prompt='{"work_id": "100", "source_type": "github", "source_id": "100", "autonomy": "guarded", "worktree": true}'
+)
+Task(
+  subagent_type="fractary-faber:faber-manager",
+  description="Execute FABER workflow for issue #101",
+  prompt='{"work_id": "101", "source_type": "github", "source_id": "101", "autonomy": "guarded", "worktree": true}'
+)
+Task(
+  subagent_type="fractary-faber:faber-manager",
+  description="Execute FABER workflow for issue #102",
+  prompt='{"work_id": "102", "source_type": "github", "source_id": "102", "autonomy": "guarded", "worktree": true}'
+)
+```
 
 All three execute in parallel!
 Each gets its own isolated worktree in .worktrees/ subfolder
-```
 
 **CRITICAL - Worktree Integration**:
 - ALL workflows (single and multi-item) MUST use worktrees

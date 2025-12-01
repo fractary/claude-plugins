@@ -339,8 +339,9 @@ claude --agent workflow-manager "abc12345 github 123 engineering" "" "frame" "fr
 1. **Parallel Dependency Installation** - Run `npm install` concurrently with other setup
 2. **Environment Validation** - Check all prerequisites before starting
 3. **Resource Allocation** - Allocate ports, databases, etc. dynamically
-4. **Workspace Isolation** - Use git worktrees for true isolation
-5. **Domain Detection** - Auto-detect domain from repository structure
+4. **Domain Detection** - Auto-detect domain from repository structure
+
+**Note**: Workspace isolation via git worktrees is already implemented (see Step 5).
 
 ## Notes
 
