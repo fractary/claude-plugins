@@ -221,11 +221,30 @@ Execute `scripts/cleanup-local.sh`:
   - Delete local copy
   - Update index with deletion timestamp
 
-### Step 10: Comment on Issues (Optional)
+### Step 10: Copy Session Summaries to Docs (Optional)
+If `docs_integration.copy_summary_to_docs` is enabled in config:
+
+Execute `scripts/copy-to-docs.sh`:
+```bash
+./scripts/copy-to-docs.sh \
+  --summary-path "$SUMMARY_PATH" \
+  --docs-path "$DOCS_PATH" \
+  --issue-number "$ISSUE_NUMBER" \
+  --update-index "$UPDATE_INDEX"
+```
+
+This step:
+- Copies session summary to `docs/conversations/` directory
+- Names file using pattern: `{date}-{issue_number}-{slug}.md`
+- Creates directory if it doesn't exist
+- Updates README.md index with new entry (if configured)
+- Limits index to `max_index_entries` most recent
+
+### Step 11: Comment on Issues (Optional)
 If archiving issue-related logs:
 - Comment with archive summary and cloud URLs
 
-### Step 11: Output Summary
+### Step 12: Output Summary
 Report archival results grouped by type
 
 ## Archive Issue Logs (Legacy - Type-Aware)
@@ -319,6 +338,12 @@ Recommendation: Re-upload missing build log
 **Usage**: `load-retention-policy.sh <log_path> <config_file>`
 **Outputs**: JSON with matched retention policy (from paths array or default)
 **v2.0 NEW**: Core script for path-based retention matching - tests log path against all patterns in config, returns first match or default
+
+## scripts/copy-to-docs.sh (NEW)
+**Purpose**: Copy session summaries to docs/conversations/ for project documentation
+**Usage**: `copy-to-docs.sh --summary-path <path> --docs-path <path> [--issue-number <num>] [--update-index true|false]`
+**Outputs**: JSON with copy results including target path and index update status
+**v2.0 NEW**: Supports docs_integration config for automatic summary archival to project docs
 
 </SCRIPTS>
 

@@ -2,6 +2,19 @@
   "$schema": "../workflow.schema.json",
   "id": "default",
   "description": "Standard FABER workflow with plugin integrations (Frame → Architect → Build → Evaluate → Release)",
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs",
+    "docs_plugin": "fractary-docs"
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "auto_capture": true,
+    "auto_summarize_on_complete": true,
+    "log_type": "workflow"
+  },
   "phases": {
     "frame": {
       "enabled": true,
@@ -93,6 +106,16 @@
       "require_approval": true,
       "steps": [
         {
+          "name": "update-project-docs",
+          "description": "Update high-level project documentation (CLAUDE.md, README.md, etc.)",
+          "skill": "fractary-docs:docs-manager",
+          "config": {
+            "targets": ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"],
+            "mode": "confirm",
+            "check_consistency": true
+          }
+        },
+        {
           "name": "create-pr",
           "description": "Create pull request for review",
           "skill": "fractary-repo:pr-manager",
@@ -101,14 +124,9 @@
             "draft_if_assist": true,
             "auto_link_issue": true
           }
-        },
-        {
-          "name": "update-docs",
-          "description": "Update project documentation",
-          "prompt": "Update documentation to reflect changes made in this implementation (README, API docs, etc.)"
         }
       ],
-      "validation": ["pr-created", "docs-updated"]
+      "validation": ["project-docs-updated", "pr-created"]
     }
   },
   "hooks": {
@@ -121,7 +139,19 @@
     "pre_evaluate": [],
     "post_evaluate": [],
     "pre_release": [],
-    "post_release": []
+    "post_release": [
+      {
+        "name": "validate-project-docs",
+        "description": "Validate high-level documentation is up to date after release",
+        "skill": "fractary-docs:doc-validator",
+        "targets": ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"],
+        "on_failure": "warn",
+        "config": {
+          "checks": ["frontmatter", "structure"],
+          "strict": false
+        }
+      }
+    ]
   },
   "autonomy": {
     "level": "guarded",
