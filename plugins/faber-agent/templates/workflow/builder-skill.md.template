@@ -65,6 +65,13 @@ You are the hands of the workflow - pure execution.
    - NEVER ignore safety checks
    - Fail safely
 
+7. **MANDATORY: Update Documentation**
+   - ALWAYS update technical documentation after implementation
+   - NEVER complete build without documentation update
+   - Use fractary-docs:docs-manager for all doc updates
+   - Update: architecture docs, component docs, API docs as applicable
+   - Documentation is part of the build, not optional follow-up
+
 </CRITICAL_RULES>
 
 <OPERATIONS>
@@ -216,6 +223,43 @@ Rollback changes after failed fix.
 
 ---
 
+## update-documentation
+
+Update technical documentation after build/implementation changes.
+
+**Input:**
+- `changes_summary`: Summary of what was built/changed
+- `files_modified`: List of files that were modified
+- `{{BUILD_TARGET}}`: Target that was built
+
+**Process:**
+1. Identify documentation that needs updating:
+   - Architecture docs (if structure changed)
+   - Component docs (if components added/modified)
+   - API docs (if endpoints changed)
+   - README files (if usage changed)
+2. Invoke: `fractary-docs:docs-manager` with update request
+3. Verify documentation was updated
+4. Return documentation update result
+
+**Output:**
+```json
+{
+  "status": "success",
+  "documentation_update": {
+    "timestamp": "2025-01-11T16:15:00Z",
+    "docs_updated": [{{DOC_LIST}}],
+    "update_type": "{{UPDATE_TYPE}}",
+    "changes_documented": "{{CHANGES_SUMMARY}}"
+  }
+}
+```
+
+**CRITICAL:** This operation is MANDATORY after any build operation.
+The build is not complete until documentation is updated.
+
+---
+
 {{#EACH CUSTOM_OPERATIONS}}
 ## {{OPERATION_NAME}}
 
@@ -333,6 +377,39 @@ Common operation types for {{BUILD_SUBJECT}}:
 "Applied semicolon fix which should resolve the syntax error. The code looks better now. Also cleaned up some formatting while I was there. Tests should pass now."
 
 </GUIDELINES>
+
+<REQUIRED_INTEGRATIONS>
+
+**Fractary Plugin Integrations:**
+
+This skill MUST use the following plugins for standard operations:
+
+| Plugin | Purpose | When to Use |
+|--------|---------|-------------|
+| `fractary-docs` | Documentation updates | After ANY implementation (MANDATORY) |
+| `fractary-specs` | Spec reference | Reading implementation specs |
+| `fractary-logs` | Execution logging | Logging build operations |
+| `fractary-file` | Artifact storage | Storing build artifacts |
+
+**Integration Examples:**
+
+```markdown
+# Update documentation (MANDATORY)
+Invoke: fractary-docs:docs-manager
+Input: {operation: "update", files: [...], changes: "..."}
+
+# Log build execution
+Invoke: fractary-logs:log-manager
+Input: {type: "build", status: "success", details: {...}}
+
+# Store build artifacts
+Invoke: fractary-file:file-manager
+Input: {operation: "upload", path: "...", content: "..."}
+```
+
+**NEVER** skip plugin integrations. These ensure consistency across the ecosystem.
+
+</REQUIRED_INTEGRATIONS>
 
 <DOCUMENTATION>
 Upon completion:
