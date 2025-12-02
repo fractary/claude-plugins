@@ -26,6 +26,9 @@ LOCK_HELD=false  # Track if we hold the cleanup lock (prevents self-deadlock)
 
 mkdir -p "${CACHE_DIR}"
 
+# Get script directory (needed early for relative path resolution)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Log rotation function
 # Truncates log if it exceeds LOG_MAX_SIZE, keeping last LOG_KEEP_SIZE bytes
 # Note: Does NOT append rotation message to avoid potential loop
@@ -108,9 +111,6 @@ if [ -z "$ISSUE_ID" ]; then
         exit 0
     fi
 fi
-
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if there's meaningful work to report (early exit optimization)
 # Load last stop reference to check for changes
