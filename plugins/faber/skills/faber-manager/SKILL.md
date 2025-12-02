@@ -52,6 +52,14 @@ You are universal - you work across all project types (software, infrastructure,
    - ALWAYS track retry count from config `max_retries`
    - ALWAYS provide failure context when retrying
    - NEVER create infinite retry loops
+
+8. **Automatic Primitives**
+   - ALWAYS execute automatic phase-entry primitives AFTER pre-hooks, BEFORE steps
+   - ALWAYS execute automatic phase-exit primitives AFTER steps, BEFORE post-hooks
+   - ALWAYS check state for existing artifacts before creating (idempotency)
+   - ALWAYS log automatic primitive decisions for debugging
+   - NEVER duplicate work if primitive already executed (resume safety)
+   - See `workflow/automatic-primitives.md` for detailed logic
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -346,6 +354,85 @@ For each phase in [frame, architect, build, evaluate, release]:
      c. Log hook execution complete
      d. Update state with hook executed
 
+#### Automatic Phase-Entry Primitives
+
+Execute automatic primitives AFTER pre-hooks, BEFORE phase steps.
+See `workflow/automatic-primitives.md` for detailed logic.
+
+**Architect Phase Entry: Work Type Classification**
+
+When entering Architect phase, classify work type from issue context:
+
+```
+IF phase == "architect" AND NOT state.work_type_classification THEN
+  1. Read issue data from state (title, description, labels)
+
+  2. Classify work type:
+     - ANALYSIS: Labels contain "analysis"/"research" OR title contains "analyze"/"audit"/"investigate"
+     - SIMPLE: Labels contain "chore"/"dependencies" OR title contains "typo"/"bump"/"config change"
+     - MODERATE: Labels contain "bug"/"defect" OR title contains "fix"/"bug"/"patch"
+     - COMPLEX: Labels contain "feature"/"enhancement" OR title contains "add"/"implement"/"refactor"
+     - DEFAULT: COMPLEX (err on side of creating specs)
+
+  3. Update state:
+     state.work_type = "{type}"
+     state.work_type_classification = {
+       "type": "{type}",
+       "reason": "{reason}",
+       "expects_commits": true/false,
+       "spec_required": true/false,
+       "spec_template": "basic"/"feature"/null,
+       "classified_at": NOW()
+     }
+
+  4. Log classification decision
+END
+```
+
+**Build Phase Entry: Branch Creation**
+
+When entering Build phase, create branch if needed:
+
+```
+IF phase == "build" THEN
+  # Check if branch already exists (resume scenario)
+  IF state.branch.name exists THEN
+    LOG "Reusing existing branch: {state.branch.name}"
+    VERIFY branch is checked out
+    SKIP branch creation
+
+  # Check if work type expects commits
+  ELSE IF state.work_type_classification.expects_commits == false THEN
+    LOG "Analysis workflow - skipping branch creation"
+    SKIP branch creation
+
+  # Create branch with worktree
+  ELSE
+    1. Determine prefix from work_type:
+       - "complex"/"feature" → "feat"
+       - "moderate"/"bug" → "fix"
+       - "simple"/"chore" → "chore"
+       - DEFAULT → "feat"
+
+    2. Generate description from issue title (slugified, max 50 chars)
+
+    3. Invoke: /repo:branch-create "{description}" --work-id {work_id} --prefix {prefix} --worktree
+
+    4. Update state:
+       state.branch = {
+         "name": "{prefix}/{work_id}-{slug}",
+         "prefix": "{prefix}",
+         "worktree_path": "{result.worktree_path}",
+         "base_branch": "main",
+         "created_at": NOW(),
+         "created_by": "automatic_primitive"
+       }
+
+    5. Log: "Created branch {name} with worktree at {worktree_path}"
+  END
+END
+```
+
 #### Phase Execution
 
 **For each step in phase.steps**:
@@ -421,6 +508,81 @@ For each phase in [frame, architect, build, evaluate, release]:
      }
    }
    ```
+
+#### Automatic Phase-Exit Primitives
+
+Execute automatic primitives AFTER phase steps, BEFORE post-hooks.
+See `workflow/automatic-primitives.md` for detailed logic.
+
+**Release Phase Exit: PR Creation**
+
+When completing Release phase, create PR if needed:
+
+```
+IF phase == "release" THEN
+  # Check if PR already exists (resume scenario)
+  IF state.pr.number exists THEN
+    LOG "PR already exists: #{state.pr.number}"
+    SKIP PR creation
+
+  # Check if commits were made
+  ELSE
+    commits = git log {base_branch}..HEAD --oneline
+
+    IF commits.length == 0 THEN
+      LOG "No commits on branch - skipping PR creation"
+      SKIP PR creation
+
+    # Check autonomy level
+    ELSE IF autonomy.level == "guarded" AND "release" in autonomy.require_approval_for THEN
+      PROMPT USER: "Ready to create PR for issue #{work_id}. Proceed? (yes/no)"
+      IF user.response == "no" THEN
+        LOG "PR creation declined by user"
+        SKIP PR creation
+      END
+    END
+
+    # Create PR
+    IF should_create_pr THEN
+      1. Generate PR title:
+         - If state.spec.path exists: extract title from spec
+         - Else: use state.issue.title
+
+      2. Generate PR body:
+         ```markdown
+         ## Summary
+         {summary from spec or issue description}
+
+         ## Changes
+         {commit list}
+
+         ## Related
+         - Closes #{work_id}
+         - Spec: {spec_path if exists}
+
+         ## Testing
+         {testing notes from Evaluate phase}
+
+         ---
+         Generated by FABER workflow
+         ```
+
+      3. Invoke: /repo:pr-create "{title}" --body "{body}" --work-id {work_id}
+
+      4. Update state:
+         state.pr = {
+           "number": {result.number},
+           "url": "{result.url}",
+           "title": "{title}",
+           "created_at": NOW(),
+           "created_by": "automatic_primitive"
+         }
+
+      5. Log: "Created PR #{number}: {url}"
+    END
+  END
+END
+```
 
 #### Post-Phase Actions
 

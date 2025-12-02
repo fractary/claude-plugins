@@ -493,19 +493,19 @@ This pattern applies to:
 - Infrastructure (implemented in `faber-cloud/`)
 - Design, writing, data (planned)
 
-### FABER v2.0 Architecture (Current)
+### FABER v2.1 Architecture (Current)
 
-FABER v2.0 uses a **universal workflow-manager architecture** with configuration-driven behavior.
+FABER v2.1 uses a **universal workflow-manager architecture** with configuration-driven behavior and **automatic primitives**.
 
 **Architecture**:
 ```
-faber-director (lightweight command parser)
+faber-director (lightweight command parser + automatic issue fetch)
   └─ faber-manager (universal orchestrator)
-      ├─ frame (phase skill)
-      ├─ architect (phase skill)
-      ├─ build (phase skill)
+      ├─ frame (phase skill) - minimal, issue fetch is automatic
+      ├─ architect (phase skill) - work type classification at entry
+      ├─ build (phase skill) - branch creation at entry (automatic)
       ├─ evaluate (phase skill)
-      └─ release (phase skill)
+      └─ release (phase skill) - PR creation at exit (automatic)
 ```
 
 **Key Features**:
@@ -513,45 +513,38 @@ faber-director (lightweight command parser)
 - **JSON Configuration** - Located at `.fractary/plugins/faber/config.json`
 - **Dual-State Tracking** - Current state (state.json) + historical logs (fractary-logs)
 - **Phase-Level Hooks** - 10 hooks total (pre/post for each of 5 phases)
+- **Automatic Primitives** - Issue fetch, branch creation, PR creation are automatic (v2.1)
 - **60% context reduction** - From ~98K to ~40K tokens for orchestration
 
-**Configuration Location** (v2.0):
+**Automatic Primitives (v2.1)**:
+
+Core workflow primitives are now automatic and don't need explicit step definitions:
+
+| Primitive | Location | Trigger | Condition |
+|-----------|----------|---------|-----------|
+| Issue Fetch | faber-director Step 0.5 | Before workflow | work_id provided |
+| Work Type Classification | Architect phase entry | Before Architect steps | Always |
+| Branch Creation | Build phase entry | Before Build steps | work_type expects commits |
+| PR Creation | Release phase exit | After Release steps | commits exist |
+
+This means workflow configs are simpler - no need to define `fetch-work`, `create-branch`, or `create-pr` steps.
+See `plugins/faber/skills/faber-manager/workflow/automatic-primitives.md` for detailed logic.
+
+**Configuration Location**:
 ```
-.fractary/plugins/faber/config.json  # JSON format (NEW)
+.fractary/plugins/faber/config.json  # Main config
+.fractary/plugins/faber/workflows/default.json  # Workflow definition
 ```
 
-**Old Location** (v1.x - NO LONGER USED):
-```
-.faber.config.toml  # TOML format (DEPRECATED)
-```
-
-**Configuration Structure**:
+**Configuration Structure** (v2.1 - simplified with automatic primitives):
 ```json
 {
   "schema_version": "2.0",
   "workflows": [
     {
       "id": "default",
-      "description": "Standard FABER workflow (Issue → Branch → Spec)",
-      "phases": {
-        "frame": { "enabled": true, "steps": [...], "validation": [...] },
-        "architect": { "enabled": true, "steps": [...], "validation": [...] },
-        "build": { "enabled": true, "steps": [...], "validation": [...] },
-        "evaluate": { "enabled": true, "steps": [...], "validation": [...] },
-        "release": { "enabled": true, "steps": [...], "validation": [...] }
-      },
-      "hooks": {
-        "pre_frame": [], "post_frame": [],
-        "pre_architect": [], "post_architect": [],
-        "pre_build": [], "post_build": [],
-        "pre_evaluate": [], "post_evaluate": [],
-        "pre_release": [], "post_release": []
-      },
-      "autonomy": {
-        "level": "guarded",
-        "pause_before_release": true,
-        "require_approval_for": ["release"]
-      }
+      "file": "./workflows/default.json",
+      "description": "Standard FABER workflow"
     }
   ],
   "integrations": {
@@ -559,17 +552,25 @@ faber-director (lightweight command parser)
     "repo_plugin": "fractary-repo",
     "spec_plugin": "fractary-spec",
     "logs_plugin": "fractary-logs"
-  },
-  "logging": {
-    "use_logs_plugin": true,
-    "log_type": "workflow"
-  },
-  "safety": {
-    "protected_paths": [],
-    "require_confirm_for": []
   }
 }
 ```
+
+**Workflow Definition** (v2.1 - note: Frame is empty, primitives are automatic):
+```json
+{
+  "phases": {
+    "frame": { "enabled": true, "steps": [] },
+    "architect": { "enabled": true, "steps": [{"name": "generate-spec", "skill": "fractary-spec:spec-generator"}] },
+    "build": { "enabled": true, "steps": [{"name": "implement"}, {"name": "commit", "skill": "fractary-repo:commit-creator"}] },
+    "evaluate": { "enabled": true, "steps": [{"name": "test"}, {"name": "review"}], "max_retries": 3 },
+    "release": { "enabled": true, "steps": [{"name": "update-docs", "skill": "fractary-docs:docs-manager"}] }
+  },
+  "autonomy": { "level": "guarded", "require_approval_for": ["release"] }
+}
+```
+
+Note: No `fetch-work`, `create-branch`, or `create-pr` steps needed - these are automatic primitives.
 
 **Dual-State Tracking**:
 - **Current State**: `.fractary/plugins/faber/state.json` (for workflow resume/retry)
