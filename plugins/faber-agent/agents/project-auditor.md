@@ -442,160 +442,76 @@ Validating audit completeness...
 
 ## Phase 7: REPORT (Generate and Output Results)
 
-**Purpose:** Generate final audit report in requested format and persist via docs-manage-audit
+**Purpose:** Generate actionable best practices audit report with component-by-component analysis
+
+**Rules Reference:** `config/best-practices-rules.yaml`
+
+**Report Template:** `templates/reports/best-practices-audit.md.template`
 
 **Execute:**
 
 1. **Collect audit data from state:**
    - Load state.json to gather all phase results
-   - Aggregate anti-patterns, correct patterns, metrics
-   - Calculate overall scores and compliance
+   - Load best-practices-rules.yaml for rule definitions
+   - Aggregate findings by component (not just by anti-pattern type)
+   - Calculate per-component and overall compliance scores
 
-2. **Generate standardized audit report via docs-manage-audit:**
+2. **Generate component-by-component analysis:**
+   For each component in `.claude/`:
+   - Evaluate against all applicable rules from best-practices-rules.yaml
+   - Mark as COMPLIANT (all rules pass) or NON-COMPLIANT (any rule fails)
+   - For each failing rule, generate:
+     - "Current vs Should Be" comparison table
+     - Actual code snippet from component
+     - Proposed code snippet showing fix
+     - Specific remediation steps as checkbox tasks
 
-```
-Skill(skill="docs-manage-audit")
-```
+3. **Generate remediation plan:**
+   - Group all findings by severity (critical → warning → info)
+   - Create prioritized checklist with:
+     - File path
+     - What needs to change
+     - Effort estimate
+     - Rule ID reference
 
-Then provide the architecture audit data:
+4. **Write report to logs/audits/faber-agent/:**
+   - Create directory if not exists: `logs/audits/faber-agent/`
+   - Generate timestamp: `{YYYYMMDD}T{HHMMSS}`
+   - Write markdown: `logs/audits/faber-agent/{timestamp}.md`
+   - Write JSON: `logs/audits/faber-agent/{timestamp}.json`
 
-```
-Use the docs-manage-audit skill to create architecture audit report with the following parameters:
-{
-  "operation": "create",
-  "audit_type": "architecture",
-  "check_type": "project-structure",
-  "audit_data": {
-    "audit": {
-      "type": "architecture",
-      "check_type": "project-structure",
-      "project": "{project_name}",
-      "timestamp": "{ISO8601}",
-      "duration_seconds": {duration},
-      "auditor": {
-        "plugin": "fractary-faber-agent",
-        "skill": "project-auditor"
-      },
-      "audit_id": "{timestamp}-architecture-audit"
-    },
-    "summary": {
-      "overall_status": "pass|warning|error",
-      "status_counts": {
-        "passing": {correct_patterns_count},
-        "warnings": 0,
-        "failures": {anti_patterns_count}
-      },
-      "exit_code": {0|1|2},
-      "score": {compliance_score},
-      "compliance_percentage": {compliance_percentage}
-    },
-    "findings": {
-      "categories": [
-        {
-          "name": "Manager-as-Agent Pattern",
-          "status": "pass|warning|error",
-          "checks_performed": {total_agents},
-          "passing": {compliant_count},
-          "failures": {non_compliant_count}
-        },
-        {
-          "name": "Director-as-Skill Pattern",
-          "status": "pass|warning|error",
-          "checks_performed": {total_skills},
-          "passing": {compliant_count},
-          "failures": {non_compliant_count}
-        },
-        {
-          "name": "Script Abstraction",
-          "status": "pass|warning|error",
-          "checks_performed": {total_checks},
-          "passing": {script_based_count},
-          "failures": {inline_logic_count}
-        }
-      ],
-      "by_severity": {
-        "high": [
-          {
-            "id": "arch-001",
-            "severity": "high",
-            "category": "architecture",
-            "check": "manager-as-skill",
-            "message": "Manager implemented as skill instead of agent",
-            "resource": "{agent_file}",
-            "details": "Found workflow orchestration logic in skill",
-            "remediation": "Convert to Manager-as-Agent pattern",
-            "auto_fixable": false
-          }
-        ],
-        "medium": [{finding}],
-        "low": [{finding}]
-      }
-    },
-    "metrics": {
-      "total_agents": {count},
-      "total_skills": {count},
-      "total_commands": {count},
-      "anti_patterns_detected": {count},
-      "correct_patterns_detected": {count},
-      "context_load_current": {tokens},
-      "context_load_projected": {tokens}
-    },
-    "recommendations": [
-      {
-        "priority": "high|medium|low",
-        "category": "architecture",
-        "recommendation": "{migration_action}",
-        "rationale": "{why_important}",
-        "impact": "{context_reduction_percentage}% context reduction",
-        "effort_days": {estimated_days}
-      }
-    ],
-    "extensions": {
-      "architecture": {
-        "compliance_score": {score_out_of_10},
-        "anti_patterns": {count},
-        "context_optimization_percentage": {percentage},
-        "migration_effort_days": {total_days}
-      }
-    }
-  },
-  "output_path": "logs/audits/",
-  "project_root": "{project-root}"
-}
-```
-
-This generates:
-- **README.md**: Human-readable architecture audit dashboard
-- **audit.json**: Machine-readable audit data
-
-Both files in `logs/audits/{timestamp}-architecture-audit.[md|json]`
-
-3. **Additional output (if requested):**
+5. **Additional output (if requested):**
    - If output_file provided: Also write to custom location
-   - If verbose == true: Include detailed code snippets in custom output
+   - If verbose == true: Include detailed code snippets in report
 
-4. **Generate summary:**
+6. **Generate summary:**
 
 **Output:**
 ```
 ✅ COMPLETED: Project Auditor
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Audit Summary:
-  Anti-Patterns: {count}
-  Context Reduction: {percentage}%
-  Migration Effort: {days} days
+Compliance Score: {percentage}% ({passing}/{total} checks)
+
+Components Analyzed:
+  Commands: {count} ({compliant} compliant, {non_compliant} issues)
+  Agents:   {count} ({compliant} compliant, {non_compliant} issues)
+  Skills:   {count} ({compliant} compliant, {non_compliant} issues)
+
+Issues by Severity:
+  Critical: {critical_count}
+  Warning:  {warning_count}
+  Info:     {info_count}
 
 Reports Generated:
-- Dashboard: logs/audits/{timestamp}-architecture-audit.md
-- Data: logs/audits/{timestamp}-architecture-audit.json
+- Report: logs/audits/faber-agent/{timestamp}.md
+- Data:   logs/audits/faber-agent/{timestamp}.json
 {Custom output: {output_file}}
 
 Next Steps:
-1. Review detailed findings in dashboard
-2. Prioritize migrations based on recommendations
-3. Use /fractary-faber-agent:generate-conversion-spec for migration specs
-4. Use /fractary-faber-agent:create-workflow to create Manager agents
+1. Review component analysis in report
+2. Execute remediation checklist (Priority 1 items first)
+3. Re-run audit to track progress
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -668,6 +584,10 @@ Next Steps:
 - `project-analyzer`: Inspect structure, detect anti-patterns, analyze context load
 - `architecture-validator`: Validate patterns against standards
 
+**Configuration Files:**
+- `config/best-practices-rules.yaml`: Formalized rules for all checks
+- `templates/reports/best-practices-audit.md.template`: Report template
+
 **Future Skills (Phase 3):**
 - `agent-chain-analyzer`: Deep analysis of agent chains (CRITICAL)
 - `script-extractor`: Detect inline logic vs script abstraction
@@ -696,20 +616,28 @@ Return to command:
 ```json
 {
   "status": "success",
-  "audit_id": "audit-20251111-163000",
+  "audit_id": "20251202T163000",
   "project_path": "/mnt/c/GitHub/my-project",
   "summary": {
-    "anti_patterns_count": 3,
-    "context_reduction_percentage": 0.61,
-    "migration_effort_days": 22,
-    "compliance_score": 0.60
+    "compliance_score": 75,
+    "passing_checks": 15,
+    "total_checks": 20,
+    "critical_issues": 2,
+    "warning_issues": 3,
+    "info_issues": 0
+  },
+  "components": {
+    "commands": {"total": 4, "compliant": 3, "non_compliant": 1},
+    "agents": {"total": 2, "compliant": 1, "non_compliant": 1},
+    "skills": {"total": 8, "compliant": 6, "non_compliant": 2}
   },
   "report": {
-    "format": "markdown",
-    "output_file": "audit-report.md" or null,
-    "size_bytes": 15234
+    "markdown": "logs/audits/faber-agent/20251202T163000.md",
+    "json": "logs/audits/faber-agent/20251202T163000.json",
+    "custom_output": "audit-report.md" or null
   },
-  "state_file": ".faber-agent/audit/audit-20251111-163000/state.json"
+  "rules_version": "2025-12-02",
+  "state_file": ".faber-agent/audit/20251202T163000/state.json"
 }
 ```
 

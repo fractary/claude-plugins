@@ -1,0 +1,126 @@
+{
+  "status": "success",
+  "audit_id": "20251202T233757",
+  "project_path": "/mnt/c/GitHub/fractary/claude-plugins/plugins/faber-agent",
+  "summary": {
+    "compliance_score": 88,
+    "passing_checks": 22,
+    "total_checks": 25,
+    "critical_issues": 0,
+    "warning_issues": 3,
+    "info_issues": 0
+  },
+  "components": {
+    "commands": {
+      "total": 8,
+      "compliant": 7,
+      "non_compliant": 1
+    },
+    "agents": {
+      "total": 7,
+      "compliant": 7,
+      "non_compliant": 0
+    },
+    "skills": {
+      "total": 14,
+      "compliant": 12,
+      "non_compliant": 2
+    }
+  },
+  "findings": {
+    "by_severity": {
+      "critical": [],
+      "warning": [
+        {
+          "rule_id": "CMD-002",
+          "rule_name": "Proper frontmatter",
+          "component": "commands/create-workflow.md",
+          "severity": "warning",
+          "current_state": "Uses 'command:' field instead of 'name:'",
+          "expected_state": "Should use 'name:' field with full plugin prefix",
+          "remediation": [
+            "Change 'command:' to 'name:' in frontmatter",
+            "Add full plugin prefix (fractary-faber-agent:create-workflow)",
+            "Add 'argument-hint:' field for command help",
+            "Remove 'category:' field (not part of standard frontmatter)"
+          ],
+          "effort_estimate": "15 minutes"
+        },
+        {
+          "rule_id": "SKL-002",
+          "rule_name": "Scripts externalized",
+          "component": "skills/gather-requirements/",
+          "severity": "warning",
+          "current_state": "No scripts/ directory",
+          "expected_state": "Should have scripts/ directory with validation logic",
+          "remediation": [
+            "Create scripts/ directory in skill folder",
+            "Extract name validation to validate-name.sh",
+            "Extract requirements validation to validate-requirements.sh"
+          ],
+          "effort_estimate": "1 hour",
+          "note": "Acceptable if all logic is user interaction with no deterministic operations"
+        },
+        {
+          "rule_id": "SKL-002",
+          "rule_name": "Scripts externalized",
+          "component": "skills/workflow-designer/",
+          "severity": "warning",
+          "current_state": "No scripts/ directory",
+          "expected_state": "Should have scripts/ directory with generation logic",
+          "remediation": [
+            "Create scripts/ directory in skill folder",
+            "Extract manager agent generation to generate-manager-agent.sh",
+            "Extract director skill generation to generate-director-skill.sh",
+            "Extract specialist skill generation to generate-specialist-skill.sh"
+          ],
+          "effort_estimate": "2 hours"
+        }
+      ],
+      "info": []
+    }
+  },
+  "compliant_components": {
+    "commands": [
+      "commands/audit-project.md",
+      "commands/create-agent.md",
+      "commands/create-skill.md",
+      "commands/create-command.md",
+      "commands/create-plugin.md",
+      "commands/generate-conversion-spec.md"
+    ],
+    "agents": [
+      "agents/agent-creator.md",
+      "agents/skill-creator.md",
+      "agents/command-creator.md",
+      "agents/plugin-creator.md",
+      "agents/workflow-creator.md",
+      "agents/conversion-spec-generator.md",
+      "agents/project-auditor.md"
+    ],
+    "skills": [
+      "skills/generate-from-template/",
+      "skills/validate-artifact/",
+      "skills/workflow-validator/",
+      "skills/project-analyzer/",
+      "skills/agent-chain-analyzer/",
+      "skills/hybrid-agent-detector/",
+      "skills/script-extractor/",
+      "skills/architecture-validator/",
+      "skills/context-optimizer/",
+      "skills/gap-analyzer/",
+      "skills/spec-generator/"
+    ]
+  },
+  "report": {
+    "markdown": "logs/audits/faber-agent/20251202T233757.md",
+    "json": "logs/audits/faber-agent/20251202T233757.json"
+  },
+  "rules_version": "2025-12-02",
+  "audit_metadata": {
+    "started_at": "2025-12-02T23:35:31Z",
+    "completed_at": "2025-12-02T23:37:57Z",
+    "auditor": "project-auditor",
+    "plugin": "fractary-faber-agent"
+  }
+}
