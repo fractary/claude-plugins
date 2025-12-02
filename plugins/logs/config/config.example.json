@@ -336,11 +336,11 @@
     "trigger_on_init": true,
     "trigger_on_session_start": true,
     "backup_older_than_days": 7,
-    "generate_summaries": false
+    "generate_summaries": true
   },
   "summarization": {
-    "enabled": false,
-    "auto_generate_on_archive": false,
+    "enabled": true,
+    "auto_generate_on_archive": true,
     "model": "claude-sonnet-4-5-20250929",
     "store_with_logs": false,
     "separate_paths": true,
@@ -366,7 +366,7 @@
   },
   "session_logging": {
     "enabled": true,
-    "auto_capture": false,
+    "auto_capture": true,
     "format": "markdown",
     "include_timestamps": true,
     "redact_sensitive": true,
@@ -396,5 +396,15 @@
       "auto_capture": true,
       "auto_archive_on_complete": true
     }
+  },
+  "docs_integration": {
+    "enabled": true,
+    "copy_summary_to_docs": true,
+    "docs_path": "docs/conversations",
+    "update_index": true,
+    "index_file": "docs/conversations/README.md",
+    "summary_filename_pattern": "{date}-{issue_number}-{slug}.md",
+    "index_format": "table",
+    "max_index_entries": 50
   }
 }

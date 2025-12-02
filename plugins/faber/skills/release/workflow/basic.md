@@ -56,7 +56,108 @@ EOF
 
 **Security Note**: User-controlled inputs (work item titles, descriptions) are sanitized before use in PR titles/bodies to prevent injection attacks.
 
-### 3. Create Pull Request
+### 3. Update High-Level Project Documentation
+
+**Purpose**: Review and update project-level documentation based on changes made during implementation. This step ensures CLAUDE.md, README.md, and other critical docs remain consistent with the codebase.
+
+**Target Documents** (check all that exist):
+- `CLAUDE.md` - Project instructions for Claude Code
+- `README.md` - Main project readme
+- `docs/README.md` - Documentation index
+- `CONTRIBUTING.md` - Contribution guidelines
+- Additional docs from config: `workflow.release.project_docs`
+
+**Process**:
+
+```bash
+# Get configuration
+UPDATE_PROJECT_DOCS=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.update_project_docs // true')
+DOC_UPDATE_MODE=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.doc_update_mode // "confirm"')
+
+# Default target documents
+PROJECT_DOCS=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.project_docs // ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"]')
+
+if [ "$UPDATE_PROJECT_DOCS" = "true" ]; then
+    echo "📚 Checking high-level project documentation..."
+
+    # Get list of files changed in this workflow
+    FILES_CHANGED=$(git diff --name-only "$BASE_BRANCH"...HEAD)
+
+    # Analyze what types of changes were made
+    CHANGES_SUMMARY=$(cat <<CHANGES
+Files modified: ${#FILES_CHANGED[@]}
+New features: $NEW_FEATURES
+API changes: $API_CHANGES
+Config changes: $CONFIG_CHANGES
+Dependencies: $DEPENDENCY_CHANGES
+CHANGES
+)
+```
+
+**1. Analyze Changes**:
+
+Review the git diff from this workflow to identify:
+- New features or capabilities added
+- API changes or new endpoints
+- Configuration changes
+- Architecture changes
+- New dependencies
+
+**2. Check Each Target Document**:
+
+For each document that exists:
+- Read current content
+- Identify sections that may be affected by changes
+- Generate update suggestions
+
+**3. Generate Updates**:
+
+```markdown
+Use the @agent-fractary-docs:docs-manager agent with the following request:
+{
+  "operation": "update-batch",
+  "parameters": {
+    "targets": ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"],
+    "context": {
+      "issue_number": "{source_id}",
+      "work_type": "{work_type}",
+      "changes_summary": "{summary_of_implementation}",
+      "files_changed": "{list_of_modified_files}"
+    },
+    "mode": "suggest"
+  }
+}
+```
+
+**4. Present Updates for Confirmation**:
+
+```bash
+if [ "$DOC_UPDATE_MODE" = "confirm" ]; then
+    echo "📝 Documentation updates suggested:"
+    echo "$DOC_UPDATES_DIFF"
+    echo ""
+    echo "Apply these updates? (y/n/edit)"
+    # Wait for user confirmation before applying
+    # If user declines, note in workflow state but continue
+elif [ "$DOC_UPDATE_MODE" = "auto" ]; then
+    echo "📝 Applying documentation updates..."
+    # Apply updates directly
+elif [ "$DOC_UPDATE_MODE" = "skip" ]; then
+    echo "⏭️  Skipping project documentation updates (configured)"
+fi
+```
+
+```bash
+DOCS_UPDATED=true
+echo "✅ Project documentation reviewed/updated"
+```
+
+**Configuration Keys**:
+- `workflow.release.update_project_docs`: true (default) - Enable/disable this step
+- `workflow.release.project_docs`: ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"] - Target files
+- `workflow.release.doc_update_mode`: "confirm" (options: "confirm", "auto", "skip")
+
+### 4. Create Pull Request
 
 Use repo-manager to create PR:
 
@@ -82,7 +183,7 @@ echo "✅ Pull request created: #$PR_NUMBER"
 echo "   URL: $PR_URL"
 ```
 
-### 4. Check Auto-Merge
+### 5. Check Auto-Merge
 
 If auto_merge configured and autonomy allows:
 
@@ -101,9 +202,9 @@ else
 fi
 ```
 
-### 5. Update Documentation (Optional)
+### 6. Update Additional Documentation (Optional)
 
-**If configured**, update current state documentation:
+**If configured**, update additional current state documentation (beyond the project-level docs updated in Step 3):
 
 ```bash
 UPDATE_DOCUMENTATION=$(echo "$CONFIG_JSON" | jq -r '.workflow.release.update_documentation // "prompt"')
@@ -131,7 +232,7 @@ fi
 
 **Note**: This updates current state docs (e.g., README, API docs), NOT specs.
 
-### 6. Generate Deployment Doc (Optional)
+### 7. Generate Deployment Doc (Optional)
 
 **If configured**, generate deployment documentation:
 
@@ -157,7 +258,7 @@ fi
 
 This is typically used for infrastructure changes.
 
-### 7. Archive Workflow Artifacts
+### 8. Archive Workflow Artifacts
 
 **If configured**, archive specs and logs:
 
@@ -234,7 +335,7 @@ Use the @skill-fractary-faber:archive-workflow skill:
 
 This handles both specs and logs in one operation.
 
-### 8. Delete Branch
+### 9. Delete Branch
 
 **If configured**, delete the feature branch:
 
@@ -256,7 +357,7 @@ if [ "$DELETE_BRANCH" = "true" ] && [ "$MERGE_STATUS" = "merged" ]; then
 fi
 ```
 
-### 9. Close/Update Work Item
+### 10. Close/Update Work Item
 
 Use work-manager to close the work item:
 
@@ -276,7 +377,7 @@ CLOSED_WORK=true
 echo "✅ Work item closed: #$SOURCE_ID"
 ```
 
-### 10. Update Session
+### 11. Update Session
 
 ```bash
 RELEASE_DATA=$(cat <<EOF
@@ -292,7 +393,7 @@ EOF
 "$CORE_SKILL/state-update-phase.sh" "release" "completed" "$RELEASE_DATA"
 ```
 
-### 11. Post Release Complete
+### 12. Post Release Complete
 
 ```bash
 "$CORE_SKILL/status-card-post.sh" "$WORK_ID" "$SOURCE_ID" "release" "✅ **Release Phase Complete**
@@ -304,7 +405,7 @@ EOF
 🎉 FABER workflow completed successfully!" '["view-pr"]'
 ```
 
-### 12. Return Results
+### 13. Return Results
 
 ```bash
 cat <<EOF
