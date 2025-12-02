@@ -2,7 +2,7 @@
 spec_id: WORK-00197-faber-agent-cross-project-audit
 work_id: 197
 issue_url: https://github.com/fractary/claude-plugins/issues/197
-title: Better way to leverage faber-agent best practices
+title: Improve faber-agent audit to be actionable across projects
 type: feature
 status: draft
 created: 2025-12-02
@@ -11,7 +11,7 @@ validated: false
 source: conversation+issue
 ---
 
-# Feature Specification: Better way to leverage faber-agent best practices
+# Feature Specification: Improve faber-agent audit to be actionable across projects
 
 **Issue**: [#197](https://github.com/fractary/claude-plugins/issues/197)
 **Type**: Feature
@@ -20,342 +20,537 @@ source: conversation+issue
 
 ## Summary
 
-Enable the faber-agent plugin to audit and analyze custom Claude Code components (commands, agents, skills, hooks) in any project, compare them against current best practices, identify gaps, and generate actionable remediation plans - all without requiring direct access to the plugin's internal documentation files.
+Improve the existing `/fractary-faber-agent:audit-project` command and `project-auditor` agent to produce **actionable output** when auditing any project's Claude Code components. The current audit exists but produces results that are not useful for understanding gaps or planning remediation. The improved audit should clearly show what IS vs what SHOULD BE, with specific proposed changes.
 
 ## Background
 
-The faber-agent plugin contains robust documentation and standards for creating quality agents, including:
-- Director/Agent/Workflow skills agentic architecture patterns
-- `/{project}-direct` command pattern with `--action` argument
-- Director as Skill (not Agent) for parallel execution
-- Manager as the only Agent per project
-- Skills for all workflow steps
-- Builder skill documentation requirements
-- Debugger skill knowledge base pattern
-- Required plugin integrations (fractary-docs, fractary-specs, fractary-logs, etc.)
+### What Exists Today
 
-Issue #194 enhanced these best practices further. However, when working in another project:
-1. The docs are part of the faber-agent plugin and not directly referenceable
-2. Users must hack references to the claude root user plugins directory (not ideal)
-3. There's no clear way to audit the current state of custom Claude components
-4. No automated way to generate improvement recommendations
+The faber-agent plugin already has:
+- `/fractary-faber-agent:audit-project` command (routes to agent)
+- `project-auditor` agent (7-phase workflow: Inspect → Analyze → Present → Approve → Execute → Verify → Report)
+- `project-analyzer` skill (detects anti-patterns)
+- Output to `logs/audits/{timestamp}-architecture-audit.[md|json]`
+- Detection of: Manager-as-Skill, Agent Chains, Director-as-Agent, Hybrid Agents, Inline Logic
+
+### The Problem
+
+When running the audit, the output is **not actionable**:
+1. Findings are too abstract ("Manager-as-Skill detected")
+2. No clear comparison of "current state" vs "best practice"
+3. No specific file-level proposals for changes
+4. Recommendations are generic ("migrate to agent") without showing what that means
+5. User can't take the report and execute a plan
+
+### What's Needed
+
+A point-in-time audit report that:
+1. Lists each component with its current state
+2. Compares against specific best practices rules
+3. Shows exactly what changes would bring it into alignment
+4. Provides a prioritized remediation plan with file-level tasks
+5. Lives in `/logs/` with timestamps (run multiple times as practices evolve)
 
 ## User Stories
 
-### Cross-Project Audit
-**As a** Claude Code user working on a project with custom agents/skills
-**I want** to audit my project's Claude components against best practices
-**So that** I can identify gaps and create a plan to improve them
+### Actionable Audit Report
+**As a** Claude Code user working on any project
+**I want** to run an audit that shows me exactly what's wrong and how to fix it
+**So that** I can create a concrete plan to improve my components
 
 **Acceptance Criteria**:
-- [ ] Can run audit from any project directory
-- [ ] Audit discovers all custom commands, agents, skills, hooks in `.claude/`
-- [ ] Audit compares each component against best practices
-- [ ] Audit generates report with findings and recommendations
+- [ ] For each finding, shows "Current" vs "Should Be" comparison
+- [ ] Provides file-level proposed changes (not just "migrate this")
+- [ ] Groups findings by component with clear status (compliant/non-compliant)
+- [ ] Includes remediation checklist that can be executed as tasks
 
-### Remediation Planning
-**As a** Claude Code user with identified gaps
-**I want** to generate a prioritized remediation plan
-**So that** I can systematically bring my components into alignment
-
-**Acceptance Criteria**:
-- [ ] Plan includes specific tasks for each gap
-- [ ] Tasks are ordered by priority/dependency
-- [ ] Plan can be exported as GitHub issues or work items
-
-### Best Practices Access
-**As a** Claude Code user
-**I want** to access current best practices without navigating plugin internals
-**So that** I can understand what "good" looks like before building
+### Cross-Project Usage
+**As a** Claude Code user in a different organization/project
+**I want** to audit my project's components against latest best practices
+**So that** I can benefit from faber-agent patterns without being in the claude-plugins repo
 
 **Acceptance Criteria**:
-- [ ] Best practices accessible via command or skill
-- [ ] Content dynamically loaded from plugin (stays up-to-date)
-- [ ] Examples included for each pattern
+- [ ] Audit works from any project directory with `.claude/` components
+- [ ] Best practices rules are embedded in faber-agent plugin (no external deps)
+- [ ] Report saved to project's `/logs/` directory with timestamp
+
+### Trackable Progress
+**As a** Claude Code user improving my components over time
+**I want** audit reports with timestamps in `/logs/`
+**So that** I can track progress as I remediate issues and as best practices evolve
+
+**Acceptance Criteria**:
+- [ ] Reports saved to `/logs/audits/{timestamp}-best-practices-audit.md`
+- [ ] Each report is self-contained (can compare across runs)
+- [ ] Summary shows compliance score/percentage
 
 ## Functional Requirements
 
-- **FR1**: Audit command that scans `.claude/` directory for custom components
-- **FR2**: Component classifier that identifies type (command, agent, skill, hook)
-- **FR3**: Pattern matcher that compares components against best practices rules
-- **FR4**: Gap analyzer that identifies deviations from best practices
-- **FR5**: Recommendation generator that suggests specific fixes
-- **FR6**: Remediation planner that creates prioritized task list
-- **FR7**: Best practices retriever that exposes documentation via command/skill
+- **FR1**: Enhance `project-auditor` to produce component-by-component analysis
+- **FR2**: Add "Current vs Should Be" comparison for each finding
+- **FR3**: Generate specific file-level remediation proposals
+- **FR4**: Create prioritized remediation checklist
+- **FR5**: Output to `/logs/audits/{timestamp}-best-practices-audit.md`
+- **FR6**: Include compliance score/percentage for tracking
+- **FR7**: Embed best practices rules in plugin (no Codex dependency)
 
 ## Non-Functional Requirements
 
 - **NFR1**: Audit should complete in < 30 seconds for typical project (performance)
-- **NFR2**: Audit should work offline (cached best practices) (reliability)
-- **NFR3**: No modification of audited files without explicit user action (safety)
-- **NFR4**: Clear, actionable output format (usability)
+- **NFR2**: Audit should work offline - rules embedded in plugin (reliability)
+- **NFR3**: No modification of audited files (read-only analysis)
+- **NFR4**: Output format is immediately actionable (usability)
 
 ## Technical Design
 
-### Architecture Approach
+### Enhanced Audit Report Format
 
-Two potential approaches:
-
-#### Option A: Direct Plugin Access (Simpler)
-- faber-agent plugin exposes audit commands that work cross-project
-- Commands read `.claude/` from current working directory
-- Best practices rules embedded in plugin skills
-- Audit results returned to user
-
-```
-User Project                     faber-agent Plugin
-.claude/
-├── commands/        ─────────►  /faber-agent:audit
-├── agents/                      └── project-auditor agent
-├── skills/                          ├── component-scanner skill
-└── hooks/                           ├── pattern-matcher skill
-                                     ├── gap-analyzer skill
-                                     └── report-generator skill
-```
-
-#### Option B: Codex Integration (More Complex, Better Long-term)
-- Best practices stored in Codex knowledge base
-- faber-agent plugin fetches from Codex at audit time
-- Enables versioning and cross-org standardization
-- Requires Codex plugin configured
-
-### Recommended: Option A (Direct Plugin Access)
-
-Reasons:
-1. Simpler implementation
-2. No additional dependencies (Codex)
-3. Plugin already installed = access to best practices
-4. Can evolve to Option B later if needed
-
-### Component Detection
-
-Scan current project's `.claude/` directory:
-
-```
-.claude/
-├── commands/*.md          → Command components
-├── agents/*.md            → Agent components
-├── skills/*/SKILL.md      → Skill components
-├── skills/*/scripts/      → Skill scripts
-├── hooks/hooks.json       → Hook definitions
-└── settings.json          → Project settings
-```
-
-### Best Practices Rules Engine
-
-Rules defined in plugin:
-
-```yaml
-rules:
-  command:
-    - id: CMD-001
-      name: "Command routes to agent"
-      check: "Contains 'MUST' invoke agent"
-      severity: error
-    - id: CMD-002
-      name: "No direct work in command"
-      check: "No Bash/Read/Write tool usage"
-      severity: error
-
-  agent:
-    - id: AGT-001
-      name: "Single manager agent"
-      check: "Only one *-manager agent per domain"
-      severity: warning
-    - id: AGT-002
-      name: "Agent delegates to skills"
-      check: "Contains Skill invocations"
-      severity: error
-
-  skill:
-    - id: SKL-001
-      name: "Director is skill not agent"
-      check: "Director components in skills/ not agents/"
-      severity: error
-    - id: SKL-002
-      name: "Scripts in scripts/ directory"
-      check: "Bash logic in scripts/ not inline"
-      severity: warning
-    - id: SKL-003
-      name: "Builder updates documentation"
-      check: "Builder skill references fractary-docs"
-      severity: warning
-```
-
-### Audit Report Format
+The key improvement is the report format. Each component gets analyzed with specific comparisons:
 
 ```markdown
-# Claude Components Audit Report
+# Best Practices Audit Report
 
-**Project**: /path/to/project
-**Date**: 2025-12-02
-**Components Scanned**: 15
-**Issues Found**: 7
+**Project**: /path/to/my-project
+**Date**: 2025-12-02T14:30:00Z
+**Auditor**: faber-agent v0.5.0
+**Compliance Score**: 45% (9/20 checks passing)
 
-## Summary
+---
 
-| Category | Count | Errors | Warnings |
-|----------|-------|--------|----------|
-| Commands | 3     | 1      | 0        |
-| Agents   | 2     | 0      | 1        |
-| Skills   | 8     | 2      | 2        |
-| Hooks    | 2     | 0      | 1        |
+## Executive Summary
 
-## Findings
+| Category | Components | Compliant | Non-Compliant | Score |
+|----------|------------|-----------|---------------|-------|
+| Commands | 4          | 2         | 2             | 50%   |
+| Agents   | 3          | 1         | 2             | 33%   |
+| Skills   | 8          | 5         | 3             | 63%   |
+| Hooks    | 1          | 1         | 0             | 100%  |
+| **Total**| **16**     | **9**     | **7**         | **56%**|
 
-### Errors (Must Fix)
+---
 
-#### CMD-001: Command doing direct work
-- **File**: `.claude/commands/deploy.md`
-- **Issue**: Command executes Bash directly instead of invoking agent
-- **Fix**: Route to deploy-manager agent
+## Component Analysis
 
-#### SKL-001: Director implemented as agent
-- **File**: `.claude/agents/batch-director.md`
-- **Issue**: Director should be a skill to enable parallel execution
-- **Fix**: Move to `.claude/skills/batch-director/SKILL.md`
+### Commands
 
-### Warnings (Should Fix)
+#### ✅ `.claude/commands/init.md` - COMPLIANT
 
-#### AGT-002: Multiple manager agents
-- **Files**: `api-manager.md`, `data-manager.md`, `file-manager.md`
-- **Issue**: Consider consolidating to single domain manager
-- **Suggestion**: Review if domains are truly separate
+All checks passing:
+- [x] Routes to agent (invokes init-manager)
+- [x] No direct work (no Bash/Read/Write)
+- [x] Has proper frontmatter
+
+---
+
+#### ❌ `.claude/commands/deploy.md` - NON-COMPLIANT
+
+**Issues Found**: 2
+
+##### Issue 1: Command does direct work
+
+| Aspect | Current State | Best Practice |
+|--------|---------------|---------------|
+| Pattern | Command executes `Bash` tool directly | Commands MUST only route to agents |
+| Location | Lines 45-67 | N/A |
+| Impact | Bypasses orchestration layer | |
+
+**Current Code** (lines 45-67):
+```markdown
+<WORKFLOW>
+1. Run deployment script
+   Bash: ./scripts/deploy.sh $environment
+2. Verify deployment
+   Bash: ./scripts/verify.sh
+</WORKFLOW>
+```
+
+**Proposed Change**:
+```markdown
+<WORKFLOW>
+1. Invoke deploy-manager agent
+   Agent: deploy-manager
+   Request: {"operation": "deploy", "environment": "$environment"}
+</WORKFLOW>
+```
+
+**Remediation**:
+- [ ] Create `deploy-manager` agent if not exists
+- [ ] Move deployment logic to agent workflow
+- [ ] Update command to route to agent
+
+---
+
+##### Issue 2: Missing agent invocation pattern
+
+| Aspect | Current State | Best Practice |
+|--------|---------------|---------------|
+| Pattern | No `Agent:` or `@agent-` reference | Commands MUST invoke agents |
+| Evidence | Grep for "Agent:" returns empty | |
+
+**Remediation**:
+- [ ] Add agent invocation in `<WORKFLOW>` section
+
+---
+
+### Agents
+
+#### ❌ `.claude/agents/data-processor.md` - NON-COMPLIANT
+
+**Issues Found**: 1
+
+##### Issue 1: Agent does work directly (Hybrid Agent)
+
+| Aspect | Current State | Best Practice |
+|--------|---------------|---------------|
+| Pattern | Agent contains `Bash:` commands | Agents MUST delegate to skills |
+| Location | Lines 78-95 | N/A |
+| Impact | Context bloat, not reusable | |
+
+**Current Code** (lines 78-95):
+```markdown
+<WORKFLOW>
+1. Validate input
+   Bash: jq '.data | length' input.json
+2. Process records
+   Bash: ./process.sh
+3. Generate report
+   Bash: ./report.sh > output.md
+</WORKFLOW>
+```
+
+**Proposed Change**:
+```markdown
+<WORKFLOW>
+1. Validate input
+   Skill: data-validator
+   Input: {"file": "input.json"}
+
+2. Process records
+   Skill: data-processor
+   Input: {"source": "input.json"}
+
+3. Generate report
+   Skill: report-generator
+   Input: {"format": "markdown"}
+</WORKFLOW>
+```
+
+**Remediation**:
+- [ ] Create `data-validator` skill with validation script
+- [ ] Create `data-processor` skill with process.sh
+- [ ] Create `report-generator` skill with report.sh
+- [ ] Update agent to invoke skills instead of Bash
+
+---
+
+### Skills
+
+#### ❌ `.claude/skills/batch-coordinator/SKILL.md` - NON-COMPLIANT
+
+**Issues Found**: 1
+
+##### Issue 1: Director implemented as wrong component type
+
+| Aspect | Current State | Best Practice |
+|--------|---------------|---------------|
+| Pattern | Coordinator logic in skill | Directors should be skills (✓) but this one tries to invoke agents |
+| Evidence | Contains `Task:` tool usage to spawn agents | Directors invoke managers, not vice versa |
+| Impact | Agent nesting, context explosion | |
+
+**Analysis**: This skill is acting as a director (batch coordination) but is trying to spawn agents from within a skill, which inverts the control flow.
+
+**Proposed Architecture**:
+```
+Current (Wrong):
+  Command → Skill (batch-coordinator) → Agent × N
+
+Correct:
+  Command → Director Skill (batch-coordinator) → Manager Agent × N
+                                                      ↓
+                                                   Worker Skills
+```
+
+**Remediation**:
+- [ ] Rename to `batch-director` to clarify role
+- [ ] Ensure it only expands patterns and returns entity list
+- [ ] Manager agents handle individual entity processing
+- [ ] Skills under manager do actual work
+
+---
 
 ## Remediation Plan
 
-### Priority 1: Critical Fixes
-1. [ ] Convert `batch-director` from agent to skill
-2. [ ] Refactor `deploy.md` command to route to agent
+### Priority 1: Critical (Breaks Architecture)
+1. [ ] **Convert `deploy.md` command to route to agent**
+   - File: `.claude/commands/deploy.md`
+   - Create: `.claude/agents/deploy-manager.md`
+   - Effort: 2 hours
 
-### Priority 2: Improvements
-3. [ ] Extract inline Bash from `processor` skill to scripts/
-4. [ ] Add documentation update to builder skill
-5. [ ] Review manager agent consolidation
+2. [ ] **Split hybrid agent `data-processor.md` into agent + skills**
+   - File: `.claude/agents/data-processor.md`
+   - Create: `.claude/skills/data-validator/`, `.claude/skills/data-processor/`, `.claude/skills/report-generator/`
+   - Effort: 4 hours
+
+### Priority 2: Important (Best Practice Violations)
+3. [ ] **Fix director control flow in `batch-coordinator`**
+   - File: `.claude/skills/batch-coordinator/SKILL.md`
+   - Rename and restructure
+   - Effort: 2 hours
+
+### Priority 3: Recommended (Improvements)
+4. [ ] **Extract inline scripts to scripts/ directories**
+   - Multiple skills have inline Bash
+   - Effort: 3 hours
+
+---
+
+## Best Practices Reference
+
+The following best practices were checked (from faber-agent v0.5.0):
+
+### Commands
+- CMD-001: Commands route to agents (not do work directly)
+- CMD-002: Commands have proper frontmatter
+- CMD-003: Commands use space-separated argument syntax
+
+### Agents
+- AGT-001: One manager agent per domain
+- AGT-002: Agents delegate to skills (no direct Bash/Read/Write)
+- AGT-003: Agents have 7-phase workflow structure
+
+### Skills
+- SKL-001: Directors are skills (not agents)
+- SKL-002: Scripts in scripts/ directory (not inline)
+- SKL-003: Builder skills update documentation
+- SKL-004: Skills have SKILL.md with proper structure
+
+### Architecture
+- ARC-001: /{project}-direct command as primary entry point
+- ARC-002: --action argument for workflow step selection
+- ARC-003: Plugin integrations (fractary-docs, fractary-specs, etc.)
+
+---
+
+*Report generated by faber-agent project-auditor*
+*Best practices version: 2025-12-02 (post-#194)*
 ```
+
+### Best Practices Rules Definition
+
+Embed rules in plugin as structured data:
+
+**File**: `plugins/faber-agent/config/best-practices-rules.yaml`
+
+```yaml
+version: "2025-12-02"
+description: "Best practices rules for Claude Code components"
+
+rules:
+  commands:
+    - id: CMD-001
+      name: "Command routes to agent"
+      description: "Commands must invoke agents, not do work directly"
+      severity: critical
+      check:
+        type: content_pattern
+        pattern: "(Agent:|@agent-|invoke.*agent)"
+        must_match: true
+      anti_check:
+        type: content_pattern
+        pattern: "^\\s*(Bash:|Read:|Write:|Edit:)"
+        must_not_match: true
+      remediation: "Remove direct tool usage, add agent invocation"
+
+    - id: CMD-002
+      name: "Proper frontmatter"
+      description: "Commands must have name and description in frontmatter"
+      severity: warning
+      check:
+        type: frontmatter
+        required_fields: [name, description]
+
+  agents:
+    - id: AGT-001
+      name: "Single manager per domain"
+      description: "Each domain should have one manager agent"
+      severity: warning
+      check:
+        type: naming_pattern
+        pattern: "*-manager.md"
+        max_per_directory: 1
+
+    - id: AGT-002
+      name: "Agent delegates to skills"
+      description: "Agents must not do work directly"
+      severity: critical
+      check:
+        type: content_pattern
+        pattern: "(Skill:|@skill-)"
+        must_match: true
+      anti_check:
+        type: content_pattern
+        pattern: "^\\s*Bash:"
+        must_not_match: true
+      remediation: "Create skills for work, invoke from agent"
+
+  skills:
+    - id: SKL-001
+      name: "Director is skill not agent"
+      description: "Director/coordinator components must be skills"
+      severity: critical
+      check:
+        type: location
+        pattern: "*director*"
+        must_be_in: "skills/"
+        must_not_be_in: "agents/"
+
+    - id: SKL-002
+      name: "Scripts externalized"
+      description: "Bash logic should be in scripts/ not inline"
+      severity: warning
+      check:
+        type: directory_structure
+        requires: "scripts/"
+      anti_check:
+        type: content_pattern
+        pattern: "```(bash|sh)\\n[^`]{100,}"
+        must_not_match: true
+      remediation: "Move bash code to scripts/*.sh, reference from SKILL.md"
+
+    - id: SKL-003
+      name: "Builder updates docs"
+      description: "Builder/engineer skills must update documentation"
+      severity: warning
+      check:
+        type: content_pattern
+        applies_to: "*builder*|*engineer*"
+        pattern: "(fractary-docs|documentation|docs-manager)"
+        must_match: true
+```
+
+### Output Location
+
+Reports go to `/logs/audits/` with timestamps:
+
+```
+logs/
+└── audits/
+    ├── 2025-12-02T143000-best-practices-audit.md
+    ├── 2025-12-02T143000-best-practices-audit.json
+    ├── 2025-12-15T091500-best-practices-audit.md
+    └── 2025-12-15T091500-best-practices-audit.json
+```
+
+This allows:
+- Running audits multiple times as project evolves
+- Comparing compliance scores over time
+- Tracking remediation progress
 
 ## Implementation Plan
 
-### Phase 1: Component Scanner
-Build skill to scan `.claude/` and identify all components
+### Phase 1: Enhanced Report Template
+Update report generation to produce actionable format
 
 **Tasks**:
-- [ ] Create `component-scanner` skill
-- [ ] Implement file discovery for commands, agents, skills, hooks
-- [ ] Parse component metadata (frontmatter, structure)
-- [ ] Return structured component inventory
+- [ ] Create new report template with "Current vs Should Be" format
+- [ ] Add component-by-component analysis section
+- [ ] Add specific code snippets for findings
+- [ ] Add proposed change snippets
 
-### Phase 2: Rules Engine
-Implement best practices rules and pattern matching
-
-**Tasks**:
-- [ ] Define rules YAML/JSON format
-- [ ] Create `pattern-matcher` skill
-- [ ] Implement rule evaluation logic
-- [ ] Support regex and structural checks
-
-### Phase 3: Gap Analyzer
-Compare components against rules and identify gaps
+### Phase 2: Best Practices Rules Engine
+Formalize rules as structured data
 
 **Tasks**:
-- [ ] Create `gap-analyzer` skill
-- [ ] Implement comparison logic
-- [ ] Generate findings with severity levels
-- [ ] Include fix suggestions
+- [ ] Create `best-practices-rules.yaml` with all rules
+- [ ] Update `project-analyzer` skill to use rules file
+- [ ] Add rule version tracking
+- [ ] Include rule reference in report
 
-### Phase 4: Report Generator
-Generate human-readable audit reports
-
-**Tasks**:
-- [ ] Create `report-generator` skill
-- [ ] Implement markdown report template
-- [ ] Generate remediation plan section
-- [ ] Support JSON output for tooling
-
-### Phase 5: Command Integration
-Expose via user-facing commands
+### Phase 3: Remediation Plan Generator
+Generate actionable checklist
 
 **Tasks**:
-- [ ] Create `/faber-agent:audit` command
-- [ ] Create `/faber-agent:best-practices` command (show patterns)
-- [ ] Add `--fix` flag for auto-remediation (future)
-- [ ] Update plugin documentation
+- [ ] Group findings by priority
+- [ ] Calculate effort estimates
+- [ ] Generate checkbox-style task list
+- [ ] Link tasks to specific files/lines
 
-## Files to Create/Modify
+### Phase 4: Output to /logs/
+Update output path and format
 
-### New Files
+**Tasks**:
+- [ ] Change default output to `/logs/audits/{timestamp}-best-practices-audit.md`
+- [ ] Add compliance score calculation
+- [ ] Ensure JSON output matches markdown structure
+- [ ] Add report metadata (auditor version, rules version)
 
-- `plugins/faber-agent/skills/component-scanner/SKILL.md`: Scan project components
-- `plugins/faber-agent/skills/component-scanner/scripts/scan-project.sh`: Discovery script
-- `plugins/faber-agent/skills/pattern-matcher/SKILL.md`: Match against rules
-- `plugins/faber-agent/skills/gap-analyzer/SKILL.md`: Identify gaps
-- `plugins/faber-agent/skills/report-generator/SKILL.md`: Generate reports
-- `plugins/faber-agent/skills/report-generator/templates/audit-report.md.template`: Report template
-- `plugins/faber-agent/config/best-practices-rules.yaml`: Rules definitions
-- `plugins/faber-agent/commands/audit.md`: Audit command
-- `plugins/faber-agent/commands/best-practices.md`: Best practices viewer
+## Files to Modify
 
 ### Modified Files
 
-- `plugins/faber-agent/agents/project-auditor.md`: Enhance with new skills
-- `plugins/faber-agent/.claude-plugin/plugin.json`: Register new commands
-- `plugins/faber-agent/README.md`: Document new capabilities
+- `plugins/faber-agent/agents/project-auditor.md`: Update Phase 7 (Report) to use new template
+- `plugins/faber-agent/skills/project-analyzer/SKILL.md`: Add rules-based checking
+- `plugins/faber-agent/templates/reports/best-practices-audit.md.template`: New actionable format
+
+### New Files
+
+- `plugins/faber-agent/config/best-practices-rules.yaml`: Formalized rules
+- `plugins/faber-agent/skills/remediation-planner/SKILL.md`: Generate prioritized plan
 
 ## Testing Strategy
 
-### Unit Tests
-- Test component scanner with mock `.claude/` structures
-- Test rule evaluation with sample components
-- Test report generation with known findings
-
 ### Integration Tests
 - Run audit on `claude-plugins` repository itself
-- Verify all findings are valid
-- Confirm report format is correct
+- Verify findings match known patterns
+- Confirm remediation suggestions are valid
 
-### E2E Tests
-- Create test project with intentional issues
-- Run full audit workflow
-- Verify remediation suggestions are actionable
+### Cross-Project Tests
+- Run audit on external project with intentional issues
+- Verify audit works from different directory
+- Confirm report saves to correct location
+
+### Regression Tests
+- Ensure existing anti-pattern detection still works
+- Verify 7-phase workflow unchanged
+- Confirm JSON output format compatibility
 
 ## Dependencies
 
-- Existing faber-agent plugin structure
-- Best practices documentation (docs/BEST-PRACTICES.md)
-- Pattern documentation (docs/patterns/*.md)
+- Existing faber-agent plugin structure (no new dependencies)
+- Best practices documentation (docs/BEST-PRACTICES.md) - for rule derivation
+- Pattern documentation (docs/patterns/*.md) - for rule derivation
 
 ## Risks and Mitigations
 
 - **Risk**: Rules become outdated as best practices evolve
   - **Likelihood**: Medium
   - **Impact**: Low
-  - **Mitigation**: Rules in single config file, easy to update; version rules
+  - **Mitigation**: Rules in single YAML file with version; easy to update
 
-- **Risk**: False positives in pattern matching
+- **Risk**: False positives from pattern matching
   - **Likelihood**: Medium
   - **Impact**: Medium
-  - **Mitigation**: Conservative severity levels; allow rule suppression
+  - **Mitigation**: Conservative patterns; show evidence in report for user judgment
 
-- **Risk**: Audit performance on large projects
+- **Risk**: Report too verbose for large projects
   - **Likelihood**: Low
   - **Impact**: Low
-  - **Mitigation**: Lazy loading; optional depth limits
-
-## Documentation Updates
-
-- `plugins/faber-agent/README.md`: Add audit and best-practices commands
-- `plugins/faber-agent/docs/BEST-PRACTICES.md`: Reference audit capability
-- `plugins/faber-agent/docs/guides/audit-usage-guide.md`: Detailed usage guide
+  - **Mitigation**: Summary section at top; collapsible sections in detailed view
 
 ## Success Metrics
 
-- Users can audit any project in < 30 seconds
-- Audit findings are actionable (> 80% lead to clear fix)
-- Cross-project usage increases (tracked via opt-in telemetry if available)
-- Reduction in pattern violations in new plugins
+- User can take audit report and execute remediation without additional research
+- Compliance score tracks progress over multiple audit runs
+- Cross-project audits work without special setup
+- Findings include specific "what to change" proposals
 
 ## Implementation Notes
 
-This feature extends the existing faber-agent audit capabilities (which currently focus on anti-pattern detection within the plugin itself) to work across any project. The key insight is that the plugin is already installed globally and can access any project's `.claude/` directory - we just need to expose this capability through user-facing commands.
+This enhancement focuses on **improving the existing audit**, not creating new infrastructure. The core changes are:
 
-The `/faber-agent:audit` command will become the single entry point for analyzing Claude components, whether in the claude-plugins repo or any other project.
+1. **Report format**: From abstract findings to specific "Current vs Should Be" comparisons
+2. **Rules engine**: From hardcoded detection to structured rules file
+3. **Remediation plan**: From generic suggestions to file-level task checklist
+4. **Output location**: From console/custom to `/logs/audits/` with timestamps
+
+The existing 7-phase workflow in `project-auditor` remains unchanged - we're enhancing Phase 7 (Report) output quality.
