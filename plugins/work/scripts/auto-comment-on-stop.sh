@@ -22,6 +22,7 @@ CACHE_DIR="${HOME}/.fractary/work"
 LOG_FILE="${CACHE_DIR}/auto-comment.log"
 LOG_MAX_SIZE=1048576  # 1MB in bytes
 LOG_KEEP_SIZE=102400  # 100KB to keep after truncation
+LOCK_HELD=false  # Track if we hold the cleanup lock (prevents self-deadlock)
 
 mkdir -p "${CACHE_DIR}"
 
@@ -227,8 +228,11 @@ if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
     CURRENT_HEAD=$(git rev-parse HEAD 2>/dev/null)
 
     # Acquire lock to prevent concurrent updates
+    # Note: We use fd 201 and keep it open - the cleanup section reuses this lock
     exec 201<>"${LAST_STOP_LOCK}"
     if flock -w 5 201; then
+        LOCK_HELD=true  # Mark that we hold the lock (used by cleanup section)
+
         # Store as "branch:ref" format (one line per branch)
         # Remove old entry for this branch and append new one
         if [ -f "$LAST_STOP_FILE" ]; then
@@ -243,7 +247,7 @@ if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
         echo -e "${YELLOW}⚠️  Could not acquire lock for reference update${NC}"
         log_message "WARN" "Failed to acquire lock for last_stop_ref update"
     fi
-    # Lock auto-releases when FD closes
+    # Lock auto-releases when FD closes (kept open for cleanup section to reuse)
 else
     EXIT_CODE=$?
     echo -e "${YELLOW}⚠️  Could not post comment (exit code: ${EXIT_CODE})${NC}"
@@ -281,10 +285,28 @@ if [ "$COUNTER" -ge "$CLEANUP_INTERVAL" ]; then
     echo -e "${BLUE}🧹 Running cache cleanup...${NC}"
     log_message "INFO" "Running periodic cache cleanup"
 
-    # Acquire lock for cleanup to prevent concurrent modifications
+    # Check if we already hold the lock from the save reference section
+    # This prevents self-deadlock when trying to acquire the same lock file
+    # with a different file descriptor (fd 201 vs fd 202)
+    CLEANUP_CAN_PROCEED=false
     LAST_STOP_LOCK="${CACHE_DIR}/last_stop_ref.lock"
-    exec 202<>"${LAST_STOP_LOCK}"
-    if flock -w 5 202; then
+
+    if [ "$LOCK_HELD" = true ]; then
+        # We already hold the lock on fd 201, proceed without re-acquiring
+        CLEANUP_CAN_PROCEED=true
+        log_message "INFO" "Reusing existing lock for cleanup"
+    else
+        # Need to acquire the lock (comment posting failed or skipped)
+        exec 202<>"${LAST_STOP_LOCK}"
+        if flock -w 5 202; then
+            CLEANUP_CAN_PROCEED=true
+        else
+            echo -e "${YELLOW}⚠️  Could not acquire lock for cleanup${NC}"
+            log_message "WARN" "Failed to acquire lock for cleanup"
+        fi
+    fi
+
+    if [ "$CLEANUP_CAN_PROCEED" = true ]; then
         # Create temp file for valid references
         TEMP_REF_FILE="${LAST_STOP_FILE}.cleanup.tmp"
         > "$TEMP_REF_FILE"
@@ -307,9 +329,6 @@ if [ "$COUNTER" -ge "$CLEANUP_INTERVAL" ]; then
         echo "0" > "$CLEANUP_COUNTER_FILE"
         echo -e "${GREEN}✅ Cache cleanup completed${NC}"
         log_message "INFO" "Cache cleanup completed"
-    else
-        echo -e "${YELLOW}⚠️  Could not acquire lock for cleanup${NC}"
-        log_message "WARN" "Failed to acquire lock for cleanup"
     fi
     # Lock auto-releases when FD closes
 else
