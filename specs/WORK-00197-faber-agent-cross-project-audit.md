@@ -80,7 +80,7 @@ A point-in-time audit report that:
 **So that** I can track progress as I remediate issues and as best practices evolve
 
 **Acceptance Criteria**:
-- [ ] Reports saved to `/logs/audits/{timestamp}-faber-agent-best-practices.md`
+- [ ] Reports saved to `/logs/audits/faber-agent/{timestamp}.md`
 - [ ] Each report is self-contained (can compare across runs)
 - [ ] Summary shows compliance score/percentage
 
@@ -90,7 +90,7 @@ A point-in-time audit report that:
 - **FR2**: Add "Current vs Should Be" comparison for each finding
 - **FR3**: Generate specific file-level remediation proposals
 - **FR4**: Create prioritized remediation checklist
-- **FR5**: Output to `/logs/audits/{timestamp}-faber-agent-best-practices.md`
+- **FR5**: Output to `/logs/audits/faber-agent/{timestamp}.[md|json]`
 - **FR6**: Include compliance score/percentage for tracking
 - **FR7**: Embed best practices rules in plugin (no Codex dependency)
 
@@ -430,15 +430,16 @@ rules:
 
 ### Output Location
 
-Reports go to `/logs/audits/` with timestamps:
+Reports go to `/logs/audits/faber-agent/` with timestamps:
 
 ```
 logs/
 └── audits/
-    ├── 2025-12-02T143000-faber-agent-best-practices.md
-    ├── 2025-12-02T143000-faber-agent-best-practices.json
-    ├── 2025-12-15T091500-faber-agent-best-practices.md
-    └── 2025-12-15T091500-faber-agent-best-practices.json
+    └── faber-agent/
+        ├── 2025-12-02T143000.md
+        ├── 2025-12-02T143000.json
+        ├── 2025-12-15T091500.md
+        └── 2025-12-15T091500.json
 ```
 
 This allows:
@@ -479,7 +480,7 @@ Generate actionable checklist
 Update output path and format
 
 **Tasks**:
-- [ ] Change default output to `/logs/audits/{timestamp}-faber-agent-best-practices.md`
+- [ ] Change default output to `/logs/audits/faber-agent/{timestamp}.[md|json]`
 - [ ] Add compliance score calculation
 - [ ] Ensure JSON output matches markdown structure
 - [ ] Add report metadata (auditor version, rules version)
@@ -551,6 +552,6 @@ This enhancement focuses on **improving the existing audit**, not creating new i
 1. **Report format**: From abstract findings to specific "Current vs Should Be" comparisons
 2. **Rules engine**: From hardcoded detection to structured rules file
 3. **Remediation plan**: From generic suggestions to file-level task checklist
-4. **Output location**: From console/custom to `/logs/audits/{timestamp}-faber-agent-best-practices.[md|json]`
+4. **Output location**: From console/custom to `/logs/audits/faber-agent/{timestamp}.[md|json]`
 
 The existing 7-phase workflow in `project-auditor` remains unchanged - we're enhancing Phase 7 (Report) output quality.
