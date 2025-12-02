@@ -4,10 +4,10 @@ work_id: 194
 issue_url: https://github.com/fractary/claude-plugins/issues/194
 title: Add new best practices to faber-agent plugin
 type: feature
-status: draft
+status: implemented
 created: 2025-12-02
 author: jmcwilliam
-validated: false
+validated: true
 source: conversation+issue
 ---
 
@@ -145,20 +145,20 @@ All faber-agent based projects should integrate with:
 ### Phase 1: Documentation Updates
 
 **Tasks**:
-- [ ] Update faber-agent plugin's implementation guide with new patterns
-- [ ] Document the `/{project}-direct` command pattern
-- [ ] Document director skill vs agent distinction
-- [ ] Document manager agent pattern
-- [ ] Add examples for each pattern
+- [x] Update faber-agent plugin's implementation guide with new patterns
+- [x] Document the `/{project}-direct` command pattern
+- [x] Document director skill vs agent distinction
+- [x] Document manager agent pattern
+- [x] Add examples for each pattern
 
 ### Phase 2: Template Updates
 
 **Tasks**:
-- [ ] Update command templates to generate `/{project}-direct` pattern
-- [ ] Update skill templates for director skill pattern
-- [ ] Update agent templates (now only manager agent)
-- [ ] Add debugger skill template
-- [ ] Add plugin integration references to templates
+- [x] Update command templates to generate `/{project}-direct` pattern
+- [x] Update skill templates for director skill pattern
+- [x] Update agent templates (now only manager agent)
+- [x] Add debugger skill template
+- [x] Add plugin integration references to templates
 
 ### Phase 3: Validation and Testing
 
@@ -185,16 +185,16 @@ All faber-agent based projects should integrate with:
 
 ## Acceptance Criteria
 
-- [ ] Documentation clearly explains the `/{project}-direct` command pattern
-- [ ] Director skill pattern is documented with examples
-- [ ] Manager agent as the only agent pattern is established
-- [ ] Skills for workflow steps pattern is documented
-- [ ] Actions argument comma-separated behavior is documented
-- [ ] Engineer/builder documentation requirement is specified
-- [ ] Debugger skill pattern is documented
-- [ ] Required plugin integrations are listed
-- [ ] Templates generate artifacts following new patterns
-- [ ] Existing CLAUDE.md and guides are updated
+- [x] Documentation clearly explains the `/{project}-direct` command pattern
+- [x] Director skill pattern is documented with examples
+- [x] Manager agent as the only agent pattern is established
+- [x] Skills for workflow steps pattern is documented
+- [x] Actions argument comma-separated behavior is documented
+- [x] Engineer/builder documentation requirement is specified
+- [x] Debugger skill pattern is documented
+- [x] Required plugin integrations are listed
+- [x] Templates generate artifacts following new patterns
+- [x] Existing CLAUDE.md and guides are updated
 
 ## Dependencies
 

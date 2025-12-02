@@ -1,16 +1,89 @@
 ---
 pattern: Director-Skill
-category: Batch Operations
+category: Core Architecture
 difficulty: beginner
-tags: [director, skill, batch, pattern-expansion, parallelism]
-version: 1.0
+tags: [director, skill, batch, pattern-expansion, parallelism, direct-command, actions]
+version: 2.0
 ---
 
 # Pattern: Director Skill
 
 ## Intent
 
-Enable batch operations through lightweight pattern expansion that returns entity lists for parallel Manager invocation by Core Claude Agent.
+Provide the **primary orchestration layer** for project workflows through a lightweight skill that:
+1. Accepts workflow commands via `/{project}-direct` entry point
+2. Parses `--action` arguments to determine workflow steps
+3. Enables batch operations through pattern expansion
+4. Spawns parallel Manager agent invocations
+
+## The `/{project}-direct` Command Pattern
+
+### Entry Point
+
+Every project using this pattern should have a single primary command:
+
+```bash
+/{project}-direct <entity> [--action step1,step2,step3]
+```
+
+Or for projects with multiple entity types:
+
+```bash
+/{project}-{entity}-direct <id> [--action step1,step2,step3]
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `<entity>` | Yes | The thing being worked on (ID, path, pattern) |
+| `--action` | No | Comma-separated workflow steps (no spaces) |
+
+### Action Behavior
+
+```bash
+# Run specific steps
+/{project}-direct item-123 --action frame,architect,build
+
+# Run subset of workflow
+/{project}-direct item-123 --action build,evaluate
+
+# Run ENTIRE workflow (no --action = all steps)
+/{project}-direct item-123
+```
+
+**When `--action` is omitted:**
+1. Director MUST announce: "Running full workflow: step1 → step2 → step3 → ..."
+2. Director MUST list all steps that will execute
+3. Director MUST identify the target entity/entities
+4. Director then executes all steps in sequence
+
+### Command Template
+
+```markdown
+# /{project}-direct Command
+
+<CONTEXT>
+Entry point for {project} operations. Lightweight wrapper that parses
+arguments and immediately invokes the director skill.
+</CONTEXT>
+
+<CRITICAL_RULES>
+1. NEVER do work directly - immediately invoke director skill
+2. Parse --action as comma-separated list (no spaces between items)
+3. If no --action provided, pass empty/null to trigger full workflow
+</CRITICAL_RULES>
+
+<WORKFLOW>
+1. Parse first positional argument as target entity
+2. Parse --action flag value (comma-separated string)
+3. Invoke Skill: {project}-director
+   Input: {entity: "<entity>", actions: "<action-string>"}
+4. Return director's output to user
+</WORKFLOW>
+```
+
+---
 
 ## Problem
 

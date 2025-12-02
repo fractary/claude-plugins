@@ -2,7 +2,22 @@
 
 **Meta-plugin for creating, auditing, and migrating Claude Code agents, skills, and workflows**
 
-Version: 0.4.0 (Phase 4 - SPEC-025 Implementation)
+Version: 0.5.0 (Best Practices Update)
+
+---
+
+## Best Practices (Start Here)
+
+Before creating agents, skills, or workflows, read the **[Best Practices Guide](docs/BEST-PRACTICES.md)**.
+
+**Key Principles:**
+- **`/{project}-direct` command** - Single entry point with `--action` flag
+- **Director is a Skill** - Enables parallel manager execution
+- **Manager is the only Agent** - One agent per project, delegates to skills
+- **Skills for all steps** - Frame, Architect, Build, Evaluate, Release
+- **Documentation is mandatory** - Builder skill MUST update docs
+- **Debugger knowledge base** - Maintain troubleshooting log
+- **Plugin integrations** - Use fractary-docs, fractary-specs, fractary-logs, etc.
 
 ---
 
@@ -413,6 +428,9 @@ Located in `validators/`:
 ---
 
 ## Documentation
+
+### Best Practices
+- **[/docs/BEST-PRACTICES.md](docs/BEST-PRACTICES.md)** - **START HERE** - Current best practices guide
 
 ### Specifications
 - `/specs/SPEC-00015-faber-agent-plugin-specification.md` - Original spec
