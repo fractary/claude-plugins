@@ -1,7 +1,7 @@
 ---
 name: fractary-codex:init
-description: Initialize codex plugin configuration (global and/or project)
-argument-hint: [--global|--project] [--org <name>] [--codex <repo>]
+description: Initialize codex plugin configuration for this project
+argument-hint: [--org <name>] [--codex <repo>]
 ---
 
 <CONTEXT>
@@ -9,10 +9,7 @@ You are the **init command router** for the codex plugin.
 
 Your role is to guide users through configuration setup for the codex plugin. You parse command arguments and invoke the codex-manager agent with the init operation.
 
-Configuration can be:
-- **Global**: `~/.config/fractary/codex/config.json` (organization-wide defaults)
-- **Project**: `.fractary/plugins/codex/config.json` (project-specific settings)
-- **Both**: Create both configurations (default)
+Configuration location: `.fractary/plugins/codex/config.json` (project-level only)
 
 You provide a streamlined setup experience with auto-detection and sensible defaults.
 </CONTEXT>
@@ -43,8 +40,6 @@ Command format:
 ```
 
 **Options:**
-- `--global`: Create only global configuration
-- `--project`: Create only project configuration
 - `--org <name>`: Specify organization name (auto-detect if omitted)
 - `--codex <repo>`: Specify codex repository name (prompt if omitted)
 - `--yes` or `-y`: Skip confirmations (use defaults)
@@ -52,8 +47,7 @@ Command format:
 **Examples:**
 ```
 /fractary-codex:init
-/fractary-codex:init --global
-/fractary-codex:init --project --org fractary --codex codex.fractary.com
+/fractary-codex:init --org fractary --codex codex.fractary.com
 /fractary-codex:init --yes
 ```
 </INPUTS>
@@ -62,7 +56,6 @@ Command format:
 ## Step 1: Parse Arguments
 
 Extract options from command:
-- Scope: `--global`, `--project`, or both (default)
 - Organization: `--org <name>` (optional)
 - Codex repo: `--codex <repo>` (optional)
 - Auto-confirm: `--yes` or `-y` (optional)
@@ -107,22 +100,53 @@ Multiple codex repositories found:
 Select (1-2):
 ```
 
-## Step 4: Confirm Configuration Scope
+## Step 4: Handle Legacy Global Config
 
-If neither `--global` nor `--project` specified:
-- Default to both
-- Show what will be created
+Check if a global config exists at `~/.config/fractary/codex/config.json`:
+
+If found:
+```
+⚠️ Legacy global config detected
+
+Found deprecated global config at:
+~/.config/fractary/codex/config.json
+
+This config format is deprecated. Settings will be migrated to:
+.fractary/plugins/codex/config.json
+
+Would you like to:
+1. Migrate settings and remove global config (recommended)
+2. Create fresh project config and remove global config
+3. Create project config but keep global config (not recommended)
+
+Select (1-3):
+```
+
+For option 1 (recommended):
+- Read existing global config values (organization, codex_repo, patterns, etc.)
+- Use these values as defaults for the new project config
+- Delete the global config file after successful project config creation
+
+For option 2:
+- Proceed with auto-detection as normal
+- Delete the global config file after successful project config creation
+
+For option 3:
+- Proceed normally but warn that global config will be ignored
+
+## Step 5: Confirm Configuration
+
+Show what will be created:
 
 Output:
 ```
 Will create:
-  ✓ Global config: ~/.config/fractary/codex/config.json
   ✓ Project config: .fractary/plugins/codex/config.json
 
 Continue? (Y/n)
 ```
 
-## Step 5: Invoke Codex-Manager Agent
+## Step 6: Invoke Codex-Manager Agent
 
 Use the codex-manager agent with init operation:
 
@@ -131,26 +155,28 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
 {
   "operation": "init",
   "parameters": {
-    "scope": "<global|project|both>",
     "organization": "<organization-name>",
     "codex_repo": "<codex-repo-name>",
-    "skip_confirmation": <true if --yes flag>
+    "skip_confirmation": <true if --yes flag>,
+    "migrate_from_global": <true if migrating from global config>,
+    "remove_global_config": <true if user chose to remove global config>
   }
 }
 ```
 
 The agent will:
-1. Create configuration file(s)
-2. Use example configs as templates
+1. Create configuration file at `.fractary/plugins/codex/config.json`
+2. Use example config as template (or migrate values from global config)
 3. Populate with provided values
 4. Validate against schema
-5. Report success with file paths
+5. Remove global config file if requested
+6. Report success with file path
 
-## Step 6: Display Results
+## Step 7: Display Results
 
 Show the agent's response to the user, which includes:
-- Configuration files created
-- File paths
+- Configuration file created
+- File path
 - Next steps (how to customize, how to sync)
 
 Example output:
@@ -158,7 +184,6 @@ Example output:
 ✅ Codex plugin initialized successfully!
 
 Created:
-  - Global config: ~/.config/fractary/codex/config.json
   - Project config: .fractary/plugins/codex/config.json
 
 Configuration:
@@ -169,7 +194,7 @@ Configuration:
 Next steps:
   1. Review and customize configuration if needed
   2. Run your first sync: /fractary-codex:sync-project
-  3. See docs: /mnt/c/GitHub/fractary/claude-plugins/plugins/codex/docs/setup-guide.md
+  3. See docs: plugins/codex/docs/setup-guide.md
 ```
 </WORKFLOW>
 
@@ -257,20 +282,18 @@ Run /fractary-codex:init again when ready.
 After successful initialization, guide the user:
 
 1. **What was created**:
-   - List configuration files with paths
+   - Configuration file at `.fractary/plugins/codex/config.json`
    - Show key configuration values
 
 2. **How to customize**:
-   - **Global config**: `~/.config/fractary/codex/config.json`
-     - `default_sync_patterns`: Glob patterns to include (e.g., "docs/**", "CLAUDE.md")
-     - `default_exclude_patterns`: Glob patterns to exclude (e.g., "**/.git/**", "**/node_modules/**")
+   - **Project config**: `.fractary/plugins/codex/config.json`
+     - `organization`: Organization name
+     - `codex_repo`: Codex repository name
+     - `sync_patterns`: Glob patterns to include (e.g., "docs/**", "CLAUDE.md")
+     - `exclude_patterns`: Glob patterns to exclude (e.g., "**/.git/**", "**/node_modules/**")
+     - `sync_direction`: "to-codex" | "from-codex" | "bidirectional"
      - `handlers.sync.options.github.deletion_threshold`: Safety limits
      - `handlers.sync.options.github.parallel_repos`: Concurrent sync count
-
-   - **Project config**: `.fractary/plugins/codex/config.json`
-     - `sync_patterns`: Project-specific overrides for patterns to include
-     - `exclude_patterns`: Project-specific overrides for patterns to exclude
-     - `sync_direction`: "to-codex" | "from-codex" | "bidirectional"
 
    - **Frontmatter (per-file control)**: Add to markdown/YAML files
      ```yaml

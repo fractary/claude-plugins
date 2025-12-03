@@ -10,34 +10,39 @@ This document clarifies the configuration formats used by the codex plugin acros
 
 The codex plugin follows the Fractary plugin configuration standard:
 
-**Standard Location**:
+**Configuration Location**:
 ```
 .fractary/plugins/codex/config.json
 ```
 
-**Global Configuration** (optional):
-```
-~/.config/fractary/codex/config.json
-```
+Note: Global configuration at `~/.config/fractary/codex/config.json` is **deprecated** and no longer used. All configuration should be project-level.
 
 ---
 
 ## Version History
 
-### v2.0+ (Current - Since 2025-11-04)
+### v2.1+ (Current - Since 2025-12-03)
 
 **Format**: JSON
-**Locations**:
-- Global: `~/.config/fractary/codex/config.json`
-- Project: `.fractary/plugins/codex/config.json`
+**Location**: `.fractary/plugins/codex/config.json` (project-level only)
 
 **Configuration Method**: Run `/fractary-codex:init`
 
 **Features**:
+- Project-level configuration only (global config deprecated)
 - Organization-agnostic configuration
 - Auto-detection of organization and codex repository
 - JSON schema validation
 - Handler-based sync mechanisms
+
+### v2.0 (2025-11-04 to 2025-12-03)
+
+**Format**: JSON
+**Locations**:
+- Global: `~/.config/fractary/codex/config.json` (deprecated)
+- Project: `.fractary/plugins/codex/config.json`
+
+**Migration**: If you have a global config, run `/fractary-codex:init` to create project-level config. The global config is no longer used.
 
 ### v1.x (Legacy - Before 2025-11-04)
 
@@ -206,8 +211,8 @@ To verify your configuration is correct:
 ## Summary
 
 ✅ **Current Standard**: JSON at `.fractary/plugins/codex/config.json`
-✅ **Global Config**: JSON at `~/.config/fractary/codex/config.json`
 ✅ **Frontmatter**: YAML in content files (not configuration)
+❌ **Global Config**: `~/.config/fractary/codex/config.json` is deprecated - use project config
 ❌ **YAML Config**: Never officially used - safe to remove
 ❌ **.env Files**: Deprecated in v1.x - migrate to JSON
 

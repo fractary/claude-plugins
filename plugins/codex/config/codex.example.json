@@ -2,7 +2,7 @@
   "version": "1.0",
   "organization": "fractary",
   "codex_repo": "codex.fractary.com",
-  "default_sync_patterns": [
+  "sync_patterns": [
     "docs/**",
     "CLAUDE.md",
     "README.md",
@@ -10,7 +10,7 @@
     "standards/**",
     "guides/**"
   ],
-  "default_exclude_patterns": [
+  "exclude_patterns": [
     "**/.git/**",
     "**/node_modules/**",
     "**/.env",
@@ -21,7 +21,9 @@
     "**/.DS_Store",
     "**/credentials.json",
     "**/*secret*",
-    "**/*password*"
+    "**/*password*",
+    "docs/private/**",
+    "docs/drafts/**"
   ],
   "auto_sync": false,
   "sync_direction": "bidirectional",
@@ -45,36 +47,10 @@
     "log_file": ".fractary/plugins/codex/logs/audit.log",
     "level": "info"
   },
-  "notifications": {
-    "enabled": false,
-    "on_success": false,
-    "on_failure": true,
-    "webhook_url": ""
-  },
   "cache": {
     "ttl_days": 7,
     "max_size_mb": 0,
     "auto_cleanup": true,
     "cleanup_interval_days": 7
-  },
-  "sources": [
-    {
-      "name": "fractary-codex",
-      "type": "codex",
-      "handler": "github",
-      "handler_config": {
-        "org": "fractary",
-        "repo": "codex.fractary.com",
-        "branch": "main",
-        "base_path": "projects"
-      },
-      "cache": {
-        "ttl_days": 7
-      },
-      "permissions": {
-        "enabled": true,
-        "default": "check_frontmatter"
-      }
-    }
-  ]
+  }
 }

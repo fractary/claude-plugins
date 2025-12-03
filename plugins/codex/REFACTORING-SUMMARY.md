@@ -127,22 +127,21 @@ Handler Implementations:
 
 ### 3. Configuration System
 
-Three-tier configuration with smart fallbacks:
+Project-level configuration with auto-detection fallbacks:
 
-1. **Global Config**: `~/.config/fractary/codex/config.json`
-   - Organization-wide defaults
+1. **Project Config**: `.fractary/plugins/codex/config.json`
+   - Organization and codex repo settings
    - Handler settings
    - Sync patterns
-
-2. **Project Config**: `.fractary/plugins/codex/config.json`
-   - Project-specific overrides
    - Custom patterns
    - Direction preferences
 
-3. **Auto-Detection**: Fallback when config missing
+2. **Auto-Detection**: Fallback when config missing
    - Extract org from git remote
    - Find codex repository
    - Prompt for confirmation
+
+Note: Global config at `~/.config/fractary/codex/config.json` was deprecated in v2.1 (2025-12-03).
 
 **Benefit**: Works out-of-the-box with sensible defaults, customizable when needed.
 
@@ -397,7 +396,6 @@ Process multiple projects simultaneously:
    ```
 
 4. **Customize Configuration** (optional):
-   - Edit `~/.config/fractary/codex/config.json` for global settings
    - Edit `.fractary/plugins/codex/config.json` for project settings
 
 ---

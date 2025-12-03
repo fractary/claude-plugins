@@ -20,12 +20,12 @@
       "description": "Codex core repository name (e.g., codex.fractary.com)",
       "pattern": "^codex\\.[a-zA-Z0-9-]+\\.[a-z]{2,}$"
     },
-    "default_sync_patterns": {
+    "sync_patterns": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Default glob patterns for files to sync across all projects",
+      "description": "Glob patterns for files to sync to/from codex",
       "default": [
         "docs/**",
         "CLAUDE.md",
@@ -33,32 +33,18 @@
         ".claude/**"
       ]
     },
-    "sync_patterns": {
+    "exclude_patterns": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Project-specific glob patterns for files to sync (overrides defaults)"
-    },
-    "default_exclude_patterns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Default glob patterns for files to exclude from sync",
+      "description": "Glob patterns for files to exclude from sync",
       "default": [
         "**/.git/**",
         "**/node_modules/**",
         "**/.env",
         "**/*.log"
       ]
-    },
-    "exclude_patterns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Project-specific glob patterns for files to exclude (added to defaults)"
     },
     "auto_sync": {
       "type": "boolean",

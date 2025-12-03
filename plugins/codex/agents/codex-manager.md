@@ -39,9 +39,8 @@ The codex repository follows the naming pattern: `codex.{organization}.{tld}` (e
 - NEVER use Bash for git operations - delegate to repo plugin via skills
 
 **IMPORTANT: CONFIGURATION IS REQUIRED**
-- Global config: `~/.config/fractary/codex/config.json` OR
 - Project config: `.fractary/plugins/codex/config.json`
-- At least one must exist before sync operations
+- Must exist before sync operations
 - Use **init** operation to create configuration if missing
 - NEVER hardcode organization names or repository names
 - ALWAYS read configuration from files
@@ -78,33 +77,43 @@ Parse the operation and delegate to the appropriate skill:
 
 ## Operation: init
 
-**Purpose**: Create global and/or project configuration with auto-detection
+**Purpose**: Create project configuration with auto-detection and optional migration
 
 **Steps**:
-1. Parse scope from parameters:
-   - `scope`: "global", "project", or "both" (default: both)
+1. Parse parameters:
    - `organization`: Organization name (auto-detect if missing)
    - `codex_repo`: Codex repository name (prompt if missing)
+   - `migrate_from_global`: Boolean - migrate settings from legacy global config
+   - `remove_global_config`: Boolean - delete global config after migration
 
-2. If organization not provided:
+2. If `migrate_from_global` is true:
+   - Read existing global config from `~/.config/fractary/codex/config.json`
+   - Extract: organization, codex_repo, sync_patterns, exclude_patterns, handlers
+   - Use these as defaults for project config
+
+3. If organization not provided (and not migrating):
    - Auto-detect from git remote URL
    - Extract organization from origin (e.g., `github.com/fractary/...` → "fractary")
    - Prompt user to confirm
 
-3. If codex_repo not provided:
+4. If codex_repo not provided (and not migrating):
    - Look for repos matching `codex.*` pattern in organization
    - If found: prompt user to confirm
    - If not found or multiple: prompt user to specify
 
-4. Create configuration file(s):
-   - Global: `~/.config/fractary/codex/config.json`
+5. Create configuration file:
    - Project: `.fractary/plugins/codex/config.json`
    - Use schema from `.claude-plugin/config.schema.json`
-   - Copy from example files in `config/` directory
+   - Copy from `config/codex.example.json` as template
+   - Populate with provided/migrated values
 
-5. Validate configuration against schema
+6. Validate configuration against schema
 
-6. Report success with file paths created
+7. If `remove_global_config` is true:
+   - Delete `~/.config/fractary/codex/config.json`
+   - Report that legacy config was removed
+
+8. Report success with file path created
 
 **Delegation**: Handle directly (no skill needed - configuration is simple file creation)
 
@@ -119,7 +128,7 @@ Parse the operation and delegate to the appropriate skill:
 - `patterns`: Optional array of glob patterns to override config
 
 **Prerequisites**:
-- Configuration must exist (global or project)
+- Configuration must exist at `.fractary/plugins/codex/config.json`
 - Read configuration to get: organization, codex_repo, sync_patterns
 
 **Delegation**:
@@ -152,7 +161,7 @@ Arguments: {
 - `parallel`: Number of parallel sync operations (default: from config, typically 5)
 
 **Prerequisites**:
-- Configuration must exist (global required for org-wide operations)
+- Configuration must exist at `.fractary/plugins/codex/config.json`
 - Read configuration to get: organization, codex_repo, default_sync_patterns
 
 **Delegation**:
@@ -287,9 +296,9 @@ Arguments: {
 An operation is complete when:
 
 ✅ **For init operation**:
-- Configuration file(s) created successfully
+- Configuration file created at `.fractary/plugins/codex/config.json`
 - Configuration validated against schema
-- File paths reported to user
+- File path reported to user
 - No errors occurred
 
 ✅ **For sync-project operation**:
@@ -427,24 +436,26 @@ Please specify: <what to provide>
   </SKILL_FAILURE>
 
   <MISSING_CONFIG>
-  If configuration is missing:
+  If configuration is missing at `.fractary/plugins/codex/config.json`:
   1. Inform user that configuration is required
   2. Suggest running: `/fractary-codex:init`
   3. Explain what the init command will do
   4. DO NOT proceed with sync operations without configuration
+  5. DO NOT look for or use global config at `~/.config/...`
 
   Example:
   ```
   ⚠️ CONFIGURATION REQUIRED
 
-  The codex plugin requires configuration before sync operations.
+  The codex plugin requires configuration at:
+  .fractary/plugins/codex/config.json
 
   Please run: /fractary-codex:init
 
   This will:
   - Auto-detect your organization from the git remote
   - Help you specify the codex repository
-  - Create configuration files with sensible defaults
+  - Create project configuration with sensible defaults
 
   After initialization, you can run sync operations.
   ```
