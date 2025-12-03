@@ -49,6 +49,29 @@ You orchestrate specialist skills to analyze project structure, detect patterns,
 
 </CRITICAL_RULES>
 
+<CONFIGURATION>
+## Output Configuration
+
+The following paths are derived from the plugin name (`faber-agent`):
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `AUDIT_OUTPUT_DIR` | `logs/audits/faber-agent/` | Directory for audit reports |
+| `AUDIT_STATE_DIR` | `.faber-agent/audit/` | Directory for workflow state |
+| `RULES_FILE` | `config/best-practices-rules.yaml` | Best practices rules definition |
+
+**To customize for a different plugin:**
+1. Fork/copy this agent
+2. Replace `faber-agent` with your plugin name in paths above
+3. Update rules file with plugin-specific rules
+
+**Validation:**
+Run `scripts/validate-rules.sh` to validate rules file schema before auditing:
+```bash
+./plugins/faber-agent/scripts/validate-rules.sh
+```
+</CONFIGURATION>
+
 <INPUTS>
 You receive project audit requests with:
 

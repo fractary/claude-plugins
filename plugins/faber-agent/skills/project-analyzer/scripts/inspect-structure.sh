@@ -3,17 +3,24 @@ set -euo pipefail
 
 # inspect-structure.sh
 # Scan Claude Code project and collect structural information
+# Uses jq for safe JSON construction with proper escaping
 
 PROJECT_PATH="${1:-.}"
 
+# Check for jq dependency
+if ! command -v jq &> /dev/null; then
+  echo '{"status": "error", "error": "missing_dependency", "message": "jq is required but not installed", "resolution": "Install jq: apt install jq / brew install jq"}'
+  exit 1
+fi
+
 # Validate project path
 if [[ ! -d "$PROJECT_PATH" ]]; then
-  echo "{\"status\": \"error\", \"error\": \"project_not_found\", \"message\": \"Directory does not exist: $PROJECT_PATH\"}"
+  jq -n --arg path "$PROJECT_PATH" '{status: "error", error: "project_not_found", message: ("Directory does not exist: " + $path)}'
   exit 1
 fi
 
 if [[ ! -d "$PROJECT_PATH/.claude" ]]; then
-  echo "{\"status\": \"error\", \"error\": \"invalid_project\", \"message\": \".claude/ directory not found\", \"resolution\": \"Ensure this is a valid Claude Code project root\"}"
+  jq -n '{status: "error", error: "invalid_project", message: ".claude/ directory not found", resolution: "Ensure this is a valid Claude Code project root"}'
   exit 1
 fi
 
@@ -82,42 +89,54 @@ elif [[ ${#SKILL_FILES[@]} -gt 0 && ${#AGENT_FILES[@]} -gt 0 ]]; then
   fi
 fi
 
-# Build JSON arrays
-AGENT_FILES_JSON=$(printf ',"%s"' "${AGENT_FILES[@]}" 2>/dev/null || echo "")
-AGENT_FILES_JSON="[${AGENT_FILES_JSON:1}]"
-AGENT_NAMES_JSON=$(printf ',"%s"' "${AGENT_NAMES[@]}" 2>/dev/null || echo "")
-AGENT_NAMES_JSON="[${AGENT_NAMES_JSON:1}]"
-
-SKILL_FILES_JSON=$(printf ',"%s"' "${SKILL_FILES[@]}" 2>/dev/null || echo "")
-SKILL_FILES_JSON="[${SKILL_FILES_JSON:1}]"
-SKILL_NAMES_JSON=$(printf ',"%s"' "${SKILL_NAMES[@]}" 2>/dev/null || echo "")
-SKILL_NAMES_JSON="[${SKILL_NAMES_JSON:1}]"
-
-COMMAND_FILES_JSON=$(printf ',"%s"' "${COMMAND_FILES[@]}" 2>/dev/null || echo "")
-COMMAND_FILES_JSON="[${COMMAND_FILES_JSON:1}]"
-COMMAND_NAMES_JSON=$(printf ',"%s"' "${COMMAND_NAMES[@]}" 2>/dev/null || echo "")
-COMMAND_NAMES_JSON="[${COMMAND_NAMES_JSON:1}]"
-
-# Output JSON
-cat <<EOF
-{
-  "status": "success",
-  "project_path": "$PROJECT_PATH",
-  "agents": {
-    "count": ${#AGENT_FILES[@]},
-    "files": $AGENT_FILES_JSON,
-    "names": $AGENT_NAMES_JSON
-  },
-  "skills": {
-    "count": ${#SKILL_FILES[@]},
-    "files": $SKILL_FILES_JSON,
-    "names": $SKILL_NAMES_JSON
-  },
-  "commands": {
-    "count": ${#COMMAND_FILES[@]},
-    "files": $COMMAND_FILES_JSON,
-    "names": $COMMAND_NAMES_JSON
-  },
-  "project_type": "$PROJECT_TYPE"
+# Build JSON arrays using jq for proper escaping
+# Convert bash arrays to JSON arrays safely
+array_to_json() {
+  local arr=("$@")
+  if [[ ${#arr[@]} -eq 0 ]]; then
+    echo "[]"
+  else
+    printf '%s\n' "${arr[@]}" | jq -R . | jq -s .
+  fi
 }
-EOF
+
+AGENT_FILES_JSON=$(array_to_json "${AGENT_FILES[@]}")
+AGENT_NAMES_JSON=$(array_to_json "${AGENT_NAMES[@]}")
+SKILL_FILES_JSON=$(array_to_json "${SKILL_FILES[@]}")
+SKILL_NAMES_JSON=$(array_to_json "${SKILL_NAMES[@]}")
+COMMAND_FILES_JSON=$(array_to_json "${COMMAND_FILES[@]}")
+COMMAND_NAMES_JSON=$(array_to_json "${COMMAND_NAMES[@]}")
+
+# Output JSON using jq for proper escaping
+jq -n \
+  --arg project_path "$PROJECT_PATH" \
+  --arg project_type "$PROJECT_TYPE" \
+  --argjson agent_count "${#AGENT_FILES[@]}" \
+  --argjson agent_files "$AGENT_FILES_JSON" \
+  --argjson agent_names "$AGENT_NAMES_JSON" \
+  --argjson skill_count "${#SKILL_FILES[@]}" \
+  --argjson skill_files "$SKILL_FILES_JSON" \
+  --argjson skill_names "$SKILL_NAMES_JSON" \
+  --argjson command_count "${#COMMAND_FILES[@]}" \
+  --argjson command_files "$COMMAND_FILES_JSON" \
+  --argjson command_names "$COMMAND_NAMES_JSON" \
+  '{
+    status: "success",
+    project_path: $project_path,
+    agents: {
+      count: $agent_count,
+      files: $agent_files,
+      names: $agent_names
+    },
+    skills: {
+      count: $skill_count,
+      files: $skill_files,
+      names: $skill_names
+    },
+    commands: {
+      count: $command_count,
+      files: $command_files,
+      names: $command_names
+    },
+    project_type: $project_type
+  }'
