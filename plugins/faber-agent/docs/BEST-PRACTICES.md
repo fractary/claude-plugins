@@ -476,6 +476,63 @@ All faber-agent based projects SHOULD integrate with these plugins:
 - Audit trails
 - Error logs
 - Phase completion records
+- **Workflow event emission** (see below)
+
+### Workflow Event Logging (Required)
+
+All manager skills MUST emit structured workflow events for cross-project visibility and downstream consumption.
+
+**Integration via Manager**:
+The manager skill emits events at orchestration points - individual workflow step skills do NOT emit events.
+
+```markdown
+# In manager skill's workflow orchestration:
+
+## At workflow start:
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "workflow_start",
+  "workflow_id": WORKFLOW_ID,
+  "payload": { "context": {...} }
+})
+
+## After each step:
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "step_complete",
+  "workflow_id": WORKFLOW_ID,
+  "payload": { "step": {"name": "validate", "status": "success"} }
+})
+
+## When artifacts created:
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "artifact_create",
+  "workflow_id": WORKFLOW_ID,
+  "payload": { "artifact": {"type": "dataset", "table": "ipeds_hd", ...} }
+})
+
+## At workflow end:
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "workflow_complete",
+  "workflow_id": WORKFLOW_ID,
+  "payload": { "status": "success", "summary": {...} }
+})
+```
+
+**Minimum Events** (for 80% of value):
+1. `workflow_start` - At initialization
+2. `artifact_create` - When important outputs created (most valuable for downstream)
+3. `workflow_complete` - At end with summary
+
+**Why Centralized in Manager**:
+- Single integration point (not every skill)
+- Consistent regardless of which steps execute
+- Works with `--action` subsets
+- Enables cross-project polling via S3
+
+**Reference**: See [WORK-00199 spec](/specs/WORK-00199-automatic-manager-workflow-logging.md) for full integration guide.
 
 **fractary-file**:
 - Storing artifacts to cloud
@@ -524,6 +581,127 @@ All faber-agent based projects SHOULD integrate with these plugins:
 
 ---
 
+## 9. Multiple Workflows for Action Combinations
+
+Instead of creating direct skill commands for common operations, define **multiple workflows** that the manager can execute.
+
+### The Problem with Direct Commands
+
+Projects often want convenience commands for common operations:
+```bash
+# These seem convenient but bypass the manager
+/myproject-validate dataset-123     # ❌ Direct to skill
+/myproject-load dataset-123         # ❌ Direct to skill
+/myproject-create-loader ipeds      # ❌ Direct to skill
+```
+
+This breaks centralized logging and orchestration.
+
+### The Solution: Named Workflows
+
+Define multiple workflows in your project configuration:
+
+```json
+// .fractary/plugins/{project}/config.json
+{
+  "workflows": {
+    "full": {
+      "description": "Complete pipeline: validate → load → test → document",
+      "steps": ["validate", "load", "test", "document"]
+    },
+    "validate-only": {
+      "description": "Validation check without loading",
+      "steps": ["validate"]
+    },
+    "load": {
+      "description": "Load data (includes validation)",
+      "steps": ["validate", "load"]
+    },
+    "create-loader": {
+      "description": "Scaffold a new loader",
+      "steps": ["scaffold-loader", "generate-schema", "create-tests"]
+    },
+    "refresh": {
+      "description": "Re-run load and downstream steps",
+      "steps": ["load", "test", "document"]
+    }
+  }
+}
+```
+
+### Usage Pattern
+
+All operations go through the same director command:
+
+```bash
+# Full pipeline (default)
+/myproject-direct dataset-123
+
+# Specific workflow
+/myproject-direct dataset-123 --workflow validate-only
+
+# Or use --action for ad-hoc step combinations
+/myproject-direct dataset-123 --action validate,load
+```
+
+### How the Manager Handles It
+
+```markdown
+<WORKFLOW>
+
+## Step 1: Determine Steps to Execute
+
+1. If `--workflow` specified:
+   - Load workflow definition from config
+   - Set steps = workflow.steps
+
+2. If `--action` specified:
+   - Parse comma-separated actions
+   - Set steps = parsed actions
+
+3. If neither specified:
+   - Use "full" workflow (or first defined)
+
+## Step 2: Execute Steps with Logging
+
+For each step in steps:
+  1. Emit step_start event
+  2. Invoke step skill
+  3. Emit step_complete event (with artifacts if any)
+
+## Step 3: Complete Workflow
+
+Emit workflow_complete with summary of all steps executed
+
+</WORKFLOW>
+```
+
+### Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **Single Entry Point** | One director command handles all operations |
+| **Centralized Logging** | All workflows emit consistent events |
+| **Configurable** | Workflows defined in config, not code |
+| **Discoverable** | Users can list available workflows |
+| **Composable** | `--action` allows ad-hoc combinations |
+
+### Creating "Convenience" Commands (If Needed)
+
+If you want short command aliases, create thin wrappers that route to the director:
+
+```markdown
+# /myproject-validate Command
+
+<WORKFLOW>
+1. Invoke: /myproject-direct {entity} --workflow validate-only
+</WORKFLOW>
+```
+
+This preserves the convenience while maintaining centralized orchestration.
+
+---
+
 ## Anti-Patterns to Avoid
 
 ### 1. Director as Agent
@@ -550,21 +728,60 @@ All faber-agent based projects SHOULD integrate with these plugins:
 **Wrong**: Custom logging, custom spec format, direct git commands.
 **Right**: Use fractary-logs, fractary-specs, fractary-repo plugins.
 
+### 7. Direct Skill Commands (Bypassing Manager)
+**Wrong**: Creating commands that invoke skills directly, bypassing the manager.
+```bash
+# ❌ BAD - bypasses manager, no centralized logging or orchestration
+/myproject-validate dataset-123
+/myproject-load dataset-123
+```
+
+**Right**: Always route through the director command with `--action` flag.
+```bash
+# ✅ GOOD - routes through manager, gets workflow logging
+/myproject-direct dataset-123 --action validate
+/myproject-direct dataset-123 --action load
+```
+
+**Why This Matters**:
+- Direct skill commands bypass the manager's centralized logging
+- No workflow events emitted (breaks cross-project visibility)
+- Inconsistent error handling and state management
+- Would require adding logging to EVERY individual skill (duplicative)
+
+**Exception**: The director command itself is the only entry point. All other "convenience" commands should internally route through the manager.
+
+**For common action combinations**, define multiple workflows (see Section 9).
+
 ---
 
 ## Migration Checklist
 
 If updating an existing project to follow these best practices:
 
+### Command Structure
 - [ ] Rename primary command to `/{project}-direct`
 - [ ] Add `--action` argument support (comma-separated)
+- [ ] Add `--workflow` argument support for named workflows
+- [ ] **Deprecate direct skill commands** (e.g., `/{project}-validate`)
+- [ ] If convenience commands needed, make them thin wrappers to director
+
+### Architecture
 - [ ] Convert director from agent to skill
 - [ ] Ensure only one manager agent exists
 - [ ] Convert workflow step agents to skills
 - [ ] Add documentation update requirement to builder
 - [ ] Create debugger skill with knowledge base
+
+### Plugin Integrations
 - [ ] Add fractary plugin integrations
+- [ ] **Add workflow event logging to manager skill**
+- [ ] Configure S3 push for workflow logs (if cross-project needed)
 - [ ] Update all templates to follow patterns
+
+### Workflow Configuration
+- [ ] Define named workflows in config for common action combinations
+- [ ] Document available workflows for users
 
 ---
 
@@ -575,6 +792,7 @@ If updating an existing project to follow these best practices:
 - **Pattern: Builder/Debugger** - `/docs/patterns/builder-debugger.md`
 - **Migration Guides** - `/docs/migration/`
 - **Plugin Standards** - `/docs/standards/FRACTARY-PLUGIN-STANDARDS.md`
+- **Workflow Event Logging Spec** - `/specs/WORK-00199-automatic-manager-workflow-logging.md`
 
 ---
 
@@ -582,4 +800,5 @@ If updating an existing project to follow these best practices:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2025-12-02 | Added workflow event logging (Section 8), multiple workflows (Section 9), deprecate direct skill commands (Anti-pattern #7) |
 | 1.0.0 | 2025-12-02 | Initial best practices document |
