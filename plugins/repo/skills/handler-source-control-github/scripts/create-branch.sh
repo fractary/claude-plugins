@@ -39,6 +39,14 @@ git branch "$BRANCH_NAME" "$BASE_BRANCH"
 if [ "$CHECKOUT" = "true" ]; then
     git checkout "$BRANCH_NAME"
     echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' and checked out"
+
+    # Update status cache to reflect branch change (triggers issue_id extraction)
+    # This ensures the status line immediately shows the new branch
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    CACHE_UPDATE_SCRIPT="${SCRIPT_DIR}/../../../scripts/update-status-cache.sh"
+    if [ -f "$CACHE_UPDATE_SCRIPT" ]; then
+        "$CACHE_UPDATE_SCRIPT" --quiet 2>/dev/null || true
+    fi
 else
     echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' (not checked out)"
 fi
