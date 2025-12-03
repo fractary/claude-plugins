@@ -42,10 +42,24 @@ if [ "$CHECKOUT" = "true" ]; then
 
     # Update status cache to reflect branch change (triggers issue_id extraction)
     # This ensures the status line immediately shows the new branch
+    #
+    # Path resolution: Find plugin root by looking for .claude-plugin marker
+    # Structure: plugins/repo/skills/handler-source-control-github/scripts/create-branch.sh
+    #            plugins/repo/.claude-plugin (marker)
+    #            plugins/repo/scripts/update-status-cache.sh (target)
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    CACHE_UPDATE_SCRIPT="${SCRIPT_DIR}/../../../scripts/update-status-cache.sh"
-    if [ -f "$CACHE_UPDATE_SCRIPT" ]; then
-        "$CACHE_UPDATE_SCRIPT" --quiet 2>/dev/null || true
+
+    # Navigate up to find plugin root (contains .claude-plugin directory)
+    PLUGIN_ROOT="$SCRIPT_DIR"
+    while [ "$PLUGIN_ROOT" != "/" ] && [ ! -d "$PLUGIN_ROOT/.claude-plugin" ]; do
+        PLUGIN_ROOT="$(dirname "$PLUGIN_ROOT")"
+    done
+
+    if [ -d "$PLUGIN_ROOT/.claude-plugin" ]; then
+        CACHE_UPDATE_SCRIPT="$PLUGIN_ROOT/scripts/update-status-cache.sh"
+        if [ -f "$CACHE_UPDATE_SCRIPT" ]; then
+            "$CACHE_UPDATE_SCRIPT" --quiet 2>/dev/null || true
+        fi
     fi
 else
     echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' (not checked out)"

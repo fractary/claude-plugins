@@ -159,7 +159,6 @@ if EXISTING_WORKTREE=$("$WORKTREE_CHECK_SCRIPT" "$WORK_ID" 2>/dev/null); then
     # Switch to worktree directory
     cd "$EXISTING_WORKTREE"
 
-    # Mark as reused - skip branch creation steps (5-7), proceed to cache update (8) and completion (9)
     WORKTREE_REUSED=true
     WORKTREE_PATH="$EXISTING_WORKTREE"
 else
@@ -167,7 +166,15 @@ else
 fi
 ```
 
-**IMPORTANT**: If `WORKTREE_REUSED=true`, skip steps 5-7 (protected branches check, handler invocation, validation) and proceed directly to step 8 (cache update) and step 9 (completion message).
+---
+**⚡ WORKFLOW DECISION POINT:**
+
+| Condition | Execute Steps | Skip Steps |
+|-----------|---------------|------------|
+| `WORKTREE_REUSED=true` | 8, 9 | 5, 6, 7 |
+| `WORKTREE_REUSED=false` | 5, 6, 7, 8, 9 | (none) |
+
+---
 
 **Note**: Uses `scripts/check-worktree.sh` to check registry and validate worktree path. This script:
 - Checks `~/.fractary/repo/worktrees.json` for work_id mapping
@@ -239,32 +246,16 @@ echo "✅ Switched to worktree directory: $WORKTREE_PATH"
 - If worktree mode: Confirm worktree directory exists and is accessible
 - Confirm current directory is worktree (if worktree mode)
 
-**8. UPDATE REPO CACHE:**
+**8. CACHE UPDATE (AUTOMATIC):**
 
-After successful branch creation/checkout, update the repo plugin cache to reflect the new branch:
+The handler script (`create-branch.sh`) automatically updates the status cache after checkout. No manual action needed.
 
-```bash
-# Update repo cache to reflect branch change (triggers issue_id extraction)
-# Note: The handler script (create-branch.sh) now calls this automatically after checkout
-# This step verifies the cache was updated and reports the result
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CACHE_UPDATE_SCRIPT="$SCRIPT_DIR/../scripts/update-status-cache.sh"
-
-if [ -f "$CACHE_UPDATE_SCRIPT" ]; then
-    if "$CACHE_UPDATE_SCRIPT" --quiet 2>/dev/null; then
-        echo "🔄 Status cache updated - status line now reflects new branch"
-    else
-        echo "⚠️ Status cache update failed (non-critical)"
-    fi
-fi
-```
-
-This proactively updates:
+**What gets updated:**
 - Current branch name
-- Issue ID (extracted from new branch name)
-- PR number (will be empty for newly created branch)
+- Issue ID (extracted from new branch name using pattern `prefix/ID-description`)
+- PR number (empty for newly created branches)
 
-**CRITICAL**: The handler script (`create-branch.sh`) now automatically updates the cache after checkout. This step is a verification/fallback to ensure the cache is current.
+**Note**: Cache update is handled by the handler script to ensure deterministic execution. The skill does not need to invoke cache updates separately.
 
 **9. OUTPUT COMPLETION MESSAGE:**
 
