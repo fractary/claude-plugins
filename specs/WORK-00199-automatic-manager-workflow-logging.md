@@ -16,68 +16,120 @@
 
 ## Problem Statement
 
-Multiple projects in the Fractary ecosystem use the **manager-as-orchestrator pattern** to orchestrate workflow steps. Each project has historically implemented its own changelog/event logging mechanism, leading to:
+Multiple projects in the Fractary ecosystem use the **manager-as-orchestrator pattern** to orchestrate workflow steps. This includes:
+
+- **faber-manager** in the FABER workflow
+- **Custom project managers** (e.g., `corthion-manager` in etl.corthion.ai)
+- **Direct commands** that bypass the full FABER harness
+
+Each project has historically implemented its own changelog/event logging mechanism, leading to:
 
 1. **Inconsistent formats** across projects
 2. **Duplicate effort** implementing logging in each project
 3. **Missed events** when developers forget to log
 4. **No cross-project visibility** - downstream systems can't easily consume upstream workflow events
 
-The faber-manager skill already has structured phase/step execution with state management, but it doesn't emit standardized workflow events that can be consumed by downstream systems.
+**Key Insight**: Not all projects use the full FABER workflow harness. Many have custom directors and managers that work locally. We need a solution that works for BOTH:
+- Projects using faber-manager
+- Projects with custom manager skills
 
 ---
 
 ## Solution Overview
 
-Enhance the faber-manager skill to **automatically emit workflow events** at key points during execution, using the existing fractary-logs `workflow` log type. Events are written locally and optionally pushed to S3 for cross-project consumption.
+Create a **standalone workflow-event-emitter skill** in the fractary-logs plugin that ANY manager skill can use to emit structured workflow events.
 
-### Key Insight
+### Two Integration Paths
 
-The faber-manager skill already has the perfect structure for event emission:
-- Step 3 (Initialize Logging) sets up fractary-logs integration
-- Phase execution loop has clear start/end points
-- State is tracked with timestamps and artifacts
-- Hook execution is already logged
+1. **FABER Projects**: faber-manager skill automatically emits events (zero manual effort)
+2. **Custom Projects**: Project manager skills integrate with workflow-event-emitter (simple integration guide)
 
-**The enhancement**: Make logging structured, standardized, and S3-pushable.
+### Core Primitive
+
+The **workflow-event-emitter** skill is a standalone primitive that:
+- Accepts event type and payload
+- Generates workflow_id if not provided
+- Writes to fractary-logs with `workflow` log type
+- Optionally pushes to S3 for cross-project access
+
+Any manager skill can invoke it directly - no FABER dependency required.
 
 ---
 
 ## Architecture
 
+### Two Integration Paths
+
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                    faber-manager Skill                           │
-├──────────────────────────────────────────────────────────────────┤
-│  Workflow Start                                                  │
-│     └─→ emit_workflow_event("workflow_start", {...})            │
-│                                                                  │
-│  For Each Phase:                                                 │
-│     ├─→ emit_workflow_event("phase_start", {...})               │
-│     │                                                            │
-│     │   For Each Step:                                           │
-│     │      ├─→ emit_workflow_event("step_start", {...})         │
-│     │      └─→ emit_workflow_event("step_complete", {...})      │
-│     │                                                            │
-│     │   On Artifact Created:                                     │
-│     │      └─→ emit_workflow_event("artifact_create", {...})    │
-│     │                                                            │
-│     └─→ emit_workflow_event("phase_complete", {...})            │
-│                                                                  │
-│  Workflow Complete                                               │
-│     └─→ emit_workflow_event("workflow_complete", {...})         │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    PATH 1: FABER WORKFLOW (Automatic)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  faber-manager Skill                                                        │
+│     ├─→ emit_workflow_event("workflow_start", {...})    ← AUTOMATIC       │
+│     ├─→ emit_workflow_event("phase_start", {...})       ← AUTOMATIC       │
+│     ├─→ emit_workflow_event("step_complete", {...})     ← AUTOMATIC       │
+│     └─→ emit_workflow_event("workflow_complete", {...}) ← AUTOMATIC       │
+│                                                                             │
+│  Projects using /faber:run get logging with ZERO additional effort         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    fractary-logs Plugin                          │
-├──────────────────────────────────────────────────────────────────┤
-│  log-writer skill                                                │
-│  ├── Writes to local: .fractary/logs/workflow/                  │
-│  └── Pushes to S3: s3://{bucket}/workflow/{year}/{month}/       │
-│                                                                  │
-│  Uses existing `workflow` log type standards                     │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    PATH 2: CUSTOM PROJECT MANAGERS (Integration)            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Custom Manager Skill (e.g., corthion-manager)                             │
+│     │                                                                       │
+│     ├── At workflow start:                                                  │
+│     │   Skill("fractary-logs:workflow-event-emitter",                      │
+│     │         operation="emit", event_type="workflow_start", ...)          │
+│     │                                                                       │
+│     ├── At step completion:                                                 │
+│     │   Skill("fractary-logs:workflow-event-emitter",                      │
+│     │         operation="emit", event_type="step_complete", ...)           │
+│     │                                                                       │
+│     └── At workflow end:                                                    │
+│         Skill("fractary-logs:workflow-event-emitter",                      │
+│               operation="emit", event_type="workflow_complete", ...)       │
+│                                                                             │
+│  Projects using custom managers integrate with ~10 lines per event         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              SHARED: workflow-event-emitter Skill (fractary-logs)           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  • Generates workflow_id if not provided                                    │
+│  • Adds timestamp, project, environment automatically                       │
+│  • Validates event schema                                                   │
+│  • Writes to fractary-logs with `workflow` log type                        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    fractary-logs Storage Layer                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  log-writer skill                                                           │
+│  ├── Local: .fractary/logs/workflow/workflow-{id}-{timestamp}.json        │
+│  └── Cloud: s3://{bucket}/workflow/{year}/{month}/ (if configured)        │
+│                                                                             │
+│  Uses existing `workflow` log type standards                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Downstream Consumers                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  • Poll S3 for events from any project                                     │
+│  • Filter by project, event_type, artifact_type                            │
+│  • Trigger downstream workflows (e.g., Glue catalog updates)               │
+│  • Future: Master dashboard aggregating all projects                        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -547,6 +599,7 @@ Based on SPEC-00047 and adapted for this implementation:
 - [ ] Update faber README with event logging info
 - [ ] Add cross-project consumption examples
 - [ ] Document configuration options
+- [ ] **Update faber-agent BEST-PRACTICES.md** with workflow event logging guidance (Section 8)
 
 ### Task 5: Testing
 
@@ -597,13 +650,254 @@ Based on SPEC-00047 and adapted for this implementation:
 
 | Benefit | Description |
 |---------|-------------|
-| **Automatic** | Events emitted without manual intervention at each orchestration point |
-| **Consistent** | All projects using faber-manager get same event schema |
-| **Reusable** | Framework enhancement benefits all projects |
+| **Automatic (FABER)** | Projects using faber-manager get logging with zero effort |
+| **Simple Integration (Custom)** | Custom managers integrate with ~10 lines per event |
+| **Consistent Schema** | All projects use same event format regardless of manager type |
+| **Standalone Primitive** | workflow-event-emitter works independently of FABER |
 | **Traceable** | Full workflow lineage available |
-| **Cross-Project** | S3 enables downstream polling |
+| **Cross-Project** | S3 enables downstream polling from any project |
 | **Configurable** | Can be disabled for testing |
-| **Resume-Safe** | Events tracked in state to prevent duplicates |
+| **Minimal Viable** | Start with just 3 events (start, artifact, complete) for 80% value |
+
+---
+
+## Custom Project Manager Integration Guide
+
+This section provides guidance for projects that use custom manager skills (not faber-manager) to integrate with workflow event logging.
+
+### When to Use This Guide
+
+Use this guide if your project:
+- Has a custom manager skill (e.g., `corthion-manager`, `myproject-manager`)
+- Uses direct commands without the FABER harness
+- Wants consistent workflow logging without adopting full FABER workflow
+
+### Integration Pattern
+
+Add event emission calls to your manager skill's workflow at these key points:
+
+#### 1. At Workflow Start
+
+Add to your manager skill's initialization section:
+
+```markdown
+<WORKFLOW>
+## Phase 0: Initialize Workflow Logging
+
+1. Generate workflow ID:
+   ```
+   WORKFLOW_ID="workflow-${entity_id}-$(date -u +%Y%m%dT%H%M%SZ)"
+   ```
+
+2. Emit workflow start event:
+   ```
+   Skill("fractary-logs:workflow-event-emitter", {
+     "operation": "emit",
+     "event_type": "workflow_start",
+     "workflow_id": WORKFLOW_ID,
+     "payload": {
+       "context": {
+         "entity_id": entity_id,
+         "entity_type": "dataset",
+         "action": requested_action
+       }
+     }
+   })
+   ```
+</WORKFLOW>
+```
+
+#### 2. At Each Step Completion
+
+Wrap your step execution with event emission:
+
+```markdown
+## Step: {step_name}
+
+1. Emit step start (optional, for detailed tracking):
+   ```
+   Skill("fractary-logs:workflow-event-emitter", {
+     "operation": "emit",
+     "event_type": "step_start",
+     "workflow_id": WORKFLOW_ID,
+     "payload": {
+       "step": {"name": "validate", "skill": "myproject-validator"}
+     }
+   })
+   ```
+
+2. Execute the step:
+   ```
+   Skill("myproject-validator", ...)
+   ```
+
+3. Emit step complete:
+   ```
+   Skill("fractary-logs:workflow-event-emitter", {
+     "operation": "emit",
+     "event_type": "step_complete",
+     "workflow_id": WORKFLOW_ID,
+     "payload": {
+       "step": {
+         "name": "validate",
+         "status": "success",
+         "duration_ms": step_duration
+       },
+       "artifacts": [...]  // if any created
+     }
+   })
+   ```
+```
+
+#### 3. On Artifact Creation
+
+When your workflow creates important artifacts:
+
+```markdown
+## After Creating Artifact
+
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "artifact_create",
+  "workflow_id": WORKFLOW_ID,
+  "payload": {
+    "artifact": {
+      "type": "dataset",
+      "dataset": "ipeds",
+      "table": "hd",
+      "version": "2024",
+      "path": "s3://bucket/path/to/data/",
+      "row_count": 6072
+    },
+    "step": "load"
+  }
+})
+```
+
+This is the most important event for downstream consumers (like lake.corthonomy.ai).
+
+#### 4. At Workflow End
+
+Complete the workflow with a summary event:
+
+```markdown
+## Final Step: Complete Workflow
+
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "workflow_complete",
+  "workflow_id": WORKFLOW_ID,
+  "payload": {
+    "status": workflow_status,  // "success" or "failure"
+    "duration_ms": total_duration,
+    "summary": {
+      "steps_executed": 4,
+      "steps_succeeded": 4,
+      "artifacts_created": 2
+    },
+    "artifacts": all_artifacts_list,
+    "downstream_impacts": [
+      {
+        "system": "lake.corthonomy.ai",
+        "impact_type": "data_refresh",
+        "action_required": "Update Glue catalog for ipeds_hd table"
+      }
+    ]
+  }
+})
+```
+
+### Minimal Integration (Recommended Start)
+
+If full step-by-step logging is too verbose, start with just **three events**:
+
+1. `workflow_start` - At the beginning
+2. `artifact_create` - When important outputs are created
+3. `workflow_complete` - At the end with summary
+
+This provides 80% of the value with minimal integration effort.
+
+### Example: ETL Manager Skill
+
+Here's a complete example for an ETL project manager:
+
+```markdown
+# corthion-manager Skill
+
+<WORKFLOW>
+
+## Initialize
+- Generate WORKFLOW_ID
+- Emit workflow_start
+
+## Phase: Extract
+- Run extraction skill
+- Emit step_complete
+
+## Phase: Transform
+- Run transformation skill
+- Emit step_complete
+
+## Phase: Load
+- Run load skill
+- Emit artifact_create for each dataset loaded
+- Emit step_complete
+
+## Phase: Validate
+- Run validation skill
+- Emit step_complete
+
+## Complete
+- Calculate summary
+- Emit workflow_complete with downstream_impacts
+
+</WORKFLOW>
+```
+
+### Configuration
+
+Custom project managers should configure S3 push in their logs config:
+
+```json
+// .fractary/plugins/logs/config.json
+{
+  "types": {
+    "workflow": {
+      "local_retention_days": 0,
+      "cloud_storage": {
+        "enabled": true,
+        "provider": "s3",
+        "bucket": "${ORG}.logs.${PROJECT}",
+        "prefix": "workflow/{year}/{month}/"
+      }
+    }
+  }
+}
+```
+
+Setting `local_retention_days: 0` means events go directly to S3 without local storage (useful for ETL projects that primarily serve downstream consumers).
+
+### Updating BEST-PRACTICES.md
+
+Add this to Section 8 (Required Plugin Integrations) in faber-agent's BEST-PRACTICES.md:
+
+```markdown
+### Workflow Event Logging
+
+All manager skills SHOULD emit structured workflow events for downstream consumption.
+
+**Integration Options:**
+
+1. **Use FABER**: Projects using `/faber:run` get automatic logging
+2. **Manual Integration**: Custom managers invoke `fractary-logs:workflow-event-emitter`
+
+**Minimum Events:**
+- `workflow_start` - At workflow initialization
+- `artifact_create` - When important outputs are created
+- `workflow_complete` - At workflow end with summary
+
+**Reference:** See WORK-00199 spec for detailed integration guide.
+```
 
 ---
 
@@ -620,9 +914,10 @@ Based on SPEC-00047 and adapted for this implementation:
 ## Related Documentation
 
 - [SPEC-00047](./SPEC-00047-framework-workflow-event-logging.md) - Original cross-project proposal
-- [fractary-logs workflow type](../plugins/logs/types/workflow/standards.md)
-- [faber-manager skill](../plugins/faber/skills/faber-manager/SKILL.md)
-- [Manager-as-orchestrator pattern](../docs/conversations/2025-10-22-cli-tool-reorganization-faber-details.md)
+- [faber-agent BEST-PRACTICES.md](../plugins/faber-agent/docs/BEST-PRACTICES.md) - Project manager patterns (Section 8 covers plugin integrations)
+- [Manager-as-Agent Pattern](../plugins/faber-agent/docs/standards/manager-as-agent-pattern.md) - Why managers are agents
+- [fractary-logs workflow type](../plugins/logs/types/workflow/standards.md) - Workflow log schema
+- [faber-manager skill](../plugins/faber/skills/faber-manager/SKILL.md) - FABER workflow orchestration
 
 ---
 
