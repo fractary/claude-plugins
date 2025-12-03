@@ -1,22 +1,32 @@
 ---
 name: project-analyzer
-description: Analyzes Claude Code project structure detecting architectural patterns and anti-patterns with context optimization opportunities
+description: Analyzes Claude Code project structure detecting architectural patterns and anti-patterns using formalized best practices rules
 ---
 
 # Project Analyzer Skill
 
 <CONTEXT>
-You analyze Claude Code projects to detect architectural patterns, anti-patterns, and calculate context optimization opportunities.
+You analyze Claude Code projects to detect architectural patterns and anti-patterns using the formalized rules in `config/best-practices-rules.yaml`.
 
-You perform factual analysis by executing deterministic scripts and returning structured results.
+You perform factual analysis by executing deterministic scripts and returning structured results that include:
+- Component-by-component compliance status
+- Rule violations with evidence (code snippets, line numbers)
+- Proposed fixes for each violation
 </CONTEXT>
+
+<CONFIGURATION>
+**Rules File:** `config/best-practices-rules.yaml`
+**Rules Version:** Check `version` field in rules file (e.g., "2025-12-02")
+</CONFIGURATION>
 
 <CRITICAL_RULES>
 1. ALWAYS use scripts for detection (never analyze files directly)
-2. ALWAYS return structured JSON output
-3. ALWAYS execute scripts from this skill's scripts/ directory
-4. NEVER modify project files (read-only analysis)
-5. NEVER make recommendations (analysis only - recommendations come from agent)
+2. ALWAYS load rules from config/best-practices-rules.yaml
+3. ALWAYS return structured JSON output with per-component results
+4. ALWAYS execute scripts from this skill's scripts/ directory
+5. ALWAYS include code snippets and line numbers for findings
+6. NEVER modify project files (read-only analysis)
+7. NEVER make recommendations (analysis only - agent generates recommendations)
 </CRITICAL_RULES>
 
 <OPERATIONS>
@@ -192,6 +202,155 @@ Detect Director-as-Agent anti-pattern specifically.
       "confidence": 0.90
     }
   ]
+}
+```
+
+---
+
+## evaluate-component
+
+Evaluate a single component against all applicable rules.
+
+**Input:**
+- `component_path`: Path to component file
+- `component_type`: Type of component ("command", "agent", "skill")
+
+**Process:**
+1. Load rules from config/best-practices-rules.yaml for component_type
+2. Read component file content
+3. For each applicable rule:
+   - Execute check (pattern match, frontmatter check, etc.)
+   - If rule fails, capture:
+     - Line numbers where issue found
+     - Code snippet (up to 20 lines)
+     - Rule remediation steps
+4. Return component evaluation result
+
+**Output:**
+```json
+{
+  "status": "success",
+  "component": {
+    "path": ".claude/commands/deploy.md",
+    "type": "command",
+    "name": "deploy"
+  },
+  "compliance": {
+    "is_compliant": false,
+    "passing_checks": 1,
+    "failing_checks": 2,
+    "total_checks": 3
+  },
+  "passing_rules": [
+    {
+      "rule_id": "CMD-002",
+      "rule_name": "Proper frontmatter"
+    }
+  ],
+  "failing_rules": [
+    {
+      "rule_id": "CMD-001",
+      "rule_name": "Command routes to agent",
+      "severity": "critical",
+      "evidence": {
+        "lines": [45, 52, 67],
+        "snippet": "<WORKFLOW>\n1. Run script\n   Bash: ./scripts/deploy.sh\n</WORKFLOW>",
+        "pattern_matched": "Bash:"
+      },
+      "current_state": "Command executes Bash directly",
+      "expected_state": "Command invokes agent",
+      "remediation_steps": [
+        "Create deploy-manager agent",
+        "Move deployment logic to agent",
+        "Update command to route to agent"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## evaluate-all-components
+
+Evaluate all components in project against rules.
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+- `inspection_results`: Results from inspect-structure operation
+
+**Process:**
+1. Load all rules from config/best-practices-rules.yaml
+2. For each component found in inspection_results:
+   - Call evaluate-component operation
+   - Aggregate results
+3. Calculate compliance scores by category
+4. Return comprehensive evaluation
+
+**Output:**
+```json
+{
+  "status": "success",
+  "project_path": "/path/to/project",
+  "rules_version": "2025-12-02",
+  "summary": {
+    "total_components": 14,
+    "compliant_components": 9,
+    "non_compliant_components": 5,
+    "compliance_score": 64,
+    "by_category": {
+      "commands": {"total": 4, "compliant": 3, "non_compliant": 1},
+      "agents": {"total": 2, "compliant": 1, "non_compliant": 1},
+      "skills": {"total": 8, "compliant": 5, "non_compliant": 3}
+    },
+    "by_severity": {
+      "critical": 3,
+      "warning": 4,
+      "info": 2
+    }
+  },
+  "components": [
+    {
+      "path": ".claude/commands/init.md",
+      "type": "command",
+      "is_compliant": true,
+      "passing_checks": 3,
+      "failing_checks": 0
+    },
+    {
+      "path": ".claude/commands/deploy.md",
+      "type": "command",
+      "is_compliant": false,
+      "passing_checks": 1,
+      "failing_checks": 2,
+      "issues": [
+        {
+          "rule_id": "CMD-001",
+          "rule_name": "Command routes to agent",
+          "severity": "critical",
+          "current_state": "Command executes Bash directly",
+          "expected_state": "Command invokes agent",
+          "evidence": {
+            "lines": [45, 52],
+            "snippet": "..."
+          },
+          "remediation_steps": ["..."]
+        }
+      ]
+    }
+  ],
+  "remediation_plan": {
+    "critical": [
+      {
+        "component": ".claude/commands/deploy.md",
+        "rule_id": "CMD-001",
+        "title": "Convert deploy command to route to agent",
+        "effort_estimate": "2 hours"
+      }
+    ],
+    "warning": [...],
+    "info": [...]
+  }
 }
 ```
 

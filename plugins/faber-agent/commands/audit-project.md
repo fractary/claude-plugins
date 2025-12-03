@@ -61,28 +61,30 @@ Your role is to parse user input and invoke the project-auditor agent with the a
 
 **Optional Arguments**:
 - `[project-path]`: Path to project directory (default: current directory)
-- `--output <file>`: Save audit report to file (default: display in console)
+- `--output <file>`: Custom output path (default: logs/audits/faber-agent/{timestamp}.[md|json])
 - `--format <format>`: Report format - "json" or "markdown" (default: markdown)
 - `--verbose`: Include detailed findings and code snippets (default: false)
+
+**Default Output Location**: `logs/audits/faber-agent/{timestamp}.[md|json]`
 
 **Maps to**: audit-project operation
 
 **Examples**:
 ```bash
-# Audit current directory
+# Audit current directory (saves to logs/audits/faber-agent/{timestamp}.[md|json])
 /fractary-faber-agent:audit-project
 
 # Audit specific project
 /fractary-faber-agent:audit-project /path/to/my-project
 
-# Save report to file
-/fractary-faber-agent:audit-project --output audit-report.md
+# Custom output path (overrides default location)
+/fractary-faber-agent:audit-project --output /custom/path/audit-report.md
 
 # JSON output for CI/CD integration
-/fractary-faber-agent:audit-project --format json --output audit.json
+/fractary-faber-agent:audit-project --format json
 
 # Verbose mode with detailed findings
-/fractary-faber-agent:audit-project --verbose --output detailed-audit.md
+/fractary-faber-agent:audit-project --verbose
 ```
 
 ## Argument Validation
@@ -222,7 +224,7 @@ Recommended Architecture:
 [... detailed report ...]
 
 ✅ COMPLETED: Project Auditor
-Report Location: console output
+Report Location: logs/audits/faber-agent/20251202T143000.md
 Next: Review recommendations and prioritize migrations
 ```
 
