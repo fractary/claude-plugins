@@ -2,7 +2,7 @@
 name: branch-namer
 description: Generate semantic branch names from work item metadata following conventions
 tools: Bash, SlashCommand
-model: inherit
+model: haiku
 ---
 
 # Branch Namer Skill
