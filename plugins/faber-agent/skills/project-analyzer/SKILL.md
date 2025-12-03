@@ -80,9 +80,12 @@ Detect all anti-patterns in project.
 **Process:**
 1. Execute: `scripts/detect-manager-as-skill.sh "{project_path}"`
 2. Execute: `scripts/detect-director-as-agent.sh "{project_path}"`
-3. Execute: `scripts/calculate-context-load.sh "{project_path}"`
-4. Aggregate results
-5. Return comprehensive analysis
+3. Execute: `scripts/detect-workflow-logging.sh "{project_path}"` (AGT-005)
+4. Execute: `scripts/detect-direct-skill-commands.sh "{project_path}"` (CMD-004)
+5. Execute: `scripts/detect-director-patterns.sh "{project_path}"` (ARC-004)
+6. Execute: `scripts/calculate-context-load.sh "{project_path}"`
+7. Aggregate results
+8. Return comprehensive analysis
 
 **Output:**
 ```json
@@ -200,6 +203,119 @@ Detect Director-as-Agent anti-pattern specifically.
       "evidence": "Agent only expands patterns, no orchestration",
       "simple_responsibility": true,
       "confidence": 0.90
+    }
+  ]
+}
+```
+
+---
+
+## detect-workflow-logging
+
+Detect missing workflow event logging in manager agents (AGT-005).
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+
+**Process:**
+1. Execute: `scripts/detect-workflow-logging.sh "{project_path}"`
+2. Return results
+
+**Output:**
+```json
+{
+  "status": "success",
+  "rule_id": "AGT-005",
+  "rule_name": "Manager emits workflow events",
+  "total_managers": 2,
+  "compliant_count": 1,
+  "non_compliant_count": 1,
+  "violations_found": true,
+  "compliant_managers": ["workflow-manager"],
+  "details": [
+    {
+      "name": "data-manager",
+      "location": ".claude/agents/data-manager.md",
+      "rule_id": "AGT-005",
+      "severity": "warning",
+      "evidence": "Manager agent lacks workflow event emission",
+      "remediation": ["Add <EVENT_EMISSION> section", "..."]
+    }
+  ]
+}
+```
+
+---
+
+## detect-direct-skill-commands
+
+Detect commands that invoke skills directly instead of routing through manager (CMD-004).
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+
+**Process:**
+1. Execute: `scripts/detect-direct-skill-commands.sh "{project_path}"`
+2. Return results
+
+**Output:**
+```json
+{
+  "status": "success",
+  "rule_id": "CMD-004",
+  "rule_name": "No direct skill commands",
+  "total_commands": 10,
+  "compliant_count": 8,
+  "non_compliant_count": 2,
+  "violations_found": true,
+  "compliant_commands": ["init", "status", "..."],
+  "details": [
+    {
+      "name": "validate",
+      "location": ".claude/commands/validate.md",
+      "rule_id": "CMD-004",
+      "severity": "critical",
+      "evidence": "Command invokes skill directly",
+      "remediation": ["Route through manager agent", "..."]
+    }
+  ]
+}
+```
+
+---
+
+## detect-director-patterns
+
+Detect missing director argument patterns (ARC-004).
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+
+**Process:**
+1. Execute: `scripts/detect-director-patterns.sh "{project_path}"`
+2. Return results
+
+**Output:**
+```json
+{
+  "status": "success",
+  "rule_id": "ARC-004",
+  "rule_name": "Director argument patterns",
+  "total_directors": 2,
+  "compliant_count": 1,
+  "non_compliant_count": 1,
+  "violations_found": true,
+  "compliant_directors": ["faber-director"],
+  "details": [
+    {
+      "name": "project-direct",
+      "location": ".claude/commands/project-direct.md",
+      "rule_id": "ARC-004",
+      "severity": "info",
+      "has_action": true,
+      "has_multi_step": false,
+      "issues": ["--action does not support comma-separated values"],
+      "remediation": ["Add multi-step support", "..."]
     }
   ]
 }
