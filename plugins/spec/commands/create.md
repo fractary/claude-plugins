@@ -1,7 +1,7 @@
 ---
 name: fractary-spec:create
 description: Create specification from conversation context
-argument-hint: [--work-id <id>] [--template <type>] [--context "<text>"]
+argument-hint: [--work-id <id>] [--template <type>] [--prompt "<instructions>"]
 ---
 
 Create a specification from current conversation context.
@@ -22,7 +22,7 @@ This command uses the full conversation context as the primary source for genera
 
 - `--work-id <id>`: Optional - Link to issue and enrich with issue data (description + all comments). If omitted, automatically detects issue ID from current branch name (e.g., `feat/123-description` → `123`)
 - `--template <type>`: Optional - Override auto-detection (basic|feature|infrastructure|api|bug)
-- `--context "<text>"`: Optional - Additional explicit context to consider
+- `--prompt "<instructions>"`: Optional - Instructions for how to generate the spec from conversation context
 
 ## Auto-Detection Behavior
 
@@ -98,12 +98,12 @@ Generates: `/specs/WORK-00123-<slug>.md`
 - Uses infrastructure template regardless of auto-detection
 - Links to issue #123
 
-### With Additional Context
+### With Additional Instructions
 
-Provide explicit context alongside conversation:
+Provide explicit instructions alongside conversation:
 
 ```bash
-/fractary-spec:create --context "Focus on REST API design with OAuth2" --work-id 123
+/fractary-spec:create --prompt "Focus on REST API design with OAuth2" --work-id 123
 ```
 
 Generates: `/specs/WORK-00123-<slug>.md`
@@ -260,7 +260,7 @@ Captures both the planning discussion AND the issue details.
 ### Multi-Phase Planning
 After discussing phase 1 of a complex feature:
 ```bash
-/fractary-spec:create --work-id 123 --context "Phase 1: User Authentication"
+/fractary-spec:create --work-id 123 --prompt "Phase 1: User Authentication"
 ```
 
 ## Recommended Workflow
@@ -291,7 +291,7 @@ After discussing phase 1 of a complex feature:
 
 **No slug generated**:
 - Ensure conversation has meaningful content
-- Use `--context` to provide explicit description
+- Use `--prompt` to provide explicit description
 - Fallback: timestamp-based naming
 
 **Template detection unclear**:

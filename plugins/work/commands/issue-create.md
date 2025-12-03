@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-create
 description: Create a new work item
-argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--context "<instructions>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create] [--spec-create]'
+argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--prompt "<instructions>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create] [--spec-create]'
 ---
 
 <CONTEXT>
@@ -35,7 +35,7 @@ Your role is to parse user input and invoke the work-manager agent to create a n
 <WORKFLOW>
 1. **Parse user input**
    - Extract title (required)
-   - Parse optional arguments: --type, --body, --context, --label, --milestone, --assignee, --branch-create, --spec-create
+   - Parse optional arguments: --type, --body, --prompt, --label, --milestone, --assignee, --branch-create, --spec-create
    - Validate required arguments are present
 
 2. **Capture working directory context**
@@ -43,15 +43,15 @@ Your role is to parse user input and invoke the work-manager agent to create a n
    - This ensures operations execute in the correct repository
    - Critical fix for agent execution context bug
 
-3. **Handle --context argument (if provided)**
-   - If `--context` is provided but `--body` is NOT provided:
+3. **Handle --prompt argument (if provided)**
+   - If `--prompt` is provided but `--body` is NOT provided:
      - Use the conversation history plus the context instructions to **generate** an appropriate issue body
      - The context argument provides guidance on what to include, how to structure it, or what aspects to focus on
      - Leverage all relevant discussion, decisions, and plans from the current conversation
      - Generate a well-structured issue body that captures the agreed-upon approach
-   - If both `--context` and `--body` are provided:
+   - If both `--prompt` and `--body` are provided:
      - Use `--body` as the base, but enhance/refine it using the context instructions
-   - If only `--body` is provided (no `--context`):
+   - If only `--body` is provided (no `--prompt`):
      - Use `--body` as-is (current behavior)
 
 4. **Build structured request**
@@ -124,7 +124,7 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 **Optional Arguments**:
 - `--type`: Issue type (feature|bug|chore|patch, default: feature) - Automatically converted to "type: <value>" label
 - `--body`: Issue description (use quotes if multi-word) - exact text to use as body
-- `--context`: Instructions for generating the issue body from conversation context (use quotes). When provided without `--body`, Claude will craft the body using the current conversation plus these instructions. This is useful for capturing discussion, decisions, and plans into a well-structured issue.
+- `--prompt`: Instructions for generating the issue body from conversation context (use quotes). When provided without `--body`, Claude will craft the body using the current conversation plus these instructions. This is useful for capturing discussion, decisions, and plans into a well-structured issue.
 - `--label`: Additional labels (can be repeated, space-separated values not allowed)
 - `--milestone`: Milestone name or number
 - `--assignee`: User to assign (use @me for yourself)
@@ -135,11 +135,11 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 **Type Conversion**: The `--type` flag is automatically converted to a label in the format "type: <value>". For example, `--type feature` becomes the label `"type: feature"`. This label is then merged with any additional `--label` flags.
 
-**Body vs Context**:
+**Body vs Prompt**:
 - `--body` provides the **exact text** to use as the issue body
-- `--context` provides **instructions** for Claude to generate the body from conversation context
-- When both are provided, `--body` is the base and `--context` refines it
-- When only `--context` is provided, Claude generates the entire body based on the conversation and instructions
+- `--prompt` provides **instructions** for Claude to generate the body from conversation context
+- When both are provided, `--body` is the base and `--prompt` refines it
+- When only `--prompt` is provided, Claude generates the entire body based on the conversation and instructions
 </ARGUMENT_PARSING>
 
 <EXAMPLES>
@@ -166,13 +166,13 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 # Create issue with body generated from conversation context
 # (Claude will use the discussion to craft a detailed body)
-/work:issue-create "Implement user auth flow" --type feature --context "Include the OAuth2 approach we discussed, the token refresh strategy, and the error handling requirements"
+/work:issue-create "Implement user auth flow" --type feature --prompt "Include the OAuth2 approach we discussed, the token refresh strategy, and the error handling requirements"
 
 # Create issue capturing the full problem/solution discussion
-/work:issue-create "Fix race condition in queue processor" --type bug --context "Summarize the root cause analysis and agreed solution from our discussion"
+/work:issue-create "Fix race condition in queue processor" --type bug --prompt "Summarize the root cause analysis and agreed solution from our discussion"
 
 # Use context to guide body generation with additional labels
-/work:issue-create "Add dark mode support" --type feature --context "Focus on the CSS variables approach and component changes we identified" --label frontend --label ui
+/work:issue-create "Add dark mode support" --type feature --prompt "Focus on the CSS variables approach and component changes we identified" --label frontend --label ui
 ```
 </EXAMPLES>
 
@@ -276,9 +276,9 @@ This command works with:
 
 Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
 
-## Context-Based Body Generation
+## Prompt-Based Body Generation
 
-The `--context` argument enables a powerful workflow pattern: after discussing a problem and solution with Claude, you can create an issue that captures all that thinking without manually writing the body.
+The `--prompt` argument enables a powerful workflow pattern: after discussing a problem and solution with Claude, you can create an issue that captures all that thinking without manually writing the body.
 
 **Use Cases**:
 - After debugging a complex issue together, create a bug report that captures the root cause analysis
@@ -287,7 +287,7 @@ The `--context` argument enables a powerful workflow pattern: after discussing a
 
 **How it works**:
 1. Have a conversation with Claude about the problem/solution
-2. Invoke `/work:issue-create` with `--context` providing instructions
+2. Invoke `/work:issue-create` with `--prompt` providing instructions
 3. Claude reviews the conversation and crafts an issue body following your instructions
 4. The issue is created with a well-structured body that captures the discussion
 
@@ -295,7 +295,7 @@ The `--context` argument enables a powerful workflow pattern: after discussing a
 ```
 User: Let's discuss how to implement rate limiting for our API...
 [... discussion about approaches, trade-offs, decisions ...]
-User: /work:issue-create "Implement API rate limiting" --type feature --context "Include the token bucket approach we agreed on, the Redis backend decision, and the per-endpoint configuration requirements"
+User: /work:issue-create "Implement API rate limiting" --type feature --prompt "Include the token bucket approach we agreed on, the Redis backend decision, and the per-endpoint configuration requirements"
 ```
 
 ## See Also
