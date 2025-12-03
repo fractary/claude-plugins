@@ -1,7 +1,7 @@
 ---
 name: infra-previewer
-description: |
 model: claude-haiku-4-5
+description: |
   Preview infrastructure changes - run Terraform plan to show what resources will be created, modified, or
   destroyed. Generate human-readable plan summaries showing resource changes before deployment.
 tools: Bash, Read, SlashCommand

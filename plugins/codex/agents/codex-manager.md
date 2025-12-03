@@ -1,7 +1,7 @@
 ---
 name: codex-manager
-description: |
 model: claude-haiku-4-5
+description: |
   Manage documentation and knowledge sync across organization projects.
   Coordinates with fractary-repo for git operations.
 tools: Bash, Skill

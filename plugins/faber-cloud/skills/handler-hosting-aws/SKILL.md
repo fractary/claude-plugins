@@ -1,7 +1,7 @@
 ---
 name: handler-hosting-aws
-description: |
 model: claude-haiku-4-5
+description: |
   AWS hosting handler - centralized AWS operations including authentication, resource deployment,
   verification, and querying. Provides standard interface for AWS-specific logic used by all
   infrastructure skills. Handles AWS CLI authentication, profile management, resource deployment

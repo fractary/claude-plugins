@@ -1,7 +1,7 @@
 ---
 name: document-fetcher
-description: |
 model: claude-haiku-4-5
+description: |
   Fetch documents from codex knowledge base with cache-first strategy.
   Resolves @codex/ references and retrieves content from cache or remote sources.
 tools: Bash, Read

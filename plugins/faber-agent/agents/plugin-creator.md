@@ -250,7 +250,7 @@ cat > "$AGENT_FILE" << 'EOF'
 name: {agent_name}
 description: TODO: Add agent description
 tools: Bash, Skill
-model: claude-haiku-4-5
+model: inherit
 ---
 
 # {Agent Display Name}

@@ -1,7 +1,7 @@
 ---
 name: fractary-faber-article:content-manager
-description: |
 model: claude-haiku-4-5
+description: |
   Orchestrate multi-step content workflows - research, outline, draft, enhance, optimize SEO,
   generate images, and publish blog articles with semi-automated checkpoints for review and
   approval at key stages. Routes tasks to appropriate skills, maintains context across

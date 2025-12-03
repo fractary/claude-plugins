@@ -1,7 +1,7 @@
 ---
 name: infra-architect
-description: |
 model: claude-haiku-4-5
+description: |
   Design infrastructure solutions - analyze requirements, design cloud architecture, create comprehensive
   design documents with resource specifications, security considerations, cost estimates, and implementation
   plans. Designs S3 buckets, Lambda functions, DynamoDB tables, API Gateway endpoints, CloudFront distributions,
