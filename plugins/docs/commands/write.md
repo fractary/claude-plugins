@@ -16,6 +16,7 @@ Create or update documentation with automatic validation and indexing.
 
 ## Options
 
+- `--prompt "<instructions>"` - Instructions for generating documentation from conversation context. Claude will use the current conversation plus these instructions to craft the documentation content.
 - `--skip-validation` - Skip validation step
 - `--skip-index` - Skip index update
 - `--batch` - Write multiple documents (provide pattern)
@@ -34,6 +35,15 @@ Create or update documentation with automatic validation and indexing.
 
 # Batch write all API endpoints
 /docs:write api docs/api/**/*.md --batch
+
+# Generate documentation from conversation context
+/docs:write api --prompt "Document the authentication endpoints we discussed, including the OAuth2 flow"
+
+# Generate ADR capturing decision discussion
+/docs:write adr --prompt "Create an ADR for the database migration strategy we decided on"
+
+# Generate guide from implementation discussion
+/docs:write guide --prompt "Write a guide covering the deployment process we walked through"
 ```
 
 ## What This Does
@@ -57,6 +67,8 @@ You can provide documentation content conversationally. The command will:
 - Extract relevant information from conversation
 - Build context bundle with template variables
 - Generate document using type-specific template
+
+**Using `--prompt`**: When you provide a `--prompt` argument, Claude will use your instructions to guide what aspects of the conversation to capture in the documentation. This is especially useful after design discussions, implementation walkthroughs, or decision-making sessions where you want to document the outcomes.
 
 ## Related Commands
 

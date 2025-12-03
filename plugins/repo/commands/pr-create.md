@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-create
 description: Create a new pull request
-argument-hint: '"<title>" [--body "<text>"] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft]'
+argument-hint: '"<title>" [--body "<text>"] [--prompt "<instructions>"] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft]'
 ---
 
 <CONTEXT>
@@ -42,19 +42,31 @@ Your role is to parse user input and invoke the repo-manager agent to create a p
 <WORKFLOW>
 1. **Parse user input**
    - Extract title (required)
-   - Parse optional arguments: --body, --base, --head, --work-id, --draft
+   - Parse optional arguments: --body, --prompt, --base, --head, --work-id, --draft
    - Validate required arguments are present
 
-2. **Build structured request**
+2. **Handle --prompt argument (if provided)**
+   - If `--prompt` is provided but `--body` is NOT provided:
+     - Use the conversation history plus the prompt instructions to **generate** an appropriate PR description
+     - The prompt argument provides guidance on what to include, how to structure it, or what aspects to focus on
+     - Leverage all relevant discussion, code changes, and decisions from the current conversation
+     - Generate a well-structured PR description that explains the changes
+   - If both `--prompt` and `--body` are provided:
+     - Use `--body` as the base, but enhance/refine it using the prompt instructions
+   - If only `--body` is provided (no `--prompt`):
+     - Use `--body` as-is (current behavior)
+
+3. **Build structured request**
    - Map to "create-pr" operation
+   - Include the generated/provided body in the request
    - Package parameters into JSON request
 
-3. **ACTUALLY INVOKE the Task tool**
+4. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-repo:repo-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
 
-4. **Return response**
+5. **Return response**
    - The Task tool returns the agent's output
    - Display results to the user
 </WORKFLOW>
@@ -99,11 +111,18 @@ This command follows the **space-separated** argument syntax (consistent with wo
 - `title` (string): PR title, use quotes if multi-word (e.g., "Add CSV export feature")
 
 **Optional Arguments**:
-- `--body` (string): PR description/body text, use quotes if multi-word (e.g., "Implements user data export functionality")
+- `--body` (string): PR description/body text, use quotes if multi-word - exact text to use as body
+- `--prompt` (string): Instructions for generating the PR description from conversation context (use quotes). When provided without `--body`, Claude will craft the description using the current conversation plus these instructions. Useful for summarizing implementation discussions and code changes.
 - `--base` (string): Base branch to merge into (default: main/master). Examples: "main", "develop", "release/v1.0"
 - `--head` (string): Head branch to merge from (default: current branch). Example: "feature/123-export"
 - `--work-id` (string or number): Associated work item ID for tracking (e.g., "123", "PROJ-456")
 - `--draft` (boolean flag): Create as draft PR (not ready for review). No value needed, just include the flag
+
+**Body vs Prompt**:
+- `--body` provides the **exact text** to use as the PR description
+- `--prompt` provides **instructions** for Claude to generate the description from conversation context
+- When both are provided, `--body` is the base and `--prompt` refines it
+- When only `--prompt` is provided, Claude generates the entire description based on the conversation and instructions
 
 **Maps to**: create-pr
 
@@ -129,6 +148,12 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Create with detailed body
 /repo:pr-create "Add export feature" --body "Implements CSV and JSON export" --work-id 123
+
+# Create PR with description generated from conversation context
+/repo:pr-create "Implement user authentication" --work-id 123 --prompt "Summarize the OAuth2 implementation approach and include the test coverage we discussed"
+
+# Create PR capturing the full implementation discussion
+/repo:pr-create "Fix race condition in queue processor" --prompt "Include the root cause analysis and the locking strategy we implemented"
 ```
 </EXAMPLES>
 

@@ -1,7 +1,7 @@
 ---
 name: fractary-work:comment-create
 description: Add a comment to an issue
-argument-hint: '<issue_number> "<text>" [--faber-context <context>]'
+argument-hint: '<issue_number> ["<text>"] [--prompt "<instructions>"] [--faber-context <context>]'
 ---
 
 <CONTEXT>
@@ -27,19 +27,30 @@ Your role is to parse user input and invoke the work-manager agent to create a c
 <WORKFLOW>
 1. **Parse user input**
    - Extract issue number (required)
-   - Extract comment text (required)
-   - Parse optional arguments: --faber-context
-   - Validate required arguments are present
+   - Extract comment text (optional if --prompt provided)
+   - Parse optional arguments: --prompt, --faber-context
+   - Validate: either text or --prompt must be provided
 
 2. **Capture working directory context**
    - Capture current directory: `WORK_CWD="${PWD}"`
    - This ensures operations execute in the correct repository
 
-3. **Build structured request**
-   - Package all parameters
+3. **Handle --prompt argument (if provided)**
+   - If `--prompt` is provided but text is NOT provided:
+     - Use the conversation history plus the prompt instructions to **generate** an appropriate comment
+     - The prompt argument provides guidance on what to include or focus on
+     - Leverage all relevant discussion, debugging, and decisions from the current conversation
+     - Generate a well-structured comment that captures the relevant context
+   - If both text and `--prompt` are provided:
+     - Use the text as the base, but enhance/refine it using the prompt instructions
+   - If only text is provided (no `--prompt`):
+     - Use text as-is (current behavior)
+
+4. **Build structured request**
+   - Package all parameters including generated/provided comment
    - Include working_directory in parameters
 
-4. **ACTUALLY INVOKE the Task tool**
+5. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
@@ -52,7 +63,7 @@ Your role is to parse user input and invoke the work-manager agent to create a c
    - DO NOT try alternative approaches
    - Wait for user to provide explicit instruction
 
-5. **Return response**
+6. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
@@ -94,10 +105,19 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Required Arguments**:
 - `issue_number` (number): Issue number (e.g., 123, not "#123")
-- `text` (string): Comment text, use quotes if multi-word (e.g., "Working on this now"). Supports markdown formatting
+
+**Conditionally Required** (at least one):
+- `text` (string): Comment text, use quotes if multi-word - exact text to use as comment
+- `--prompt` (string): Instructions for generating the comment from conversation context (use quotes). When provided without text, Claude will craft the comment using the current conversation plus these instructions.
 
 **Optional Arguments**:
 - `--faber-context` (string): FABER workflow context metadata (internal use, typically set automatically by FABER workflows)
+
+**Text vs Prompt**:
+- `text` provides the **exact text** to use as the comment
+- `--prompt` provides **instructions** for Claude to generate the comment from conversation context
+- When both are provided, text is the base and `--prompt` refines it
+- When only `--prompt` is provided, Claude generates the entire comment based on the conversation and instructions
 
 **Maps to**: create-comment operation
 </ARGUMENT_PARSING>
@@ -117,6 +137,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Add a comment with markdown
 /work:comment-create 123 "## Progress Update\n\n- Fixed authentication\n- Added tests\n- Updated docs"
+
+# Generate comment from conversation context (after debugging session)
+/work:comment-create 123 --prompt "Summarize the root cause we identified and the fix we implemented"
+
+# Generate progress update from conversation
+/work:comment-create 123 --prompt "Post a progress update covering the changes we made today"
+
+# Enhance existing comment with conversation context
+/work:comment-create 123 "Fixed the authentication bug" --prompt "Add technical details about the race condition we found"
 ```
 </EXAMPLES>
 

@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-update
 description: Update issue title or description
-argument-hint: '<number> [--title "<title>"] [--body "<text>"]'
+argument-hint: '<number> [--title "<title>"] [--body "<text>"] [--prompt "<instructions>"]'
 ---
 
 <CONTEXT>
@@ -35,19 +35,30 @@ Your role is to parse user input and invoke the work-manager agent to update iss
 <WORKFLOW>
 1. **Parse user input**
    - Extract issue number (required)
-   - Parse optional arguments: --title, --body
+   - Parse optional arguments: --title, --body, --prompt
    - Validate required arguments are present
-   - Ensure at least one of --title or --body is provided
+   - Ensure at least one of --title, --body, or --prompt is provided
 
 2. **Capture working directory context**
    - Capture current directory: `WORK_CWD="${PWD}"`
    - This ensures operations execute in the correct repository
 
-3. **Build structured request**
-   - Package all parameters
+3. **Handle --prompt argument (if provided)**
+   - If `--prompt` is provided but `--body` is NOT provided:
+     - Use the conversation history plus the prompt instructions to **generate** an updated issue description
+     - The prompt argument provides guidance on what to include or how to update the description
+     - Leverage all relevant discussion, decisions, and new understanding from the current conversation
+     - Generate a well-structured description that reflects the updated context
+   - If both `--prompt` and `--body` are provided:
+     - Use `--body` as the base, but enhance/refine it using the prompt instructions
+   - If only `--body` is provided (no `--prompt`):
+     - Use `--body` as-is (current behavior)
+
+4. **Build structured request**
+   - Package all parameters including generated/provided body
    - Include working_directory in parameters
 
-4. **ACTUALLY INVOKE the Task tool**
+5. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
@@ -60,7 +71,7 @@ Your role is to parse user input and invoke the work-manager agent to update iss
    - DO NOT try alternative approaches
    - Wait for user to provide explicit instruction
 
-5. **Return response**
+6. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
@@ -100,7 +111,14 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Optional Arguments** (at least one required):
 - `--title`: New title (use quotes if multi-word)
-- `--body`: New description (use quotes if multi-word)
+- `--body`: New description (use quotes if multi-word) - exact text to use as body
+- `--prompt`: Instructions for generating the description from conversation context (use quotes). When provided without `--body`, Claude will craft the description using the current conversation plus these instructions.
+
+**Body vs Prompt**:
+- `--body` provides the **exact text** to use as the description
+- `--prompt` provides **instructions** for Claude to generate the description from conversation context
+- When both are provided, `--body` is the base and `--prompt` refines it
+- When only `--prompt` is provided, Claude generates the entire description based on the conversation and instructions
 
 **Maps to**: update-issue operation
 </ARGUMENT_PARSING>
@@ -117,6 +135,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Update both title and description
 /work:issue-update 123 --title "New title" --body "New description"
+
+# Update description from conversation context (after refining understanding)
+/work:issue-update 123 --prompt "Update the description to reflect our refined understanding of the root cause"
+
+# Update with new requirements from discussion
+/work:issue-update 123 --prompt "Add the additional acceptance criteria we identified during planning"
+
+# Enhance existing description with conversation details
+/work:issue-update 123 --body "Fix the authentication bug" --prompt "Add technical details about the race condition we discovered"
 ```
 </EXAMPLES>
 
