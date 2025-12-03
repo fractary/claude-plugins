@@ -2,7 +2,7 @@
 name: branch-puller
 description: Pull branches from remote repository with intelligent conflict resolution
 tools: Bash, SlashCommand
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # Branch Puller Skill
