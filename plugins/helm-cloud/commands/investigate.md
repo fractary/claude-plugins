@@ -1,6 +1,7 @@
 ---
 name: investigate
 description: Investigate incidents and analyze logs
+model: claude-haiku-4-5
 examples:
   - /fractary-helm-cloud:investigate "Lambda errors" --env prod
   - /fractary-helm-cloud:investigate --issue=infra-001

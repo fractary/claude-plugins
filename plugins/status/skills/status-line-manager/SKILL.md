@@ -1,6 +1,7 @@
 ---
 name: status-line-manager
 description: Installs and configures custom status line functionality in Claude Code projects with proper plugin root variable usage
+model: claude-haiku-4-5
 ---
 
 # Status Line Manager Skill

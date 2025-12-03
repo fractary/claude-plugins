@@ -1,6 +1,7 @@
 ---
 name: issue-searcher
 description: Search and list issues
+model: claude-haiku-4-5
 ---
 
 # Issue Searcher Skill

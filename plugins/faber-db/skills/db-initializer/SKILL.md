@@ -1,6 +1,7 @@
 ---
 name: db-initializer
 description: Initialize database infrastructure for new projects
+model: claude-haiku-4-5
 ---
 
 # Database Initializer Skill

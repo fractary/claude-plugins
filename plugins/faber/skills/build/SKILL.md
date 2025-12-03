@@ -1,6 +1,7 @@
 ---
 name: build
 description: FABER Phase 3 - Implements the solution from specification with test-driven development
+model: claude-haiku-4-5
 ---
 
 # Build Skill

@@ -1,6 +1,7 @@
 ---
 name: cache-metrics
 description: Analyzes the codex cache and generates comprehensive statistics about cache performance, storage usage, and health status
+model: claude-haiku-4-5
 ---
 
 # Cache Metrics Skill

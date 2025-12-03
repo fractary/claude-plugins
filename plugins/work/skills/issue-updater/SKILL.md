@@ -1,6 +1,7 @@
 ---
 name: issue-updater
 description: Update issue title and description
+model: claude-haiku-4-5
 ---
 
 # Issue Updater Skill

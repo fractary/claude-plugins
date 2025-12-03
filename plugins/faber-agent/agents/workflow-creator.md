@@ -2,7 +2,7 @@
 name: workflow-creator
 description: Orchestrates workflow creation using 7-phase pattern - Gather requirements, Design architecture, Present plan, Approve creation, Execute generation, Verify structure, Report deliverables
 tools: Bash, Skill, Read, Write, Glob, Grep, AskUserQuestion
-model: inherit
+model: claude-haiku-4-5
 color: orange
 ---
 

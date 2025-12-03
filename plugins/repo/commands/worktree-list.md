@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:worktree-list
 description: List active worktrees with branch and work item information
+model: claude-haiku-4-5
 argument-hint: ""
 ---
 

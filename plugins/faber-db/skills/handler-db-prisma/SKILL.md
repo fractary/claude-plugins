@@ -1,6 +1,7 @@
 ---
 name: handler-db-prisma
 description: Prisma-specific database operations handler
+model: claude-haiku-4-5
 ---
 
 # Prisma Database Handler Skill

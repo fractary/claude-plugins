@@ -1,6 +1,7 @@
 ---
 name: work-initializer
 description: Interactive setup wizard for work plugin configuration
+model: claude-haiku-4-5
 ---
 
 # Work Initializer Skill

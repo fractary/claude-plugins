@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:init
 
 Initialize FABER workflow configuration for a project.

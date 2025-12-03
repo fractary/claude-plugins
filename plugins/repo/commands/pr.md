@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:pr
 description: "[DEPRECATED] Create, comment, review, and merge pull requests - Use /repo:pr-create, /repo:pr-comment, /repo:pr-review, or /repo:pr-merge instead"
+model: claude-haiku-4-5
 argument-hint: create <title> [--body <text>] [--base <branch>] [--head <branch>] [--work-id <id>] [--draft] | comment <pr_number> <comment> | review <pr_number> <action> [--comment <text>] | merge <pr_number> [--strategy <strategy>] [--delete-branch]
 ---
 

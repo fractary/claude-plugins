@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-article:content-publish
 description: Finalize and publish blog post (move from sandbox to blog, set publication date)
+model: claude-haiku-4-5
 argument-hint: <slug> [--date YYYY-MM-DD]
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: DevOps Debugger
 description: Analyze deployment errors, categorize issues, and delegate to fix strategies
+model: claude-haiku-4-5
 allowed-tools: Bash, Read, Skill
 ---
 

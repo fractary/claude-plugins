@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:branch-delete
 description: Delete a Git branch (local, remote, or both)
+model: claude-haiku-4-5
 argument-hint: <branch_name> [--location <where>] [--force] [--worktree-cleanup]
 ---
 

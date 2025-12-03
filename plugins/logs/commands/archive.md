@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:archive
 description: Archive all logs for a completed issue to cloud storage
+model: claude-haiku-4-5
 argument-hint: <issue_number> [--force] [--retry]
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: comment-lister
 description: List comments on issues with optional filtering
+model: claude-haiku-4-5
 ---
 
 # Comment Lister Skill

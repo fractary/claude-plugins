@@ -1,6 +1,7 @@
 ---
 name: infra-permission-manager
 description: |
+model: claude-haiku-4-5
   Manage IAM permissions - grant missing permissions when deployments fail, maintain IAM audit trail,
   enforce profile separation, scope permissions to environment. Uses discover-deploy profile to grant
   permissions, never grants to production without explicit approval.

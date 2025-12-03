@@ -1,6 +1,7 @@
 ---
 name: comment-creator
 description: Post comments to issues with FABER context tracking
+model: claude-haiku-4-5
 ---
 
 # Comment Creator Skill

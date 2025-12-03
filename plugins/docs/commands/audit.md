@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /docs:audit
 
 Audit documentation across the project - identify issues, gaps, and quality problems.

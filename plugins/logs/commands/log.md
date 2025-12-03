@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:log
 description: Log a specific message or decision to an issue's log
+model: claude-haiku-4-5
 argument-hint: <issue_number> "<message>"
 ---
 

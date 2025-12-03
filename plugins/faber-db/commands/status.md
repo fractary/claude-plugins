@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Check FABER-DB plugin configuration and database status.
 
 This command displays the current configuration, validates environment variables, checks database connectivity, and shows migration status across all configured environments.

@@ -1,6 +1,7 @@
 ---
 name: fractary-file:switch-handler
 description: Switch active storage handler
+model: claude-haiku-4-5
 argument-hint: <handler> [--no-test] [--force]
 ---
 

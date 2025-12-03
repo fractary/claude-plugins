@@ -1,6 +1,7 @@
 ---
 name: conversion-spec-generator
 description: Generates detailed actionable conversion specifications from audit results for architectural migration
+model: claude-haiku-4-5
 ---
 
 # Spec Generator Skill

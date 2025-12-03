@@ -1,6 +1,7 @@
 ---
 name: context-optimizer
 description: Aggregates context optimization opportunities and calculates total potential savings from architectural improvements
+model: claude-haiku-4-5
 ---
 
 # Context Optimizer Skill

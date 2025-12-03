@@ -1,6 +1,7 @@
 ---
 name: fractary-work:milestone-remove
 description: Remove milestone from an issue
+model: claude-haiku-4-5
 argument-hint: <issue_number>
 ---
 

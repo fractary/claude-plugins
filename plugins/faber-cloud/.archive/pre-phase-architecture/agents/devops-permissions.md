@@ -1,6 +1,7 @@
 ---
 name: DevOps Permissions
 description: Manage IAM permissions for deployment users across cloud providers
+model: claude-haiku-4-5
 allowed-tools: Bash, Read, Write, Edit
 ---
 

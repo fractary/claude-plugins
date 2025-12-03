@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:branch-list
 description: List branches with optional filtering
+model: claude-haiku-4-5
 argument-hint: "[--stale] [--merged] [--days <n>] [--pattern <pattern>]"
 ---
 

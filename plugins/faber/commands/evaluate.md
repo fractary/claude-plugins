@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:evaluate
 
 Execute the **Evaluate phase** of the FABER workflow.

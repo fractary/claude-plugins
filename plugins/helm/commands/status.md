@@ -1,6 +1,7 @@
 ---
 name: status
 description: Check status of monitored systems across domains
+model: claude-haiku-4-5
 examples:
   - /fractary-helm:status
   - /fractary-helm:status --domain infrastructure

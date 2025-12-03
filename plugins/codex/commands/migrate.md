@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-codex:migrate
 
 Migrate configuration from SPEC-00012 (v2.0 push-based sync) to SPEC-00030 (v3.0 pull-based retrieval).

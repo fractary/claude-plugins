@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:archive
 description: Archive specifications for completed work
+model: claude-haiku-4-5
 argument-hint: <issue_number> [--force] [--skip-warnings]
 ---
 

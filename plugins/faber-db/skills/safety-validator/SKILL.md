@@ -1,6 +1,7 @@
 ---
 name: safety-validator
 description: Validate operations for production safety and detect destructive changes
+model: claude-haiku-4-5
 ---
 
 # Safety Validator Skill

@@ -1,6 +1,7 @@
 ---
 name: file-config-wizard
 description: Interactive configuration wizard for the fractary-file plugin, guiding users through storage handler setup with validation
+model: claude-haiku-4-5
 ---
 
 # Config Wizard Skill

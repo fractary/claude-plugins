@@ -1,6 +1,7 @@
 ---
 command: create-workflow
 description: Create new workflow with Manager agent, Director skill, and specialist skills
+model: claude-haiku-4-5
 category: Workflow Creation
 ---
 

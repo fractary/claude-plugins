@@ -1,6 +1,7 @@
 ---
 name: log-lister
 description: Lists and filters logs by type, status, date range, and work item with frontmatter parsing
+model: claude-haiku-4-5
 ---
 
 # Log Lister Skill

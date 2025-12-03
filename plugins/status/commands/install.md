@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # Status Install Command
 
 <CONTEXT>

@@ -1,6 +1,7 @@
 ---
 name: issue-assigner
 description: Assign and unassign issues to users
+model: claude-haiku-4-5
 ---
 
 # Issue Assigner Skill

@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:validate
 description: Validate implementation against specification
+model: claude-haiku-4-5
 argument-hint: <issue_number> [--phase <n>]
 ---
 

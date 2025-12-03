@@ -1,6 +1,7 @@
 ---
 name: fractary-work:state-close
 description: Close an issue and optionally post a comment
+model: claude-haiku-4-5
 argument-hint: '<number> [--comment "<text>"] [--reason <reason>]'
 ---
 

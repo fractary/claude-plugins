@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-article:content-edit
 description: Review and enhance existing blog post with updated research and improvements
+model: claude-haiku-4-5
 argument-hint: <slug> [--depth basic|moderate|deep]
 ---
 

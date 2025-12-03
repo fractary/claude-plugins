@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:tag-create
 description: Create a new Git tag
+model: claude-haiku-4-5
 argument-hint: '<tag_name> [--message "<text>"] [--commit <sha>] [--sign] [--force]'
 ---
 

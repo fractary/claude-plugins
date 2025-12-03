@@ -1,6 +1,7 @@
 ---
 name: doc-validator
 description: Validates documentation against type-specific rules and schemas loaded dynamically, checking frontmatter, structure, content, and schema compliance
+model: claude-haiku-4-5
 ---
 
 # doc-validator

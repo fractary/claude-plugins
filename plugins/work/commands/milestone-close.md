@@ -1,6 +1,7 @@
 ---
 name: fractary-work:milestone-close
 description: Close a completed milestone
+model: claude-haiku-4-5
 argument-hint: <milestone_id> [--comment <text>]
 ---
 

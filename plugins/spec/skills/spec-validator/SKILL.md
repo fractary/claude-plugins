@@ -1,6 +1,7 @@
 ---
 name: spec-validator
 description: Validates implementations against specifications by checking requirements coverage, acceptance criteria, and documentation updates
+model: claude-haiku-4-5
 ---
 
 # Spec Validator Skill

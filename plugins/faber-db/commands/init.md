@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Initialize FABER-DB plugin configuration.
 
 This command sets up the database management plugin for your project by creating a configuration file that defines database settings, environments, safety rules, and integrations.

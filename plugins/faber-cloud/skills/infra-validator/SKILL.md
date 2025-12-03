@@ -1,6 +1,7 @@
 ---
 name: infra-validator
 description: |
+model: claude-haiku-4-5
   Validate infrastructure configuration - run Terraform validate, check syntax, verify resource configurations,
   validate security settings, and ensure compliance with best practices. Reports validation errors and warnings.
 tools: Bash, Read, SlashCommand

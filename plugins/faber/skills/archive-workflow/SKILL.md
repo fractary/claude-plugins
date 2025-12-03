@@ -1,6 +1,7 @@
 ---
 name: archive-workflow
 description: Archives completed FABER workflow state and artifacts to cloud storage for historical tracking and analysis
+model: claude-haiku-4-5
 ---
 
 # Archive Workflow Skill

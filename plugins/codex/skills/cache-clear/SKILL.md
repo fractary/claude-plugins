@@ -1,6 +1,7 @@
 ---
 name: cache-clear
 description: |
+model: claude-haiku-4-5
   Clear cache entries based on filters (all, expired, project, pattern).
   Safely removes cached documents with dry-run and confirmation support.
 tools: Bash, Read

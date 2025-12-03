@@ -1,6 +1,7 @@
 ---
 name: log-capturer
 description: Captures Claude Code conversation sessions in structured markdown format tied to work items with redaction
+model: claude-haiku-4-5
 ---
 
 # Log Capturer Skill

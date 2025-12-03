@@ -1,6 +1,7 @@
 ---
 name: state-manager
 description: Manage issue lifecycle states (close, reopen, update state)
+model: claude-haiku-4-5
 ---
 
 # State Manager Skill

@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:debug
 description: Debug deployment errors and permission issues
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:debug "AccessDenied error during deployment"
   - /fractary-faber-cloud:debug "terraform apply failed"

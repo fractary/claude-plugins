@@ -1,6 +1,7 @@
 ---
 name: handler-work-tracker-jira
 description: Jira Cloud handler for work tracking operations
+model: claude-haiku-4-5
 handler_type: work-tracker
 platform: jira
 ---

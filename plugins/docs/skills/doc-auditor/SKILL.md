@@ -1,6 +1,7 @@
 ---
 name: doc-auditor
 description: |
+model: claude-haiku-4-5
   Audit documentation against fractary-docs standards and generate actionable remediation specification
 tools: Bash, Read, Write
 ---

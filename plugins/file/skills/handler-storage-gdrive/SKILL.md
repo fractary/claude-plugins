@@ -1,6 +1,7 @@
 ---
 name: handler-storage-gdrive
 description: Google Drive storage handler for fractary-file plugin
+model: claude-haiku-4-5
 ---
 
 <CONTEXT>

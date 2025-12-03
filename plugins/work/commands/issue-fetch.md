@@ -1,6 +1,7 @@
 ---
 name: fractary-work:issue-fetch
 description: Fetch and display issue details
+model: claude-haiku-4-5
 argument-hint: <number>
 ---
 

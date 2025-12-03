@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:init
 description: Initialize fractary-logs plugin configuration and storage directories
+model: claude-haiku-4-5
 argument-hint: "[--force]"
 ---
 

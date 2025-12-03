@@ -1,5 +1,6 @@
 ---
 description: Validate DevOps configuration and infrastructure setup
+model: claude-haiku-4-5
 allowed-tools: Bash, Read
 ---
 

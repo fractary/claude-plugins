@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:deploy-plan
 description: Generate and preview deployment plan (terraform plan)
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:deploy-plan
   - /fractary-faber-cloud:deploy-plan --env test

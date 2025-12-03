@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /docs:validate
 
 Validate documentation against type-specific rules and schemas.

@@ -1,6 +1,7 @@
 ---
 name: fractary-work:label-list
 description: List all labels on an issue
+model: claude-haiku-4-5
 argument-hint: <number>
 ---
 

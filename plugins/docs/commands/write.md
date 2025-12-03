@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /docs:write
 
 Create or update documentation with automatic validation and indexing.

@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:pr-merge
 description: Merge a pull request
+model: claude-haiku-4-5
 argument-hint: <pr_number> [--strategy <strategy>] [--delete-branch] [--worktree-cleanup]
 ---
 

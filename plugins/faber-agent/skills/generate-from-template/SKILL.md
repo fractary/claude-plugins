@@ -1,6 +1,7 @@
 ---
 name: generate-from-template
 description: |
+model: claude-haiku-4-5
   Generates artifacts from templates by substituting {{VARIABLE}} placeholders with actual values.
   Uses template-engine.sh for deterministic variable substitution.
 tools: Bash

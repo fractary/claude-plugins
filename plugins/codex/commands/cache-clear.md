@@ -1,6 +1,7 @@
 ---
 name: cache-clear
 description: Clear codex cache entries (all, expired, or by pattern)
+model: claude-haiku-4-5
 usage: /fractary-codex:cache-clear [--all] [--expired] [--project <name>] [--pattern <glob>]
 examples:
   - /fractary-codex:cache-clear --expired

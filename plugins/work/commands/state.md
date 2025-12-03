@@ -1,6 +1,7 @@
 ---
 name: fractary-work:state
 description: "[DEPRECATED] Manage issue lifecycle states - Use /work:state-close, /work:state-reopen, or /work:state-transition instead"
+model: claude-haiku-4-5
 argument-hint: close <number> [--comment <text>] | reopen <number> [--comment <text>] | transition <number> <state>
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: issue-fetcher
 description: Fetch issue details from work tracking systems
+model: claude-haiku-4-5
 ---
 
 # Issue Fetcher Skill

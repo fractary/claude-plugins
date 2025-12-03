@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:stop
 description: Stop active session capture and finalize the log
+model: claude-haiku-4-5
 argument-hint: ""
 ---
 

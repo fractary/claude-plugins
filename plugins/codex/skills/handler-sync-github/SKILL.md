@@ -1,6 +1,7 @@
 ---
 name: handler-sync-github
 description: GitHub-specific sync mechanism - file copying, pattern matching, and safety checks
+model: claude-haiku-4-5
 ---
 
 <CONTEXT>

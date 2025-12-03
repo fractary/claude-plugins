@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:worktree-cleanup
 description: Clean up merged and stale worktrees safely
+model: claude-haiku-4-5
 argument-hint: "[--merged] [--stale] [--days <n>] [--dry-run]"
 ---
 

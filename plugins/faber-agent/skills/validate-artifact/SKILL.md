@@ -1,6 +1,7 @@
 ---
 name: validate-artifact
 description: |
+model: claude-haiku-4-5
   Validates generated artifacts against Fractary plugin standards using automated validators.
   Checks XML markup, frontmatter, naming conventions, and structure.
 tools: Bash

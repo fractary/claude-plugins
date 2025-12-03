@@ -1,6 +1,7 @@
 ---
 name: fractary-work:milestone-list
 description: List milestones with optional filtering
+model: claude-haiku-4-5
 argument-hint: [--state <state>] [--sort <sort>]
 ---
 

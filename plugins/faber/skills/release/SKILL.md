@@ -1,6 +1,7 @@
 ---
 name: release
 description: FABER Phase 5 - Creates pull request, deploys changes, updates documentation, and closes work item
+model: claude-haiku-4-5
 ---
 
 # Release Skill

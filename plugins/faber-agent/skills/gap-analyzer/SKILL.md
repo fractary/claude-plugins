@@ -1,6 +1,7 @@
 ---
 name: gap-analyzer
 description: Identifies missing components and architectural gaps in project structure based on detected patterns
+model: claude-haiku-4-5
 ---
 
 # Gap Analyzer Skill

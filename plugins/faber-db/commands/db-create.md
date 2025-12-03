@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Create database infrastructure for a new environment.
 
 This command initializes database infrastructure by coordinating with FABER-Cloud (for cloud hosting) or directly creating the database (for local hosting), then initializing the schema and migration tracking table.

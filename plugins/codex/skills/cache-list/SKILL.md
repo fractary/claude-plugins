@@ -1,6 +1,7 @@
 ---
 name: cache-list
 description: |
+model: claude-haiku-4-5
   List cache entries with filtering, sorting, and freshness status.
   Provides visibility into cached documents and their TTL states.
 tools: Bash, Read

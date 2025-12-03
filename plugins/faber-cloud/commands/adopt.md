@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:adopt
 description: Adopt existing infrastructure into faber-cloud management
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:adopt
   - /fractary-faber-cloud:adopt --project-root ./services/api

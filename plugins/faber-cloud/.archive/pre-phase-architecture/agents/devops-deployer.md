@@ -1,6 +1,7 @@
 ---
 name: DevOps Deployer
 description: Orchestrate infrastructure deployments across cloud providers and IaC tools
+model: claude-haiku-4-5
 allowed-tools: Bash, Read, Write, Skill
 ---
 

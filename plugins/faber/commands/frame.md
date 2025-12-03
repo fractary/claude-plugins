@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:frame
 
 Execute only the **Frame phase** of the FABER workflow.

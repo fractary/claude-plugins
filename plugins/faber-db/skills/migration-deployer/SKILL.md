@@ -1,6 +1,7 @@
 ---
 name: migration-deployer
 description: Deploy database migrations safely across environments
+model: claude-haiku-4-5
 ---
 
 # Migration Deployer Skill

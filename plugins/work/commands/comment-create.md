@@ -1,6 +1,7 @@
 ---
 name: fractary-work:comment-create
 description: Add a comment to an issue
+model: claude-haiku-4-5
 argument-hint: '<issue_number> ["<text>"] [--prompt "<instructions>"] [--faber-context <context>]'
 ---
 

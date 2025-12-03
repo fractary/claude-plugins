@@ -1,6 +1,7 @@
 ---
 name: issue-creator
 description: Create new issues in work tracking systems
+model: claude-haiku-4-5
 ---
 
 # Issue Creator Skill

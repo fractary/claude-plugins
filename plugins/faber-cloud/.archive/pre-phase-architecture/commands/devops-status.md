@@ -1,5 +1,6 @@
 ---
 description: Show current DevOps configuration and deployment status
+model: claude-haiku-4-5
 allowed-tools: Bash, Read
 ---
 

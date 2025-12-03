@@ -1,6 +1,7 @@
 ---
 name: fractary-work:issue-list
 description: List issues with optional filtering
+model: claude-haiku-4-5
 argument-hint: [--state <state>] [--label <label>] [--assignee <user>] [--milestone <milestone>] [--limit <n>]
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: ops-investigator
 description: |
+model: claude-haiku-4-5
   Investigate incidents and analyze logs - query CloudWatch logs with filters,
   correlate events across services, identify error patterns, generate incident
   reports with timelines, analyze log patterns, search for specific errors,

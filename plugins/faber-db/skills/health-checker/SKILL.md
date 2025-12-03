@@ -1,6 +1,7 @@
 ---
 name: health-checker
 description: Monitor database health and detect issues across environments
+model: claude-haiku-4-5
 ---
 
 # Health Checker Skill

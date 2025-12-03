@@ -1,6 +1,7 @@
 ---
 name: handler-storage-gcs
 description: Google Cloud Storage handler for fractary-file plugin
+model: claude-haiku-4-5
 ---
 
 <CONTEXT>

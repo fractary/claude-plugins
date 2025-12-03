@@ -1,6 +1,7 @@
 ---
 name: fractary-file:init
 description: Initialize and configure the fractary-file plugin
+model: claude-haiku-4-5
 ---
 
 # File Plugin Initialization

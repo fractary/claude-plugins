@@ -1,6 +1,7 @@
 ---
 name: faber-coordinator
 description: Coordinate FABER-DB operations within FABER workflow phases
+model: claude-haiku-4-5
 ---
 
 # FABER Coordinator Skill

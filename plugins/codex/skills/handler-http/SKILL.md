@@ -1,6 +1,7 @@
 ---
 name: handler-http
 description: |
+model: claude-haiku-4-5
   HTTP/HTTPS handler for external documentation fetching.
   Fetches content from web URLs with safety checks and metadata extraction.
 tools: Bash, Read

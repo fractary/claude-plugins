@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:architect
 description: Design cloud infrastructure architecture from requirements
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:architect "S3 bucket for user uploads"
   - /fractary-faber-cloud:architect "VPC with public and private subnets"

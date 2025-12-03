@@ -1,6 +1,7 @@
 ---
 name: issue-linker
 description: Create relationships between issues for dependency tracking
+model: claude-haiku-4-5
 ---
 
 # Issue Linker Skill

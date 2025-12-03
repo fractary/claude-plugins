@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-agent:create-skill
 description: Create a new skill following Fractary plugin standards
+model: claude-haiku-4-5
 argument-hint: <name> [--plugin <plugin-name>] [--handler-type <type>]
 ---
 

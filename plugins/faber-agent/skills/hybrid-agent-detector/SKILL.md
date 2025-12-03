@@ -1,6 +1,7 @@
 ---
 name: hybrid-agent-detector
 description: Detects hybrid agent anti-pattern where agents perform execution work directly instead of delegating to skills
+model: claude-haiku-4-5
 ---
 
 # Hybrid Agent Detector Skill

@@ -3,7 +3,7 @@ name: fractary-faber:direct
 description: Execute FABER workflow via natural language or work item ID
 argument-hint: <work_id | "natural language request"> [--workflow <id>] [--autonomy <level>]
 tools: Skill
-model: inherit
+model: claude-haiku-4-5
 ---
 
 # FABER Direct Command

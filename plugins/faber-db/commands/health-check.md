@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Check database health and detect issues.
 
 This command runs comprehensive health checks on a database environment, including connectivity, migration status, schema drift detection, and basic performance metrics.

@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:deploy-apply
 description: Apply infrastructure deployment (terraform apply)
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:deploy-apply --env test
   - /fractary-faber-cloud:deploy-apply --env prod

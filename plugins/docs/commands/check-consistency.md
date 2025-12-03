@@ -1,6 +1,7 @@
 ---
 name: check-consistency
 description: Check if high-level project documentation is consistent with recent code changes
+model: claude-haiku-4-5
 argument-hint: "[--fix] [--targets <files>] [--base <ref>]"
 ---
 

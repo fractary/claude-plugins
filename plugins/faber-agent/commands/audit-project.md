@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-agent:audit-project
 description: Audit Claude Code project for architectural compliance and anti-patterns
+model: claude-haiku-4-5
 argument-hint: [project-path] [--output <file>] [--format <json|markdown>] [--verbose]
 ---
 

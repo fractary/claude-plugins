@@ -1,6 +1,7 @@
 ---
 name: fractary-work:issue-search
 description: Search issues by keyword
+model: claude-haiku-4-5
 argument-hint: <query> [--state <state>] [--limit <n>]
 ---
 

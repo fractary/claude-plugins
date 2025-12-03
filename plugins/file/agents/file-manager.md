@@ -2,7 +2,7 @@
 name: file-manager
 description: Manages file storage operations across multiple cloud providers (Local, R2, S3, GCS, Google Drive)
 tools: Skill
-model: inherit
+model: claude-haiku-4-5
 color: orange
 skills: [file-manager]
 ---
