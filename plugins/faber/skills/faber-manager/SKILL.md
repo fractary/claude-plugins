@@ -62,6 +62,222 @@ You are universal - you work across all project types (software, infrastructure,
    - See `workflow/automatic-primitives.md` for detailed logic
 </CRITICAL_RULES>
 
+<EVENT_EMISSION>
+## Automatic Workflow Event Emission
+
+At each orchestration point, emit structured events for downstream consumption via the `fractary-logs:workflow-event-emitter` skill.
+
+### Configuration
+
+Check if event emission is enabled in config:
+```json
+{
+  "logging": {
+    "emit_workflow_events": true
+  }
+}
+```
+
+If `emit_workflow_events` is false or missing, skip all event emission (but still log to state as before).
+
+### Event Points
+
+| Point | Event Type | Trigger |
+|-------|------------|---------|
+| Workflow initialization | `workflow_start` | After Step 3 (Initialize Logging) |
+| Phase entry | `phase_start` | After pre-phase hooks, before steps |
+| Step entry | `step_start` | Before executing each step |
+| Step exit | `step_complete` | After step execution (success or failure) |
+| Artifact creation | `artifact_create` | When any artifact is created |
+| Phase exit | `phase_complete` | After post-phase hooks |
+| Workflow end | `workflow_complete` | At workflow completion |
+
+### Workflow ID Format
+
+```
+workflow-{work_id}-{timestamp}
+```
+
+Example: `workflow-199-20251202T150000Z`
+
+Generate at workflow start and store in state for use by all subsequent events.
+
+### Event Emission Pattern
+
+At each event point, invoke the workflow-event-emitter skill:
+
+```
+Skill("fractary-logs:workflow-event-emitter", {
+  "operation": "emit",
+  "event_type": "{event_type}",
+  "workflow_id": state.workflow_id,
+  "payload": {event_specific_payload}
+})
+```
+
+### Emission Points Implementation
+
+**After Step 3 (Initialize Logging) - Emit workflow_start:**
+```
+WORKFLOW_ID = "workflow-{work_id}-{timestamp}"
+state.workflow_id = WORKFLOW_ID
+
+emit_event("workflow_start", {
+  "context": {
+    "work_item_id": state.work_id,
+    "issue_number": state.issue_number,
+    "branch": state.branch.name || null,
+    "autonomy_level": state.metadata.autonomy_level,
+    "workflow_config": workflow.id
+  }
+})
+```
+
+**Before Phase Steps - Emit phase_start:**
+```
+emit_event("phase_start", {
+  "phase": phase_name,
+  "steps": phase.steps.map(s => s.name)
+})
+```
+
+**Before Each Step - Emit step_start:**
+```
+emit_event("step_start", {
+  "phase": phase_name,
+  "step": {
+    "name": step.name,
+    "skill": step.skill || null
+  }
+})
+```
+
+**After Each Step - Emit step_complete:**
+```
+emit_event("step_complete", {
+  "phase": phase_name,
+  "step": {
+    "name": step.name,
+    "skill": step.skill || null,
+    "status": result.success ? "success" : "failure",
+    "duration_ms": step_duration,
+    "error": result.error || null
+  },
+  "artifacts": step_artifacts
+})
+```
+
+**On Artifact Creation - Emit artifact_create:**
+```
+emit_event("artifact_create", {
+  "artifact": {
+    "type": artifact_type,  // "spec", "branch", "commit", "pr", etc.
+    "path": artifact_path,
+    "metadata": artifact_metadata
+  },
+  "step": current_step.name,
+  "phase": current_phase
+})
+```
+
+**After Phase Post-Hooks - Emit phase_complete:**
+```
+emit_event("phase_complete", {
+  "phase": phase_name,
+  "status": phase_status,  // "success" or "failure"
+  "duration_ms": phase_duration,
+  "steps_completed": completed_steps.length,
+  "artifacts_created": phase_artifacts.length
+})
+```
+
+**At Workflow End - Emit workflow_complete:**
+```
+emit_event("workflow_complete", {
+  "status": workflow_status,  // "success", "failure", "paused"
+  "duration_ms": total_duration,
+  "summary": {
+    "phases_executed": completed_phases.length,
+    "steps_executed": total_steps,
+    "artifacts_created": all_artifacts.length,
+    "retries_used": state.retries.evaluate || 0
+  },
+  "artifacts": all_artifacts  // Full list of created artifacts
+})
+```
+
+### Idempotency for Resume
+
+Before emitting any event, check if it was already emitted (for resume scenarios).
+
+**Event Key Structure:**
+```
+{event_type}:{context_key}
+```
+
+**Context Key by Event Type:**
+
+| Event Type | Context Key | Example |
+|------------|-------------|---------|
+| `workflow_start` | `workflow_id` | `workflow_start:workflow-199-20251202T150000Z` |
+| `phase_start` | `phase_name` | `phase_start:architect` |
+| `step_start` | `phase:step_name` | `step_start:build:implement` |
+| `step_complete` | `phase:step_name` | `step_complete:build:implement` |
+| `artifact_create` | `artifact_type:artifact_path` | `artifact_create:spec:/specs/WORK-199.md` |
+| `phase_complete` | `phase_name` | `phase_complete:architect` |
+| `workflow_complete` | `workflow_id` | `workflow_complete:workflow-199-20251202T150000Z` |
+
+**Implementation:**
+```python
+def should_emit_event(state, event_type, context_key):
+    """Check if event should be emitted (idempotency check)."""
+    event_key = f"{event_type}:{context_key}"
+
+    if event_key in state.get("events_emitted", []):
+        return False  # Already emitted, skip
+
+    return True
+
+def record_event_emitted(state, event_type, context_key):
+    """Record that event was emitted for resume safety."""
+    event_key = f"{event_type}:{context_key}"
+
+    if "events_emitted" not in state:
+        state["events_emitted"] = []
+
+    state["events_emitted"].append(event_key)
+    # Persist state to .fractary/plugins/faber/state.json
+```
+
+**State File Example:**
+```json
+{
+  "workflow_id": "workflow-199-20251202T150000Z",
+  "events_emitted": [
+    "workflow_start:workflow-199-20251202T150000Z",
+    "phase_start:frame",
+    "phase_complete:frame",
+    "phase_start:architect",
+    "step_start:architect:generate-spec",
+    "step_complete:architect:generate-spec",
+    "artifact_create:spec:/specs/WORK-199.md"
+  ]
+}
+```
+
+**Resume Behavior:**
+When workflow resumes from state, already-emitted events are skipped, preventing duplicate events in logs and S3.
+
+### Error Handling
+
+If event emission fails:
+1. Log warning to state
+2. Continue workflow execution (event emission is non-blocking)
+3. Retry once on transient errors
+4. Never fail workflow due to event emission failure
+
+</EVENT_EMISSION>
+
 <INPUTS>
 You receive workflow execution requests from the faber-manager agent:
 
@@ -239,11 +455,13 @@ ACTIVE_WORKFLOW=$(echo "$CONFIG" | jq -r '.workflows | to_entries[0].value')
 
 **If state doesn't exist (new workflow)**:
 - Create new state file
+- Generate workflow_id: `workflow-{work_id}-{timestamp}` (e.g., `workflow-158-20251119T150000Z`)
 - Initialize with:
   ```json
   {
     "work_id": "158",
     "issue_number": "158",
+    "workflow_id": "workflow-158-20251119T150000Z",
     "workflow_version": "2.0",
     "status": "in_progress",
     "current_phase": "frame",
@@ -257,6 +475,7 @@ ACTIVE_WORKFLOW=$(echo "$CONFIG" | jq -r '.workflows | to_entries[0].value')
     },
     "retries": {"evaluate": 0},
     "artifacts": {},
+    "events_emitted": [],
     "metadata": {
       "autonomy_level": "guarded"
     }
@@ -877,5 +1096,75 @@ Hooks are executed at phase boundaries:
 - **3 hook types**: document, script, skill
 - **Execution order**: pre-hooks → phase → post-hooks
 - **Failure handling**: Configurable (warn or fail)
+
+## Workflow Event Logging
+
+All workflow executions emit structured events for downstream consumption via the `fractary-logs:workflow-event-emitter` skill.
+
+### Event Flow
+
+```
+workflow_start
+├── phase_start (frame)
+│   ├── step_start → step_complete
+│   └── phase_complete
+├── phase_start (architect)
+│   ├── step_start → step_complete
+│   ├── artifact_create (spec)
+│   └── phase_complete
+├── phase_start (build)
+│   ├── step_start → step_complete
+│   ├── artifact_create (branch)
+│   ├── artifact_create (commits)
+│   └── phase_complete
+├── phase_start (evaluate)
+│   ├── step_start → step_complete
+│   └── phase_complete
+├── phase_start (release)
+│   ├── step_start → step_complete
+│   ├── artifact_create (pr)
+│   └── phase_complete
+└── workflow_complete
+```
+
+### Consuming Events
+
+Downstream systems can poll S3 (if configured) for events:
+
+```python
+# Example: Poll for completed workflows
+import boto3
+import json
+from datetime import datetime
+
+s3 = boto3.client('s3')
+bucket = 'fractary.logs.claude-plugins'
+prefix = f'workflow/{datetime.now().year}/{datetime.now().month}/'
+
+response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+for obj in response.get('Contents', []):
+    log = json.loads(s3.get_object(Bucket=bucket, Key=obj['Key'])['Body'].read())
+    if log.get('event_type') == 'workflow_complete':
+        print(f"Workflow {log['workflow_id']} completed: {log['payload']['status']}")
+```
+
+### Disabling Event Emission
+
+To disable event emission (for development/testing):
+
+```json
+// .fractary/plugins/faber/config.json
+{
+  "logging": {
+    "emit_workflow_events": false
+  }
+}
+```
+
+### Related Documentation
+
+- [WORK-00199](../../../specs/WORK-00199-automatic-manager-workflow-logging.md) - Full specification
+- [workflow-event-emitter](../../logs/skills/workflow-event-emitter/SKILL.md) - Event emission skill
+- [workflow log type standards](../../logs/types/workflow/standards.md) - Log schema
 
 </DOCUMENTATION>

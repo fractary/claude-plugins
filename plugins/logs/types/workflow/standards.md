@@ -355,6 +355,139 @@ error_summary:
 
 ---
 
+## S3 Storage Configuration
+
+Workflow logs can be pushed to S3 for cross-project access and downstream consumption.
+
+### Configuration
+
+Configure S3 push in your project's `.fractary/plugins/logs/config.json`:
+
+```json
+{
+  "types": {
+    "workflow": {
+      "local_retention_days": 7,
+      "cloud_storage": {
+        "enabled": true,
+        "provider": "s3",
+        "bucket": "${ORG}.logs.${PROJECT}",
+        "prefix": "workflow/{year}/{month}/",
+        "format": "json"
+      }
+    }
+  }
+}
+```
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `local_retention_days` | Days to keep local copies (0 = S3 only) | 7 |
+| `cloud_storage.enabled` | Enable S3 push | false |
+| `cloud_storage.provider` | Storage provider (s3, r2, gcs) | s3 |
+| `cloud_storage.bucket` | Bucket name (supports ${ORG}, ${PROJECT} variables) | - |
+| `cloud_storage.prefix` | Path prefix (supports {year}, {month} variables) | workflow/ |
+| `cloud_storage.format` | Output format (json, ndjson) | json |
+
+### S3 Path Pattern
+
+```
+s3://{bucket}/workflow/{year}/{month}/workflow-{work_id}-{timestamp}.json
+```
+
+**Example**:
+```
+s3://fractary.logs.claude-plugins/workflow/2025/12/workflow-199-20251202T150000Z.json
+```
+
+### Cross-Project Access
+
+For downstream systems to consume workflow events from other projects, configure IAM policies to allow read access to the source buckets.
+
+**Example: Allow lake.corthonomy.ai to read from etl.corthion.ai**:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["s3:GetObject", "s3:ListBucket"],
+    "Resource": [
+      "arn:aws:s3:::corthos.logs.etl.corthion.ai",
+      "arn:aws:s3:::corthos.logs.etl.corthion.ai/workflow/*"
+    ]
+  }]
+}
+```
+
+### Consumer Polling Pattern
+
+Downstream systems can poll S3 for workflow events:
+
+```python
+import boto3
+import json
+from datetime import datetime
+
+def poll_for_workflow_events(bucket, event_type=None, since=None):
+    """Poll S3 for workflow events."""
+    s3 = boto3.client('s3')
+    prefix = f'workflow/{datetime.now().year}/{datetime.now().month}/'
+
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+
+    events = []
+    for obj in response.get('Contents', []):
+        # Filter by modification time if 'since' provided
+        if since and obj['LastModified'] < since:
+            continue
+
+        data = s3.get_object(Bucket=bucket, Key=obj['Key'])['Body'].read()
+        event = json.loads(data)
+
+        # Filter by event_type if provided
+        if event_type and event.get('event_type') != event_type:
+            continue
+
+        events.append(event)
+
+    return events
+
+# Example: Get all artifact_create events from upstream ETL project
+artifacts = poll_for_workflow_events(
+    bucket='corthos.logs.etl.corthion.ai',
+    event_type='artifact_create'
+)
+
+for artifact in artifacts:
+    print(f"New artifact: {artifact['payload']['artifact']['type']}")
+```
+
+### S3-Only Mode
+
+For projects that primarily serve downstream consumers (e.g., ETL pipelines), you can skip local storage entirely:
+
+```json
+{
+  "types": {
+    "workflow": {
+      "local_retention_days": 0,
+      "cloud_storage": {
+        "enabled": true,
+        "bucket": "${ORG}.logs.${PROJECT}",
+        "prefix": "workflow/{year}/{month}/"
+      }
+    }
+  }
+}
+```
+
+Setting `local_retention_days: 0` means events go directly to S3 without local storage.
+
+---
+
 ## Example Workflow Log
 
 ```markdown

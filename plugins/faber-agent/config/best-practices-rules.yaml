@@ -6,8 +6,8 @@
 # components (commands, agents, skills, hooks). The audit system uses
 # these rules to compare actual implementations against expected patterns.
 
-version: "2025-12-02"
-description: "Best practices rules for Claude Code components - derived from faber-agent patterns"
+version: "2025-12-02.1"
+description: "Best practices rules for Claude Code components - derived from faber-agent patterns (updated with workflow logging and direct skill command detection)"
 
 # Rule severity levels:
 # - critical: Architecture violation, must fix
@@ -72,6 +72,46 @@ rules:
           - "--[a-z-]+\\s+[<\\[]"
         in_section: "ARGUMENT"
         must_match: true
+
+    - id: CMD-004
+      name: "No direct skill commands"
+      description: "Commands must not invoke skills directly - all workflow operations route through manager agent"
+      severity: critical
+      rationale: "Direct skill commands bypass centralized logging, orchestration, and state management"
+      deprecated_pattern: "Direct skill commands that bypass the manager"
+      check:
+        type: filename_pattern
+        pattern: "*"
+        must_not_be: ["*-direct.md", "*director*.md"]  # These are allowed
+      anti_check:
+        type: content_pattern
+        patterns:
+          - "Skill\\([\"'](?!.*manager|.*director)"  # Skill call that's not to a manager
+          - "@skill-(?!.*manager|.*director)"
+        in_section: "WORKFLOW"
+        must_not_match: true
+        exceptions:
+          - "*-direct.md"  # Primary entry points are OK
+          - "*director*.md"  # Director skills are OK
+      remediation:
+        summary: "Route command through manager agent, not direct to skill"
+        steps:
+          - "Remove direct skill invocation from command"
+          - "Create or update manager agent to handle this operation"
+          - "Add --action flag support if creating new workflow step"
+          - "Update command to invoke manager agent with action parameter"
+        example_before: |
+          <WORKFLOW>
+          1. Invoke validator skill directly
+             Skill: myproject-validator
+          </WORKFLOW>
+        example_after: |
+          <WORKFLOW>
+          1. Route to manager with validate action
+             Agent: myproject-manager
+             Request: {"operation": "validate", "target": "..."}
+          </WORKFLOW>
+        reference: "plugins/faber-agent/docs/BEST-PRACTICES.md#7-direct-skill-commands"
 
   agents:
     - id: AGT-001
@@ -140,6 +180,34 @@ rules:
           - "Move agent content to skills/{name}-director/SKILL.md"
           - "Remove from agents/ directory"
           - "Update any commands that invoke this agent"
+
+    - id: AGT-005
+      name: "Manager emits workflow events"
+      description: "Manager agents must emit structured workflow events for cross-project visibility"
+      severity: warning
+      rationale: "Workflow event logging enables downstream consumption, debugging, and cross-project tracking"
+      applies_to:
+        - "*-manager.md"
+        - "*manager*.md"
+      check:
+        type: content_pattern
+        patterns:
+          - "(workflow-event-emitter|emit_workflow_event|emit_event|EVENT_EMISSION)"
+          - "(workflow_start|workflow_complete|artifact_create)"
+        must_match_any: true
+      remediation:
+        summary: "Add workflow event emission to manager agent"
+        steps:
+          - "Add <EVENT_EMISSION> section to manager skill/agent"
+          - "Emit workflow_start at workflow initialization"
+          - "Emit artifact_create when important outputs created"
+          - "Emit workflow_complete at workflow end"
+          - "Reference fractary-logs:workflow-event-emitter skill for emission"
+        minimum_events:
+          - "workflow_start - At workflow initialization"
+          - "artifact_create - When important outputs created"
+          - "workflow_complete - At workflow end with summary"
+        reference: "specs/WORK-00199-automatic-manager-workflow-logging.md"
 
   skills:
     - id: SKL-001
