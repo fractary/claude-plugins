@@ -6,8 +6,8 @@
 # components (commands, agents, skills, hooks). The audit system uses
 # these rules to compare actual implementations against expected patterns.
 
-version: "2025-12-02.1"
-description: "Best practices rules for Claude Code components - derived from faber-agent patterns (updated with workflow logging and direct skill command detection)"
+version: "2025-12-02.2"
+description: "Best practices rules for Claude Code components - with workflow logging (AGT-005), direct skill command (CMD-004), and director pattern (ARC-004) detection"
 
 # Rule severity levels:
 # - critical: Architecture violation, must fix
@@ -323,6 +323,28 @@ rules:
           - "(fractary-docs|fractary-specs|fractary-logs|fractary-repo)"
         scope: "any_file"
         must_match: true
+
+    - id: ARC-004
+      name: "Director multi-step action support"
+      description: "Director commands should support comma-separated multi-step actions"
+      severity: info
+      rationale: "Allows running specific workflow steps: --action frame,architect,build"
+      applies_to:
+        - "*director*"
+        - "*-direct*"
+      check:
+        type: content_pattern
+        patterns:
+          - "(comma.separated|comma-separated|multi-step|step1,step2)"
+          - "--action.*<.*,.*>"
+        must_match_any: true
+      remediation:
+        summary: "Add multi-step action support to director"
+        steps:
+          - "Update --action argument to accept comma-separated values"
+          - "Document multi-step usage: --action step1,step2,step3"
+          - "Parse comma-separated values and execute steps sequentially"
+        example: "--action frame,architect,build"
 
   hooks:
     - id: HK-001
