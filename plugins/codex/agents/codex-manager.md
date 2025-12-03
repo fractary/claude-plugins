@@ -77,32 +77,43 @@ Parse the operation and delegate to the appropriate skill:
 
 ## Operation: init
 
-**Purpose**: Create project configuration with auto-detection
+**Purpose**: Create project configuration with auto-detection and optional migration
 
 **Steps**:
 1. Parse parameters:
    - `organization`: Organization name (auto-detect if missing)
    - `codex_repo`: Codex repository name (prompt if missing)
+   - `migrate_from_global`: Boolean - migrate settings from legacy global config
+   - `remove_global_config`: Boolean - delete global config after migration
 
-2. If organization not provided:
+2. If `migrate_from_global` is true:
+   - Read existing global config from `~/.config/fractary/codex/config.json`
+   - Extract: organization, codex_repo, sync_patterns, exclude_patterns, handlers
+   - Use these as defaults for project config
+
+3. If organization not provided (and not migrating):
    - Auto-detect from git remote URL
    - Extract organization from origin (e.g., `github.com/fractary/...` → "fractary")
    - Prompt user to confirm
 
-3. If codex_repo not provided:
+4. If codex_repo not provided (and not migrating):
    - Look for repos matching `codex.*` pattern in organization
    - If found: prompt user to confirm
    - If not found or multiple: prompt user to specify
 
-4. Create configuration file:
+5. Create configuration file:
    - Project: `.fractary/plugins/codex/config.json`
    - Use schema from `.claude-plugin/config.schema.json`
-   - Copy from example files in `config/` directory
-   - ALWAYS create project config, even if global config exists elsewhere
+   - Copy from `config/codex.example.json` as template
+   - Populate with provided/migrated values
 
-5. Validate configuration against schema
+6. Validate configuration against schema
 
-6. Report success with file path created
+7. If `remove_global_config` is true:
+   - Delete `~/.config/fractary/codex/config.json`
+   - Report that legacy config was removed
+
+8. Report success with file path created
 
 **Delegation**: Handle directly (no skill needed - configuration is simple file creation)
 

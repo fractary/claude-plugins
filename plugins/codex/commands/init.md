@@ -100,7 +100,41 @@ Multiple codex repositories found:
 Select (1-2):
 ```
 
-## Step 4: Confirm Configuration
+## Step 4: Handle Legacy Global Config
+
+Check if a global config exists at `~/.config/fractary/codex/config.json`:
+
+If found:
+```
+⚠️ Legacy global config detected
+
+Found deprecated global config at:
+~/.config/fractary/codex/config.json
+
+This config format is deprecated. Settings will be migrated to:
+.fractary/plugins/codex/config.json
+
+Would you like to:
+1. Migrate settings and remove global config (recommended)
+2. Create fresh project config and remove global config
+3. Create project config but keep global config (not recommended)
+
+Select (1-3):
+```
+
+For option 1 (recommended):
+- Read existing global config values (organization, codex_repo, patterns, etc.)
+- Use these values as defaults for the new project config
+- Delete the global config file after successful project config creation
+
+For option 2:
+- Proceed with auto-detection as normal
+- Delete the global config file after successful project config creation
+
+For option 3:
+- Proceed normally but warn that global config will be ignored
+
+## Step 5: Confirm Configuration
 
 Show what will be created:
 
@@ -112,10 +146,7 @@ Will create:
 Continue? (Y/n)
 ```
 
-Note: If a global config exists at `~/.config/fractary/codex/config.json`, IGNORE it.
-Always create the project config regardless of any other config files.
-
-## Step 5: Invoke Codex-Manager Agent
+## Step 6: Invoke Codex-Manager Agent
 
 Use the codex-manager agent with init operation:
 
@@ -126,19 +157,22 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
   "parameters": {
     "organization": "<organization-name>",
     "codex_repo": "<codex-repo-name>",
-    "skip_confirmation": <true if --yes flag>
+    "skip_confirmation": <true if --yes flag>,
+    "migrate_from_global": <true if migrating from global config>,
+    "remove_global_config": <true if user chose to remove global config>
   }
 }
 ```
 
 The agent will:
 1. Create configuration file at `.fractary/plugins/codex/config.json`
-2. Use example configs as templates
+2. Use example config as template (or migrate values from global config)
 3. Populate with provided values
 4. Validate against schema
-5. Report success with file path
+5. Remove global config file if requested
+6. Report success with file path
 
-## Step 6: Display Results
+## Step 7: Display Results
 
 Show the agent's response to the user, which includes:
 - Configuration file created
