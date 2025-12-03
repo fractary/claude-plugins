@@ -1,7 +1,7 @@
 #!/bin/bash
 # generate-config.sh - Generate faber-cloud configuration from discovery reports
 #
-# Takes discovery reports and generates a complete faber-cloud.json configuration
+# Takes discovery reports and generates a complete config.json configuration
 # with intelligent defaults based on discovered infrastructure
 
 set -euo pipefail
@@ -31,9 +31,9 @@ Arguments:
   terraform_report        Path to Terraform discovery report JSON
   aws_report              Path to AWS profiles discovery report JSON
   custom_agents_report    Path to custom agents discovery report JSON
-  output_file             Output path for generated faber-cloud.json
+  output_file             Output path for generated config.json
 
-The script analyzes discovery reports and generates a complete faber-cloud.json
+The script analyzes discovery reports and generates a complete config.json
 configuration with:
   - Appropriate structure template (flat, modular, multi-environment)
   - AWS profile mappings to environments
@@ -47,7 +47,7 @@ Exit Codes:
   2 - Invalid arguments or missing reports
 
 Examples:
-  generate-config.sh terraform.json aws.json agents.json faber-cloud.json
+  generate-config.sh terraform.json aws.json agents.json config.json
 EOF
   exit 2
 }

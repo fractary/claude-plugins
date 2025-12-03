@@ -254,7 +254,7 @@ generate_capability_mapping() {
         recommendation="Use faber-cloud infra-teardown skill. Keep script as pre-destroy hook for backups."
         ;;
       configure)
-        recommendation="Configuration now managed by faber-cloud.json. Archive script after migration."
+        recommendation="Configuration now managed by config.json. Archive script after migration."
         ;;
       monitor)
         recommendation="Keep as standalone tool. faber-cloud doesn't replace monitoring functionality."
@@ -648,12 +648,12 @@ Use this checklist to track your migration progress.
     discovery-terraform.json \\
     discovery-aws.json \\
     discovery-custom-agents.json \\
-    faber-cloud.json
+    config.json
   \`\`\`
 
 - [ ] Validate generated configuration
   \`\`\`bash
-  bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh faber-cloud.json
+  bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh config.json
   \`\`\`
 
 - [ ] Review and customize configuration
@@ -664,8 +664,8 @@ Use this checklist to track your migration progress.
 
 - [ ] Copy configuration to project
   \`\`\`bash
-  mkdir -p .fractary/plugins/faber-cloud/config
-  cp faber-cloud.json .fractary/plugins/faber-cloud/
+  mkdir -p .fractary/plugins/faber-cloud
+  cp config.json .fractary/plugins/faber-cloud/
   \`\`\`
 
 ### Phase 3: Hook Integration

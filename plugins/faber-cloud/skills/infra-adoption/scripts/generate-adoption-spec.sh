@@ -45,7 +45,7 @@ Required Discovery Reports (in output_dir):
   - discovery-terraform.json
   - discovery-aws.json
   - discovery-custom-agents.json
-  - faber-cloud.json (generated config)
+  - config.json (generated config)
 
 Exit Codes:
   0 - Success
@@ -68,7 +68,7 @@ SPEC_OUTPUT="$3"
 TF_REPORT="$OUTPUT_DIR/discovery-terraform.json"
 AWS_REPORT="$OUTPUT_DIR/discovery-aws.json"
 AGENTS_REPORT="$OUTPUT_DIR/discovery-custom-agents.json"
-CONFIG_FILE="$OUTPUT_DIR/faber-cloud.json"
+CONFIG_FILE="$OUTPUT_DIR/config.json"
 
 for report in "$TF_REPORT" "$AWS_REPORT" "$AGENTS_REPORT" "$CONFIG_FILE"; do
   if [ ! -f "$report" ]; then
@@ -463,13 +463,13 @@ append "## Phase 4: Configure Faber-Cloud (1 hour)
 ### Task 4.1: Install Configuration
 
 \`\`\`bash
-mkdir -p .fractary/plugins/faber-cloud/config
-cp ${OUTPUT_DIR}/faber-cloud.json .fractary/plugins/faber-cloud/
+mkdir -p .fractary/plugins/faber-cloud
+cp ${OUTPUT_DIR}/config.json .fractary/plugins/faber-cloud/
 \`\`\`
 
 ### Task 4.2: Review Configuration
 
-See the generated \`faber-cloud.json\` in the output directory.
+See the generated \`config.json\` in the output directory.
 
 ---
 

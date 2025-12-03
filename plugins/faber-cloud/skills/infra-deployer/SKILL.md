@@ -78,7 +78,7 @@ AWS Profile: {profile}
    - If validation passes (exit code 0): Continue to step 3
 3. **Check production safety confirmation requirement:**
    - Configuration is loaded by sourcing cloud-common/scripts/config-loader.sh
-   - config-loader.sh reads `.fractary/plugins/faber-cloud/faber-cloud.json`
+   - config-loader.sh reads `.fractary/plugins/faber-cloud/config.json`
    - It sets `DEVOPS_REQUIRE_CONFIRMATION` from `environments.{env}.require_confirmation`
    - Example: If config has `"prod": {"require_confirmation": true}`, then `DEVOPS_REQUIRE_CONFIRMATION="true"`
    - If "true", mark that confirmation will be required after plan generation (step 9)

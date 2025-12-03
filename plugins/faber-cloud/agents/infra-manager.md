@@ -389,7 +389,7 @@ Workflow:
   6. Provide next steps for migration
 Output:
   - Discovery reports (.fractary/adoption/*.json)
-  - Generated configuration (faber-cloud.json)
+  - Generated configuration (config.json)
   - Migration report (MIGRATION.md)
   - Configuration installed (if approved)
 Next: Follow migration checklist in MIGRATION.md
