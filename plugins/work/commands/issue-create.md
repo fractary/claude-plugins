@@ -1,7 +1,7 @@
 ---
 name: fractary-work:issue-create
 description: Create a new work item
-argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create] [--spec-create]'
+argument-hint: '"<title>" [--type "feature|bug|chore|patch"] [--body "<text>"] [--context "<instructions>"] [--label <label>] [--milestone <milestone>] [--assignee <user>] [--branch-create] [--spec-create]'
 ---
 
 <CONTEXT>
@@ -35,7 +35,7 @@ Your role is to parse user input and invoke the work-manager agent to create a n
 <WORKFLOW>
 1. **Parse user input**
    - Extract title (required)
-   - Parse optional arguments: --type, --body, --label, --milestone, --assignee, --branch-create, --spec-create
+   - Parse optional arguments: --type, --body, --context, --label, --milestone, --assignee, --branch-create, --spec-create
    - Validate required arguments are present
 
 2. **Capture working directory context**
@@ -43,15 +43,27 @@ Your role is to parse user input and invoke the work-manager agent to create a n
    - This ensures operations execute in the correct repository
    - Critical fix for agent execution context bug
 
-3. **Build structured request**
+3. **Handle --context argument (if provided)**
+   - If `--context` is provided but `--body` is NOT provided:
+     - Use the conversation history plus the context instructions to **generate** an appropriate issue body
+     - The context argument provides guidance on what to include, how to structure it, or what aspects to focus on
+     - Leverage all relevant discussion, decisions, and plans from the current conversation
+     - Generate a well-structured issue body that captures the agreed-upon approach
+   - If both `--context` and `--body` are provided:
+     - Use `--body` as the base, but enhance/refine it using the context instructions
+   - If only `--body` is provided (no `--context`):
+     - Use `--body` as-is (current behavior)
+
+4. **Build structured request**
    - Convert `--type` to label format (e.g., "type: feature")
    - Merge type label with any additional --label flags
    - Set `branch_create` to true if --branch-create flag is provided
    - Set `spec_create` to true if --spec-create flag is provided
+   - Include the generated/provided body in the description field
    - Package all parameters
    - Include working_directory in parameters
 
-4. **ACTUALLY INVOKE the Task tool**
+5. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-work:work-manager"
    - Pass the structured JSON request in the prompt parameter
    - Do NOT just describe what should be done - actually call the Task tool
@@ -64,7 +76,7 @@ Your role is to parse user input and invoke the work-manager agent to create a n
    - DO NOT try alternative approaches
    - Wait for user to provide explicit instruction
 
-5. **Return response**
+6. **Return response**
    - The work-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
@@ -111,7 +123,8 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 **Optional Arguments**:
 - `--type`: Issue type (feature|bug|chore|patch, default: feature) - Automatically converted to "type: <value>" label
-- `--body`: Issue description (use quotes if multi-word)
+- `--body`: Issue description (use quotes if multi-word) - exact text to use as body
+- `--context`: Instructions for generating the issue body from conversation context (use quotes). When provided without `--body`, Claude will craft the body using the current conversation plus these instructions. This is useful for capturing discussion, decisions, and plans into a well-structured issue.
 - `--label`: Additional labels (can be repeated, space-separated values not allowed)
 - `--milestone`: Milestone name or number
 - `--assignee`: User to assign (use @me for yourself)
@@ -121,6 +134,12 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 **Maps to**: create-issue operation
 
 **Type Conversion**: The `--type` flag is automatically converted to a label in the format "type: <value>". For example, `--type feature` becomes the label `"type: feature"`. This label is then merged with any additional `--label` flags.
+
+**Body vs Context**:
+- `--body` provides the **exact text** to use as the issue body
+- `--context` provides **instructions** for Claude to generate the body from conversation context
+- When both are provided, `--body` is the base and `--context` refines it
+- When only `--context` is provided, Claude generates the entire body based on the conversation and instructions
 </ARGUMENT_PARSING>
 
 <EXAMPLES>
@@ -144,6 +163,16 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 # Create, create branch, and create spec (full workflow)
 /work:issue-create "Add CSV export" --type feature --branch-create --spec-create
+
+# Create issue with body generated from conversation context
+# (Claude will use the discussion to craft a detailed body)
+/work:issue-create "Implement user auth flow" --type feature --context "Include the OAuth2 approach we discussed, the token refresh strategy, and the error handling requirements"
+
+# Create issue capturing the full problem/solution discussion
+/work:issue-create "Fix race condition in queue processor" --type bug --context "Summarize the root cause analysis and agreed solution from our discussion"
+
+# Use context to guide body generation with additional labels
+/work:issue-create "Add dark mode support" --type feature --context "Focus on the CSS variables approach and component changes we identified" --label frontend --label ui
 ```
 </EXAMPLES>
 
@@ -246,6 +275,28 @@ This command works with:
 - Linear
 
 Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
+
+## Context-Based Body Generation
+
+The `--context` argument enables a powerful workflow pattern: after discussing a problem and solution with Claude, you can create an issue that captures all that thinking without manually writing the body.
+
+**Use Cases**:
+- After debugging a complex issue together, create a bug report that captures the root cause analysis
+- After designing a feature approach, create an issue with the agreed-upon requirements and implementation notes
+- After reviewing code and identifying improvements, create issues that capture the context of why changes are needed
+
+**How it works**:
+1. Have a conversation with Claude about the problem/solution
+2. Invoke `/work:issue-create` with `--context` providing instructions
+3. Claude reviews the conversation and crafts an issue body following your instructions
+4. The issue is created with a well-structured body that captures the discussion
+
+**Example workflow**:
+```
+User: Let's discuss how to implement rate limiting for our API...
+[... discussion about approaches, trade-offs, decisions ...]
+User: /work:issue-create "Implement API rate limiting" --type feature --context "Include the token bucket approach we agreed on, the Redis backend decision, and the per-endpoint configuration requirements"
+```
 
 ## See Also
 
