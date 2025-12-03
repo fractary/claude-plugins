@@ -148,6 +148,7 @@ Use repo-common skill to load configuration.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKTREE_CHECK_SCRIPT="$SCRIPT_DIR/scripts/check-worktree.sh"
 
+WORKTREE_REUSED=false
 if EXISTING_WORKTREE=$("$WORKTREE_CHECK_SCRIPT" "$WORK_ID" 2>/dev/null); then
     echo "✅ Found existing worktree for work_id $WORK_ID"
     echo "   Path: $EXISTING_WORKTREE"
@@ -158,17 +159,22 @@ if EXISTING_WORKTREE=$("$WORKTREE_CHECK_SCRIPT" "$WORK_ID" 2>/dev/null); then
     # Switch to worktree directory
     cd "$EXISTING_WORKTREE"
 
-    # Return early - reusing existing worktree
     WORKTREE_REUSED=true
     WORKTREE_PATH="$EXISTING_WORKTREE"
-
-    # Skip to completion message (Step 9)
-    goto STEP_9
 else
     echo "🆕 No existing worktree found, will create new worktree"
-    WORKTREE_REUSED=false
 fi
 ```
+
+---
+**⚡ WORKFLOW DECISION POINT:**
+
+| Condition | Execute Steps | Skip Steps |
+|-----------|---------------|------------|
+| `WORKTREE_REUSED=true` | 8, 9 | 5, 6, 7 |
+| `WORKTREE_REUSED=false` | 5, 6, 7, 8, 9 | (none) |
+
+---
 
 **Note**: Uses `scripts/check-worktree.sh` to check registry and validate worktree path. This script:
 - Checks `~/.fractary/repo/worktrees.json` for work_id mapping
@@ -240,19 +246,16 @@ echo "✅ Switched to worktree directory: $WORKTREE_PATH"
 - If worktree mode: Confirm worktree directory exists and is accessible
 - Confirm current directory is worktree (if worktree mode)
 
-**8. UPDATE REPO CACHE:**
+**8. CACHE UPDATE (AUTOMATIC):**
 
-After successful branch creation/checkout, update the repo plugin cache to reflect the new branch:
+The handler script (`create-branch.sh`) automatically updates the status cache after checkout. No manual action needed.
 
-```bash
-# Update repo cache to reflect branch change (triggers issue_id extraction)
-plugins/repo/scripts/update-status-cache.sh --quiet
-```
-
-This proactively updates:
+**What gets updated:**
 - Current branch name
-- Issue ID (extracted from new branch name)
-- PR number (will be empty for newly created branch)
+- Issue ID (extracted from new branch name using pattern `prefix/ID-description`)
+- PR number (empty for newly created branches)
+
+**Note**: Cache update is handled by the handler script to ensure deterministic execution. The skill does not need to invoke cache updates separately.
 
 **9. OUTPUT COMPLETION MESSAGE:**
 
@@ -263,6 +266,7 @@ Operation: create-branch (worktree reused)
 Work ID: {work_id}
 Branch: {branch_name}
 Worktree: {worktree_path} (reused existing)
+Status Cache: ✅ Updated (status line now shows branch)
 ───────────────────────────────────────
 Next: Continue workflow in existing worktree
 ```
@@ -276,6 +280,7 @@ Branch Created: {branch_name}
 Base Branch: {base_branch}
 Worktree: {worktree_path}
 Commit SHA: {commit_sha}
+Status Cache: ✅ Updated (status line now shows new branch)
 ───────────────────────────────────────
 Next: Make changes in worktree and commit
 ```
@@ -287,6 +292,7 @@ Operation: create-branch
 Branch Created: {branch_name}
 Base Branch: {base_branch}
 Commit SHA: {commit_sha}
+Status Cache: ✅ Updated (status line now shows new branch)
 ───────────────────────────────────────
 Next: Make changes and use commit-creator skill to commit them
 ```
@@ -300,8 +306,10 @@ Next: Make changes and use commit-creator skill to commit them
 ✅ Base branch verified to exist
 ✅ Handler invoked and returned success
 ✅ Branch created successfully
+✅ Branch checked out (if checkout=true)
 ✅ Branch state verified
 ✅ Commit SHA captured
+✅ Status cache updated (ensures status line shows new branch)
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
@@ -316,6 +324,7 @@ Return structured JSON response:
   "base_branch": "main",
   "commit_sha": "abc123def456789...",
   "checked_out": true,
+  "cache_updated": true,
   "platform": "github"
 }
 ```
