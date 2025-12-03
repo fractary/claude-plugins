@@ -27,6 +27,11 @@ Your role is to parse user input and invoke the project-auditor agent with the a
 </CRITICAL_RULES>
 
 <WORKFLOW>
+## CRITICAL: Run Detection Script FIRST
+
+The detection script MUST be run by this command BEFORE any agent invocation.
+This prevents the LLM from hallucinating results.
+
 1. **Parse user input**
    - Extract project path (optional, defaults to current directory)
    - Extract output flag: --output <file> (optional)
@@ -38,15 +43,32 @@ Your role is to parse user input and invoke the project-auditor agent with the a
    - Validate format is either 'json' or 'markdown'
    - Validate output file path is writable (if provided)
 
-3. **Build structured request**
-   - Map arguments to request structure
-   - Include all parameters for project-auditor
+3. **RUN DETECTION SCRIPT (MANDATORY)**
+   You MUST run this script via Bash tool and capture the output:
+   ```bash
+   {plugin_path}/skills/project-analyzer/scripts/run-all-detections.sh "{project_path}"
+   ```
 
-4. **Invoke agent**
-   - Invoke project-auditor agent with the structured request
+   Where:
+   - `{plugin_path}` = path to faber-agent plugin (e.g., `plugins/faber-agent` or `~/.claude/plugins/.../faber-agent`)
+   - `{project_path}` = the project being audited
 
-5. **Return response**
-   - Display the agent's response to the user
+   **CRITICAL RULES:**
+   - You MUST actually execute this Bash command
+   - You MUST NOT skip this step
+   - You MUST NOT fabricate the script output
+   - The script output IS the authoritative audit data
+   - If the script shows 0 violations, report 0 violations
+
+4. **Format the results**
+   - Take the JSON output from the script
+   - Format it into the requested output format (markdown or json)
+   - Include compliance score, violation counts, and details from script output
+   - DO NOT add "correct patterns" or other data not in the script output
+
+5. **Write report and display**
+   - Write report to output file if specified
+   - Display summary to user
 </WORKFLOW>
 
 <ARGUMENT_PARSING>
