@@ -2,7 +2,7 @@
 name: worktree-manager
 description: Create and manage Git worktrees for parallel development workflows
 tools: Bash, Skill
-model: inherit
+model: haiku
 ---
 
 # Worktree Manager Skill

@@ -2,7 +2,7 @@
 name: tag-manager
 description: Create and push semantic version tags with GPG signing support
 tools: Bash, SlashCommand
-model: inherit
+model: haiku
 ---
 
 # Tag Manager Skill

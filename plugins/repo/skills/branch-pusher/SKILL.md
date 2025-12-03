@@ -2,7 +2,7 @@
 name: branch-pusher
 description: Push branches to remote repository with safety checks and force-with-lease support
 tools: Bash, SlashCommand
-model: inherit
+model: haiku
 ---
 
 # Branch Pusher Skill

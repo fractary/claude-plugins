@@ -2,7 +2,7 @@
 name: cleanup-manager
 description: List and delete stale branches with safety checks for merged and inactive branches
 tools: Bash, SlashCommand
-model: inherit
+model: haiku
 ---
 
 # Cleanup Manager Skill
