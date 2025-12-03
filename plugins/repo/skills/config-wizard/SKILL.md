@@ -2,7 +2,7 @@
 name: repo-config-wizard
 description: Interactive setup wizard for configuring the Fractary Repo Plugin
 tools: Bash, Read, Write
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # Config Wizard Skill

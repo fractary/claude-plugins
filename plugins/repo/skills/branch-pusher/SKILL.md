@@ -2,7 +2,7 @@
 name: branch-pusher
 description: Push branches to remote repository with safety checks and force-with-lease support
 tools: Bash, SlashCommand
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # Branch Pusher Skill

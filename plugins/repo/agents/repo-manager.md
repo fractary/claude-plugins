@@ -2,7 +2,7 @@
 name: repo-manager
 description: Universal source control agent - routes repository operations to specialized skills
 tools: Bash, Skill
-model: inherit
+model: claude-haiku-4-5
 color: orange
 ---
 

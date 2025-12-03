@@ -1,7 +1,7 @@
 ---
 name: handler-source-control-bitbucket
 description: Bitbucket source control handler centralizing Git CLI and Bitbucket API operations with protected branch safety
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # handler-source-control-bitbucket

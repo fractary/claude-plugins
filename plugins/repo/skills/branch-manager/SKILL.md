@@ -2,7 +2,7 @@
 name: branch-manager
 description: Create and manage Git branches with safety checks and validation
 tools: Bash, SlashCommand
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # Branch Manager Skill

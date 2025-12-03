@@ -2,7 +2,7 @@
 name: commit-creator
 description: Create semantic commits with FABER metadata and conventional commit format
 tools: Bash, SlashCommand
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # Commit Creator Skill

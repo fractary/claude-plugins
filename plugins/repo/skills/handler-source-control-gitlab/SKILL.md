@@ -1,7 +1,7 @@
 ---
 name: handler-source-control-gitlab
 description: GitLab source control handler centralizing Git CLI and GitLab API operations with protected branch safety
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # handler-source-control-gitlab

@@ -2,7 +2,7 @@
 name: permission-manager
 description: Manages Claude Code permissions in .claude/settings.json for repo plugin operations
 tools: Bash, Read, Write
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # Permission Manager Skill

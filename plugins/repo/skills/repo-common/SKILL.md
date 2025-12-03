@@ -1,7 +1,7 @@
 ---
 name: repo-common
 description: Shared utilities and configuration management for repo plugin skills including validation and semantic formatting
-model: haiku
+model: claude-haiku-4-5
 ---
 
 # repo-common
