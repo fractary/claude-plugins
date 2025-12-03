@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-comment
 description: Add a comment to a pull request
-argument-hint: '<pr_number> "<comment>"'
+argument-hint: '<pr_number> ["<comment>"] [--prompt "<instructions>"]'
 ---
 
 <CONTEXT>
@@ -35,17 +35,29 @@ Your role is to parse user input and invoke the repo-manager agent to add a comm
 <WORKFLOW>
 1. **Parse user input**
    - Extract pr_number (required)
-   - Extract comment (required)
-   - Validate required arguments are present
+   - Extract comment (optional if --prompt provided)
+   - Parse optional arguments: --prompt
+   - Validate: either comment or --prompt must be provided
 
-2. **Build structured request**
+2. **Handle --prompt argument (if provided)**
+   - If `--prompt` is provided but comment is NOT provided:
+     - Use the conversation history plus the prompt instructions to **generate** an appropriate PR comment
+     - The prompt argument provides guidance on what to include or focus on
+     - Leverage all relevant code review discussion and feedback from the current conversation
+     - Generate a well-structured comment that captures the review feedback
+   - If both comment and `--prompt` are provided:
+     - Use the comment as the base, but enhance/refine it using the prompt instructions
+   - If only comment is provided (no `--prompt`):
+     - Use comment as-is (current behavior)
+
+3. **Build structured request**
    - Map to "comment-pr" operation
-   - Package parameters
+   - Package parameters including generated/provided comment
 
-3. **Invoke agent**
+4. **Invoke agent**
    - Invoke fractary-repo:repo-manager agent with the request
 
-4. **Return response**
+5. **Return response**
    - The repo-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
@@ -79,7 +91,16 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Required Arguments**:
 - `pr_number` (number): PR number (e.g., 456, not "#456")
-- `comment` (string): Comment text, use quotes if multi-word (e.g., "Looks great! Approving now.")
+
+**Conditionally Required** (at least one):
+- `comment` (string): Comment text, use quotes if multi-word - exact text to use as comment
+- `--prompt` (string): Instructions for generating the comment from conversation context (use quotes). When provided without comment text, Claude will craft the comment using the current conversation plus these instructions.
+
+**Comment vs Prompt**:
+- `comment` provides the **exact text** to use as the PR comment
+- `--prompt` provides **instructions** for Claude to generate the comment from conversation context
+- When both are provided, comment is the base and `--prompt` refines it
+- When only `--prompt` is provided, Claude generates the entire comment based on the conversation and instructions
 
 **Maps to**: comment-pr
 
@@ -102,6 +123,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Request changes
 /repo:pr-comment 456 "Please add unit tests before merging"
+
+# Generate review feedback from conversation context
+/repo:pr-comment 456 --prompt "Summarize the code review feedback we discussed, including the security concern"
+
+# Generate approval comment with context
+/repo:pr-comment 456 --prompt "Post an approval comment mentioning the improvements we identified during review"
+
+# Enhance comment with review details
+/repo:pr-comment 456 "Great improvements!" --prompt "Add specific details about the refactoring we discussed"
 ```
 </EXAMPLES>
 

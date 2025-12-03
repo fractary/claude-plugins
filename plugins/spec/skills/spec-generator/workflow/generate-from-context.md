@@ -149,7 +149,7 @@ Create merged context combining all sources:
 
 **Priority order (highest to lowest)**:
 1. Conversation context (primary source)
-2. Explicit `--context` parameter (if provided)
+2. Explicit `--prompt` parameter (if provided)
 3. Issue description (if work_id provided)
 4. Issue comments (if work_id provided)
 
