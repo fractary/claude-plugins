@@ -46,12 +46,11 @@
    Use this repository? (Y/n)
    ```
 
-3. **Configuration Creation**: Creates config files
+3. **Configuration Creation**: Creates config file
    ```
    ✅ Codex plugin initialized successfully!
 
    Created:
-     - Global config: ~/.config/fractary/codex/config.json
      - Project config: .fractary/plugins/codex/config.json
 
    Configuration:
@@ -200,16 +199,16 @@ Next: Review commits and verify changes
 
 ## Customization
 
-### Adjust Global Configuration
+### Project Configuration
 
-Edit `~/.config/fractary/codex/config.json`:
+Edit `.fractary/plugins/codex/config.json`:
 
 ```json
 {
   "version": "1.0",
   "organization": "fractary",
   "codex_repo": "codex.fractary.com",
-  "default_sync_patterns": [
+  "sync_patterns": [
     "docs/**",
     "CLAUDE.md",
     "README.md",
@@ -217,11 +216,12 @@ Edit `~/.config/fractary/codex/config.json`:
     "standards/**",     // Add custom patterns
     "guides/**"
   ],
-  "default_exclude_patterns": [
+  "exclude_patterns": [
     "**/.git/**",
     "**/node_modules/**",
     "docs/private/**"   // Add custom excludes
   ],
+  "sync_direction": "bidirectional",
   "handlers": {
     "sync": {
       "active": "github",
@@ -234,24 +234,6 @@ Edit `~/.config/fractary/codex/config.json`:
       }
     }
   }
-}
-```
-
-### Project-Specific Configuration
-
-Create `.fractary/plugins/codex/config.json`:
-
-```json
-{
-  "version": "1.0",
-  "sync_patterns": [
-    "docs/**",
-    "api/**"          // Project-specific patterns
-  ],
-  "exclude_patterns": [
-    "docs/drafts/**"  // Project-specific excludes
-  ],
-  "sync_direction": "bidirectional"
 }
 ```
 
@@ -424,10 +406,9 @@ jobs:
 /fractary-codex:sync-org
 ```
 
-### Configuration Locations
+### Configuration Location
 
 ```
-Global:  ~/.config/fractary/codex/config.json
 Project: .fractary/plugins/codex/config.json
 Schema:  .claude-plugin/config.schema.json
 ```

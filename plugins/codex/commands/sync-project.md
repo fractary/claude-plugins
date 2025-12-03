@@ -152,20 +152,21 @@ Ensure direction is valid:
 
 ## Step 4: Load Configuration
 
-Check that configuration exists:
-- Global: `~/.config/fractary/codex/config.json` OR
-- Project: `.fractary/plugins/codex/config.json`
+Check that configuration exists at `.fractary/plugins/codex/config.json`
 
-If neither exists:
+If not found:
 ```
 ⚠️ Configuration not found
 
-The codex plugin requires configuration before syncing.
+The codex plugin requires configuration at:
+.fractary/plugins/codex/config.json
 
 Run: /fractary-codex:init
 
 This will set up your organization and codex repository settings.
 ```
+
+Note: Do NOT look for or use global config at `~/.config/...`. Only use project-level config.
 
 If configuration exists:
 - Read organization name
@@ -330,11 +331,12 @@ Run without --dry-run to apply changes:
   </PROJECT_DETECTION_FAILED>
 
   <CONFIGURATION_MISSING>
-  If configuration not found:
-  1. Explain that config is required
+  If configuration not found at `.fractary/plugins/codex/config.json`:
+  1. Explain that config is required at `.fractary/plugins/codex/config.json`
   2. Tell user to run /fractary-codex:init
   3. Explain what init does
   4. Don't invoke agent without config
+  5. Do NOT look for or use global config at `~/.config/...`
   </CONFIGURATION_MISSING>
 
   <CONFLICTING_OPTIONS>

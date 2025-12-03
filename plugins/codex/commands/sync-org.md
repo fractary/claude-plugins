@@ -123,19 +123,18 @@ Extract from command:
 
 ## Step 2: Load Configuration
 
-Check that configuration exists:
-- Global config REQUIRED for org-wide operations: `~/.config/fractary/codex/config.json`
+Check that configuration exists at `.fractary/plugins/codex/config.json`
 
-If global config doesn't exist:
+If config doesn't exist:
 ```
-⚠️ Global configuration required for organization sync
+⚠️ Configuration required for organization sync
 
-Organization-wide sync requires global configuration.
-
-Run: /fractary-codex:init --global
+Run: /fractary-codex:init
 
 This will set up your organization and codex repository settings.
 ```
+
+Note: Do NOT look for or use global config at `~/.config/...`. Only use project-level config.
 
 Load from configuration:
 - Organization name
@@ -369,11 +368,12 @@ Run without --dry-run to apply changes:
   </INVALID_ARGUMENTS>
 
   <CONFIGURATION_MISSING>
-  If global configuration not found:
-  1. Explain that global config is required for org sync
-  2. Tell user to run /fractary-codex:init --global
+  If configuration not found at `.fractary/plugins/codex/config.json`:
+  1. Explain that config is required at `.fractary/plugins/codex/config.json`
+  2. Tell user to run /fractary-codex:init
   3. Explain what init does
   4. Don't invoke agent without config
+  5. Do NOT look for or use global config at `~/.config/...`
   </CONFIGURATION_MISSING>
 
   <CONFLICTING_OPTIONS>
