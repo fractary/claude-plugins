@@ -72,8 +72,9 @@ if ! echo "$PAYLOAD" | jq empty 2>/dev/null; then
   exit 1
 fi
 
-# Generate timestamp
+# Generate timestamp with high precision for unique filenames
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+TIMESTAMP_FILENAME=$(date -u +"%Y%m%dT%H%M%S%3N")  # Includes milliseconds for uniqueness
 
 # Generate workflow_id if not provided
 if [[ -z "$WORKFLOW_ID" ]]; then
@@ -113,8 +114,10 @@ EVENT=$(jq -n \
 LOG_DIR=".fractary/logs/workflow"
 mkdir -p "$LOG_DIR"
 
-# Generate filename from workflow_id and timestamp
-FILENAME="${WORKFLOW_ID}-${EVENT_TYPE}.json"
+# Generate unique filename: workflow_id-event_type-timestamp.json
+# The timestamp includes milliseconds to prevent collisions when multiple
+# events of the same type are emitted within the same workflow
+FILENAME="${WORKFLOW_ID}-${EVENT_TYPE}-${TIMESTAMP_FILENAME}.json"
 LOG_PATH="${LOG_DIR}/${FILENAME}"
 
 # Write event to file (atomic write via temp file)

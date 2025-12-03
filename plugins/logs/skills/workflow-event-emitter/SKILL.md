@@ -130,6 +130,33 @@ The log-writer handles:
 - S3 push (if configured in logs config)
 - Retention policy
 
+**S3 Push Architecture:**
+
+The emit-event.sh script writes events to local storage only. S3 push is handled separately:
+
+1. **Via log-writer skill** (recommended): Invoke log-writer instead of direct script call. The log-writer checks config and pushes to S3 if enabled.
+
+2. **Via background sync**: Configure a background process or hook to sync `.fractary/logs/workflow/` to S3 periodically.
+
+3. **Via CI/CD**: Push logs to S3 as part of workflow completion in CI pipeline.
+
+**Configuration for S3 push** (in `.fractary/plugins/logs/config.json`):
+```json
+{
+  "types": {
+    "workflow": {
+      "cloud_storage": {
+        "enabled": true,
+        "provider": "s3",
+        "bucket": "${ORG}.logs.${PROJECT}"
+      }
+    }
+  }
+}
+```
+
+See `plugins/logs/types/workflow/standards.md` for complete S3 configuration options.
+
 ## Step 6: Return Result
 
 Return confirmation:

@@ -208,15 +208,65 @@ emit_event("workflow_complete", {
 
 ### Idempotency for Resume
 
-Before emitting any event, check if it was already emitted (for resume scenarios):
+Before emitting any event, check if it was already emitted (for resume scenarios).
+
+**Event Key Structure:**
 ```
-IF state.events_emitted contains "{workflow_id}-{event_type}-{context_key}" THEN
-  SKIP emission
-ELSE
-  emit_event(...)
-  state.events_emitted.push("{workflow_id}-{event_type}-{context_key}")
-END
+{event_type}:{context_key}
 ```
+
+**Context Key by Event Type:**
+
+| Event Type | Context Key | Example |
+|------------|-------------|---------|
+| `workflow_start` | `workflow_id` | `workflow_start:workflow-199-20251202T150000Z` |
+| `phase_start` | `phase_name` | `phase_start:architect` |
+| `step_start` | `phase:step_name` | `step_start:build:implement` |
+| `step_complete` | `phase:step_name` | `step_complete:build:implement` |
+| `artifact_create` | `artifact_type:artifact_path` | `artifact_create:spec:/specs/WORK-199.md` |
+| `phase_complete` | `phase_name` | `phase_complete:architect` |
+| `workflow_complete` | `workflow_id` | `workflow_complete:workflow-199-20251202T150000Z` |
+
+**Implementation:**
+```python
+def should_emit_event(state, event_type, context_key):
+    """Check if event should be emitted (idempotency check)."""
+    event_key = f"{event_type}:{context_key}"
+
+    if event_key in state.get("events_emitted", []):
+        return False  # Already emitted, skip
+
+    return True
+
+def record_event_emitted(state, event_type, context_key):
+    """Record that event was emitted for resume safety."""
+    event_key = f"{event_type}:{context_key}"
+
+    if "events_emitted" not in state:
+        state["events_emitted"] = []
+
+    state["events_emitted"].append(event_key)
+    # Persist state to .fractary/plugins/faber/state.json
+```
+
+**State File Example:**
+```json
+{
+  "workflow_id": "workflow-199-20251202T150000Z",
+  "events_emitted": [
+    "workflow_start:workflow-199-20251202T150000Z",
+    "phase_start:frame",
+    "phase_complete:frame",
+    "phase_start:architect",
+    "step_start:architect:generate-spec",
+    "step_complete:architect:generate-spec",
+    "artifact_create:spec:/specs/WORK-199.md"
+  ]
+}
+```
+
+**Resume Behavior:**
+When workflow resumes from state, already-emitted events are skipped, preventing duplicate events in logs and S3.
 
 ### Error Handling
 
