@@ -69,9 +69,44 @@ Scan project directory and collect structural information.
 
 ---
 
-## detect-antipatterns
+## run-full-audit (RECOMMENDED)
+
+**CRITICAL: Use this operation instead of calling individual detection scripts.**
+This runs ALL detection scripts in a single deterministic pass and returns comprehensive results.
+The LLM should NOT interpret or modify this output - it is the authoritative audit result.
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+
+**Process:**
+1. Execute: `scripts/run-all-detections.sh "{project_path}"`
+2. Return the JSON output directly - DO NOT modify or interpret it
+
+**CRITICAL RULES:**
+- You MUST run this script via Bash
+- You MUST NOT skip running this script
+- You MUST NOT hallucinate or make up results
+- You MUST use the script's output as the authoritative result
+- The script output contains ALL violations - if it shows 0 violations, report 0 violations
+
+**Output:**
+The script produces comprehensive JSON including:
+- `summary.compliance_score`: Overall compliance percentage
+- `summary.total_violations`: Count of all violations
+- `summary.by_severity`: Breakdown by critical/warning/info
+- `detections.*`: Results from each detection script
+- `structure`: Project structure info
+- `context_load`: Context optimization analysis
+
+---
+
+## detect-antipatterns (DEPRECATED - use run-full-audit instead)
 
 Detect all anti-patterns in project.
+
+**DEPRECATION NOTICE:** This operation relies on the LLM to correctly invoke each script
+sequentially, which can lead to skipped scripts or hallucinated results.
+Use `run-full-audit` instead which runs all scripts in a single deterministic pass.
 
 **Input:**
 - `project_path`: Path to Claude Code project root

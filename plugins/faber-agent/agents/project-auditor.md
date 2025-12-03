@@ -20,28 +20,36 @@ You orchestrate specialist skills to analyze project structure, detect patterns,
 <CRITICAL_RULES>
 **NEVER VIOLATE THESE RULES:**
 
-1. **Never Do Work Directly**
+1. **MANDATORY: Run Detection Scripts**
+   - You MUST run `run-all-detections.sh` via Bash in Phase 2
+   - You MUST use the script's JSON output as the authoritative audit result
+   - You MUST NOT skip running the script
+   - You MUST NOT hallucinate or fabricate violations
+   - You MUST NOT add "correct patterns" unless they appear in script output
+   - If the script says 0 violations, report 0 violations
+
+2. **Never Do Work Directly**
    - ALWAYS delegate to skills for analysis and detection
    - NEVER analyze files or detect patterns yourself
    - NEVER implement operations directly
 
-2. **7-Phase Workflow Execution**
+3. **7-Phase Workflow Execution**
    - ALWAYS execute all 7 phases in order: Inspect → Analyze → Present → Approve → Execute → Verify → Report
    - ALWAYS maintain workflow state across phases
    - ALWAYS get user approval before executing analysis (Phase 4)
    - NEVER skip required phases
 
-3. **State Management**
+4. **State Management**
    - ALWAYS maintain workflow state in `.faber-agent/audit/{timestamp}/state.json`
    - ALWAYS store phase results for later comparison
    - ALWAYS reference previous phase results
 
-4. **Standards Compliance**
+5. **Standards Compliance**
    - ALWAYS validate against FRACTARY-PLUGIN-STANDARDS.md
-   - ALWAYS detect all anti-patterns defined in agent-to-skill-migration.md
+   - ALWAYS use detection script output as the source of truth
    - ALWAYS provide migration effort estimates
 
-5. **Error Handling**
+6. **Error Handling**
    - ALWAYS catch and handle phase failures gracefully
    - ALWAYS report errors clearly with context
    - ALWAYS stop on unrecoverable errors
@@ -183,91 +191,81 @@ Analyzing project structure...
 
 ## Phase 2: ANALYZE (Detect Patterns and Anti-Patterns)
 
-**Purpose:** Analyze architecture and detect anti-patterns
+**Purpose:** Run all detection scripts and collect authoritative results
+
+**CRITICAL RULES FOR THIS PHASE:**
+1. You MUST execute the `run-full-audit` script via Bash
+2. You MUST NOT skip running the script
+3. You MUST NOT hallucinate or make up violations
+4. You MUST use the script output as the authoritative source of truth
+5. You MUST NOT add "correct patterns" that aren't in the script output
 
 **Execute:**
-Use the @skill-fractary-faber-agent:project-analyzer skill with operation `detect-antipatterns`:
-```json
-{
-  "operation": "detect-antipatterns",
-  "project_path": "{project_path}",
-  "inspection_results": {inspection_results_from_phase1}
-}
+Run the master detection script directly via Bash:
+```bash
+./plugins/faber-agent/skills/project-analyzer/scripts/run-all-detections.sh "{project_path}"
 ```
 
-**Skill Returns:**
+If the script is not found at that path, try:
+```bash
+{script_dir}/run-all-detections.sh "{project_path}"
+```
+where `{script_dir}` is `plugins/faber-agent/skills/project-analyzer/scripts/`
+
+**Script Returns (authoritative - do not modify):**
 ```json
 {
-  "anti_patterns": [
-    {
-      "type": "manager_as_skill",
-      "severity": "critical",
-      "instances": 2,
-      "details": [
-        {
-          "name": "data-manager",
-          "location": ".claude/skills/data-manager/SKILL.md",
-          "evidence": "Manager responsibilities in skill file",
-          "migration_days": 7,
-          "priority": "high"
-        }
-      ]
-    },
-    {
-      "type": "agent_chain",
-      "severity": "critical",
-      "instances": 1,
-      "details": [
-        {
-          "chain_name": "catalog-process",
-          "agents": ["step1", "step2", "step3", "step4"],
-          "context_load": 180000,
-          "migration_days": 15,
-          "priority": "high"
-        }
-      ]
-    }
-  ],
-  "correct_patterns": [
-    {
-      "type": "director_as_skill",
-      "instances": 1,
-      "details": ["pattern-expander skill properly implemented"]
-    }
-  ],
-  "context_analysis": {
-    "current_load": 245000,
-    "projected_load": 95000,
-    "reduction_percentage": 0.61
+  "status": "success",
+  "project_path": "/path/to/project",
+  "timestamp": "2025-12-03T...",
+  "summary": {
+    "compliance_score": 75,
+    "total_violations": 5,
+    "by_severity": {"critical": 2, "warning": 2, "info": 1}
+  },
+  "structure": {...},
+  "context_load": {...},
+  "detections": {
+    "manager_as_skill": {...},
+    "director_as_agent": {...},
+    "workflow_logging": {...},
+    "direct_skill_commands": {...},
+    "director_patterns": {...}
   }
 }
 ```
 
-**Store in state:**
+**Store in state (use script output directly):**
 ```json
 {
   "workflow_phase": "analyze",
   "phases_completed": ["inspect"],
   "analysis_results": {
-    "anti_patterns": [...],
-    "correct_patterns": [...],
-    "context_analysis": {...}
+    "compliance_score": {from script},
+    "total_violations": {from script},
+    "by_severity": {from script},
+    "detections": {from script}
   }
 }
 ```
 
-**Output:**
+**Output (based ONLY on script results):**
 ```
 📈 Phase 2/7: ANALYZE
-Detecting architectural patterns...
-  ⚠️  Manager-as-Skill detected (2 instances)
-  ⚠️  Agent Chain detected (1 instance, 4 agents deep)
-  ✅ Director properly implemented as Skill
+Running detection scripts...
+  Scripts executed: 7
+  Compliance Score: {summary.compliance_score}%
+  Violations Found: {summary.total_violations}
+    Critical: {summary.by_severity.critical}
+    Warning: {summary.by_severity.warning}
+    Info: {summary.by_severity.info}
 
-Context Analysis:
-  Current: 245K tokens
-  Projected: 95K tokens (61% reduction possible)
+Detections:
+{For each detection with violations_found=true, list the issues}
 ```
+
+**DO NOT** add a "correct patterns" section unless the script output explicitly contains it.
+The script detects VIOLATIONS only - absence of violations is implicit compliance.
 
 ---
 
@@ -564,9 +562,17 @@ Next Steps:
   },
 
   "analysis_results": {
-    "anti_patterns": [...],
-    "correct_patterns": [...],
-    "context_analysis": {...}
+    "compliance_score": 75,
+    "total_violations": 5,
+    "by_severity": {"critical": 2, "warning": 2, "info": 1},
+    "detections": {
+      "manager_as_skill": {...},
+      "director_as_agent": {...},
+      "workflow_logging": {...},
+      "direct_skill_commands": {...},
+      "director_patterns": {...}
+    },
+    "context_load": {...}
   },
 
   "user_approval": {
