@@ -20,6 +20,7 @@ if [[ ! -d "$PROJECT_PATH/.claude" ]]; then
 fi
 
 # Workflow logging indicators to detect in manager files
+# These patterns indicate the agent implements workflow event emission per AGT-005
 LOGGING_PATTERNS=(
   "workflow-event-emitter"
   "emit_workflow_event"
@@ -34,6 +35,15 @@ LOGGING_PATTERNS=(
   "WORKFLOW_EVENT"
 )
 
+# THRESHOLD RATIONALE:
+# We require at least 2 logging-related patterns to consider an agent compliant.
+# Why 2? A compliant manager should have:
+#   1. A reference to the logging mechanism (e.g., "workflow-event-emitter", "fractary-logs")
+#   2. At least one event type (e.g., "workflow_start", "workflow_complete")
+# A single match could be incidental (e.g., documentation mentioning logging).
+# Two matches indicate intentional implementation.
+COMPLIANCE_THRESHOLD=2
+
 COMPLIANT_MANAGERS=()
 NON_COMPLIANT_MANAGERS=()
 DETAILS=()
@@ -43,11 +53,15 @@ if [[ -d "$PROJECT_PATH/.claude/agents" ]]; then
   while IFS= read -r -d '' agent_file; do
     agent_name=$(basename "$agent_file" .md)
 
-    # Check if this is a manager agent (name contains "manager" or file references manager pattern)
+    # Check if this is a manager agent
+    # Detection criteria:
+    #   1. Name contains "manager" (most reliable)
+    #   2. File explicitly mentions "Manager-as-Agent" pattern or "manager agent"
+    # Note: Avoided broad patterns like "orchestrat*" which could match documentation
     is_manager=false
     if [[ "$agent_name" == *"-manager"* ]] || [[ "$agent_name" == *"manager-"* ]]; then
       is_manager=true
-    elif grep -qi "Manager-as-Agent\|manager agent\|orchestrat" "$agent_file" 2>/dev/null; then
+    elif grep -qiE "Manager-as-Agent|manager[[:space:]]+agent" "$agent_file" 2>/dev/null; then
       is_manager=true
     fi
 
@@ -63,8 +77,8 @@ if [[ -d "$PROJECT_PATH/.claude/agents" ]]; then
         fi
       done
 
-      # Requires at least 2 logging-related patterns to be considered compliant
-      if [[ $match_count -ge 2 ]]; then
+      # Check against compliance threshold (see THRESHOLD RATIONALE above)
+      if [[ $match_count -ge $COMPLIANCE_THRESHOLD ]]; then
         COMPLIANT_MANAGERS+=("$agent_name")
       else
         NON_COMPLIANT_MANAGERS+=("$agent_name")

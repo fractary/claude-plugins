@@ -21,13 +21,14 @@ if [[ ! -d "$PROJECT_PATH/.claude" ]]; then
 fi
 
 # Patterns that indicate direct skill invocation (not through manager)
+# Note: Using [[:space:]] for POSIX portability instead of \s
 DIRECT_SKILL_PATTERNS=(
-  'Skill\s*\('
-  'Skill\s*:'
+  'Skill[[:space:]]*\('
+  'Skill[[:space:]]*:'
   '@skill-'
-  'invoke.*skill'
-  'skill.*invoke'
-  'SlashCommand.*skill'
+  'invoke[[:space:]]+skill'
+  'skill[[:space:]]+invoke'
+  'SlashCommand[[:space:]]+skill'
 )
 
 # Patterns that indicate proper manager routing (these are OK)
@@ -113,9 +114,11 @@ if [[ -d "$PROJECT_PATH/.claude/commands" ]]; then
         lines_json="[]"
       fi
 
-      # Get code snippet from first violation line
+      # Get code snippet from first violation line (properly JSON-escaped)
       first_line="${evidence_lines[0]:-1}"
-      snippet=$(sed -n "${first_line}p" "$cmd_file" 2>/dev/null | head -c 200 | tr '"' "'" | tr '\n' ' ')
+      raw_snippet=$(sed -n "${first_line}p" "$cmd_file" 2>/dev/null | head -c 200)
+      # Use jq -Rs for proper JSON string escaping (handles quotes, backslashes, newlines)
+      snippet=$(echo "$raw_snippet" | jq -Rs '.' | sed 's/^"//;s/"$//')
 
       detail=$(cat <<DETAIL
 {
