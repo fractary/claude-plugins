@@ -21,7 +21,7 @@ Usage: validate-generated-config.sh <config_file>
 Validate a generated faber-cloud configuration file.
 
 Arguments:
-  config_file   Path to faber-cloud.json configuration file
+  config_file   Path to config.json configuration file
 
 Validation Checks:
   - Valid JSON format
@@ -38,7 +38,7 @@ Exit Codes:
   2 - Invalid arguments
 
 Examples:
-  validate-generated-config.sh faber-cloud.json
+  validate-generated-config.sh config.json
 EOF
   exit 2
 }
@@ -400,7 +400,7 @@ main() {
     echo ""
     echo "Configuration is ready to use!"
     echo "Next steps:"
-    echo "  1. Copy to project root: cp $config_file ./.fractary/plugins/faber-cloud/faber-cloud.json"
+    echo "  1. Copy to project root: cp $config_file ./.fractary/plugins/faber-cloud/config.json"
     echo "  2. Test with read-only audit: faber-cloud audit test"
     echo "  3. Deploy to test environment first"
     echo ""

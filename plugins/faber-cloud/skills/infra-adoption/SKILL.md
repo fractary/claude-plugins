@@ -67,7 +67,7 @@ Output: {output_dir}
 **IMPORTANT:** If you encounter missing files or "plugin not installed" errors, this is NORMAL. The adopt workflow will:
 1. Discover your existing infrastructure (Terraform, AWS, etc.)
 2. Generate configuration automatically
-3. Create `.fractary/plugins/faber-cloud/faber-cloud.json`
+3. Create `.fractary/plugins/faber-cloud/config.json`
 4. You do NOT need to run `/fractary-faber-cloud:init` first
 
 Check project directory exists and is a valid project:
@@ -189,11 +189,11 @@ bash plugins/faber-cloud/skills/infra-adoption/scripts/generate-config.sh \
   {output_dir}/discovery-terraform.json \
   {output_dir}/discovery-aws.json \
   {output_dir}/discovery-custom-agents.json \
-  {output_dir}/faber-cloud.json
+  {output_dir}/config.json
 ```
 
 This generates:
-- Complete faber-cloud.json configuration
+- Complete config.json configuration
 - Auto-selected template (flat, modular, multi-environment)
 - Environment configurations from AWS profiles
 - Hook suggestions from custom agents
@@ -243,7 +243,7 @@ This generates a comprehensive, actionable adoption specification with:
   - Migrated logic from existing scripts
   - Ready to create and test
 - **Complete faber-cloud configuration**
-  - Full faber-cloud.json with all settings
+  - Full config.json with all settings
   - All hooks configured
   - All environments configured
 - **Step-by-step testing** with actual commands
@@ -302,7 +302,7 @@ Display complete adoption summary:
   - {output_dir}/discovery-terraform.json
   - {output_dir}/discovery-aws.json
   - {output_dir}/discovery-custom-agents.json
-  - {output_dir}/faber-cloud.json
+  - {output_dir}/config.json
   - {output_dir}/MIGRATION.md
   - {output_dir}/ADOPTION-SPEC.md ⭐ (Detailed implementation plan)
 
@@ -317,7 +317,7 @@ Ask user if they want to proceed:
 ❓ Ready to install faber-cloud configuration?
 
 This will:
-  ✓ Copy faber-cloud.json to .fractary/plugins/faber-cloud/
+  ✓ Copy config.json to .fractary/plugins/faber-cloud/
   ✓ Set up directory structure
   ✓ Enable faber-cloud lifecycle management
 
@@ -337,18 +337,18 @@ If user approves installation:
 
 1. Create target directory:
    ```bash
-   mkdir -p .fractary/plugins/faber-cloud/config
+   mkdir -p .fractary/plugins/faber-cloud
    ```
 
 2. Copy configuration:
    ```bash
-   cp {output_dir}/faber-cloud.json .fractary/plugins/faber-cloud/
+   cp {output_dir}/config.json .fractary/plugins/faber-cloud/
    ```
 
 3. Validate installation:
    ```bash
    bash plugins/faber-cloud/skills/infra-adoption/scripts/validate-generated-config.sh \
-     .fractary/plugins/faber-cloud/faber-cloud.json
+     .fractary/plugins/faber-cloud/config.json
    ```
 
 4. Display success message:
@@ -369,7 +369,7 @@ If user declines:
    ℹ️  Configuration not installed
 
    Reports saved to {output_dir}/:
-   - faber-cloud.json (ready to install)
+   - config.json (ready to install)
    - MIGRATION.md (migration guide)
    - discovery-*.json (discovery reports)
 
@@ -388,12 +388,12 @@ Reports: {output_dir}/
   - discovery-terraform.json
   - discovery-aws.json
   - discovery-custom-agents.json
-  - faber-cloud.json
+  - config.json
   - MIGRATION.md (overview)
   - ADOPTION-SPEC.md ⭐ (detailed implementation plan)
 
 {If installed}
-Configuration: .fractary/plugins/faber-cloud/faber-cloud.json
+Configuration: .fractary/plugins/faber-cloud/config.json
 
 Next Steps:
 1. Review ADOPTION-SPEC.md for detailed implementation plan
@@ -430,7 +430,7 @@ Return adoption summary:
     "terraform": ".fractary/adoption/discovery-terraform.json",
     "aws": ".fractary/adoption/discovery-aws.json",
     "custom_agents": ".fractary/adoption/discovery-custom-agents.json",
-    "configuration": ".fractary/adoption/faber-cloud.json",
+    "configuration": ".fractary/adoption/config.json",
     "migration_report": ".fractary/adoption/MIGRATION.md",
     "adoption_spec": ".fractary/adoption/ADOPTION-SPEC.md"
   },

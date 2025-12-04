@@ -108,7 +108,7 @@ The adoption workflow produces:
 - `discovery-custom-agents.json` - Custom script inventory
 
 ### Generated Configuration
-- `faber-cloud.json` - Complete faber-cloud configuration
+- `config.json` - Complete faber-cloud configuration
 
 ### Migration Report (Markdown)
 - `MIGRATION.md` - Comprehensive migration guide
@@ -225,7 +225,7 @@ Step 4: Report Generation
 
 Step 5: User Review
   📋 Review findings:
-     - Configuration: faber-cloud.json
+     - Configuration: config.json
      - Report: MIGRATION.md
      - Discovery: .fractary/adoption/*.json
 
@@ -317,18 +317,17 @@ project/
 │       ├── discovery-terraform.json
 │       ├── discovery-aws.json
 │       ├── discovery-custom-agents.json
-│       ├── faber-cloud.json
+│       ├── config.json
 │       └── MIGRATION.md
 └── .fractary/
     └── plugins/
         └── faber-cloud/
-            └── config/
-                └── faber-cloud.json  (if setup approved)
+            └── config.json  (if setup approved)
 ```
 
 ### Configuration File
 
-Generated `faber-cloud.json` includes:
+Generated `config.json` includes:
 
 - **Environments**: All detected environments configured
 - **Terraform settings**: Paths, backend, version

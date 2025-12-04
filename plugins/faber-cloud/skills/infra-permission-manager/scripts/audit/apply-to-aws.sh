@@ -13,7 +13,7 @@ if [ -z "$ENV" ]; then
 fi
 
 AUDIT_FILE="infrastructure/iam-policies/${ENV}-deploy-permissions.json"
-CONFIG_FILE=".fractary/plugins/faber-cloud/faber-cloud.json"
+CONFIG_FILE=".fractary/plugins/faber-cloud/config.json"
 
 # Check if audit file exists
 if [ ! -f "$AUDIT_FILE" ]; then
@@ -23,11 +23,14 @@ fi
 
 # Check if config file exists
 if [ ! -f "$CONFIG_FILE" ]; then
-  # Try old config file name for backward compatibility
-  CONFIG_FILE=".fractary/plugins/faber-cloud/devops.json"
+  # Try old config file names for backward compatibility
+  CONFIG_FILE=".fractary/plugins/faber-cloud/faber-cloud.json"
   if [ ! -f "$CONFIG_FILE" ]; then
-    echo "ERROR: Config file not found"
-    exit 1
+    CONFIG_FILE=".fractary/plugins/faber-cloud/devops.json"
+    if [ ! -f "$CONFIG_FILE" ]; then
+      echo "ERROR: Config file not found"
+      exit 1
+    fi
   fi
 fi
 
