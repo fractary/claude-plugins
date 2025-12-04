@@ -125,6 +125,12 @@ if [[ ! "$RUN_ID" =~ ^[a-z0-9_-]+/[a-z0-9_-]+/[a-f0-9-]{36}$ ]]; then
     exit 1
 fi
 
+# Path traversal protection
+if [[ "$RUN_ID" == *".."* ]] || [[ "$RUN_ID" == /* ]]; then
+    echo "Error: Path traversal attempt detected in run_id" >&2
+    exit 1
+fi
+
 # Create run directory path
 RUN_DIR="${BASE_PATH}/${RUN_ID}"
 
@@ -134,11 +140,29 @@ if [[ -d "$RUN_DIR" ]]; then
     exit 1
 fi
 
+# Cleanup function for error handling
+cleanup_on_error() {
+    if [[ -d "$RUN_DIR" ]]; then
+        rm -rf "$RUN_DIR" 2>/dev/null || true
+    fi
+}
+
+# Set trap for cleanup on error
+trap cleanup_on_error ERR
+
 # Create directory structure
 mkdir -p "${RUN_DIR}/events"
 
-# Get current timestamp
-TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+# Get current timestamp with milliseconds
+if date +%N &>/dev/null; then
+    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+else
+    if command -v perl &>/dev/null; then
+        TIMESTAMP=$(perl -MTime::HiRes=time -MPOSIX=strftime -e 'my $t = time; my $ms = sprintf("%03d", ($t - int($t)) * 1000); print strftime("%Y-%m-%dT%H:%M:%S", gmtime(int($t))) . "." . $ms . "Z"')
+    else
+        TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+    fi
+fi
 
 # Build phases array for JSON
 if [[ -n "$PHASES" ]]; then
