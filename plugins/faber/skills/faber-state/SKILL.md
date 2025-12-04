@@ -10,8 +10,11 @@ model: claude-haiku-4-5
 You are a focused utility skill for managing FABER workflow state files.
 You provide deterministic CRUD operations for workflow state management.
 
-State is stored at: `.fractary/plugins/faber/state.json`
-State tracks: current phase, phase statuses, artifacts, retry counts, errors
+State is stored at:
+- **With run_id**: `.fractary/plugins/faber/runs/{run_id}/state.json`
+- **Legacy (no run_id)**: `.fractary/plugins/faber/state.json`
+
+State tracks: current phase, phase statuses, artifacts, retry counts, errors, last_event_id
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -30,11 +33,13 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors
 <STATE_STRUCTURE>
 ```json
 {
+  "run_id": "fractary/my-project/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "work_id": "123",
   "workflow_id": "default",
-  "workflow_version": "2.0",
+  "workflow_version": "2.1",
   "status": "in_progress",
   "current_phase": "build",
+  "last_event_id": 15,
   "started_at": "2025-12-03T10:00:00Z",
   "updated_at": "2025-12-03T10:30:00Z",
   "completed_at": null,
@@ -43,26 +48,29 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors
       "status": "completed",
       "started_at": "2025-12-03T10:00:00Z",
       "completed_at": "2025-12-03T10:05:00Z",
-      "data": {"work_type": "feature"}
+      "steps": [],
+      "retry_count": 0
     },
     "architect": {
       "status": "completed",
       "started_at": "2025-12-03T10:05:00Z",
       "completed_at": "2025-12-03T10:15:00Z",
       "steps": [
-        {"name": "generate-spec", "status": "completed"}
-      ]
+        {"name": "generate-spec", "status": "completed", "started_at": "...", "completed_at": "...", "duration_ms": 5000}
+      ],
+      "retry_count": 0
     },
     "build": {
       "status": "in_progress",
       "started_at": "2025-12-03T10:15:00Z",
       "steps": [
-        {"name": "implement", "status": "in_progress"},
+        {"name": "implement", "status": "in_progress", "started_at": "..."},
         {"name": "commit", "status": "pending"}
-      ]
+      ],
+      "retry_count": 0
     },
-    "evaluate": {"status": "pending"},
-    "release": {"status": "pending"}
+    "evaluate": {"status": "pending", "steps": [], "retry_count": 0},
+    "release": {"status": "pending", "steps": [], "retry_count": 0}
   },
   "artifacts": {
     "spec_path": "specs/WORK-00123-feature.md",
@@ -70,8 +78,6 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors
     "pr_url": null,
     "pr_number": null
   },
-  "retry_count": 0,
-  "max_retries": 3,
   "errors": []
 }
 ```
@@ -87,8 +93,9 @@ Initialize a new workflow state file.
 
 **Parameters:**
 - `work_id` (required): Work item identifier
+- `run_id` (optional): Run identifier (format: org/project/uuid). If provided, state is stored in per-run directory.
 - `workflow_id` (optional): Workflow to use (default: "default")
-- `state_path` (optional): Path to state file
+- `state_path` (optional): Path to state file (computed from run_id if provided)
 
 **Returns:**
 ```json
@@ -96,13 +103,18 @@ Initialize a new workflow state file.
   "status": "success",
   "operation": "init-state",
   "work_id": "123",
+  "run_id": "fractary/my-project/a1b2c3d4-...",
   "workflow_id": "default",
-  "state_path": ".fractary/plugins/faber/state.json"
+  "state_path": ".fractary/plugins/faber/runs/fractary/my-project/a1b2c3d4-.../state.json"
 }
 ```
 
 **Execution:**
 ```bash
+# With run_id (preferred for new workflows)
+../core/scripts/state-init.sh --run-id "$RUN_ID" "$WORK_ID" "$WORKFLOW_ID"
+
+# Legacy (without run_id)
 ../core/scripts/state-init.sh "$WORK_ID" "$WORKFLOW_ID" "$STATE_PATH"
 ```
 
@@ -115,7 +127,8 @@ Read current workflow state.
 **Script:** `../core/scripts/state-read.sh`
 
 **Parameters:**
-- `state_path` (optional): Path to state file
+- `run_id` (optional): Run identifier. If provided, reads from per-run directory.
+- `state_path` (optional): Path to state file (computed from run_id if provided)
 - `query` (optional): jq query for specific field (e.g., `.current_phase`)
 
 **Returns:**
@@ -139,6 +152,10 @@ Or with query:
 
 **Execution:**
 ```bash
+# With run_id (preferred)
+../core/scripts/state-read.sh --run-id "$RUN_ID" "$QUERY"
+
+# Legacy
 ../core/scripts/state-read.sh "$STATE_PATH" "$QUERY"
 ```
 
@@ -151,6 +168,7 @@ Update a phase's status and data.
 **Script:** `../core/scripts/state-update-phase.sh`
 
 **Parameters:**
+- `run_id` (optional): Run identifier. If provided, updates per-run state.
 - `phase` (required): Phase name (frame, architect, build, evaluate, release)
 - `status` (required): New status (pending, in_progress, completed, failed, skipped)
 - `data` (optional): Additional phase data as JSON
@@ -168,6 +186,10 @@ Update a phase's status and data.
 
 **Execution:**
 ```bash
+# With run_id (preferred)
+../core/scripts/state-update-phase.sh --run-id "$RUN_ID" "$PHASE" "$STATUS" "$DATA_JSON"
+
+# Legacy
 ../core/scripts/state-update-phase.sh "$PHASE" "$STATUS" "$DATA_JSON"
 ```
 
@@ -178,6 +200,7 @@ Update a phase's status and data.
 Update a step's status within a phase.
 
 **Parameters:**
+- `run_id` (optional): Run identifier. If provided, updates per-run state.
 - `phase` (required): Phase containing the step
 - `step_name` (required): Name of the step
 - `status` (required): New status (pending, in_progress, completed, failed, skipped)
@@ -195,10 +218,11 @@ Update a step's status within a phase.
 ```
 
 **Execution:**
-1. Read current state
-2. Find step in phase.steps array
-3. Update step status and data
-4. Write state back
+1. Compute state path from run_id if provided
+2. Read current state
+3. Find step in phase.steps array
+4. Update step status and data
+5. Write state back
 
 ---
 
@@ -207,6 +231,7 @@ Update a step's status within a phase.
 Record an artifact in state (spec, branch, PR, etc.).
 
 **Parameters:**
+- `run_id` (optional): Run identifier. If provided, updates per-run state.
 - `artifact_type` (required): Type of artifact (spec_path, branch_name, pr_url, pr_number, custom)
 - `artifact_value` (required): Value to record
 
@@ -221,10 +246,11 @@ Record an artifact in state (spec, branch, PR, etc.).
 ```
 
 **Execution:**
-1. Read current state
-2. Set `state.artifacts[artifact_type] = artifact_value`
-3. Update `updated_at` timestamp
-4. Write state back
+1. Compute state path from run_id if provided
+2. Read current state
+3. Set `state.artifacts[artifact_type] = artifact_value`
+4. Update `updated_at` timestamp
+5. Write state back
 
 ---
 
@@ -233,6 +259,7 @@ Record an artifact in state (spec, branch, PR, etc.).
 Mark the workflow as completed or failed.
 
 **Parameters:**
+- `run_id` (optional): Run identifier. If provided, updates per-run state.
 - `final_status` (required): Final status (completed, failed, cancelled)
 - `summary` (optional): Completion summary
 - `errors` (optional): Error details if failed
@@ -248,23 +275,29 @@ Mark the workflow as completed or failed.
 ```
 
 **Execution:**
-1. Read current state
-2. Set `state.status = final_status`
-3. Set `state.completed_at = now()`
-4. Add summary/errors if provided
-5. Write state back
+1. Compute state path from run_id if provided
+2. Read current state
+3. Set `state.status = final_status`
+4. Set `state.completed_at = now()`
+5. Add summary/errors if provided
+6. Write state back
 
 ---
 
 ## increment-retry
 
-Increment the retry counter (for Build-Evaluate loop).
+Increment the retry counter for the current phase (for Build-Evaluate loop).
+
+**Parameters:**
+- `run_id` (optional): Run identifier. If provided, updates per-run state.
+- `phase` (optional): Phase to increment retry for (default: current_phase)
 
 **Returns:**
 ```json
 {
   "status": "success",
   "operation": "increment-retry",
+  "phase": "evaluate",
   "retry_count": 2,
   "max_retries": 3,
   "can_retry": true
@@ -272,20 +305,22 @@ Increment the retry counter (for Build-Evaluate loop).
 ```
 
 **Execution:**
-1. Read current state
-2. Increment `state.retry_count`
-3. Check against `state.max_retries`
-4. Write state back
+1. Compute state path from run_id if provided
+2. Read current state
+3. Increment `state.phases[phase].retry_count`
+4. Check against max_retries from workflow config
+5. Write state back
 
 ---
 
 ## check-exists
 
-Check if a state file exists for a work item.
+Check if a state file exists for a run or work item.
 
 **Parameters:**
-- `work_id` (optional): Work ID to check
-- `state_path` (optional): Specific state file path
+- `run_id` (optional): Run identifier. If provided, checks per-run state.
+- `work_id` (optional): Work ID to check (legacy)
+- `state_path` (optional): Specific state file path (computed from run_id if provided)
 
 **Returns:**
 ```json
@@ -293,7 +328,8 @@ Check if a state file exists for a work item.
   "status": "success",
   "operation": "check-exists",
   "exists": true,
-  "state_path": ".fractary/plugins/faber/state.json",
+  "run_id": "fractary/my-project/a1b2c3d4-...",
+  "state_path": ".fractary/plugins/faber/runs/fractary/my-project/a1b2c3d4-.../state.json",
   "work_id": "123",
   "current_phase": "build"
 }
@@ -308,14 +344,16 @@ Validate state file structure.
 **Script:** `../core/scripts/state-validate.sh`
 
 **Parameters:**
-- `state_path` (optional): Path to state file
+- `run_id` (optional): Run identifier. If provided, validates per-run state.
+- `state_path` (optional): Path to state file (computed from run_id if provided)
 
 **Returns:**
 ```json
 {
   "status": "success",
   "operation": "validate-state",
-  "valid": true
+  "valid": true,
+  "run_id": "fractary/my-project/a1b2c3d4-..."
 }
 ```
 
@@ -328,14 +366,15 @@ Create a backup of current state.
 **Script:** `../core/scripts/state-backup.sh`
 
 **Parameters:**
-- `state_path` (optional): Path to state file
+- `run_id` (optional): Run identifier. If provided, backs up per-run state.
+- `state_path` (optional): Path to state file (computed from run_id if provided)
 
 **Returns:**
 ```json
 {
   "status": "success",
   "operation": "backup-state",
-  "backup_path": ".fractary/plugins/faber/state.json.backup.20251203T110000Z"
+  "backup_path": ".fractary/plugins/faber/runs/fractary/my-project/a1b2c3d4-.../state.json.backup.20251203T110000Z"
 }
 ```
 
@@ -395,8 +434,27 @@ Current Phase: build
 </DEPENDENCIES>
 
 <FILE_LOCATIONS>
+**With run_id (preferred):**
+- **State file**: `.fractary/plugins/faber/runs/{run_id}/state.json`
+- **Metadata file**: `.fractary/plugins/faber/runs/{run_id}/metadata.json`
+- **Events dir**: `.fractary/plugins/faber/runs/{run_id}/events/`
+- **Backup pattern**: `.fractary/plugins/faber/runs/{run_id}/state.json.backup.<timestamp>`
+
+**Legacy (no run_id):**
 - **State file**: `.fractary/plugins/faber/state.json`
 - **Backup pattern**: `.fractary/plugins/faber/state.json.backup.<timestamp>`
+
+**Helper function to compute state path:**
+```bash
+get_state_path() {
+    local run_id="$1"
+    if [ -n "$run_id" ]; then
+        echo ".fractary/plugins/faber/runs/$run_id/state.json"
+    else
+        echo ".fractary/plugins/faber/state.json"
+    fi
+}
+```
 </FILE_LOCATIONS>
 
 <IDEMPOTENCY>

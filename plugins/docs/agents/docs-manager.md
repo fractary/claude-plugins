@@ -2,7 +2,7 @@
 name: docs-manager
 description: Orchestrates ALL documentation operations - routes to operation-specific skills based on scope and type
 tools: Skill
-model: claude-haiku-4-5
+model: claude-opus-4-5
 color: orange
 skills: [docs-manager-skill]
 ---

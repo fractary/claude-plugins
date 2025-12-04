@@ -112,7 +112,7 @@ echo "Final audit report: $audit_report_path"
 # Check for spec plugin in both local project and global plugin directory
 SPEC_PLUGIN_AVAILABLE=false
 
-if [ -f ".fractary/plugins/spec/config/config.json" ]; then
+if [ -f ".fractary/plugins/spec/config.json" ]; then
   echo "✓ Found spec plugin in project config"
   SPEC_PLUGIN_AVAILABLE=true
 elif [ -d "plugins/spec" ] && [ -f "plugins/spec/.claude-plugin/plugin.json" ]; then
@@ -121,7 +121,7 @@ elif [ -d "plugins/spec" ] && [ -f "plugins/spec/.claude-plugin/plugin.json" ]; 
 else
   echo "⚠️  WARNING: fractary-spec plugin not found"
   echo "   Searched:"
-  echo "   - .fractary/plugins/spec/config/config.json"
+  echo "   - .fractary/plugins/spec/config.json"
   echo "   - plugins/spec/.claude-plugin/plugin.json"
   echo ""
   echo "The audit will present findings, but cannot generate a formal spec."
@@ -176,7 +176,7 @@ If plugin status is `"unavailable"`:
 ## Step 2: Load Configuration and Standards
 
 Load fractary-docs configuration (if exists):
-- Project config: `.fractary/plugins/docs/config/config.json`
+- Project config: `.fractary/plugins/docs/config.json`
 - Plugin defaults: `plugins/docs/config/config.example.json`
 
 Load project-specific standards (if configured):
@@ -746,7 +746,7 @@ Use the doc-auditor skill to audit documentation:
   "parameters": {
     "project_root": "/path/to/project",
     "output_dir": ".fractary/audit",
-    "config_path": ".fractary/plugins/docs/config/config.json"
+    "config_path": ".fractary/plugins/docs/config.json"
   }
 }
 ```
@@ -766,7 +766,7 @@ Use the doc-auditor skill to audit documentation:
   - Enables compliance trend analysis
 - **Work manager** (REQUIRED for tracking issues): fractary-work:work-manager
   - Creates GitHub tracking issues for remediation
-- **Configuration**: .fractary/plugins/docs/config/config.json
+- **Configuration**: .fractary/plugins/docs/config.json
 - **Project standards** (optional): Configured in validation.project_standards_doc
 </DEPENDENCIES>
 

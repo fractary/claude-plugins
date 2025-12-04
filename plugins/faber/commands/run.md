@@ -1,7 +1,7 @@
 ---
 name: fractary-faber:run
-description: Execute FABER workflow with target-first design, flexible phase control, and label-based configuration
-argument-hint: '[<target>] [--work-id <id>] [--phase <phases>] [--step <step-id>] [--workflow <id>] [--autonomy <level>] [--prompt "<text>"]'
+description: Execute FABER workflow with target-first design, flexible phase control, resume/rerun capability, and label-based configuration
+argument-hint: '[<target>] [--work-id <id>] [--resume <run-id>] [--rerun <run-id>] [--phase <phases>] [--step <step-id>] [--workflow <id>] [--autonomy <level>] [--prompt "<text>"]'
 tools: Skill
 model: claude-haiku-4-5
 ---
@@ -63,6 +63,8 @@ This command follows the principle: **commands never do work** - they immediatel
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--work-id <id>` | string | - | Work item ID (GitHub issue, Jira ticket, Linear issue). Fetches issue details and checks labels for configuration. |
+| `--resume <run-id>` | string | - | Resume a previous run from where it failed/paused. Format: `org/project/uuid`. |
+| `--rerun <run-id>` | string | - | Re-run a previous run with a new run_id (for different parameters). Inherits metadata from original. |
 | `--workflow <id>` | string | `default` | Workflow to use (e.g., `default`, `hotfix`). Can be detected from issue labels. |
 | `--autonomy <level>` | string | `guarded` | Autonomy level: `dry-run`, `assist`, `guarded`, `autonomous`. Can be detected from issue labels. |
 | `--phase <phases>` | string | all | Comma-separated phases to execute (e.g., `frame,architect`). **No spaces**. |
@@ -95,6 +97,15 @@ This command follows the principle: **commands never do work** - they immediatel
 # Dry run
 /fractary-faber:run target --work-id 158 --autonomy dry-run
 
+# Resume a failed/paused run
+/fractary-faber:run --resume fractary/my-project/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+# Resume from a specific step
+/fractary-faber:run --resume fractary/my-project/a1b2c3d4-... --step build:implement
+
+# Re-run with different autonomy
+/fractary-faber:run --rerun fractary/my-project/a1b2c3d4-... --autonomy autonomous
+
 # Full combination
 /fractary-faber:run dashboard --work-id 200 --phase build,evaluate --autonomy guarded --prompt "Focus on accessibility"
 ```
@@ -112,15 +123,19 @@ Extract from user input:
    - If omitted: will be inferred from issue
 
 2. **work_id**: Value of `--work-id` flag (optional)
-3. **workflow_override**: Value of `--workflow` flag (optional)
-4. **autonomy_override**: Value of `--autonomy` flag (optional)
-5. **phases**: Value of `--phase` flag (optional, comma-separated, no spaces)
-6. **step_id**: Value of `--step` flag (optional, format: `phase:step-name`)
-7. **prompt**: Value of `--prompt` flag (optional, may be quoted)
+3. **resume**: Value of `--resume` flag (optional, format: `org/project/uuid`)
+4. **rerun**: Value of `--rerun` flag (optional, format: `org/project/uuid`)
+5. **workflow_override**: Value of `--workflow` flag (optional)
+6. **autonomy_override**: Value of `--autonomy` flag (optional)
+7. **phases**: Value of `--phase` flag (optional, comma-separated, no spaces)
+8. **step_id**: Value of `--step` flag (optional, format: `phase:step-name`)
+9. **prompt**: Value of `--prompt` flag (optional, may be quoted)
 
 **Parsing Rules:**
 - First non-flag argument is `target`
 - `--work-id <value>` extracts work_id
+- `--resume <value>` extracts resume run_id
+- `--rerun <value>` extracts rerun run_id
 - `--workflow <value>` extracts workflow_override
 - `--autonomy <value>` extracts autonomy_override
 - `--phase <value>` extracts phases (comma-separated, NO SPACES)
@@ -128,23 +143,26 @@ Extract from user input:
 - `--prompt "<value>"` extracts prompt (handle quotes)
 
 **Validation:**
-- If no `target` AND no `--work-id`: show error
+- If no `target` AND no `--work-id` AND no `--resume` AND no `--rerun`: show error
+- If both `--resume` AND `--rerun` provided: show error (mutually exclusive)
+- If `--resume` or `--rerun` AND `--work-id`: `--work-id` is ignored (run already has work_id)
 - If `--phase` contains spaces: show error
 - If `--step` doesn't match pattern `phase:step-name`: show error
 - If `--autonomy` is invalid level: show error
 - If both `--phase` and `--step` provided: show error (mutually exclusive)
+- If `--resume` or `--rerun` doesn't match format `org/project/uuid`: show error
 
-**Error if no target or work-id:**
+**Error if no target, work-id, resume, or rerun:**
 ```
-Error: Either <target> or --work-id is required
+Error: Either <target>, --work-id, --resume, or --rerun is required
 
 Usage: /fractary-faber:run [<target>] [options]
 
 Examples:
   /fractary-faber:run customer-pipeline
   /fractary-faber:run --work-id 158
-  /fractary-faber:run "implement feature from issue 158"
-  /fractary-faber:run dashboard --work-id 200 --phase frame,architect
+  /fractary-faber:run --resume fractary/project/uuid
+  /fractary-faber:run --rerun fractary/project/uuid --autonomy autonomous
 ```
 
 ## Step 2: Invoke faber-director Skill
@@ -161,6 +179,8 @@ I am invoking you to execute a FABER workflow with the following parameters:
 
 Target: {target or "not specified - infer from issue"}
 Work ID: {work_id or "not specified"}
+Resume Run ID: {resume or "not specified - new run"}
+Rerun Run ID: {rerun or "not specified - new run"}
 Workflow Override: {workflow_override or "not specified"}
 Autonomy Override: {autonomy_override or "not specified"}
 Phases: {phases or "all phases"}
@@ -170,12 +190,26 @@ Working Directory: {pwd}
 
 Please:
 1. Load configuration from .fractary/plugins/faber/config.json
-2. If work_id provided: fetch issue, check labels for configuration
-3. Parse target (artifact name, natural language, or infer from issue)
-4. Detect workflow from labels or override or default
-5. Apply label-detected values (workflow, autonomy, phases) with CLI overrides taking precedence
-6. Validate phases (check prerequisites if needed)
-7. Spawn faber-manager agent(s) to execute the workflow with:
+2. If resume provided:
+   - Load run state and metadata from run directory
+   - Determine next step to execute
+   - Skip generating new run_id
+3. Else if rerun provided:
+   - Load original run metadata
+   - Generate new run_id with rerun_of relationship
+   - Apply any parameter overrides
+4. Else (new run):
+   - If work_id provided: fetch issue, check labels for configuration
+   - Generate new run_id
+   - Initialize run directory
+5. Parse target (artifact name, natural language, or infer from issue)
+6. Detect workflow from labels or override or default
+7. Apply label-detected values (workflow, autonomy, phases) with CLI overrides taking precedence
+8. Validate phases (check prerequisites if needed)
+9. Spawn faber-manager agent(s) to execute the workflow with:
+   - run_id
+   - is_resume (true if resume, false otherwise)
+   - resume_context (if resume)
    - phases list (if specified)
    - step_id (if specified)
    - additional_instructions (prompt)
@@ -235,19 +269,42 @@ Error: Invalid autonomy level: 'invalid'
 Valid levels: dry-run, assist, guarded, autonomous
 ```
 
-**Mutual Exclusivity Error:**
+**Mutual Exclusivity Error (phase/step):**
 ```
 Error: --phase and --step are mutually exclusive
 
 Use --phase for complete phases: --phase build,evaluate
 Use --step for single step: --step build:implement
 ```
+
+**Mutual Exclusivity Error (resume/rerun):**
+```
+Error: --resume and --rerun are mutually exclusive
+
+Use --resume to continue an existing run from where it stopped
+Use --rerun to start a new run based on a previous one (with changes)
+```
+
+**Invalid Run ID Format Error:**
+```
+Error: Invalid run ID format: 'invalid'
+
+Run ID must be in format: org/project/uuid
+Example: fractary/my-project/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+**Run Not Found Error:**
+```
+Error: Run not found: 'fractary/project/uuid'
+
+The run directory does not exist. Check the run ID or use /fractary-faber:status to list available runs.
+```
 </OUTPUTS>
 
 <ERROR_HANDLING>
 
 ## Missing Arguments
-If no target or work_id provided:
+If no target, work_id, resume, or rerun provided:
 - Show usage error with examples
 - Do NOT invoke director skill
 
@@ -266,13 +323,23 @@ If `--autonomy` value is not valid:
 - Show error with valid options
 - Do NOT invoke director skill
 
-## Mutual Exclusivity
+## Mutual Exclusivity (phase/step)
 If both `--phase` and `--step` provided:
 - Show error explaining they are mutually exclusive
 - Do NOT invoke director skill
 
+## Mutual Exclusivity (resume/rerun)
+If both `--resume` and `--rerun` provided:
+- Show error explaining they are mutually exclusive
+- Do NOT invoke director skill
+
+## Invalid Run ID Format
+If `--resume` or `--rerun` value doesn't match `org/project/uuid` format:
+- Show error with valid format example
+- Do NOT invoke director skill
+
 ## All Other Errors
-All other errors (config not found, issue not found, workflow failed, label parsing, etc.) are handled by the faber-director skill. This command does NOT handle them.
+All other errors (config not found, issue not found, run not found, workflow failed, label parsing, etc.) are handled by the faber-director skill. This command does NOT handle them.
 
 </ERROR_HANDLING>
 

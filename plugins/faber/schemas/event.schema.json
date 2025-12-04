@@ -1,0 +1,220 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/faber/event.schema.json",
+  "title": "FABER Workflow Event",
+  "description": "Schema for FABER workflow events emitted during run execution",
+  "type": "object",
+  "required": ["event_id", "type", "timestamp", "run_id"],
+  "properties": {
+    "event_id": {
+      "type": "integer",
+      "description": "Monotonically increasing sequence number within the run",
+      "minimum": 1
+    },
+    "type": {
+      "type": "string",
+      "description": "Event type identifier",
+      "enum": [
+        "workflow_start",
+        "workflow_complete",
+        "workflow_error",
+        "workflow_cancelled",
+        "workflow_resumed",
+        "workflow_rerun",
+        "phase_start",
+        "phase_skip",
+        "phase_complete",
+        "phase_error",
+        "step_start",
+        "step_complete",
+        "step_error",
+        "step_retry",
+        "artifact_create",
+        "artifact_modify",
+        "commit_create",
+        "branch_create",
+        "pr_create",
+        "pr_merge",
+        "spec_generate",
+        "spec_validate",
+        "test_run",
+        "docs_update",
+        "checkpoint",
+        "skill_invoke",
+        "agent_invoke",
+        "decision_point",
+        "retry_loop_enter",
+        "retry_loop_exit",
+        "approval_request",
+        "approval_granted",
+        "approval_denied",
+        "hook_execute"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when event occurred"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Full run identifier (org/project/uuid)",
+      "pattern": "^[a-z0-9_-]+/[a-z0-9_-]+/[a-f0-9-]{36}$"
+    },
+    "phase": {
+      "type": "string",
+      "description": "Current workflow phase",
+      "enum": ["frame", "architect", "build", "evaluate", "release", null]
+    },
+    "step": {
+      "type": "string",
+      "description": "Current step within phase"
+    },
+    "status": {
+      "type": "string",
+      "description": "Event outcome status",
+      "enum": ["started", "completed", "failed", "skipped", "pending", "cancelled"]
+    },
+    "user": {
+      "type": "string",
+      "description": "User who triggered the event"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the event (skill name, script, etc.)"
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable event description"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "description": "Duration in milliseconds (for complete events)",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Event-type-specific metadata",
+      "additionalProperties": true
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Artifacts created or modified by this event",
+      "items": {
+        "$ref": "#/definitions/artifact"
+      }
+    },
+    "error": {
+      "$ref": "#/definitions/error"
+    }
+  },
+  "definitions": {
+    "artifact": {
+      "type": "object",
+      "required": ["type", "name"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Artifact type",
+          "enum": ["branch", "commit", "spec", "pr", "deployment", "tag", "document", "file", "other"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Artifact name or identifier"
+        },
+        "path": {
+          "type": "string",
+          "description": "File path if applicable"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL if applicable (e.g., PR URL)"
+        },
+        "sha": {
+          "type": "string",
+          "description": "Git SHA if applicable"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "description": "Size in bytes if applicable"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "stack": {
+          "type": "string",
+          "description": "Stack trace if available"
+        },
+        "recoverable": {
+          "type": "boolean",
+          "description": "Whether the error is recoverable"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "workflow_start" } }
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "work_id": { "type": "string" },
+              "target": { "type": "string" },
+              "workflow_id": { "type": "string" },
+              "autonomy": { "type": "string" },
+              "phases": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "phase_start" } }
+      },
+      "then": {
+        "required": ["phase"],
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "steps": { "type": "array", "items": { "type": "string" } },
+              "hooks": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "step_complete" } }
+      },
+      "then": {
+        "required": ["phase", "step", "status", "duration_ms"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "pattern": "_error$" } }
+      },
+      "then": {
+        "required": ["error"]
+      }
+    }
+  ]
+}

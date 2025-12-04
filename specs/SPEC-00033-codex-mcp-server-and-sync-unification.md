@@ -6,6 +6,8 @@
 **Created:** 2025-01-15
 **Author:** System Architecture
 **Related Specs:** SPEC-00012 (Codex Sync), SPEC-00030 (Knowledge Retrieval)
+**Addendum:** [SPEC-00033-addendum-architectural-refinements.md](SPEC-00033-addendum-architectural-refinements.md)
+**Implementation:** [WORK-00216](WORK-00216-codex-mcp-server-implementation-plan.md)
 
 ---
 

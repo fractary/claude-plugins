@@ -1,6 +1,6 @@
 ---
 name: infra-debugger
-model: claude-haiku-4-5
+model: claude-opus-4-5
 description: |
   Analyze infrastructure deployment errors - categorize error types (permission/
   config/resource/state), search issue log for historical solutions, rank

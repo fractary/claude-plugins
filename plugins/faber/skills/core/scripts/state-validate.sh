@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 # state-validate.sh - Validate state against schema
+#
+# Usage:
+#   state-validate.sh --run-id <run-id>
+#   state-validate.sh [<state-file>]  # Legacy mode
+#
 set -euo pipefail
-STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
+
+# Parse arguments
+if [[ "${1:-}" == "--run-id" ]]; then
+    RUN_ID="${2:?Run ID required with --run-id flag}"
+    STATE_FILE=".fractary/plugins/faber/runs/$RUN_ID/state.json"
+else
+    STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCHEMA="$(cd "$SCRIPT_DIR/../../.." && pwd)/config/state.schema.json"
 

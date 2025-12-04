@@ -25,7 +25,7 @@ Store list of spec file paths for processing.
 
 ## Step 2: Load Configuration
 
-Load plugin configuration from `/plugins/spec/config/config.json`:
+Load plugin configuration from `.fractary/plugins/spec/config.json`:
 - Get `storage.cloud_archive_path` pattern
 - Get `storage.archive_index_file` location
 - Get `archive.auto_archive_on` settings

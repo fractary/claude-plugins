@@ -3,17 +3,20 @@
 # state-update-phase.sh - Update a specific phase in FABER workflow state
 #
 # Usage:
-#   state-update-phase.sh <phase> <status> [data_json]
+#   state-update-phase.sh --run-id <run-id> <phase> <status> [data_json]
+#   state-update-phase.sh <phase> <status> [data_json]  # Legacy mode
 #
 # Arguments:
+#   --run-id    - Optional run identifier (format: org/project/uuid)
 #   phase       - Phase name (frame, architect, build, evaluate, release)
 #   status      - Phase status (pending, in_progress, completed, failed)
 #   data_json   - Optional JSON data to store with phase (default: {})
 #
 # Examples:
-#   state-update-phase.sh frame started
-#   state-update-phase.sh frame completed '{"branch": "feat/123-add-feature"}'
-#   state-update-phase.sh build failed '{"error": "Tests failed"}'
+#   state-update-phase.sh --run-id "org/project/uuid" frame in_progress
+#   state-update-phase.sh --run-id "org/project/uuid" frame completed '{"branch": "feat/123"}'
+#   state-update-phase.sh frame started  # Legacy
+#   state-update-phase.sh build failed '{"error": "Tests failed"}'  # Legacy
 #
 # Features:
 #   - Updates phase status and timestamps automatically
@@ -24,13 +27,25 @@
 
 set -euo pipefail
 
-# Arguments
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Parse arguments
+RUN_ID=""
+if [[ "${1:-}" == "--run-id" ]]; then
+    RUN_ID="${2:?Run ID required with --run-id flag}"
+    shift 2
+fi
+
 PHASE="${1:?Phase name required (frame, architect, build, evaluate, release)}"
 STATUS="${2:?Status required (pending, in_progress, completed, failed)}"
 DATA_JSON="${3:-{}}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STATE_FILE=".fractary/plugins/faber/state.json"
+# Compute state file path
+if [ -n "$RUN_ID" ]; then
+    STATE_FILE=".fractary/plugins/faber/runs/$RUN_ID/state.json"
+else
+    STATE_FILE=".fractary/plugins/faber/state.json"
+fi
 
 # Validate phase
 case "$PHASE" in

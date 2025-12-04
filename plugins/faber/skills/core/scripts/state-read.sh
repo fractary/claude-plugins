@@ -3,29 +3,41 @@
 # state-read.sh - Safely read FABER workflow state
 #
 # Usage:
-#   state-read.sh [<state-file>] [<jq-query>]
+#   state-read.sh --run-id <run-id> [<jq-query>]
+#   state-read.sh [<state-file>] [<jq-query>]  # Legacy mode
 #
 # Examples:
-#   state-read.sh                           # Read entire state
-#   state-read.sh '.current_phase'          # Query specific field
-#   state-read.sh state.json '.status'      # Custom file + query
+#   state-read.sh --run-id "org/project/uuid"            # Read entire state
+#   state-read.sh --run-id "org/project/uuid" '.status'  # Query specific field
+#   state-read.sh '.current_phase'                        # Legacy: query with default file
+#   state-read.sh state.json '.status'                    # Legacy: custom file + query
 #
 # Features:
 #   - Shared locking (flock -s) for read consistency during writes
 
 set -euo pipefail
 
-STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
-JQ_QUERY="${2:-.}"
 LOCK_TIMEOUT=10  # seconds to wait for shared lock
 
-# Shift if first arg is a file path
-if [[ "$STATE_FILE" != .* ]] && [[ "$STATE_FILE" != /* ]] && [[ "$STATE_FILE" == *.json ]]; then
+# Parse arguments
+RUN_ID=""
+if [[ "${1:-}" == "--run-id" ]]; then
+    RUN_ID="${2:?Run ID required with --run-id flag}"
+    shift 2
+    STATE_FILE=".fractary/plugins/faber/runs/$RUN_ID/state.json"
+    JQ_QUERY="${1:-.}"
+else
+    STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
     JQ_QUERY="${2:-.}"
-elif [[ "$STATE_FILE" == .* ]]; then
-    # First arg is a query, use default file
-    JQ_QUERY="$STATE_FILE"
-    STATE_FILE=".fractary/plugins/faber/state.json"
+
+    # Legacy: Shift if first arg is a jq query (starts with .)
+    if [[ "$STATE_FILE" != .* ]] && [[ "$STATE_FILE" != /* ]] && [[ "$STATE_FILE" == *.json ]]; then
+        JQ_QUERY="${2:-.}"
+    elif [[ "$STATE_FILE" == .* ]]; then
+        # First arg is a query, use default file
+        JQ_QUERY="$STATE_FILE"
+        STATE_FILE=".fractary/plugins/faber/state.json"
+    fi
 fi
 
 if [ ! -f "$STATE_FILE" ]; then

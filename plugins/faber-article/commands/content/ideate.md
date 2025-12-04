@@ -1,7 +1,7 @@
 ---
 name: fractary-faber-article:content-ideate
 description: Brainstorm content ideas with research, create top 3 as "idea" state posts
-model: claude-haiku-4-5
+model: claude-opus-4-5
 argument-hint: [topic-area]
 ---
 

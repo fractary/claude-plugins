@@ -183,6 +183,18 @@ Plugin configurations are stored in project directories and **SHOULD be committe
 - **FABER**: `.faber.config.toml` in project root
 - **Plugins**: `.fractary/plugins/{plugin}/config.json`
 
+**⚠️ IMPORTANT: Config Path Standard**
+- ✅ **Correct**: `.fractary/plugins/{plugin}/config.json` (flat structure)
+- ❌ **Wrong**: `.fractary/plugins/{plugin}/config/config.json` (nested - DO NOT use)
+
+Example config files (`plugins/{plugin}/config/config.example.json`) stay in the plugin source as templates. Only the runtime config uses the flat structure.
+
+**Migration**: If you have configs at the old nested path, run:
+```bash
+./scripts/migrate-config-paths.sh --dry-run  # Preview changes
+./scripts/migrate-config-paths.sh            # Apply migration
+```
+
 All configurations use environment variables for secrets (never hardcoded), making them safe to commit.
 
 **Important**: See [Version Control Guide](docs/VERSION-CONTROL-GUIDE.md) for best practices.

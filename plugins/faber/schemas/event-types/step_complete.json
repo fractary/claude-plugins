@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/faber/event-types/step_complete.json",
+  "title": "Step Complete Event",
+  "description": "Emitted when a workflow step completes (success or failure)",
+  "allOf": [
+    { "$ref": "../event.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "step_complete" },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "skipped"]
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["frame", "architect", "build", "evaluate", "release"]
+    },
+    "step": {
+      "type": "string",
+      "description": "Step name that completed"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "description": "Step execution duration in milliseconds",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "skill": {
+          "type": "string",
+          "description": "Skill that executed this step"
+        },
+        "output": {
+          "type": "object",
+          "description": "Step output data"
+        },
+        "retry_attempt": {
+          "type": "integer",
+          "description": "Retry attempt number (if retried)"
+        }
+      }
+    }
+  },
+  "required": ["phase", "step", "duration_ms"],
+  "examples": [
+    {
+      "event_id": 12,
+      "type": "step_complete",
+      "timestamp": "2025-12-04T10:15:30Z",
+      "run_id": "fractary/claude-plugins/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "phase": "build",
+      "step": "implement",
+      "status": "completed",
+      "duration_ms": 180000,
+      "source": "build-skill",
+      "message": "Implementation step completed successfully",
+      "metadata": {
+        "skill": "fractary-faber:build",
+        "output": {
+          "files_modified": 15,
+          "lines_added": 450,
+          "lines_removed": 23
+        }
+      },
+      "artifacts": [
+        {
+          "type": "file",
+          "name": "run-manager/SKILL.md",
+          "path": "plugins/faber/skills/run-manager/SKILL.md"
+        }
+      ]
+    }
+  ]
+}
