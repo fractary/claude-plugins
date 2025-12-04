@@ -1,18 +1,23 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Codex Plugin Configuration",
-  "description": "Configuration schema for the Fractary codex plugin - documentation and knowledge sync across organization projects",
+  "title": "Codex Plugin Configuration v3.0",
+  "description": "Configuration schema for the Fractary codex plugin - documentation and knowledge sync across organization projects with MCP server integration",
   "type": "object",
   "properties": {
     "version": {
       "type": "string",
       "description": "Configuration version",
       "pattern": "^[0-9]+\\.[0-9]+$",
-      "default": "1.0"
+      "default": "3.0"
     },
     "organization": {
       "type": "string",
       "description": "GitHub/GitLab organization name",
+      "minLength": 1
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Current project name (for codex:// URI resolution)",
       "minLength": 1
     },
     "codex_repo": {
@@ -199,14 +204,28 @@
     },
     "cache": {
       "type": "object",
-      "description": "Cache configuration for knowledge retrieval (SPEC-00030)",
+      "description": "Cache configuration for knowledge retrieval and MCP server",
       "properties": {
-        "ttl_days": {
+        "default_ttl": {
           "type": "integer",
-          "description": "Default time-to-live for cached documents in days",
-          "minimum": 1,
-          "maximum": 365,
-          "default": 7
+          "description": "Default time-to-live for cached documents in seconds (604800 = 7 days)",
+          "minimum": 60,
+          "default": 604800
+        },
+        "check_expiration": {
+          "type": "boolean",
+          "description": "Check TTL expiration when reading from cache",
+          "default": true
+        },
+        "fallback_to_stale": {
+          "type": "boolean",
+          "description": "Use stale content when fetch fails or offline",
+          "default": true
+        },
+        "offline_mode": {
+          "type": "boolean",
+          "description": "Disable network fetches, use cache only",
+          "default": false
         },
         "max_size_mb": {
           "type": "integer",
@@ -228,78 +247,76 @@
         }
       }
     },
+    "auth": {
+      "type": "object",
+      "description": "Authentication configuration for fetching from sources",
+      "properties": {
+        "default": {
+          "type": "string",
+          "enum": ["inherit", "env", "config"],
+          "description": "Default auth method: inherit from git/repo plugin, use env vars, or config tokens",
+          "default": "inherit"
+        },
+        "fallback_to_public": {
+          "type": "boolean",
+          "description": "Try unauthenticated access if auth fails",
+          "default": true
+        }
+      }
+    },
     "sources": {
-      "type": "array",
-      "description": "Multi-source configuration for knowledge retrieval (Phase 2)",
-      "items": {
+      "type": "object",
+      "description": "Per-source configuration for knowledge retrieval (keyed by org name or source identifier)",
+      "additionalProperties": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "description": "Unique source identifier",
-            "minLength": 1
-          },
           "type": {
             "type": "string",
-            "enum": ["codex", "external-url", "s3", "local"],
-            "description": "Source type"
+            "enum": ["github-org", "http", "s3", "local"],
+            "description": "Source type",
+            "default": "github-org"
           },
-          "handler": {
+          "ttl": {
+            "type": "integer",
+            "description": "TTL override for this source in seconds",
+            "minimum": 60
+          },
+          "token_env": {
             "type": "string",
-            "enum": ["github", "http", "s3", "local"],
-            "description": "Handler to use for fetching"
+            "description": "Environment variable name for auth token (e.g., PARTNER_TOKEN)"
           },
-          "handler_config": {
-            "type": "object",
-            "description": "Handler-specific configuration",
-            "properties": {
-              "org": {"type": "string"},
-              "repo": {"type": "string"},
-              "branch": {"type": "string", "default": "main"},
-              "base_path": {"type": "string", "default": "projects"},
-              "url_pattern": {"type": "string"},
-              "bucket": {"type": "string"},
-              "region": {"type": "string"},
-              "path_prefix": {"type": "string"}
-            }
-          },
-          "url_pattern": {
+          "token": {
             "type": "string",
-            "description": "URL pattern for external sources (supports ** wildcard)"
+            "description": "Token value or ${ENV_VAR} reference"
           },
-          "cache": {
-            "type": "object",
-            "description": "Source-specific cache settings",
-            "properties": {
-              "ttl_days": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 365,
-                "default": 7
-              }
-            }
+          "base_url": {
+            "type": "string",
+            "description": "Base URL for http sources"
           },
-          "permissions": {
-            "type": "object",
-            "description": "Permission configuration for this source",
-            "properties": {
-              "enabled": {
-                "type": "boolean",
-                "description": "Enable frontmatter-based permission checking",
-                "default": false
-              },
-              "default": {
-                "type": "string",
-                "enum": ["allow", "deny", "check_frontmatter"],
-                "description": "Default permission when frontmatter missing",
-                "default": "check_frontmatter"
-              }
-            }
+          "branch": {
+            "type": "string",
+            "description": "Default branch for github-org sources",
+            "default": "main"
           }
-        },
-        "required": ["name", "type", "handler"]
+        }
       },
-      "minItems": 1
+      "examples": [
+        {
+          "fractary": {
+            "type": "github-org",
+            "ttl": 1209600
+          },
+          "partner-org": {
+            "type": "github-org",
+            "token_env": "PARTNER_TOKEN"
+          },
+          "api-docs": {
+            "type": "http",
+            "base_url": "https://docs.example.com",
+            "ttl": 86400
+          }
+        }
+      ]
     }
   },
   "required": ["version", "organization", "codex_repo"],

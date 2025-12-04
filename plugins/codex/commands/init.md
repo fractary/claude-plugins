@@ -11,6 +11,8 @@ You are the **init command router** for the codex plugin.
 Your role is to guide users through configuration setup for the codex plugin. You parse command arguments and invoke the codex-manager agent with the init operation.
 
 Configuration location: `.fractary/plugins/codex/config.json` (project-level only)
+Cache location: `.fractary/plugins/codex/cache/` (ephemeral, gitignored)
+MCP server: Installed in `.claude/settings.json`
 
 You provide a streamlined setup experience with auto-detection and sensible defaults.
 </CONTEXT>
@@ -141,8 +143,10 @@ Show what will be created:
 
 Output:
 ```
-Will create:
+Will create/configure:
   ✓ Project config: .fractary/plugins/codex/config.json
+  ✓ Cache directory: .fractary/plugins/codex/cache/
+  ✓ MCP server: .claude/settings.json (mcpServers.fractary-codex)
 
 Continue? (Y/n)
 ```
@@ -160,7 +164,9 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
     "codex_repo": "<codex-repo-name>",
     "skip_confirmation": <true if --yes flag>,
     "migrate_from_global": <true if migrating from global config>,
-    "remove_global_config": <true if user chose to remove global config>
+    "remove_global_config": <true if user chose to remove global config>,
+    "setup_cache": true,
+    "install_mcp": true
   }
 }
 ```
@@ -171,13 +177,22 @@ The agent will:
 3. Populate with provided values
 4. Validate against schema
 5. Remove global config file if requested
-6. Report success with file path
+6. **Create cache directory** at `.fractary/plugins/codex/cache/`
+   - Run `scripts/setup-cache-dir.sh`
+   - Creates `.gitignore` and `.cache-index.json`
+   - Updates project `.gitignore`
+7. **Install MCP server** in `.claude/settings.json`
+   - Run `scripts/install-mcp.sh`
+   - Adds `mcpServers.fractary-codex` configuration
+   - Creates backup of existing settings
+8. Report success with file paths and MCP status
 
 ## Step 7: Display Results
 
 Show the agent's response to the user, which includes:
 - Configuration file created
-- File path
+- Cache directory status
+- MCP server installation status
 - Next steps (how to customize, how to sync)
 
 Example output:
@@ -186,16 +201,20 @@ Example output:
 
 Created:
   - Project config: .fractary/plugins/codex/config.json
+  - Cache directory: .fractary/plugins/codex/cache/
+  - MCP server: .claude/settings.json (fractary-codex)
 
 Configuration:
   Organization: fractary
   Codex Repository: codex.fractary.com
-  Sync Patterns: docs/**, CLAUDE.md, README.md, .claude/**
+  Cache TTL: 7 days (604800 seconds)
+  Offline Mode: disabled
 
 Next steps:
-  1. Review and customize configuration if needed
-  2. Run your first sync: /fractary-codex:sync-project
-  3. See docs: plugins/codex/docs/setup-guide.md
+  1. Restart Claude Code to load the MCP server
+  2. Review and customize configuration if needed
+  3. Run your first sync: /fractary-codex:sync-project --from-codex
+  4. Use codex:// URIs to reference documents
 ```
 </WORKFLOW>
 
@@ -207,6 +226,8 @@ This command is complete when:
 - Organization detected or specified
 - Codex repo detected or specified
 - Codex-manager agent invoked
+- Cache directory created
+- MCP server installed
 - Agent response displayed to user
 - User knows what was created and next steps
 
@@ -284,17 +305,24 @@ After successful initialization, guide the user:
 
 1. **What was created**:
    - Configuration file at `.fractary/plugins/codex/config.json`
+   - Cache directory at `.fractary/plugins/codex/cache/`
+   - MCP server in `.claude/settings.json`
    - Show key configuration values
 
 2. **How to customize**:
    - **Project config**: `.fractary/plugins/codex/config.json`
      - `organization`: Organization name
      - `codex_repo`: Codex repository name
+     - `project_name`: Current project name (for URI resolution)
      - `sync_patterns`: Glob patterns to include (e.g., "docs/**", "CLAUDE.md")
      - `exclude_patterns`: Glob patterns to exclude (e.g., "**/.git/**", "**/node_modules/**")
      - `sync_direction`: "to-codex" | "from-codex" | "bidirectional"
-     - `handlers.sync.options.github.deletion_threshold`: Safety limits
-     - `handlers.sync.options.github.parallel_repos`: Concurrent sync count
+     - `cache.default_ttl`: Cache TTL in seconds (default: 604800 = 7 days)
+     - `cache.offline_mode`: Enable offline mode (default: false)
+     - `cache.fallback_to_stale`: Use stale content when network fails (default: true)
+     - `auth.default`: Authentication mode ("inherit" = use git config)
+     - `auth.fallback_to_public`: Try unauthenticated if auth fails (default: true)
+     - `sources.<org>`: Per-source TTL and authentication overrides
 
    - **Frontmatter (per-file control)**: Add to markdown/YAML files
      ```yaml
@@ -306,9 +334,17 @@ After successful initialization, guide the user:
 
    - **Configuration schema**: See `.claude-plugin/config.schema.json` for all options
 
-3. **Next steps**:
+3. **Using codex:// URIs**:
+   - Reference format: `codex://org/project/path/to/file.md`
+   - Current project: `codex://fractary/current-repo/docs/guide.md`
+   - Other projects: `codex://fractary/other-repo/README.md`
+   - In markdown: `See [Guide](codex://fractary/project/docs/guide.md)`
+
+4. **Next steps**:
+   - Restart Claude Code to load the MCP server
    - Test with dry-run: `/fractary-codex:sync-project --dry-run`
-   - Run first sync: `/fractary-codex:sync-project`
+   - Run first sync: `/fractary-codex:sync-project --from-codex`
+   - Validate setup: `/fractary-codex:validate-setup`
    - See full docs: `plugins/codex/README.md`
 
 Keep guidance concise but complete.

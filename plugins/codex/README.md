@@ -24,7 +24,7 @@ Traditional approaches (push-sync, API calls) are slow, expensive, and don't sca
 **Pull-based retrieval with intelligent caching:**
 
 ```
-Request @codex/project/docs/api.md
+Request codex://org/project/docs/api.md
          ↓
   Check local cache (< 100ms)
          ↓ (if expired/missing)
@@ -46,19 +46,30 @@ Request @codex/project/docs/api.md
 
 ## Quick Start
 
-### 1. Fetch a Document
+### 1. Initialize the Plugin
 
 ```bash
-/fractary-codex:fetch @codex/auth-service/docs/oauth.md
+/fractary-codex:init --org fractary --codex codex.fractary.com
+```
+
+This sets up:
+- Configuration at `.fractary/plugins/codex/config.json`
+- Cache directory at `.fractary/plugins/codex/cache/`
+- MCP server in `.claude/settings.json`
+
+### 2. Fetch a Document
+
+```bash
+/fractary-codex:fetch codex://fractary/auth-service/docs/oauth.md
 ```
 
 This will:
 - Check local cache first (fast path)
-- Fetch from codex repository if needed
+- Fetch from GitHub if needed (on-demand)
 - Cache locally with 7-day TTL
 - Return the content
 
-### 2. Browse Cached Documents
+### 3. Browse Cached Documents
 
 ```bash
 /fractary-codex:cache-list
@@ -66,15 +77,23 @@ This will:
 
 Shows all cached documents with freshness status.
 
-### 3. Use MCP Resources (Optional)
+### 4. Use MCP Resources
 
-After configuring the MCP server (see [MCP Integration](#mcp-integration)):
+After initialization, MCP resources are available:
 
 ```
-codex://auth-service/docs/oauth.md
+codex://fractary/auth-service/docs/oauth.md
 ```
 
-Access cached documents via `codex://` URIs in Claude Desktop or Claude Code.
+Access cached documents via `codex://` URIs directly in conversations.
+
+### 5. Validate Setup
+
+```bash
+/fractary-codex:validate-setup
+```
+
+Checks configuration, cache, and MCP server status.
 
 ---
 
@@ -134,7 +153,7 @@ The codex plugin implements a progressive architecture across three phases:
 │                                                  │
 │  Cache Layer (< 100ms)                          │
 │  ├─ Local filesystem  (codex/{project}/{path})  │
-│  ├─ Cache index       (.cache-index.json)       │
+│  ├─ Cache index       (index.json)             │
 │  └─ TTL management    (default: 7 days)         │
 │                                                  │
 └─────────────────────────────────────────────────┘
@@ -146,17 +165,17 @@ The codex plugin implements a progressive architecture across three phases:
 
 ### 📚 Knowledge Retrieval
 
-**@codex/ Reference Syntax:**
+**codex:// URI Syntax:**
 ```
-@codex/{project}/{path}
+codex://{org}/{project}/{path}
 
 Examples:
-  @codex/auth-service/docs/oauth.md
-  @codex/faber-cloud/specs/SPEC-00020.md
-  @codex/shared/standards/api-design.md
+  codex://fractary/auth-service/docs/oauth.md
+  codex://fractary/faber-cloud/specs/SPEC-00020.md
+  codex://partner-org/shared/standards/api-design.md
 ```
 
-Perfect path alignment: `@codex/project/path` → `codex/project/path`
+Path alignment: `codex://org/project/path` → `.fractary/plugins/codex/cache/org/project/path`
 
 **Cache-First Strategy:**
 1. Check local cache (< 100ms if fresh)
@@ -182,27 +201,22 @@ Perfect path alignment: `@codex/project/path` → `codex/project/path`
 **Source Configuration:**
 ```json
 {
-  "sources": [
-    {
-      "name": "fractary-codex",
-      "type": "codex",
-      "handler": "github",
-      "handler_config": {
-        "org": "fractary",
-        "repo": "codex.fractary.com",
-        "branch": "main"
-      },
-      "cache": {"ttl_days": 7},
-      "permissions": {"enabled": true}
+  "sources": {
+    "fractary": {
+      "type": "github-org",
+      "ttl": 604800,
+      "branch": "main"
     },
-    {
-      "name": "external-docs",
-      "type": "external-url",
-      "handler": "http",
-      "url_pattern": "https://docs.example.com/**",
-      "cache": {"ttl_days": 30}
+    "partner-org": {
+      "type": "github-org",
+      "token_env": "PARTNER_TOKEN"
+    },
+    "api-docs": {
+      "type": "http",
+      "base_url": "https://docs.example.com",
+      "ttl": 2592000
     }
-  ]
+  }
 }
 ```
 
@@ -272,27 +286,30 @@ See [MCP Integration Guide](./docs/MCP-INTEGRATION.md) for setup.
 
 **Cache Structure:**
 ```
-codex/                          # Ephemeral cache (gitignored)
-├── .cache-index.json          # Metadata index
-├── auth-service/
-│   └── docs/
-│       └── oauth.md           # Cached document
-└── shared/
-    └── standards/
-        └── api-design.md
+.fractary/plugins/codex/
+├── config.json                 # Plugin configuration
+└── cache/                      # Ephemeral cache (gitignored)
+    ├── index.json             # Cache metadata index
+    └── fractary/              # Organization
+        ├── auth-service/
+        │   └── docs/
+        │       └── oauth.md   # Cached document
+        └── shared/
+            └── standards/
+                └── api-design.md
 ```
 
 **Cache Index:**
 ```json
 {
-  "version": "1.0",
+  "version": "3.0",
   "entries": [{
-    "reference": "@codex/auth-service/docs/oauth.md",
-    "path": "auth-service/docs/oauth.md",
-    "source": "fractary-codex",
+    "uri": "codex://fractary/auth-service/docs/oauth.md",
+    "path": "fractary/auth-service/docs/oauth.md",
+    "source": "fractary",
     "cached_at": "2025-01-15T10:00:00Z",
     "expires_at": "2025-01-22T10:00:00Z",
-    "ttl_days": 7,
+    "ttl": 604800,
     "size_bytes": 12543,
     "hash": "abc123...",
     "last_accessed": "2025-01-15T10:00:00Z"
@@ -317,35 +334,35 @@ codex/                          # Ephemeral cache (gitignored)
 
 ### `/fractary-codex:fetch`
 
-Fetch a document from codex by reference.
+Fetch a document from codex by URI.
 
 **Usage:**
 ```bash
-/fractary-codex:fetch @codex/project/path
+/fractary-codex:fetch codex://org/project/path
 
 # Force refresh (bypass cache)
-/fractary-codex:fetch @codex/project/path --force-refresh
+/fractary-codex:fetch codex://org/project/path --force-refresh
 
-# Custom TTL (override default)
-/fractary-codex:fetch @codex/project/path --ttl 14
+# Custom TTL in seconds (override default)
+/fractary-codex:fetch codex://org/project/path --ttl 1209600
 ```
 
 **Examples:**
 ```bash
 # Fetch OAuth documentation
-/fractary-codex:fetch @codex/auth-service/docs/oauth.md
+/fractary-codex:fetch codex://fractary/auth-service/docs/oauth.md
 
-# Fetch specification with longer TTL
-/fractary-codex:fetch @codex/faber-cloud/specs/SPEC-00020.md --ttl 30
+# Fetch specification with longer TTL (14 days)
+/fractary-codex:fetch codex://fractary/faber-cloud/specs/SPEC-00020.md --ttl 1209600
 
 # Force fresh fetch from source
-/fractary-codex:fetch @codex/shared/standards/api.md --force-refresh
+/fractary-codex:fetch codex://fractary/shared/standards/api.md --force-refresh
 ```
 
 **Output:**
 ```
-✅ Document retrieved: @codex/auth-service/docs/oauth.md
-Source: fractary-codex (cached)
+✅ Document retrieved: codex://fractary/auth-service/docs/oauth.md
+Source: fractary (cached)
 Size: 12.3 KB
 Expires: 2025-01-22T10:00:00Z
 Fetch time: 156ms
@@ -377,14 +394,14 @@ Last cleanup: 2025-01-15T10:00:00Z
 ───────────────────────────────────────
 
 FRESH ENTRIES (38):
-✓ @codex/auth-service/docs/oauth.md
+✓ codex://fractary/auth-service/docs/oauth.md
   Size: 12.3 KB | Expires: 2025-01-22 (6 days)
 
-✓ @codex/faber-cloud/specs/SPEC-00020.md
+✓ codex://fractary/faber-cloud/specs/SPEC-00020.md
   Size: 45.2 KB | Expires: 2025-01-21 (5 days)
 
 EXPIRED ENTRIES (4):
-⚠ @codex/old-service/README.md
+⚠ codex://fractary/old-service/README.md
   Size: 5.1 KB | Expired: 2025-01-10 (5 days ago)
 ```
 
@@ -493,6 +510,42 @@ OVERALL STATUS: ✅ Healthy
 Checks passed: 22/24 (92%)
 ```
 
+### `/fractary-codex:validate-setup`
+
+Validate plugin setup and configuration status.
+
+**Usage:**
+```bash
+/fractary-codex:validate-setup              # Basic validation
+/fractary-codex:validate-setup --verbose    # Include warnings
+```
+
+**Checks:**
+- Configuration file exists and is valid JSON
+- Required fields present (organization, codex_repo)
+- Cache directory exists and is writable
+- MCP server installed in `.claude/settings.json`
+- Cache index exists and is valid
+
+### `/fractary-codex:validate-refs`
+
+Validate codex references in markdown files.
+
+**Usage:**
+```bash
+/fractary-codex:validate-refs                    # Scan current directory
+/fractary-codex:validate-refs --path docs/       # Scan specific directory
+/fractary-codex:validate-refs --fix              # Auto-convert @codex/ to codex://
+```
+
+**Checks:**
+- Deprecated `@codex/` references (should be `codex://`)
+- Relative path references (`../`)
+- Absolute path references (`/`)
+
+**Fix Mode:**
+Converts deprecated `@codex/project/path` references to `codex://org/project/path` format.
+
 ---
 
 ## Configuration
@@ -501,100 +554,98 @@ Checks passed: 22/24 (92%)
 
 **Location:** `.fractary/plugins/codex/config.json`
 
-**Schema:**
+**Schema (v3.0):**
 ```json
 {
-  "version": "1.0",
+  "version": "3.0",
   "organization": "fractary",
+  "project_name": "my-project",
   "codex_repo": "codex.fractary.com",
 
   "cache": {
-    "ttl_days": 7,
-    "max_size_mb": 500,
+    "default_ttl": 604800,
+    "check_expiration": true,
+    "fallback_to_stale": true,
+    "offline_mode": false,
+    "max_size_mb": 0,
     "auto_cleanup": true,
     "cleanup_interval_days": 7
   },
 
-  "sources": [
-    {
-      "name": "fractary-codex",
-      "type": "codex",
-      "handler": "github",
-      "handler_config": {
-        "org": "fractary",
-        "repo": "codex.fractary.com",
-        "branch": "main",
-        "base_path": "projects"
-      },
-      "cache": {
-        "ttl_days": 7
-      },
-      "permissions": {
-        "enabled": true,
-        "default": "check_frontmatter"
-      }
+  "auth": {
+    "default": "inherit",
+    "fallback_to_public": true
+  },
+
+  "sources": {
+    "fractary": {
+      "type": "github-org",
+      "ttl": 604800,
+      "branch": "main"
+    },
+    "partner-org": {
+      "type": "github-org",
+      "token_env": "PARTNER_TOKEN"
     }
-  ]
+  }
 }
 ```
 
 ### Configuration Options
 
 **Cache Settings:**
-- `ttl_days`: Default TTL for cached documents (default: 7)
-- `max_size_mb`: Maximum cache size (0 = unlimited)
-- `auto_cleanup`: Automatically remove expired entries
+- `default_ttl`: TTL in seconds for cached documents (default: 604800 = 7 days)
+- `check_expiration`: Check TTL when reading from cache (default: true)
+- `fallback_to_stale`: Use stale content when fetch fails (default: true)
+- `offline_mode`: Disable network fetches (default: false)
+- `max_size_mb`: Maximum cache size in MB (0 = unlimited)
+- `auto_cleanup`: Automatically remove expired entries (default: true)
 - `cleanup_interval_days`: How often to run cleanup (default: 7)
 
-**Source Settings:**
-- `name`: Unique identifier for the source
-- `type`: Source type (`codex`, `external-url`, `s3`, `local`)
-- `handler`: Handler to use (`github`, `http`, `s3`, `local`)
-- `handler_config`: Handler-specific configuration
-- `cache`: Source-specific cache settings
-- `permissions`: Permission configuration
+**Auth Settings:**
+- `default`: Auth method: `inherit` (git/repo), `env` (env vars), `config` (tokens)
+- `fallback_to_public`: Try unauthenticated access if auth fails (default: true)
 
-**Permission Settings:**
-- `enabled`: Enable frontmatter permission checking
-- `default`: Default action when no frontmatter (`allow`, `deny`, `check_frontmatter`)
+**Source Settings (per org key):**
+- `type`: Source type (`github-org`, `http`, `s3`, `local`)
+- `ttl`: TTL override in seconds for this source
+- `branch`: Default branch for GitHub sources (default: main)
+- `token_env`: Environment variable name for auth token
+- `base_url`: Base URL for HTTP sources
 
 ---
 
 ## MCP Integration
 
-The codex plugin includes an MCP server that exposes cached documents as resources.
+The codex plugin includes an MCP server that exposes cached documents as resources with on-demand fetching.
 
 ### Setup
 
-**1. Build the MCP server:**
+**Automatic (Recommended):**
 ```bash
+/fractary-codex:init --org fractary --codex codex.fractary.com
+```
+
+This automatically:
+1. Creates configuration
+2. Sets up cache directory
+3. Registers MCP server in `.claude/settings.json`
+
+**Manual:**
+```bash
+# Build the MCP server
 cd plugins/codex/mcp-server
 npm install
 npm run build
+
+# Install to Claude settings
+./scripts/install-mcp.sh
 ```
 
-**2. Configure Claude:**
-
-Add to `.claude/config.json` (Claude Code) or global config (Claude Desktop):
-
-```json
-{
-  "mcpServers": {
-    "fractary-codex": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/plugins/codex/mcp-server/dist/index.js"
-      ],
-      "env": {
-        "CODEX_CACHE_PATH": "${workspaceFolder}/codex",
-        "CODEX_CONFIG_PATH": "${workspaceFolder}/.fractary/plugins/codex/config.json"
-      }
-    }
-  }
-}
+**Verify:**
+```bash
+/fractary-codex:validate-setup
 ```
-
-**3. Restart Claude**
 
 Resources will appear in the resource panel as `codex://` URIs.
 
@@ -602,9 +653,9 @@ Resources will appear in the resource panel as `codex://` URIs.
 
 **In conversations:**
 ```
-Explain the OAuth implementation in codex://auth-service/docs/oauth.md
+Explain the OAuth implementation in codex://fractary/auth-service/docs/oauth.md
 
-Compare codex://shared/standards/api-design.md with React best practices
+Compare codex://fractary/shared/standards/api-design.md with React best practices
 ```
 
 **Resource panel:**
@@ -613,8 +664,8 @@ Compare codex://shared/standards/api-design.md with React best practices
 - See metadata (source, cached_at, expires_at, fresh status)
 
 **MCP tools:**
-- `codex_cache_status`: View cache statistics
-- `codex_fetch`: Get information about fetching (redirects to plugin command)
+- `codex_fetch`: Fetch document by URI with on-demand fetching
+- `codex_sync_status`: Check cache, config, and MCP status
 
 See [MCP Integration Guide](./docs/MCP-INTEGRATION.md) for detailed setup and troubleshooting.
 
@@ -704,10 +755,10 @@ For new implementations, use the pull-based retrieval system which is faster, mo
 **Solution:**
 ```bash
 # First access: fetch and cache
-/fractary-codex:fetch @codex/shared/standards/api-design.md
+/fractary-codex:fetch codex://fractary/shared/standards/api-design.md
 
 # Subsequent access: < 100ms from cache
-codex://shared/standards/api-design.md
+codex://fractary/shared/standards/api-design.md
 ```
 
 ### 2. Multi-Source Knowledge
@@ -747,12 +798,15 @@ codex_sync_exclude:
 **Setup:**
 ```bash
 # Pre-cache frequently used docs
-/fractary-codex:fetch @codex/shared/standards/coding-guide.md
-/fractary-codex:fetch @codex/shared/standards/api-design.md
-/fractary-codex:fetch @codex/auth-service/docs/oauth.md
+/fractary-codex:fetch codex://fractary/shared/standards/coding-guide.md
+/fractary-codex:fetch codex://fractary/shared/standards/api-design.md
+/fractary-codex:fetch codex://fractary/auth-service/docs/oauth.md
+
+# Enable offline mode in config
+# "cache": { "offline_mode": true, "fallback_to_stale": true }
 
 # Use offline (from cache)
-codex://shared/standards/coding-guide.md
+codex://fractary/shared/standards/coding-guide.md
 ```
 
 ### 5. Context7 Integration
@@ -770,21 +824,24 @@ Hybrid caching automatically caches Context7 responses locally for fast subseque
 ### 1. Pre-Cache Frequently Used Docs
 
 ```bash
-/fractary-codex:fetch @codex/shared/standards/api-design.md
-/fractary-codex:fetch @codex/shared/templates/service-template.md
+/fractary-codex:fetch codex://fractary/shared/standards/api-design.md
+/fractary-codex:fetch codex://fractary/shared/templates/service-template.md
 ```
 
 ### 2. Adjust TTL Based on Content Stability
 
 ```json
 {
-  "sources": [{
-    "name": "stable-docs",
-    "cache": {"ttl_days": 60}  // Rarely updated
-  }, {
-    "name": "active-specs",
-    "cache": {"ttl_days": 3}   // Frequently updated
-  }]
+  "sources": {
+    "stable-docs": {
+      "type": "github-org",
+      "ttl": 5184000
+    },
+    "active-specs": {
+      "type": "github-org",
+      "ttl": 259200
+    }
+  }
 }
 ```
 
@@ -822,11 +879,12 @@ Configure MCP server for seamless integration in Claude Desktop/Code conversatio
 
 **Check:**
 ```bash
-ls -la codex/.cache-index.json
+/fractary-codex:validate-setup
 /fractary-codex:cache-list
+ls -la .fractary/plugins/codex/cache/index.json
 ```
 
-**Fix:** Ensure cache directory exists and is writable.
+**Fix:** Run `/fractary-codex:init` to set up the cache directory.
 
 ### Permission Denied
 
@@ -849,11 +907,15 @@ codex_sync_include: ["your-project"]
 **Symptom:** No resources in Claude panel.
 
 **Check:**
-1. MCP server built: `ls plugins/codex/mcp-server/dist/`
-2. Configuration correct in `.claude/config.json`
-3. Cache has documents: `/fractary-codex:cache-list`
+```bash
+/fractary-codex:validate-setup
+ls plugins/codex/mcp-server/dist/
+```
 
-**Fix:** Restart Claude, fetch some documents first.
+**Fix:**
+1. Run `/fractary-codex:init` to configure MCP
+2. Restart Claude
+3. Fetch some documents: `/fractary-codex:fetch codex://org/project/file.md`
 
 ### Slow Fetches
 
@@ -1002,7 +1064,8 @@ Follows [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDAR
 
 - **Documentation**:
   - [MCP Integration Guide](./docs/MCP-INTEGRATION.md)
-  - [Specifications](../../docs/specs/) (SPEC-00030-01 through SPEC-00030-04)
+  - [Migration Guide v3.0](./docs/MIGRATION-v3.md)
+  - [Specifications](../../docs/specs/) (SPEC-00033)
 - **Examples**: See `examples/` directory
 - **Issues**: Repository issue tracker
 - **Standards**: [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDARDS.md)
