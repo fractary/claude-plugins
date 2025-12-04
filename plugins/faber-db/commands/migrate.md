@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Apply database migrations to an environment.
 
 This command deploys pending migrations to the specified environment, with support for dry-run previews, automatic backups (production), and health checks before/after deployment.

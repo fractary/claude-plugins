@@ -1,6 +1,7 @@
 ---
 name: escalate
 description: Escalate an issue to FABER workflow for systematic resolution
+model: claude-haiku-4-5
 examples:
   - /fractary-helm:escalate infra-001
   - /fractary-helm:escalate app-002 --priority=critical

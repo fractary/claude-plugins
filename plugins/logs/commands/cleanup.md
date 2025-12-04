@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:cleanup
 description: Archive and clean up old logs based on age threshold
+model: claude-haiku-4-5
 argument-hint: "[--older-than <days>] [--dry-run]"
 ---
 

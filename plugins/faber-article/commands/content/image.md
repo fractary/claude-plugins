@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-article:content-image
 description: Generate hero image using DALL-E 3 with brand-consistent visual style
+model: claude-haiku-4-5
 argument-hint: '<slug> [--prompt "custom prompt"]'
 ---
 

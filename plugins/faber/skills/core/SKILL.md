@@ -1,6 +1,7 @@
 ---
 name: core
 description: Core utilities for FABER workflow management - config loading, state management, status cards
+model: claude-haiku-4-5
 ---
 
 # FABER Core Skill

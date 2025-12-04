@@ -1,5 +1,6 @@
 ---
 name: cache-clear
+model: claude-haiku-4-5
 description: |
   Clear cache entries based on filters (all, expired, project, pattern).
   Safely removes cached documents with dry-run and confirmation support.

@@ -1,6 +1,7 @@
 ---
 name: log-archiver
 description: Archives completed logs to cloud storage with index management and cleanup
+model: claude-haiku-4-5
 ---
 
 # Log Archiver Skill

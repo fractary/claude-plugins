@@ -1,6 +1,7 @@
 ---
 name: fractary-work:milestone
 description: "[DEPRECATED] Create, list, and manage milestones for release planning - Use /work:milestone-create, /work:milestone-list, /work:milestone-set, /work:milestone-remove, or /work:milestone-close instead"
+model: claude-haiku-4-5
 argument-hint: create <title> [--due <date>] [--description <text>] | list [--state <state>] | set <issue_number> <milestone> | remove <issue_number> | close <milestone_id>
 ---
 

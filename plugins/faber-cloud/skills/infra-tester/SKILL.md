@@ -1,5 +1,6 @@
 ---
 name: infra-tester
+model: claude-haiku-4-5
 description: |
   Test infrastructure configurations and deployments - security scanning with
   Checkov/tfsec, cost estimation analysis, pre-deployment validation, post-

@@ -3,7 +3,7 @@ name: fractary-faber:archive
 description: Archive all FABER workflow artifacts for completed work
 argument-hint: <issue_number> [--skip-specs] [--skip-logs] [--force]
 tools: Bash, Read
-model: inherit
+model: claude-haiku-4-5
 ---
 
 # Archive FABER Workflow

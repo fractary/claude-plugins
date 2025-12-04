@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:search
 description: Search across local and archived logs with filters
+model: claude-haiku-4-5
 argument-hint: '"<query>" [--issue <number>] [--type <type>] [--since <date>] [--until <date>] [--regex] [--local-only] [--cloud-only] [--max-results <n>] [--context <n>]'
 ---
 

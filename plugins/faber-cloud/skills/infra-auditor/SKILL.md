@@ -1,6 +1,7 @@
 ---
 name: infra-auditor
 description: Audit infrastructure status, health, and compliance without modifications - provides observability and drift detection
+model: claude-haiku-4-5
 dependencies: [infra-architect, infra-engineer]
 ---
 

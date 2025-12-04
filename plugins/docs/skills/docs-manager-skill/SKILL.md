@@ -1,6 +1,7 @@
 ---
 name: docs-manager-skill
 description: Orchestrates complete single-document workflows with automatic validation and indexing in a write→validate→index pipeline
+model: claude-haiku-4-5
 ---
 
 # docs-manager-skill

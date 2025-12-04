@@ -2,7 +2,7 @@
 name: command-creator
 description: Orchestrates command creation using FABER workflow - Frame requirements, Architect structure, Build from template, Evaluate compliance, Release artifact
 tools: Bash, Skill
-model: inherit
+model: claude-haiku-4-5
 color: orange
 ---
 

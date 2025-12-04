@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:list
 description: List deployed infrastructure resources
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:list --env test
   - /fractary-faber-cloud:list --env prod

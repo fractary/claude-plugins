@@ -1,6 +1,7 @@
 ---
 name: architecture-validator
 description: Validates project architecture against Fractary standards and best practices for Manager-as-Agent patterns
+model: claude-haiku-4-5
 ---
 
 # Architecture Validator Skill

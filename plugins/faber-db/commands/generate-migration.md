@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Generate a new database migration from schema changes.
 
 This command creates a new migration file by comparing your current schema definition with the database state, capturing the differences as SQL statements.

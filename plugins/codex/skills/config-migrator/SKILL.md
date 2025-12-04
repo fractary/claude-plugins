@@ -1,6 +1,7 @@
 ---
 name: config-migrator
 description: Migrates codex configuration files from v2.0 push-based sync to v3.0 pull-based retrieval format with automatic backups
+model: claude-haiku-4-5
 ---
 
 # Config Migrator Skill

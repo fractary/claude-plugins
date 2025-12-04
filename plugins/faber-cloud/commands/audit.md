@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:audit
 description: Audit infrastructure status, health, and compliance without changes
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:audit --env test
   - /fractary-faber-cloud:audit --env prod --check drift

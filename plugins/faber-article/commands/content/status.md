@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-article:content-status
 description: Check workflow status and progress of blog posts (single post or all posts overview)
+model: claude-haiku-4-5
 argument-hint: [slug]
 ---
 

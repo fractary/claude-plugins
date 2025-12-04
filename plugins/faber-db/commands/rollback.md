@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Rollback database to a previous state using a backup.
 
 This command restores a database from a backup, effectively rolling back migrations and data changes. Since Prisma doesn't support down migrations natively, rollback works by restoring from a database backup.

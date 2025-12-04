@@ -1,5 +1,6 @@
 ---
 name: ops-auditor
+model: claude-haiku-4-5
 description: |
   Audit infrastructure for cost, security, and compliance - analyze current
   spending patterns, identify cost optimization opportunities, scan for security

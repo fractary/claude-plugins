@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:tag-list
 description: List tags with optional filtering
+model: claude-haiku-4-5
 argument-hint: "[--pattern <pattern>] [--latest <n>]"
 ---
 

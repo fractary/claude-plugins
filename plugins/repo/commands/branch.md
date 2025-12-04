@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:branch
 description: "[DEPRECATED] Create, delete, and manage Git branches - Use /repo:branch-create, /repo:branch-delete, or /repo:branch-list instead"
+model: claude-haiku-4-5
 argument-hint: create <work_id> <description> [--base <branch>] [--prefix <prefix>] | delete <branch_name> [--location <where>] [--force] | list [--stale] [--merged] [--days <n>] [--pattern <pattern>]
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: log-manager-skill
 description: Orchestrates single-log sequential workflows by coordinating operation skills for individual logs
+model: claude-haiku-4-5
 ---
 
 # Log Manager Skill

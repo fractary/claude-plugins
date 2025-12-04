@@ -1,6 +1,7 @@
 ---
 name: issues
 description: List and manage active issues across all domains with priority ranking
+model: claude-haiku-4-5
 examples:
   - /fractary-helm:issues
   - /fractary-helm:issues --critical

@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:init
 description: Initialize faber-cloud plugin configuration for cloud infrastructure management
+model: claude-haiku-4-5
 argument-hint: [--provider aws] [--iac terraform]
 tags: [faber-cloud, initialization, configuration, setup]
 examples:

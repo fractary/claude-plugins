@@ -1,5 +1,6 @@
 ---
 name: infra-adoption
+model: claude-haiku-4-5
 description: |
   Discover and adopt existing infrastructure - analyze Terraform structure, AWS profiles, and custom agents
   to generate faber-cloud configuration and migration plan

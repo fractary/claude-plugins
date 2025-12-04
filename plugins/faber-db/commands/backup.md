@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 Create a backup of a database environment.
 
 This command creates a complete backup of the database, including schema and data. Backups are essential for safe production deployments and provide rollback capability if migrations fail.

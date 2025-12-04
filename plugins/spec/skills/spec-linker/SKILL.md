@@ -1,6 +1,7 @@
 ---
 name: spec-linker
 description: Creates and maintains bidirectional links between specifications and GitHub issues/PRs via comments
+model: claude-haiku-4-5
 ---
 
 # Spec Linker Skill

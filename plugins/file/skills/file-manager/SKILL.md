@@ -1,6 +1,7 @@
 ---
 name: file-manager
 description: Routes file storage operations to appropriate handler skills based on configuration
+model: claude-haiku-4-5
 ---
 
 <CONTEXT>

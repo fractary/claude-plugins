@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:init
 description: Repository Plugin Setup Wizard
+model: claude-haiku-4-5
 argument-hint: [--platform <name>] [--token <value>] [--yes] [--force]
 ---
 

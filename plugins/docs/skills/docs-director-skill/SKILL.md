@@ -1,6 +1,7 @@
 ---
 name: docs-director-skill
 description: Handles multi-document operations with pattern matching and parallel execution, delegating to docs-manager-skill for each matched document
+model: claude-haiku-4-5
 ---
 
 # docs-director-skill

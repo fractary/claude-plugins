@@ -1,5 +1,6 @@
 ---
 name: handler-iac-terraform
+model: claude-haiku-4-5
 description: |
   Terraform IaC handler - centralized Terraform operations including init, validate, plan, apply, and
   destroy. Provides standard interface for Terraform-specific logic used by all infrastructure skills.

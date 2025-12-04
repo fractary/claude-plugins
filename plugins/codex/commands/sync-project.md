@@ -1,6 +1,7 @@
 ---
 name: fractary-codex:sync-project
 description: Sync a single project bidirectionally with codex repository
+model: claude-haiku-4-5
 argument-hint: [project-name] [--to-codex|--from-codex|--bidirectional] [--dry-run]
 ---
 

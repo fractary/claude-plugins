@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:capture
 description: Start capturing Claude Code conversation session for an issue
+model: claude-haiku-4-5
 argument-hint: <issue_number>
 ---
 

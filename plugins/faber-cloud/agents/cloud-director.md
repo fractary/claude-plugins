@@ -1,5 +1,6 @@
 ---
 name: cloud-director
+model: claude-haiku-4-5
 description: |
   Natural language router for fractary-faber-cloud plugin - parses user intent and
   routes to infra-manager for infrastructure lifecycle operations (architect, engineer, deploy, test).

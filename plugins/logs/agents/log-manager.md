@@ -2,7 +2,7 @@
 name: log-manager
 description: Routes log operations to specialized skills (v2.0 - type-aware architecture)
 tools: Bash, Skill
-model: inherit
+model: claude-haiku-4-5
 color: orange
 skills: [log-manager-skill]
 ---

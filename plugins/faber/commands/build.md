@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:build
 
 Execute the **Build phase** of the FABER workflow.

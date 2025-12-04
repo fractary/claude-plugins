@@ -1,6 +1,7 @@
 ---
 name: fractary-work:label
 description: "[DEPRECATED] Add, remove, and manage labels on work items - Use /work:label-add, /work:label-remove, /work:label-list, or /work:label-set instead"
+model: claude-haiku-4-5
 argument-hint: add <number> <label> | remove <number> <label> | list <number> | set <number> <label1> <label2> ...
 ---
 

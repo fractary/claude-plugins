@@ -1,5 +1,6 @@
 ---
 name: infra-deployer
+model: claude-haiku-4-5
 description: |
   Deploy infrastructure - execute Terraform apply to create/update AWS resources, verify deployment success,
   update resource registry with ARNs and console URLs, generate deployment documentation. Handles permission

@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:test
 description: Run security scans and cost estimates on infrastructure
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:test --env test
   - /fractary-faber-cloud:test --env prod --phase pre-deployment

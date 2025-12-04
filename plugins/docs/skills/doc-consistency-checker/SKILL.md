@@ -1,6 +1,7 @@
 ---
 name: doc-consistency-checker
 description: Detects when high-level project documentation is stale based on code/config changes and generates update suggestions
+model: claude-haiku-4-5
 ---
 
 # doc-consistency-checker

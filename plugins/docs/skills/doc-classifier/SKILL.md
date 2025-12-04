@@ -1,6 +1,7 @@
 ---
 name: doc-classifier
 description: Auto-detects document type from file path or content with confidence scoring, trying path-based detection first then content analysis
+model: claude-haiku-4-5
 ---
 
 # doc-classifier

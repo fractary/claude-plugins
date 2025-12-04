@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:read
 description: Read archived specification from cloud storage
+model: claude-haiku-4-5
 argument-hint: <issue_number> [--phase <n>]
 ---
 

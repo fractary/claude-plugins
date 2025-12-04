@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-article:content-new
 description: Create new blog post from scratch with full workflow (research → outline → draft → SEO → image → publish)
+model: claude-haiku-4-5
 argument-hint: '"<title>" [--depth basic|moderate|deep]'
 ---
 

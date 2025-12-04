@@ -1,5 +1,6 @@
 ---
 name: ops-manager
+model: claude-haiku-4-5
 description: |
   Runtime operations manager - orchestrates complete operational workflows from monitoring through remediation. This agent MUST be triggered for: check health, query logs, investigate incidents, apply remediations, analyze performance, audit costs, or any runtime operations request.
 

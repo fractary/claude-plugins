@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:teardown
 description: Teardown deployed infrastructure (terraform destroy)
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:teardown --env test
   - /fractary-faber-cloud:teardown --env staging

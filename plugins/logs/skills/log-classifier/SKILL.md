@@ -1,6 +1,7 @@
 ---
 name: log-classifier
 description: Classifies logs by type (session, test, build) using path patterns and frontmatter analysis
+model: claude-haiku-4-5
 ---
 
 # Log Classifier Skill

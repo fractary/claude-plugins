@@ -1,6 +1,7 @@
 ---
 name: fractary-work:issue
 description: "[DEPRECATED] Create, fetch, update, search, and manage work items - Use /work:issue-create, /work:issue-fetch, /work:issue-list, /work:issue-update, /work:issue-assign, or /work:issue-search instead"
+model: claude-haiku-4-5
 argument-hint: create <title> [--type <type>] [--body <text>] | fetch <number> | list [--state <state>] [--label <label>] | update <number> [--title <title>] [--body <text>] | assign <number> <user> | search <query>
 ---
 

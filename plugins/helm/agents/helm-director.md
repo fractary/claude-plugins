@@ -1,5 +1,6 @@
 ---
 name: helm-director
+model: claude-haiku-4-5
 description: |
   Central routing agent for Helm orchestration. Routes commands to domain-specific
   Helm plugins (helm-cloud, helm-app, etc.) based on domain registry. Aggregates

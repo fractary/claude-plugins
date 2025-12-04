@@ -1,6 +1,7 @@
 ---
 name: fractary-codex:sync-org
 description: Sync all projects in organization with codex repository (parallel execution)
+model: claude-haiku-4-5
 argument-hint: [--to-codex|--from-codex|--bidirectional] [--dry-run] [--exclude <pattern>]
 ---
 

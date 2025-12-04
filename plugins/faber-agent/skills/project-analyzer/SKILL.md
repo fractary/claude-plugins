@@ -1,6 +1,7 @@
 ---
 name: project-analyzer
 description: Analyzes Claude Code project structure detecting architectural patterns and anti-patterns by executing detection scripts
+model: claude-haiku-4-5
 ---
 
 # Project Analyzer Skill

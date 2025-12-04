@@ -1,6 +1,7 @@
 ---
 name: log-director-skill
 description: Orchestrates multi-log workflows with parallel execution for batch operations across many logs
+model: claude-haiku-4-5
 ---
 
 # Log Director Skill

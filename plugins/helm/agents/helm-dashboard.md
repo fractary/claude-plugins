@@ -1,5 +1,6 @@
 ---
 name: helm-dashboard
+model: claude-haiku-4-5
 description: |
   Dashboard generation agent for Helm. Collects metrics from all domain monitors,
   calculates overall health, prioritizes issues, and generates unified dashboard

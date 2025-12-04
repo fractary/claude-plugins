@@ -1,6 +1,7 @@
 ---
 name: fractary-spec:init
 description: Initialize fractary-spec plugin configuration
+model: claude-haiku-4-5
 ---
 
 Initialize the fractary-spec plugin in the current project.

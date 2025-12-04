@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-codex:metrics
 
 Display cache statistics, performance metrics, and health information for the codex knowledge retrieval system.

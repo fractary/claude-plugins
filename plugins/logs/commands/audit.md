@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:audit
 description: Audit logs in project and generate plan to manage them with Universal Log Manager
+model: claude-haiku-4-5
 examples:
   - /fractary-logs:audit
   - /fractary-logs:audit --project-root ./my-project

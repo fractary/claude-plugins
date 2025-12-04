@@ -1,6 +1,7 @@
 ---
 name: spec-archiver
 description: Archives completed specifications to cloud storage with index management, GitHub commenting, and local cleanup
+model: claude-haiku-4-5
 ---
 
 # Spec Archiver Skill

@@ -1,5 +1,6 @@
 ---
 name: log-auditor
+model: claude-haiku-4-5
 description: |
   Audit logs in project against fractary-logs best practices and generate actionable remediation specification
 tools: Bash, Read, Write

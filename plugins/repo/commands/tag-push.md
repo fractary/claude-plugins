@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:tag-push
 description: Push tag(s) to remote repository
+model: claude-haiku-4-5
 argument-hint: <tag_name|all> [--remote <name>]
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: issue-classifier
 description: Classify work type from issue metadata
+model: claude-haiku-4-5
 ---
 
 # Issue Classifier Skill

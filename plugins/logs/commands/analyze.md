@@ -1,6 +1,7 @@
 ---
 name: fractary-logs:analyze
 description: Analyze logs for patterns, errors, summaries, or time analysis
+model: claude-haiku-4-5
 argument-hint: <type> [--issue <number>] [--since <date>] [--until <date>] [--verbose]
 ---
 

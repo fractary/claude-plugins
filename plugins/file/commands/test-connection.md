@@ -1,6 +1,7 @@
 ---
 name: fractary-file:test-connection
 description: Test connection to configured storage provider
+model: claude-haiku-4-5
 ---
 
 # Test File Plugin Connection

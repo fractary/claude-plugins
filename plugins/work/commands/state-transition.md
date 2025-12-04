@@ -1,6 +1,7 @@
 ---
 name: fractary-work:state-transition
 description: Transition issue to a specific workflow state
+model: claude-haiku-4-5
 argument-hint: '<number> <state> [--comment "<text>"]'
 ---
 

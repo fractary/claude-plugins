@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:release
 
 Execute the **Release phase** of the FABER workflow.

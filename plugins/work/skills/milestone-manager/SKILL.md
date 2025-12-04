@@ -1,6 +1,7 @@
 ---
 name: milestone-manager
 description: Manage milestones for release planning and sprint management
+model: claude-haiku-4-5
 ---
 
 # Milestone Manager Skill

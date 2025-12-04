@@ -1,6 +1,7 @@
 ---
 name: label-manager
 description: Add, remove, list, and set labels on issues
+model: claude-haiku-4-5
 ---
 
 # Label Manager Skill

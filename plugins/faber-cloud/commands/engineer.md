@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-cloud:engineer
 description: Generate Infrastructure as Code from architecture design, specification, or direct instructions
+model: claude-haiku-4-5
 examples:
   - /fractary-faber-cloud:engineer "user-uploads.md"
   - /fractary-faber-cloud:engineer "Implement design from .fractary/plugins/faber-cloud/designs/api-backend.md"

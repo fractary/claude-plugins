@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:tag
 description: "[DEPRECATED] Create and push semantic version tags - Use /repo:tag-create, /repo:tag-push, or /repo:tag-list instead"
+model: claude-haiku-4-5
 argument-hint: create <tag_name> [--message <text>] [--commit <sha>] [--sign] [--force] | push <tag_name|all> [--remote <name>] | list [--pattern <pattern>] [--latest <n>]
 ---
 

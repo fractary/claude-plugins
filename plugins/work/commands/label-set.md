@@ -1,6 +1,7 @@
 ---
 name: fractary-work:label-set
 description: Set exact labels on an issue (replaces all existing labels)
+model: claude-haiku-4-5
 argument-hint: <number> <label1> <label2> ...
 ---
 

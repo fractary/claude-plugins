@@ -1,6 +1,7 @@
 ---
 name: log-searcher
 description: Searches logs by content keywords, patterns, and filters with context extraction
+model: claude-haiku-4-5
 ---
 
 # Log Searcher Skill

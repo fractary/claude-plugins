@@ -1,5 +1,6 @@
 ---
 description: Deploy infrastructure to specified environment
+model: claude-haiku-4-5
 allowed-tools: Bash, Read, Skill
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: log-analyzer
 description: Extracts patterns, errors, and insights from operational logs using type-specific analysis templates
+model: claude-haiku-4-5
 ---
 
 # Log Analyzer Skill

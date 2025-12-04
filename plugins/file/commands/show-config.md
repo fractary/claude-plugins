@@ -1,6 +1,7 @@
 ---
 name: fractary-file:show-config
 description: Display current file plugin configuration
+model: claude-haiku-4-5
 ---
 
 # Show File Plugin Configuration

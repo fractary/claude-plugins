@@ -1,6 +1,7 @@
 ---
 name: project-syncer
 description: Sync a single project bidirectionally with codex core repository
+model: claude-haiku-4-5
 ---
 
 <CONTEXT>

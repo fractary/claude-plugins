@@ -1,6 +1,7 @@
 ---
 name: audit
 description: Audit cost, security, and compliance
+model: claude-haiku-4-5
 examples:
   - /fractary-helm-cloud:audit --type=cost --env prod
   - /fractary-helm-cloud:audit --type=security --env prod

@@ -1,5 +1,6 @@
 ---
 description: Manage IAM permissions for deploy users
+model: claude-haiku-4-5
 allowed-tools: Bash, Read, Write, Edit, Skill
 ---
 

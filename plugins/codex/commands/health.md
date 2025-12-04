@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-codex:health
 
 Perform comprehensive health checks on the codex knowledge retrieval system and diagnose issues.

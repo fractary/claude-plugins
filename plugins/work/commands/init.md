@@ -1,6 +1,7 @@
 ---
 name: fractary-work:init
 description: Work Plugin Setup Wizard
+model: claude-haiku-4-5
 argument-hint: [--platform github|jira|linear] [--token <value>] [--yes] [--force]
 ---
 

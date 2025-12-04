@@ -1,5 +1,6 @@
 ---
 name: ops-responder
+model: claude-haiku-4-5
 description: |
   Respond to incidents and apply remediations - restart services, scale resources,
   clear caches, update configurations, rollback deployments, apply fixes, verify

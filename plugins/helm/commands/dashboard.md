@@ -1,6 +1,7 @@
 ---
 name: dashboard
 description: Show unified Helm dashboard with health, issues, and recommendations across all domains
+model: claude-haiku-4-5
 examples:
   - /fractary-helm:dashboard
   - /fractary-helm:dashboard --format=json

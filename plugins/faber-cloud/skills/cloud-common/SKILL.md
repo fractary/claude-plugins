@@ -1,6 +1,7 @@
 ---
 name: cloud-common
 description: Shared utilities for faber-cloud plugin - configuration loading, pattern resolution, auto-discovery
+model: claude-haiku-4-5
 allowed-tools: Bash, Read
 ---
 

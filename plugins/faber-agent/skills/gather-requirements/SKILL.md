@@ -1,5 +1,6 @@
 ---
 name: gather-requirements
+model: claude-haiku-4-5
 description: |
   Gather requirements for creating agents, skills, commands, or plugins through
   interactive prompts and validation. Ensures all necessary information is collected

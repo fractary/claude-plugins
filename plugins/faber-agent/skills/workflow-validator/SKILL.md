@@ -1,6 +1,7 @@
 ---
 name: workflow-validator
 description: Validates generated workflow components for compliance with Manager-as-Agent principle and correct architectural patterns
+model: claude-haiku-4-5
 ---
 
 # Workflow Validator Skill

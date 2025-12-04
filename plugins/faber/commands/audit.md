@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:audit
 
 Validate FABER workflow configuration and report issues.

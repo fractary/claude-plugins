@@ -1,6 +1,7 @@
 ---
 name: log-writer
 description: Creates or updates logs using type-specific templates with automatic validation and formatting
+model: claude-haiku-4-5
 ---
 
 # Log Writer Skill

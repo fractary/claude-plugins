@@ -2,7 +2,7 @@
 name: plugin-creator
 description: Orchestrates plugin creation using FABER workflow - Frame requirements, Architect structure, Build complete plugin, Evaluate compliance, Release ready-to-develop plugin
 tools: Bash, Skill
-model: inherit
+model: claude-haiku-4-5
 color: orange
 ---
 

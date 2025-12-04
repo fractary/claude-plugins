@@ -1,6 +1,7 @@
 ---
 name: fractary-work:comment
 description: "[DEPRECATED] Create and manage comments on work items - Use /work:comment-create or /work:comment-list instead"
+model: claude-haiku-4-5
 argument-hint: create <issue_number> <text> | list <issue_number> [--limit <n>]
 ---
 

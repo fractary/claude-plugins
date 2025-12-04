@@ -1,6 +1,7 @@
 ---
 name: fractary-faber-agent:create-command
 description: Create a new command following Fractary plugin standards
+model: claude-haiku-4-5
 argument-hint: <name> --invokes <agent> [--plugin <plugin-name>]
 ---
 

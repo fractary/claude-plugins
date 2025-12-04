@@ -2,7 +2,7 @@
 name: project-auditor
 description: Lightweight wrapper that coordinates the project-analyzer skill to audit Claude Code projects
 tools: Skill
-model: inherit
+model: claude-haiku-4-5
 color: orange
 ---
 

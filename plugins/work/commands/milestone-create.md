@@ -1,6 +1,7 @@
 ---
 name: fractary-work:milestone-create
 description: Create a new milestone
+model: claude-haiku-4-5
 argument-hint: '"<title>" [--due <date>] [--description "<text>"] [--state <state>]'
 ---
 

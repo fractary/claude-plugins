@@ -1,6 +1,7 @@
 ---
 name: fractary-work:milestone-set
 description: Set milestone on an issue
+model: claude-haiku-4-5
 argument-hint: <issue_number> <milestone>
 ---
 

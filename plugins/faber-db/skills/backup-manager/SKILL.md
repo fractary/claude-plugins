@@ -1,6 +1,7 @@
 ---
 name: backup-manager
 description: Create and manage database backups across environments
+model: claude-haiku-4-5
 ---
 
 # Backup Manager Skill

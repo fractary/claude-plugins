@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:branch-create
 description: Create a new Git branch with semantic naming or direct branch name
+model: claude-haiku-4-5
 argument-hint: '["<branch-name-or-description>"] [--base <branch>] [--prefix <prefix>] [--work-id <id>] [--worktree] [--spec-create]'
 ---
 

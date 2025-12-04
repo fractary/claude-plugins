@@ -1,5 +1,6 @@
 ---
 name: ops-monitor
+model: claude-haiku-4-5
 description: |
   Monitor deployed infrastructure health and performance - check resource status,
   query CloudWatch metrics (CPU, memory, requests, errors), analyze performance

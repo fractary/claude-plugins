@@ -1,6 +1,7 @@
 ---
 name: remediate
 description: Apply remediations to resolve issues
+model: claude-haiku-4-5
 examples:
   - /fractary-helm-cloud:remediate --action=restart_lambda --env test
   - /fractary-helm-cloud:remediate --issue=infra-001 --env prod

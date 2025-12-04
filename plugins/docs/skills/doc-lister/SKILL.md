@@ -1,6 +1,7 @@
 ---
 name: doc-lister
 description: Lists and filters documentation files by type, status, tags, and date range with frontmatter parsing
+model: claude-haiku-4-5
 ---
 
 # doc-lister

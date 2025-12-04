@@ -1,5 +1,6 @@
 ---
 name: infra-manager
+model: claude-haiku-4-5
 description: |
   Infrastructure lifecycle manager - orchestrates complete infrastructure workflows from architecture design through deployment. This agent MUST be triggered for: architect, design infrastructure, engineer IaC code, validate config, deploy-plan changes, deploy infrastructure, list resources, check status, or any infrastructure management request.
 

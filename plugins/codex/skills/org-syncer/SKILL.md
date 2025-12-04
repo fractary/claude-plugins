@@ -1,6 +1,7 @@
 ---
 name: org-syncer
 description: Sync all projects in an organization with codex repository (with parallel execution)
+model: claude-haiku-4-5
 ---
 
 <CONTEXT>

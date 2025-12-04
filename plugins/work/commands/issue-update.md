@@ -1,6 +1,7 @@
 ---
 name: fractary-work:issue-update
 description: Update issue title or description
+model: claude-haiku-4-5
 argument-hint: '<number> [--title "<title>"] [--body "<text>"] [--prompt "<instructions>"]'
 ---
 

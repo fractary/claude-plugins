@@ -1,6 +1,7 @@
 ---
 command: generate-conversion-spec
 description: Generate detailed conversion specification for project migration
+model: claude-haiku-4-5
 category: Project Migration
 ---
 

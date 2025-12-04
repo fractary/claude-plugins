@@ -1,6 +1,7 @@
 ---
 name: infra-teardown
 description: Safely destroy infrastructure with state backup and verification
+model: claude-haiku-4-5
 color: red
 ---
 

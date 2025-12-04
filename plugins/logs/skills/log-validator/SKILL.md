@@ -1,6 +1,7 @@
 ---
 name: log-validator
 description: Validates logs against type-specific schemas checking frontmatter, structure, and required fields
+model: claude-haiku-4-5
 ---
 
 # Log Validator Skill

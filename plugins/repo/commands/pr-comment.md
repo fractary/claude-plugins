@@ -1,6 +1,7 @@
 ---
 name: fractary-repo:pr-comment
 description: Add a comment to a pull request
+model: claude-haiku-4-5
 argument-hint: '<pr_number> ["<comment>"] [--prompt "<instructions>"]'
 ---
 

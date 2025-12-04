@@ -1,5 +1,6 @@
 ---
 name: cache-list
+model: claude-haiku-4-5
 description: |
   List cache entries with filtering, sorting, and freshness status.
   Provides visibility into cached documents and their TTL states.

@@ -1,6 +1,7 @@
 ---
 name: fractary-work:label-add
 description: Add a label to an issue
+model: claude-haiku-4-5
 argument-hint: '<number> <label> [--color <hex>] [--description "<text>"]'
 ---
 

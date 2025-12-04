@@ -1,5 +1,6 @@
 ---
 name: infra-engineer
+model: claude-haiku-4-5
 description: |
   Generate Terraform infrastructure as code - read design documents and implement them as Terraform
   configurations including resources, variables, outputs, and provider configurations. Creates modular,

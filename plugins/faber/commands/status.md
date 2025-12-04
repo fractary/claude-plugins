@@ -1,3 +1,7 @@
+---
+model: claude-haiku-4-5
+---
+
 # /fractary-faber:status
 
 Display FABER workflow status with dual-state tracking (current state + historical logs).
