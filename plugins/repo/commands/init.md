@@ -498,33 +498,112 @@ You detect platform, authentication, and create appropriate configuration files.
 - 12: Network/connectivity error
 </OUTPUTS>
 
+<MANDATORY_IMPLEMENTATION>
+**YOU MUST EXECUTE THESE STEPS - DO NOT SKIP ANY STEP:**
+
+**Step 1: Detect platform from git remote**
+```bash
+# Get git remote URL
+REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
+# Detect platform
+if echo "$REMOTE_URL" | grep -qi "github"; then
+    PLATFORM="github"
+elif echo "$REMOTE_URL" | grep -qi "gitlab"; then
+    PLATFORM="gitlab"
+elif echo "$REMOTE_URL" | grep -qi "bitbucket"; then
+    PLATFORM="bitbucket"
+else
+    PLATFORM="github"  # Default to github
+fi
+echo "Detected platform: $PLATFORM"
+```
+
+**Step 2: Check if config already exists**
+```bash
+if [ -f ".fractary/plugins/repo/config.json" ]; then
+    echo "⚠️ Configuration already exists at .fractary/plugins/repo/config.json"
+    # If --force flag was NOT provided, ask user before overwriting
+fi
+```
+
+**Step 3: Create the configuration directory and file**
+This is the CRITICAL step - you MUST run these commands:
+```bash
+# Create directory
+mkdir -p .fractary/plugins/repo
+
+# Create config file
+cat > .fractary/plugins/repo/config.json << 'EOF'
+{
+  "handlers": {
+    "source_control": {
+      "active": "PLATFORM_PLACEHOLDER",
+      "PLATFORM_PLACEHOLDER": {
+        "token": "$PLATFORM_TOKEN_PLACEHOLDER"
+      }
+    }
+  },
+  "defaults": {
+    "default_branch": "main",
+    "protected_branches": ["main", "master", "production"],
+    "merge_strategy": "no-ff",
+    "push_sync_strategy": "auto-merge"
+  }
+}
+EOF
+
+# Set permissions
+chmod 600 .fractary/plugins/repo/config.json
+```
+
+Replace PLATFORM_PLACEHOLDER with the detected platform (github, gitlab, or bitbucket).
+Replace PLATFORM_TOKEN_PLACEHOLDER with the appropriate token variable ($GITHUB_TOKEN, $GITLAB_TOKEN, or $BITBUCKET_TOKEN).
+
+**Step 4: Verify the file was created**
+```bash
+if [ -f ".fractary/plugins/repo/config.json" ]; then
+    echo "✅ Configuration created: .fractary/plugins/repo/config.json"
+    cat .fractary/plugins/repo/config.json
+else
+    echo "❌ Failed to create configuration file"
+fi
+```
+
+**Step 5: Show success message and next steps**
+Display:
+```
+✅ Fractary Repo Plugin initialized!
+
+Configuration: .fractary/plugins/repo/config.json
+Platform: {detected_platform}
+
+Next steps:
+1. Ensure your token is set: export {PLATFORM}_TOKEN="your_token"
+2. Test with: /repo:branch-create "test" --work-id 1
+```
+
+**Step 6: Prompt for permissions setup**
+Ask: "Would you like to configure permissions now? (y/n)"
+- If 'y': Run `/repo:init-permissions` command
+- If 'n': Show: "Run /repo:init-permissions later to avoid permission prompts"
+
+</MANDATORY_IMPLEMENTATION>
+
 <AGENT_INVOCATION>
-Invoke the `repo-manager` agent with operation `initialize-configuration`:
+**ALTERNATIVE**: For full interactive wizard with validation, invoke the `repo-manager` agent:
 
 ```json
 {
   "operation": "initialize-configuration",
   "parameters": {
     "platform": "github|gitlab|bitbucket",
-    "token": "masked-token-value",
-    "interactive": true|false,
-    "force": true|false,
-    "prompt_for_permissions": true,
-    "options": {
-      "default_branch": "main",
-      "protected_branches": ["main", "master"],
-      "merge_strategy": "no-ff",
-      "push_sync_strategy": "auto-merge"
-    }
+    "interactive": true,
+    "force": false
   }
 }
 ```
 
-**IMPORTANT**: After the config-wizard skill completes:
-1. Always prompt user: "Would you like to configure permissions now? (y/n)"
-2. If user responds 'y': Invoke `/repo:init-permissions` command
-3. If user responds 'n': Show message about running it later
-4. NEVER automatically configure permissions without user confirmation
+However, if the agent approach fails, fall back to the MANDATORY_IMPLEMENTATION steps above.
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

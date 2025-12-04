@@ -309,3 +309,78 @@ Documentation: plugins/file/README.md
 Success: Configuration saved message with next steps
 Failure: Error message with troubleshooting guidance
 </OUTPUTS>
+
+<MANDATORY_IMPLEMENTATION>
+**YOU MUST EXECUTE THESE STEPS - DO NOT SKIP ANY STEP:**
+
+**Step 1: Check if config already exists**
+```bash
+if [ -f ".fractary/plugins/file/config.json" ]; then
+    echo "⚠️ Configuration already exists at .fractary/plugins/file/config.json"
+    # If --force flag was NOT provided, ask user before overwriting
+fi
+```
+
+**Step 2: Create the configuration directory**
+This is the CRITICAL step - you MUST run these commands:
+```bash
+# Create directory
+mkdir -p .fractary/plugins/file
+```
+
+**Step 3: Create the configuration file with local handler (default)**
+```bash
+# Create config file with local handler as default
+cat > .fractary/plugins/file/config.json << 'EOF'
+{
+  "schema_version": "1.0",
+  "active_handler": "local",
+  "handlers": {
+    "local": {
+      "base_path": ".",
+      "create_directories": true,
+      "permissions": "0755"
+    }
+  },
+  "global_settings": {
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000,
+    "timeout_seconds": 300,
+    "verify_checksums": true,
+    "parallel_uploads": 4
+  }
+}
+EOF
+
+# Set permissions
+chmod 600 .fractary/plugins/file/config.json
+```
+
+**Step 4: Verify the file was created**
+```bash
+if [ -f ".fractary/plugins/file/config.json" ]; then
+    echo "✅ Configuration created: .fractary/plugins/file/config.json"
+    cat .fractary/plugins/file/config.json
+else
+    echo "❌ Failed to create configuration file"
+fi
+```
+
+**Step 5: Show success message and next steps**
+Display:
+```
+✅ Fractary File Plugin initialized!
+
+Configuration: .fractary/plugins/file/config.json
+Default handler: local
+
+Next steps:
+1. Test connection: /fractary-file:test-connection
+2. Add cloud handlers (S3, R2, etc.): Edit the config file
+3. Upload a file: Use @agent-fractary-file:file-manager
+```
+
+**Adding Additional Handlers:**
+To add S3, R2, or other handlers, edit `.fractary/plugins/file/config.json` and add handler sections from the example config at `plugins/file/config/config.example.json`.
+
+</MANDATORY_IMPLEMENTATION>
