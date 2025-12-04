@@ -401,7 +401,7 @@ Check external links (slower):
 
 ## Configuration
 
-Validation behavior is configured in `config/config.json`:
+Validation behavior is configured in `.fractary/plugins/docs/config.json`:
 
 ```json
 {

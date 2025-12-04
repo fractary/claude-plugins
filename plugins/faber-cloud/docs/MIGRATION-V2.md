@@ -47,11 +47,11 @@ All operations monitoring functionality is now in the `fractary-helm-cloud` plug
 ### 3. Configuration Changes
 
 **faber-cloud configuration:**
-- Remains in `.fractary/plugins/faber-cloud/devops.json`
-- **No changes required** for infrastructure operations
+- Location: `.fractary/plugins/faber-cloud/config.json`
+- **No changes required** for infrastructure operations (migrates from devops.json automatically)
 
 **helm-cloud configuration:**
-- New location: `.fractary/plugins/helm-cloud/config/` (optional)
+- New location: `.fractary/plugins/helm-cloud/` (optional)
 - Shares deployment registry: `.fractary/registry/deployments.json`
 - Shares AWS credentials: `.fractary/shared/aws-credentials.json`
 

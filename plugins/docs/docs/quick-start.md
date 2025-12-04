@@ -23,8 +23,8 @@ cd claude-plugins/plugins/docs
 
 ```bash
 # Copy example config
-mkdir -p .fractary/plugins/docs/config
-cp config/config.example.json .fractary/plugins/docs/config/config.json
+mkdir -p .fractary/plugins/docs
+cp config/config.example.json .fractary/plugins/docs/config.json
 
 # Or initialize with command
 /fractary-docs:init
@@ -275,7 +275,7 @@ See [Template Guide](../skills/doc-generator/docs/template-guide.md) for details
 
 ### Basic Configuration
 
-Edit `.fractary/plugins/docs/config/config.json`:
+Edit `.fractary/plugins/docs/config.json`:
 
 ```json
 {

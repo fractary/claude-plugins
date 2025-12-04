@@ -52,7 +52,7 @@ You generate specifications that can be followed to bring log management into al
 
 Check if fractary-spec plugin is available:
 ```bash
-if [ -f ".fractary/plugins/spec/config/config.json" ] || [ -d "plugins/spec" ]; then
+if [ -f ".fractary/plugins/spec/config.json" ] || [ -d "plugins/spec" ]; then
   USE_SPEC_PLUGIN=true
 else
   USE_SPEC_PLUGIN=false
