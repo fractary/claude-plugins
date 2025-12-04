@@ -1,8 +1,12 @@
 # Implementation Plan: Codex MCP Server & Sync Unification
 
+**Specification ID**: SPEC-00216
 **Issue**: #216 - codex mcp server and sync unification
-**Spec**: `specs/SPEC-00033-codex-mcp-server-and-sync-unification.md`
+**Parent Spec**: `specs/SPEC-00033-codex-mcp-server-and-sync-unification.md`
 **Branch**: `feat/216-codex-mcp-server-and-sync-unification`
+**Status**: Approved
+
+---
 
 ## Overview
 
@@ -269,18 +273,16 @@ Document:
 - New unified workflow
 - Reference guidelines (when to use `codex://`)
 - Multi-source configuration
-- Migration from v2.0
 
 #### Task 5.4: Create migration guide
 **File**: `plugins/codex/docs/MIGRATION-v3.md`
 
 - Breaking changes documentation
 - Step-by-step migration
-- Compatibility flags (`--legacy`)
 
 ---
 
-### Phase 6: Fractary-Docs Integration (Optional/Future)
+### Phase 6: Fractary-Docs Integration (Future)
 
 #### Task 6.1: Update doc-writer skill
 - Detect `codex_sync_include: true` frontmatter
@@ -294,7 +296,7 @@ Document:
 
 ---
 
-### Phase 7: Wildcard & Sync Enhancements (Optional/Future)
+### Phase 7: Wildcard & Sync Enhancements (Future)
 
 #### Task 7.1: Implement wildcard MCP requests
 - Detect `*`, `**`, `*.md` patterns in URIs
@@ -396,13 +398,13 @@ Document:
 - New validation commands
 
 ### Medium Risk
-- Sync workflow changes (need to maintain backward compatibility)
+- Sync workflow changes
 - Cache index schema changes
 - MCP server enhancements
 
 ### Higher Risk
-- Breaking change: `--from-codex` behavior change
-  - Mitigation: `--legacy` flag for gradual migration
+- Breaking change: `--from-codex` behavior change (ephemeral cache instead of project root)
+  - Note: No backward compatibility mode - clean break
 - On-demand fetch network dependencies
   - Mitigation: Fallback to stale content, configurable timeouts
 
@@ -414,9 +416,3 @@ Document:
 2. **Integration tests**: Init → Sync → MCP access flow
 3. **Manual testing**: Cross-project references, cache behavior
 4. **Validation commands**: Built-in setup verification
-
----
-
-## Approval Requested
-
-This plan covers the full implementation of SPEC-00033. Ready to proceed with Milestone 1 (Core Infrastructure) first?
