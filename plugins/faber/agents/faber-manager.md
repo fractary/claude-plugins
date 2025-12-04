@@ -223,8 +223,13 @@ IF phase == "build" THEN
     SKIP branch creation
 
   ELSE
-    # Determine prefix from work_type
-    prefix = work_type == "bug" ? "fix" : work_type == "chore" ? "chore" : "feat"
+    # Determine prefix from work_type (work_type values are UPPERCASE)
+    # Map work_type classification to branch prefix
+    prefix = switch(work_type):
+      case "MODERATE": "fix"
+      case "SIMPLE": "chore"
+      case "ANALYSIS": "docs"
+      default: "feat"
 
     # Create branch with worktree
     USE SlashCommand: /fractary-repo:branch-create --work-id {work_id} --prefix {prefix} --worktree
