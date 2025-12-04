@@ -153,7 +153,7 @@ The codex plugin implements a progressive architecture across three phases:
 │                                                  │
 │  Cache Layer (< 100ms)                          │
 │  ├─ Local filesystem  (codex/{project}/{path})  │
-│  ├─ Cache index       (.cache-index.json)       │
+│  ├─ Cache index       (index.json)             │
 │  └─ TTL management    (default: 7 days)         │
 │                                                  │
 └─────────────────────────────────────────────────┘

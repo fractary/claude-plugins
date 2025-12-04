@@ -299,8 +299,17 @@ cmd_put() {
       synced_via: (if $synced_via == "" then null else $synced_via end)
     }')
 
-  # Update index (remove old entry if exists, add new)
+  # Update index with file locking to prevent concurrent modification
   local tmp_index
+  local lock_file="${index_path}.lock"
+
+  # Acquire exclusive lock (wait up to 30 seconds)
+  exec 9>"$lock_file"
+  flock -w 30 9 || { echo "Error: Could not acquire cache index lock"; return 1; }
+
+  trap "flock -u 9; rm -f $lock_file" RETURN
+
+  # Update index (remove old entry if exists, add new)
   tmp_index=$(mktemp)
   jq --arg uri "$uri" --argjson entry "$new_entry" '
     .entries = ([.entries[] | select(.uri != $uri)] + [$entry]) |

@@ -30,7 +30,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { exec } from "child_process";
+import { exec, execFile, spawn } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -38,7 +38,7 @@ const execAsync = promisify(exec);
 // Configuration from environment
 const CACHE_PATH = process.env.CODEX_CACHE_PATH || "./.fractary/plugins/codex/cache";
 const CONFIG_PATH = process.env.CODEX_CONFIG_PATH || "./.fractary/plugins/codex/config.json";
-const CACHE_INDEX_PATH = path.join(CACHE_PATH, ".cache-index.json");
+const CACHE_INDEX_PATH = path.join(CACHE_PATH, "index.json");
 
 // Detect lib path (try various locations)
 function getLibPath(): string {
@@ -177,6 +177,31 @@ async function detectCurrentProject(): Promise<{ org: string | null; project: st
 }
 
 /**
+ * Validate and normalize file path to prevent directory traversal
+ */
+function validateAndNormalizePath(filePath: string): string | null {
+  // Reject absolute paths
+  if (filePath.startsWith("/")) {
+    return null;
+  }
+
+  // Reject parent directory traversal
+  if (filePath.includes("../") || filePath.startsWith("..") || filePath.includes("/..")) {
+    return null;
+  }
+
+  // Normalize the path (remove ./ and duplicate /)
+  const normalized = path.normalize(filePath).replace(/^\.\//, "");
+
+  // Final check: ensure no traversal after normalization
+  if (normalized.startsWith("..") || normalized.includes("/../")) {
+    return null;
+  }
+
+  return normalized;
+}
+
+/**
  * Parse codex:// URI into components
  */
 function parseUri(uri: string): { org: string; project: string; filePath: string } | null {
@@ -191,10 +216,18 @@ function parseUri(uri: string): { org: string; project: string; filePath: string
     return null;
   }
 
+  const filePath = parts.slice(2).join("/");
+
+  // Validate file path to prevent directory traversal
+  const validatedPath = validateAndNormalizePath(filePath);
+  if (!validatedPath) {
+    return null;
+  }
+
   return {
     org: parts[0],
     project: parts[1],
-    filePath: parts.slice(2).join("/"),
+    filePath: validatedPath,
   };
 }
 
@@ -252,19 +285,43 @@ async function fetchOnDemand(uri: string): Promise<string | null> {
   }
 
   try {
-    // Use lib/fetch-github.sh to fetch content
+    // Use lib/fetch-github.sh to fetch content with execFile (no shell interpretation)
     const fetchScript = path.join(LIB_PATH, "fetch-github.sh");
-    const { stdout } = await execAsync(
-      `"${fetchScript}" "${org}" "${project}" "${filePath}" --raw`,
-      { timeout: 30000 }
-    );
+    const { stdout } = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      execFile(
+        fetchScript,
+        [org, project, filePath, "--raw"],
+        { timeout: 30000, maxBuffer: 10 * 1024 * 1024 },
+        (error, stdout, stderr) => {
+          if (error) reject(error);
+          else resolve({ stdout, stderr });
+        }
+      );
+    });
 
-    // Store in cache using lib/cache-manager.sh
+    // Store in cache using lib/cache-manager.sh with execFile (no shell interpretation)
     const cacheScript = path.join(LIB_PATH, "cache-manager.sh");
-    await execAsync(
-      `echo "${stdout.replace(/"/g, '\\"')}" | "${cacheScript}" put "${uri}" --source github`,
-      { timeout: 10000 }
-    );
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn(cacheScript, ["put", uri, "--source", "github"], {
+        timeout: 10000,
+      });
+
+      proc.stdin!.write(stdout);
+      proc.stdin!.end();
+
+      let error = "";
+      proc.stderr!.on("data", (data) => {
+        error += data.toString();
+      });
+
+      proc.on("close", (code) => {
+        if (code !== 0) {
+          reject(new Error(`Cache manager exited with code ${code}: ${error}`));
+        } else {
+          resolve();
+        }
+      });
+    });
 
     return stdout;
   } catch (error) {
