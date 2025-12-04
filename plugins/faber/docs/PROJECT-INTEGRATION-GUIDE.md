@@ -21,12 +21,12 @@ This guide helps you integrate FABER into your existing project by mapping your 
 
 **Use FABER commands directly:**
 ```bash
-✅ /fractary-faber:run 123              # Correct: Use the plugin command directly
-✅ /fractary-faber:frame 123            # Correct: Run individual phases
-✅ /fractary-faber:audit                # Correct: Validate configuration
+✅ /fractary-faber:run --work-id 123                   # Correct: Use the plugin command directly
+✅ /fractary-faber:run --work-id 123 --phase frame     # Correct: Run individual phases
+✅ /fractary-faber:audit                               # Correct: Validate configuration
 
-❌ /my-project:faber 123                # Wrong: Don't create wrapper commands
-❌ @agent my-project-faber-manager      # Wrong: Don't create wrapper agents
+❌ /my-project:faber 123                               # Wrong: Don't create wrapper commands
+❌ @agent my-project-faber-manager                     # Wrong: Don't create wrapper agents
 ```
 
 The `faber-manager` agent is already the universal workflow orchestrator. Additional wrappers add unnecessary complexity without benefits.
@@ -485,17 +485,17 @@ Start with individual phases, then progress to full workflow execution:
 
 ```bash
 # Test individual phases (recommended for first-time setup)
-/fractary-faber:frame 123                    # Frame phase only
-/fractary-faber:architect 123                # Architect phase only
+/fractary-faber:run --work-id 123 --phase frame              # Frame phase only
+/fractary-faber:run --work-id 123 --phase frame,architect    # Frame + Architect phases
 
 # Test complete workflow with dry-run
-/fractary-faber:run 123 --autonomy dry-run   # Simulate without making changes
+/fractary-faber:run --work-id 123 --autonomy dry-run         # Simulate without making changes
 
 # Test with assisted mode (stops before release)
-/fractary-faber:run 123 --autonomy assist    # Execute but pause before release
+/fractary-faber:run --work-id 123 --autonomy assist          # Execute but pause before release
 
 # Production usage (pauses for approval before release)
-/fractary-faber:run 123 --autonomy guarded   # Recommended for production
+/fractary-faber:run --work-id 123 --autonomy guarded         # Recommended for production
 ```
 
 ## Direct Integration Pattern

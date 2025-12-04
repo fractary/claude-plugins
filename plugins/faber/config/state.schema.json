@@ -3,11 +3,15 @@
   "title": "FABER Workflow State Schema",
   "description": "Schema for tracking current workflow execution state",
   "type": "object",
-  "required": ["work_id", "workflow_version", "status", "started_at"],
+  "required": ["target", "workflow_version", "status", "started_at"],
   "properties": {
-    "work_id": {
+    "target": {
       "type": "string",
-      "description": "Work item identifier"
+      "description": "What is being worked on - artifact name, module, dataset, or description"
+    },
+    "work_id": {
+      "type": ["string", "null"],
+      "description": "Work item identifier (optional - provides issue context)"
     },
     "issue_number": {
       "type": "string",
@@ -33,7 +37,16 @@
     },
     "current_step": {
       "type": "string",
-      "description": "Current sub-step within phase"
+      "description": "Current sub-step name within phase"
+    },
+    "current_step_id": {
+      "type": "string",
+      "pattern": "^(frame|architect|build|evaluate|release):[a-z][a-z0-9-]*$",
+      "description": "Full step identifier in format 'phase:step-name' (e.g., 'build:implement')"
+    },
+    "additional_instructions": {
+      "type": ["string", "null"],
+      "description": "Custom prompt content provided via --prompt argument"
     },
     "started_at": {
       "type": "string",
@@ -182,11 +195,22 @@
         },
         "current_step": {
           "type": "string",
-          "description": "Current sub-step within phase"
+          "description": "Current sub-step name within phase"
+        },
+        "current_step_id": {
+          "type": "string",
+          "description": "Full step identifier in format 'phase:step-name'"
         },
         "completed_steps": {
           "type": "array",
-          "description": "List of completed sub-steps",
+          "description": "List of completed sub-step names",
+          "items": {
+            "type": "string"
+          }
+        },
+        "completed_step_ids": {
+          "type": "array",
+          "description": "List of completed step IDs in format 'phase:step-name'",
           "items": {
             "type": "string"
           }

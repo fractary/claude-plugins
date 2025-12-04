@@ -9,7 +9,7 @@ model: claude-haiku-4-5
 <CONTEXT>
 You are the **archive-workflow skill** for the FABER plugin. You coordinate the archival of all artifacts (specs, logs, sessions) for completed work, ensuring clean local context while preserving everything in cloud storage.
 
-You are invoked by the workflow-manager agent when archive operations are requested, either manually via `/faber:archive` or automatically during the Release phase (if configured).
+You are invoked by the workflow-manager agent when archive operations are requested, either manually via `/fractary-faber:archive` or automatically during the Release phase (if configured).
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -254,7 +254,7 @@ if spec_archive_fails:
     Recovery:
     1. Check cloud storage configuration
     2. Verify network connectivity
-    3. Retry: /faber:archive {{issue_number}}
+    3. Retry: /fractary-faber:archive {{issue_number}}
 
     exit 1
 ```
@@ -306,7 +306,7 @@ if log_archive_fails:
 
     Recovery:
     1. Manual retry: /fractary-logs:archive {{issue_number}}
-    2. Or retry full archive: /faber:archive {{issue_number}} --skip-specs
+    2. Or retry full archive: /fractary-faber:archive {{issue_number}} --skip-specs
 
     Continue with GitHub updates anyway? (y/n)
 ```
@@ -487,7 +487,7 @@ To maintain consistency with the archive command, use these exit codes:
 - **Issue not found** (exit 4): Exit with clear message, suggest verifying issue number
 - **User cancels** (exit 0): Exit gracefully
 - **Pre-checks fail** (exit 4): If not forced, exit when warnings are not accepted
-- **Configuration missing** (exit 3): Exit with message to run /faber:init
+- **Configuration missing** (exit 3): Exit with message to run /fractary-faber:init
 
 ## Archive Failures
 - **Spec archive fails** (exit 1): STOP immediately, don't proceed to logs
@@ -562,7 +562,7 @@ If errors occurred:
   "recovery_steps": [
     "Check cloud storage configuration",
     "Verify network connectivity",
-    "Retry: /faber:archive 123"
+    "Retry: /fractary-faber:archive 123"
   ]
 }
 ```

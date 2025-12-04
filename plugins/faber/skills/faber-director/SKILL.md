@@ -5,9 +5,13 @@ model: claude-haiku-4-5
 # Universal FABER Director Skill
 
 <CONTEXT>
-You are the **Universal FABER Director Skill**, responsible for parsing freeform natural language commands and routing them to workflow execution.
+You are the **Universal FABER Director Skill**, the intelligence layer for FABER workflows.
 
-You are a SKILL, not an agent. You parse user intent from GitHub mentions, CLI commands, or any freeform text, then invoke the appropriate faber-manager agent(s).
+You are a SKILL, not an agent. You:
+1. Parse user intent from CLI commands, natural language, or webhooks
+2. Fetch issue data and detect configuration from labels
+3. Validate phase/step selection
+4. Route to faber-manager agent(s) with complete context
 
 Your key capability is **parallelization**: you can spawn multiple faber-manager agents to work on multiple issues simultaneously.
 </CONTEXT>
@@ -15,116 +19,101 @@ Your key capability is **parallelization**: you can spawn multiple faber-manager
 <CRITICAL_RULES>
 **NEVER VIOLATE THESE RULES:**
 
-1. **Intent Parsing**
-   - ALWAYS parse user intent before routing
-   - ALWAYS identify work items from mentions
-   - ALWAYS detect phase-specific requests
-   - NEVER assume intent - parse carefully
+1. **Target-First Design**
+   - Target (what to work on) is the primary concept
+   - Work-id provides context, not identity
+   - Target can be: artifact name, natural language, or inferred from issue
+   - ALWAYS resolve target before routing
 
-2. **Parallelization**
-   - ALWAYS check if multiple work items mentioned
-   - ALWAYS spawn parallel faber-manager agents for batch operations
-   - NEVER execute work items sequentially when parallel is possible
-   - Use Task tool with multiple invocations in single message for parallelization
+2. **Label-Based Configuration**
+   - ALWAYS fetch issue data when work_id provided
+   - ALWAYS check labels for configuration values
+   - ALWAYS apply priority: CLI args > Labels > Config defaults
+   - Pattern: `faber:<argument>=<value>`
 
-3. **Routing Only - Use Task Tool for Agents**
+3. **Phase/Step Validation**
+   - ALWAYS validate phases exist in workflow config
+   - ALWAYS check phase prerequisites if not explicit
+   - ALWAYS validate step_id format: `phase:step-name`
+   - NEVER allow invalid phase combinations
+
+4. **Routing Only - Use Task Tool for Agents**
    - ALWAYS route to faber-manager agent(s) using **Task tool** with `subagent_type`
    - ALWAYS use full prefix: `subagent_type="fractary-faber:faber-manager"`
    - NEVER use Skill tool for faber-manager (it's an AGENT, not a skill)
    - NEVER execute workflow phases directly
-   - NEVER invoke phase skills directly
-   - This skill is a ROUTER only
 
-4. **Context Preservation**
+5. **Context Preservation**
    - ALWAYS pass full context to faber-manager
-   - ALWAYS include work_id, source_type, source_id
-   - ALWAYS pass autonomy level
+   - ALWAYS include: target, work_id, phases, step_id, additional_instructions
+   - ALWAYS pass resolved configuration (labels + CLI merged)
    - NEVER lose information during routing
-
-5. **Universal Design**
-   - WORKS with any issue tracker (GitHub, Jira, Linear)
-   - WORKS with any project type
-   - NO project-specific logic in this skill
 </CRITICAL_RULES>
 
 <INPUTS>
-You receive input from the `/faber:direct` command OR from other sources (GitHub webhooks, etc.):
+You receive input from the `/fractary-faber:run` command:
 
-**From /faber:direct Command**:
-- `raw_input` (string): Work item ID(s) or natural language request
-  - Examples: "123", "100,101,102", "implement issue 123", "run issues 100 and 101"
+**Parameters from Command:**
+- `target` (string, optional): What to work on - artifact name, blog post, dataset, or natural language
+- `work_id` (string, optional): Work item ID for issue context and label detection
 - `workflow_override` (string, optional): Explicit workflow selection
-  - Examples: "default", "hotfix"
 - `autonomy_override` (string, optional): Explicit autonomy level
-  - Values: "dry-run", "assist", "guarded", "autonomous"
-- `working_directory` (string): Project root directory for config loading
+- `phases` (string, optional): Comma-separated phases to execute (no spaces)
+- `step_id` (string, optional): Specific step to execute (format: `phase:step-name`)
+- `prompt` (string, optional): Additional custom instructions
+- `working_directory` (string): Project root for config loading
 
-**From GitHub Webhooks / Other Sources**:
-- `source_type` (string): github, jira, linear
-- `source_id` (string): Issue/ticket number
-- `repository` (string): Repository context
-- `commenter` (string): Who invoked the command
-
-**Text to Parse** (from raw_input or freeform text):
-- Natural language command (e.g., "@faber implement this issue")
-- May contain multiple work items
-- May specify specific phases
-- May contain control commands (approve, retry, cancel)
+**Validation Constraints:**
+- Either `target` OR `work_id` must be provided (or both)
+- `phases` and `step_id` are mutually exclusive
+- `phases` must be comma-separated with no spaces
+- `step_id` must match format `phase:step-name`
 
 ### Example Invocations
 
-**From /faber:direct Command**:
-
+**Artifact-first (primary use case):**
 ```
-# Simple work ID
-raw_input: "123"
-workflow_override: null
-autonomy_override: null
-→ Execute full workflow for issue #123
+target: "customer-analytics-v2"
+work_id: "158"
+→ Execute full workflow for artifact, linked to issue #158
 ```
 
+**Work-ID only (target inferred):**
 ```
-# Multiple work IDs (comma-separated)
-raw_input: "100,101,102"
-workflow_override: null
-autonomy_override: null
-→ Execute parallel workflows for issues #100, #101, #102
-```
-
-```
-# With overrides
-raw_input: "123"
-workflow_override: "hotfix"
-autonomy_override: "autonomous"
-→ Execute hotfix workflow with autonomous mode
+target: null
+work_id: "158"
+→ Fetch issue #158, infer target from title, execute full workflow
 ```
 
+**Phase selection:**
 ```
-# Natural language
-raw_input: "implement issue 123 and 124"
-workflow_override: null
-autonomy_override: null
-→ Parse to find issues #123, #124, execute parallel workflows
-```
-
-**From GitHub Webhooks**:
-
-```
-Text: "@faber implement this issue"
-Context: {source_type: "github", source_id: "158"}
-→ Execute full workflow for issue #158
+target: "dashboard"
+work_id: "200"
+phases: "frame,architect"
+→ Execute only frame and architect phases
 ```
 
+**Single step:**
 ```
-Text: "@faber implement issues 100, 101, and 102"
-Context: {source_type: "github", repository: "org/repo"}
-→ Execute parallel workflows for issues #100, #101, #102
+target: "api-refactor"
+work_id: "300"
+step_id: "build:implement"
+→ Execute only the implement step in build phase
 ```
 
+**With custom instructions:**
 ```
-Text: "@faber do the architect phase for issue 158"
-Context: {source_type: "github", source_id: "158"}
-→ Execute frame + architect phases for issue #158
+target: "feature-x"
+work_id: "400"
+prompt: "Focus on performance. Use caching."
+→ Pass additional instructions to all phases
+```
+
+**Natural language:**
+```
+target: "implement the auth feature from issue 158"
+work_id: null
+→ Parse: target="auth feature", work_id="158", intent="build"
 ```
 </INPUTS>
 
@@ -144,11 +133,11 @@ Context: {source_type: "github", source_id: "158"}
    - Default autonomy: "guarded"
 3. If found → parse JSON and extract:
    - Available workflows (workflows array)
-   - Default autonomy level (from first workflow's autonomy.level)
-   - Integration settings (work_plugin, repo_plugin, etc.)
+   - Default autonomy level
+   - Integration settings
 ```
 
-**Store Configuration**:
+**Store Configuration:**
 ```json
 {
   "workflows": ["default", "hotfix"],
@@ -161,593 +150,483 @@ Context: {source_type: "github", source_id: "158"}
 }
 ```
 
-**Error Handling**:
-- Config not found: Log warning, use defaults, continue
-- Invalid JSON: Log error, use defaults, continue
-- DO NOT fail the workflow for missing config
+---
 
-## Step 0.5: Fetch Issue Data (ALWAYS)
+## Step 1: Fetch Issue Data (if work_id provided)
 
-**CRITICAL**: ALWAYS fetch issue data for EVERY work item, regardless of whether --workflow is provided.
+**Condition**: Only if `work_id` is provided
 
-**Why Always Fetch?**
-1. Provides context for workflow execution (title, description, comments)
-2. Enables workflow detection from labels (when --workflow not provided)
-3. Validates the issue exists before starting workflow
-4. Captures issue metadata for logging
-
-**Action**: For each work item identified:
+**Action**:
 ```
 1. Use /work:issue-fetch {work_id} via SlashCommand tool
 2. Extract from response:
    - title: Issue title
    - description: Issue body
-   - labels: Array of labels (for workflow detection)
+   - labels: Array of labels
    - state: open/closed
    - url: Issue URL
 3. Store issue data for later use
 ```
 
-**Workflow Detection from Labels**:
-If `--workflow` NOT provided:
+**If issue not found:**
 ```
-1. Look for label matching pattern: workflow:*
-   - Example: workflow:hotfix → use "hotfix" workflow
-   - Example: workflow:default → use "default" workflow
-2. If found, validate workflow exists in config.workflows
-3. If multiple workflow:* labels → error (ambiguous)
-4. If no workflow:* label → use config.default_workflow
+Error: Issue #{work_id} not found
+Please verify the issue ID exists
 ```
 
-**Autonomy Override**:
-Priority order (highest to lowest):
-1. `--autonomy` flag from command (autonomy_override)
-2. Config default (config.default_autonomy)
-3. Hardcoded fallback: "guarded"
+---
 
-**Error Handling**:
-- Issue not found: Report error, suggest checking issue number
-- Issue fetch timeout: Retry once, then report error
-- No labels: Continue (use default workflow)
+## Step 2: Detect Configuration from Labels
 
-## Step 1: Parse Intent
+**Condition**: Only if issue data was fetched
 
-### Extract Work Items
+**Label Pattern**: `faber:<argument>=<value>`
 
-**Single work item patterns**:
-- "this issue" / "this" → Use source_id from context
-- "issue 123" / "#123" → Extract 123
-- "PROJ-456" → Extract PROJ-456 (Jira format)
+**Supported Labels:**
 
-**Multiple work items patterns**:
-- "issues 100, 101, 102" → Extract [100, 101, 102]
-- "issues 100-105" → Extract [100, 101, 102, 103, 104, 105]
-- "#100 #101 #102" → Extract [100, 101, 102]
-- "PROJ-100, PROJ-101" → Extract [PROJ-100, PROJ-101]
+| Label Pattern | Extracts |
+|---------------|----------|
+| `faber:workflow=<id>` | workflow |
+| `faber:autonomy=<level>` | autonomy |
+| `faber:phase=<phases>` | phases (comma-separated) |
+| `faber:step=<step-id>` | step_id |
+| `faber:target=<name>` | target |
+| `faber:skip-phase=<phase>` | phase to exclude |
 
-**Implementation**:
+**Legacy Labels** (backwards compatibility):
+- `workflow:<id>` → workflow
+- `autonomy:<level>` → autonomy
+
+**Extraction Logic:**
 ```
-1. Scan text for work item references
-2. Extract all unique work items
-3. If no work items found but source_id in context: use source_id
-4. If no work items at all: error - cannot determine what to work on
+For each label in issue.labels:
+  If label matches "faber:(\w+)=(.+)":
+    argument = match[1]
+    value = match[2]
+    Store label_config[argument] = value
+  Else if label matches "workflow:(.+)":
+    Store label_config["workflow"] = match[1]
+  Else if label matches "autonomy:(.+)":
+    Store label_config["autonomy"] = match[1]
 ```
 
-### Determine Intent Type
+---
 
-**Intent Categories**:
+## Step 3: Apply Configuration Priority
 
-#### 1. Full Workflow
-**Patterns**: "run", "work on", "handle", "implement", "do", "execute", "complete"
+**Priority Order** (highest to lowest):
+1. CLI arguments (from command)
+2. Issue labels (`faber:*` prefixed)
+3. Legacy labels (`workflow:*`, `autonomy:*`)
+4. Config file defaults
+5. Hardcoded fallbacks
 
-**Examples**:
-- "@faber run this issue"
-- "@faber implement issue 158"
-- "@faber work on issues 100-105"
-
-**Action**: Execute complete workflow (all 5 phases)
-
-#### 2. Single Phase
-**Patterns**: Phase names or phase-specific verbs
-
-**Frame Phase**:
-- Keywords: "frame", "setup", "initialize", "prepare"
-- Example: "@faber just frame this"
-- Action: Execute frame phase only
-
-**Architect Phase**:
-- Keywords: "architect", "design", "spec", "plan"
-- Example: "@faber do the architect phase"
-- Action: Execute frame + architect phases
-
-**Build Phase**:
-- Keywords: "build", "implement", "code", "develop"
-- Example: "@faber just implement this"
-- Action: Execute frame + architect + build phases
-
-**Evaluate Phase**:
-- Keywords: "test", "evaluate", "check", "verify"
-- Example: "@faber run tests"
-- Action: Execute evaluate phase (requires existing build)
-
-**Release Phase**:
-- Keywords: "release", "deploy", "ship", "create pr"
-- Example: "@faber release this"
-- Action: Execute release phase (requires completed workflow)
-
-#### 3. Status Query
-**Patterns**: "status", "progress", "where", "check"
-
-**Examples**:
-- "@faber status"
-- "@faber what's the progress?"
-
-**Action**: Query workflow state, display status
-
-#### 4. Control Commands
-**Patterns**: Workflow control actions
-
-**Approve**:
-- Keywords: "approve", "lgtm", "proceed", "yes"
-- Action: Approve pending release
-
-**Retry**:
-- Keywords: "retry", "try again"
-- Action: Retry failed phase
-
-**Cancel**:
-- Keywords: "cancel", "stop", "abort"
-- Action: Cancel workflow
-
-### Determine Execution Mode
-
-**Sequential**: Execute one work item at a time
-- Default for single work item
-- Used when phases have dependencies on results
-
-**Parallel**: Execute multiple work items simultaneously
-- Used for multiple work items
-- Each work item gets its own faber-manager agent
-- All agents run concurrently
-
-**Batch with Results**: Execute in parallel, wait for all, aggregate results
-- Used for status queries across multiple items
-- Used for batch operations that need combined output
-
-## Step 2: Validate Intent
-
-**Check Work Items**:
-- All work items valid format?
-- All work items accessible?
-- All work items in same source system?
-
-**Check Phase Constraints**:
-- Can't architect without frame
-- Can't evaluate without build
-- Can't release without evaluate
-
-**Check Control Command Validity**:
-- Approve: Is there a workflow awaiting approval?
-- Retry: Is there a workflow with failures?
-- Cancel: Is there an active workflow?
-
-**Error Handling**:
-If validation fails:
-1. Log error
-2. Return clear error message to user
-3. Suggest correct command
-4. Do NOT proceed with execution
-
-## Step 3: Route to Execution
-
-### Single Work Item Execution
-
-**Action**: Invoke faber-manager agent once
-
-**Build Parameters**:
-```json
-{
-  "work_id": "158",
-  "source_type": "github",
-  "source_id": "158",
-  "autonomy": "guarded",
-  "worktree": true,  // ALWAYS true - all workflows use worktrees for isolation
-  "phase_only": "architect"  // if single phase requested
+**Merge Logic:**
+```python
+final_config = {
+  "workflow": cli.workflow_override or labels.workflow or config.default_workflow or "default",
+  "autonomy": cli.autonomy_override or labels.autonomy or config.default_autonomy or "guarded",
+  "phases": cli.phases or labels.phases or "all",
+  "step_id": cli.step_id or labels.step_id or null,
+  "target": cli.target or labels.target or issue.title or null,
 }
 ```
 
-**Invocation - CRITICAL: Use Task Tool, NOT Skill Tool**:
+---
 
-The faber-manager is an **AGENT**, not a skill. You MUST use the Task tool with `subagent_type`.
+## Step 4: Resolve Target
 
-**CORRECT - Task tool with subagent_type**:
+**Cases:**
+
+1. **Explicit target provided**: Use as-is
+2. **Natural language target**: Parse for artifact and intent
+3. **No target but work_id**: Infer from issue title
+4. **Neither**: Error
+
+**Natural Language Parsing:**
+
+When target contains natural language, extract:
+- **Artifact name**: What to create/modify
+- **Work item references**: Issue numbers mentioned
+- **Phase intent**: Keywords like "design", "build", "test"
+
+| Input | Extracted |
+|-------|-----------|
+| `"implement auth from issue 158"` | target="auth", work_id="158", intent=build |
+| `"just design the data pipeline"` | target="data pipeline", phases=frame,architect |
+| `"test the changes for issue 200"` | work_id="200", phases=evaluate |
+
+**Target Inference from Issue:**
+
+If no target but work_id provided:
+```
+target = slugify(issue.title)
+Example: "Add CSV export feature" → "csv-export-feature"
+```
+
+---
+
+## Step 5: Validate Phases/Steps
+
+### If phases specified:
+
+**Validation:**
+1. Split by comma (no spaces allowed)
+2. Each phase must be one of: frame, architect, build, evaluate, release
+3. Phases must be in valid order (no release before build, etc.)
+4. All phases must be enabled in workflow config
+
+**Phase Dependencies:**
+- `architect` assumes `frame` complete (unless included)
+- `build` assumes `architect` complete (unless included)
+- `evaluate` assumes `build` complete (unless included)
+- `release` assumes `evaluate` complete (unless included)
+
+**Check State:**
+```
+If phases doesn't include prerequisite:
+  Check state file for prerequisite completion
+  If not complete: Warn user but allow (they may know what they're doing)
+```
+
+### If step_id specified:
+
+**Validation:**
+1. Must match pattern `phase:step-name`
+2. Phase must be valid (frame, architect, build, evaluate, release)
+3. Step must exist in workflow config for that phase
+
+**Extract:**
+```
+step_id = "build:implement"
+step_phase = "build"
+step_name = "implement"
+
+Validate step_name exists in config.phases.build.steps[*].name
+```
+
+---
+
+## Step 6: Check for Prompt Sources
+
+**CLI Prompt:**
+If `prompt` parameter provided, use it as `additional_instructions`.
+
+**Issue Body Prompt:**
+If no CLI prompt, check issue body for `faber-prompt` code block:
+
+```markdown
+```faber-prompt
+Focus on performance.
+Use caching where appropriate.
+```
+```
+
+**Extract:**
+```
+If issue.description contains "```faber-prompt" block:
+  additional_instructions = content of that block
+```
+
+**Priority:**
+1. CLI `--prompt` argument (highest)
+2. `faber-prompt` block in issue body
+3. No additional instructions
+
+---
+
+## Step 7: Build Manager Parameters
+
+**Construct parameters for faber-manager agent:**
+
+```json
+{
+  "target": "resolved-target-name",
+  "work_id": "158",
+  "source_type": "github",
+  "source_id": "158",
+  "workflow_id": "default",
+  "autonomy": "guarded",
+  "phases": ["frame", "architect", "build"],
+  "step_id": null,
+  "additional_instructions": "Focus on performance...",
+  "worktree": true,
+  "issue_data": {
+    "title": "Issue title",
+    "description": "Issue body",
+    "labels": ["type: feature", "faber:workflow=default"],
+    "url": "https://github.com/..."
+  }
+}
+```
+
+**Key Mappings:**
+- `phases`: Array from comma-separated string, or null for all phases
+- `step_id`: String in format `phase:step-name`, or null
+- `additional_instructions`: Merged prompt from CLI and/or issue
+- `worktree`: Always true (isolation is mandatory)
+
+---
+
+## Step 8: Route to Execution
+
+### Single Work Item
+
+**Invoke faber-manager agent using Task tool:**
+
 ```
 Task(
   subagent_type="fractary-faber:faber-manager",
-  description="Execute FABER workflow for issue #158",
+  description="Execute FABER workflow for {target}",
   prompt='{
+    "target": "customer-analytics",
     "work_id": "158",
     "source_type": "github",
     "source_id": "158",
+    "workflow_id": "default",
     "autonomy": "guarded",
-    "worktree": true
+    "phases": ["frame", "architect", "build"],
+    "step_id": null,
+    "additional_instructions": "Focus on performance",
+    "worktree": true,
+    "issue_data": {...}
   }'
 )
 ```
 
-**WRONG - These will fail with "Unknown skill" error**:
-```
-Skill(skill="faber-manager")  // WRONG: faber-manager is an AGENT
-Skill(skill="fractary-faber:faber-manager")  // WRONG: still using Skill tool
-Task(subagent_type="faber-manager")  // WRONG: missing fractary-faber: prefix
-```
+### Multiple Work Items (Parallel)
 
-**Key Points**:
-1. ALWAYS use `Task` tool (not `Skill` tool)
-2. ALWAYS use full prefix: `fractary-faber:faber-manager`
-3. ALWAYS include `worktree: true` parameter
-4. This ensures workflow executes in isolated worktree (.worktrees/ subfolder)
-5. Prevents interference between concurrent workflows
+If natural language mentions multiple issues or comma-separated work_ids:
 
-### Multiple Work Items Execution (Parallel)
-
-**Action**: Invoke multiple faber-manager agents concurrently
-
-**Build Parameters for Each**:
-```json
-[
-  {
-    "work_id": "100",
-    "source_type": "github",
-    "source_id": "100",
-    "autonomy": "guarded",
-    "worktree": true  // ALWAYS true - each workflow gets isolated worktree
-  },
-  {
-    "work_id": "101",
-    "source_type": "github",
-    "source_id": "101",
-    "autonomy": "guarded",
-    "worktree": true  // ALWAYS true
-  },
-  {
-    "work_id": "102",
-    "source_type": "github",
-    "source_id": "102",
-    "autonomy": "guarded",
-    "worktree": true  // ALWAYS true
-  }
-]
-```
-
-**Invocation - Parallel with Task Tool**:
-
-Use Task tool with MULTIPLE tool calls in a SINGLE message for parallel execution:
+**Invoke multiple faber-manager agents in ONE message:**
 
 ```
-// All three Task calls in ONE message = parallel execution
+// All Task calls in ONE message = parallel execution
 Task(
   subagent_type="fractary-faber:faber-manager",
   description="Execute FABER workflow for issue #100",
-  prompt='{"work_id": "100", "source_type": "github", "source_id": "100", "autonomy": "guarded", "worktree": true}'
+  prompt='{"target": "...", "work_id": "100", ...}'
 )
 Task(
   subagent_type="fractary-faber:faber-manager",
   description="Execute FABER workflow for issue #101",
-  prompt='{"work_id": "101", "source_type": "github", "source_id": "101", "autonomy": "guarded", "worktree": true}'
-)
-Task(
-  subagent_type="fractary-faber:faber-manager",
-  description="Execute FABER workflow for issue #102",
-  prompt='{"work_id": "102", "source_type": "github", "source_id": "102", "autonomy": "guarded", "worktree": true}'
+  prompt='{"target": "...", "work_id": "101", ...}'
 )
 ```
 
-All three execute in parallel!
-Each gets its own isolated worktree in .worktrees/ subfolder
+**Limits:**
+- Maximum 10 parallel workflows (safety)
+- If more than 10: batch into groups
 
-**CRITICAL - Worktree Integration**:
-- ALL workflows (single and multi-item) MUST use worktrees
-- Worktree location: `.worktrees/{branch-slug}` (subfolder, not parallel directory)
-- Registry: `~/.fractary/repo/worktrees.json` (for reuse detection)
-- Prevents interference: Can start workflow #123, pause, start #124 → no conflict
-- Enables resume: Restarting #123 reuses existing worktree
+---
 
-**Limits**:
-- Maximum 10 parallel workflows (safety limit)
-- If more than 10 requested: batch into groups of 10
-
-### Status Query Execution
-
-**Action**: Read state files and aggregate
-
-**For Each Work Item**:
-1. Read `.fractary/plugins/faber/state-{work_id}.json`
-2. Extract current status
-3. Aggregate into summary
-
-**Return**:
-- Current phase for each work item
-- Overall progress percentage
-- Any errors or blockers
-- Next actions
-
-### Control Command Execution
-
-**Approve**:
-1. Find workflow awaiting approval
-2. Update state to proceed
-3. Resume workflow from release phase
-4. Return confirmation
-
-**Retry**:
-1. Find failed workflow
-2. Identify failed phase
-3. Restart workflow from that phase
-4. Return confirmation
-
-**Cancel**:
-1. Find active workflow
-2. Update state to "cancelled"
-3. Clean up resources
-4. Return confirmation
-
-## Step 4: Aggregate Results
+## Step 9: Aggregate Results
 
 ### Single Work Item
 
-Return faber-manager result directly:
-```
-✅ Workflow Complete: Issue #158
-Phases: Frame ✓, Architect ✓, Build ✓, Evaluate ✓, Release ✓
-PR: #159 created
-```
+Return faber-manager result directly.
 
 ### Multiple Work Items
 
 Aggregate results from all agents:
+
 ```
 🎯 Batch Workflow Complete: 3 issues
 
 ✅ Issue #100: Complete (PR #110)
 ✅ Issue #101: Complete (PR #111)
 ❌ Issue #102: Failed at Evaluate phase
-   └─ Tests failed after 3 retries
 
 Summary: 2/3 successful
-Time: 45 minutes total
-```
-
-### Status Query
-
-```
-📊 Workflow Status
-
-Issue #100: Release (awaiting approval)
-Issue #101: Build (in progress)
-Issue #102: Evaluate (retrying 2/3)
-Issue #103: Frame (complete)
-Issue #104: Not started
 ```
 
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 This skill is complete when:
-1. ✅ Intent parsed correctly from freeform text
-2. ✅ All work items extracted and validated
-3. ✅ Execution mode determined (single/parallel)
-4. ✅ Appropriate faber-manager agent(s) invoked
-5. ✅ Results aggregated (if multiple work items)
-6. ✅ Clear response returned to user
+1. ✅ Configuration loaded
+2. ✅ Issue fetched (if work_id provided)
+3. ✅ Labels parsed for configuration
+4. ✅ Target resolved (explicit, parsed, or inferred)
+5. ✅ Phases/step validated
+6. ✅ Prompt sources merged
+7. ✅ faber-manager agent(s) invoked with complete context
+8. ✅ Results aggregated and returned
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
 
-## Single Workflow Output
+## Workflow Started
 
 ```
-🎯 FABER Director: Executing Workflow
+🎯 FABER Director: Starting Workflow
 
-Parsed Intent: Full workflow execution
-Work Item: Issue #158
-Mode: Sequential
+Target: customer-analytics-v2
+Work ID: #158
+Workflow: default
+Autonomy: guarded
+Phases: frame, architect, build
+Additional Instructions: Focus on performance...
+───────────────────────────────────────
 
 Invoking faber-manager...
 
 [faber-manager output appears here]
+```
 
-✅ Workflow routing complete
+## Label Configuration Detected
+
+```
+🏷️ Configuration from Issue Labels:
+
+Detected:
+  workflow: hotfix (from faber:workflow=hotfix)
+  autonomy: autonomous (from faber:autonomy=autonomous)
+
+Applied (with CLI overrides):
+  workflow: hotfix
+  autonomy: guarded (CLI override)
 ```
 
 ## Parallel Workflow Output
 
 ```
-🎯 FABER Director: Executing Batch Workflow
+🎯 FABER Director: Starting Batch Workflow
 
-Parsed Intent: Full workflow execution
-Work Items: Issues #100, #101, #102 (3 total)
+Work Items: #100, #101, #102 (3 total)
 Mode: Parallel
 
 Spawning 3 faber-manager agents...
 
-⏳ Agent 1: Working on issue #100
-⏳ Agent 2: Working on issue #101
-⏳ Agent 3: Working on issue #102
-
-[Wait for all agents to complete]
+[Wait for all agents]
 
 📊 Batch Results:
-✅ Issue #100: Complete (45min)
-✅ Issue #101: Complete (38min)
-❌ Issue #102: Failed (12min)
+✅ Issue #100: Complete (PR #110)
+✅ Issue #101: Complete (PR #111)
+❌ Issue #102: Failed (Evaluate phase)
 
-2/3 workflows successful
-Total time: 45 minutes (parallel execution)
+2/3 successful
 ```
 
-## Status Query Output
+## Error Outputs
 
+**No target or work_id:**
 ```
-📊 Workflow Status: 5 issues
+❌ Cannot Execute: No target specified
 
-#100: Release (⏸️  awaiting approval)
-#101: Build (⏳ in progress - 15min elapsed)
-#102: Evaluate (🔄 retrying 2/3)
-#103: Frame (✅ complete)
-#104: Not started
-
-Active: 3 workflows
-Awaiting approval: 1 workflow
+Either provide a target or --work-id:
+  /fractary-faber:run customer-pipeline
+  /fractary-faber:run --work-id 158
 ```
 
-## Error Output
-
+**Invalid phase:**
 ```
-❌ FABER Director: Cannot Execute
+❌ Invalid Phase: 'testing'
 
-Error: Invalid work item reference
-Text: "@faber implement that thing"
-Problem: Cannot determine which issue to work on
+Valid phases: frame, architect, build, evaluate, release
 
-Suggestions:
-- "@faber implement this issue" (uses current issue)
-- "@faber implement issue 158"
-- "@faber implement #158"
+Example: --phase frame,architect,build
 ```
 
-Return JSON for programmatic access:
-```json
-{
-  "status": "routed",
-  "intent_type": "full_workflow",
-  "work_items": ["158"],
-  "execution_mode": "single",
-  "agents_spawned": 1,
-  "results": [
-    {
-      "work_id": "158",
-      "status": "success",
-      "duration_ms": 2700000
-    }
-  ]
-}
+**Invalid step:**
+```
+❌ Invalid Step: 'build:unknown'
+
+Step 'unknown' not found in build phase.
+
+Available steps in build:
+  - build:implement
+  - build:commit
 ```
 
 </OUTPUTS>
 
 <ERROR_HANDLING>
 
-## Intent Parsing Errors
-- **Ambiguous intent**: Ask for clarification
-- **Multiple intents**: Prioritize or ask user to specify
-- **No work items found**: Request specific issue number
+## Configuration Errors
+- **Config not found**: Log warning, use defaults, continue
+- **Invalid JSON**: Log error, use defaults, continue
+
+## Issue Fetch Errors
+- **Issue not found**: Return clear error, don't proceed
+- **Fetch timeout**: Retry once, then error
+
+## Label Parsing Errors
+- **Malformed label**: Log warning, skip that label
+- **Multiple workflow labels**: Error (ambiguous)
 
 ## Validation Errors
-- **Invalid work item**: Report which items are invalid
-- **Inaccessible work item**: Report permission issues
-- **Phase constraint violation**: Explain dependency
+- **Invalid phase**: List valid phases
+- **Invalid step**: List available steps for that phase
+- **Missing prerequisites**: Warn but allow
 
-## Execution Errors
+## Routing Errors
 - **faber-manager invocation failed**: Report error, suggest retry
-- **Parallel limit exceeded**: Batch into groups, explain limit
-- **Timeout**: Report timeout, suggest checking individual workflows
-
-## Control Command Errors
-- **No workflow to approve**: Report no pending approvals
-- **No workflow to retry**: Report no failed workflows
-- **No workflow to cancel**: Report no active workflows
+- **Parallel limit exceeded**: Batch into groups
 
 </ERROR_HANDLING>
 
 <DOCUMENTATION>
 
-## Intent Parsing Examples
-
-**GitHub Mentions**:
-- "@faber run this" → Single workflow, full execution
-- "@faber implement #100 #101 #102" → Parallel workflows (3)
-- "@faber just architect issue 158" → Single phase (architect)
-- "@faber status" → Status query
-
-**CLI Commands**:
-- "implement issue 158" → Single workflow
-- "frame issues 100-105" → Parallel workflows (6), frame phase only
-- "retry issue 102" → Retry control command
-
-## Parallelization
-
-The director's key feature is parallelization:
-
-**Without Director** (sequential):
-- Issue #100: 45 minutes
-- Issue #101: 38 minutes
-- Issue #102: 42 minutes
-- **Total: 125 minutes**
-
-**With Director** (parallel):
-- All 3 issues: simultaneously
-- **Total: 45 minutes** (longest workflow)
-
-**Speedup**: 2.7x faster!
-
-## Routing Patterns
-
-```
-Single → faber-manager (1 agent)
-Parallel → faber-manager (N agents, concurrent)
-Status → Direct state queries (no agents)
-Control → State updates + conditional agent spawn
-```
-
-</DOCUMENTATION>
-
 ## Integration
 
-**Architecture**:
+**Architecture:**
 ```
-/faber:direct (lightweight command)
+/fractary-faber:run (lightweight command)
     ↓ immediately invokes
 faber-director skill (THIS SKILL - intelligence layer)
     ↓ spawns 1 or N
 faber-manager agent (execution layer)
 ```
 
-**Invoked By**:
-- `/faber:direct` command (primary entry point)
-- GitHub webhook (mention handling)
-- Other skills (programmatic invocation)
+**Invoked By:**
+- `/fractary-faber:run` command (primary)
+- GitHub webhooks (future)
+- Other skills (programmatic)
 
-**Invokes**:
-- `/work:issue-fetch` - To fetch issue data (ALWAYS, for context and workflow detection)
+**Invokes:**
+- `/work:issue-fetch` - To fetch issue data
 - `faber-manager` agent - For workflow execution (via Task tool)
-- State query functions - For status queries
 
-**Does NOT Invoke**:
+**Does NOT Invoke:**
 - Phase skills directly
 - Hook scripts directly
 - Platform-specific handlers
 
-**Responsibilities (Intelligence Layer)**:
-1. Load configuration from `.fractary/plugins/faber/config.json`
-2. Parse user intent (work items, phases, commands)
-3. Fetch issue data (ALWAYS - for context and workflow detection)
-4. Detect workflow from labels (when --workflow not provided)
-5. Apply autonomy override (--autonomy flag > config default)
-6. Decide single vs parallel execution
-7. Spawn faber-manager agent(s) with full context
+## New Parameters (SPEC-00107)
 
-## Benefits of Director as Skill
+This skill now handles:
+- `target`: Primary argument (what to work on)
+- `phases`: Comma-separated phase list
+- `step_id`: Single step in format `phase:step-name`
+- `prompt`: Additional instructions
+- Label-based configuration detection
 
-**Why a skill, not an agent?**
+## Label Pattern Reference
 
-1. **Composability**: Can be invoked by other skills/agents
-2. **Context Efficiency**: Runs in same context as caller
-3. **Flexibility**: Can be used in different invocation patterns
-4. **Simplicity**: No agent invocation overhead
-5. **Testing**: Easier to test as a pure function
+| Label | Maps To |
+|-------|---------|
+| `faber:workflow=<id>` | `--workflow` |
+| `faber:autonomy=<level>` | `--autonomy` |
+| `faber:phase=<phases>` | `--phase` |
+| `faber:step=<step-id>` | `--step` |
+| `faber:target=<name>` | `<target>` |
+| `faber:skip-phase=<phase>` | Exclude phase |
 
-**Comparison to old architecture**:
-- Old: `/faber:manage` command did config loading, workflow detection, THEN invoked director
-- New: `/faber:direct` command immediately invokes director, director does ALL intelligence
-- Benefit: Single responsibility per layer, no fragile multi-step commands
+## Step ID Reference
+
+| Step ID | Description |
+|---------|-------------|
+| `frame:fetch-work` | Fetch work item details |
+| `frame:classify` | Classify work type |
+| `frame:setup-env` | Setup environment |
+| `architect:generate-spec` | Generate specification |
+| `build:implement` | Implement solution |
+| `build:commit` | Create commit |
+| `evaluate:test` | Run tests |
+| `evaluate:review` | Code review |
+| `evaluate:fix` | Fix issues |
+| `release:update-project-docs` | Update documentation |
+| `release:create-pr` | Create pull request |
+
+</DOCUMENTATION>

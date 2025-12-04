@@ -30,7 +30,7 @@ FABER is a **tool-agnostic workflow framework** that automates the complete soft
 
 ```bash
 cd your-project
-/faber:init
+/fractary-faber:init
 ```
 
 This auto-detects your project settings and creates `.fractary/plugins/faber/config.json`.
@@ -49,7 +49,7 @@ aws configure
 
 ```bash
 # Execute complete workflow for issue #123
-/faber:run 123
+/fractary-faber:run --work-id 123
 ```
 
 That's it! FABER will:
@@ -152,23 +152,19 @@ If you have an existing `.faber.config.toml` file, see [MIGRATION-v2.md](docs/MI
 
 ## Usage
 
-### GitHub Integration (NEW in v1.1.0)
+### GitHub Integration
 
-**Trigger FABER directly from GitHub issues** using `@faber` mentions:
+**Trigger FABER directly from GitHub issues** using labels:
 
-```
-@faber run this issue        # Execute full workflow
-@faber just design this      # Design only, no implementation
-@faber test this             # Run tests only
-@faber status                # Check workflow status
-@faber approve               # Approve release (guarded mode)
-```
+- Add `faber:run` label to trigger workflow
+- Use `faber:workflow=hotfix` label to select workflow
+- Use `faber:autonomy=autonomous` label to set autonomy level
 
 **Setup** (one-time):
 1. Add `.github/workflows/faber.yml` to your repository
 2. Add `CLAUDE_CODE_OAUTH_TOKEN` secret
 3. Create `.fractary/plugins/faber/config.json` in repository root
-4. Mention `@faber` in any issue!
+4. Add the `faber:run` label to any issue!
 
 Status updates post automatically to GitHub issues. See [GitHub Integration Guide](docs/github-integration.md) for complete setup instructions and examples.
 
@@ -176,38 +172,38 @@ Status updates post automatically to GitHub issues. See [GitHub Integration Guid
 
 ```bash
 # Initialize FABER in a project
-/faber:init
+/fractary-faber:init
 
 # Run workflow for an issue
-/faber:run 123
+/fractary-faber:run --work-id 123
 
 # Check workflow status
-/faber:status
-
-# Get help
-/faber help
+/fractary-faber:status
 ```
 
 ### Advanced Usage
 
 ```bash
-# Override domain
-/faber:run 123 --domain design
+# Specify target and work item
+/fractary-faber:run customer-analytics --work-id 123
+
+# Override workflow
+/fractary-faber:run --work-id 123 --workflow hotfix
 
 # Override autonomy level
-/faber:run 123 --autonomy autonomous
+/fractary-faber:run --work-id 123 --autonomy autonomous
 
-# Enable auto-merge
-/faber:run 123 --auto-merge
+# Run specific phases
+/fractary-faber:run --work-id 123 --phase frame,architect
+
+# Run single step
+/fractary-faber:run --work-id 123 --step build:implement
 
 # Dry-run (simulation only)
-/faber:run 123 --autonomy dry-run
+/fractary-faber:run --work-id 123 --autonomy dry-run
 
-# Check specific workflow
-/faber:status abc12345
-
-# Show failed workflows
-/faber:status --failed
+# Add custom instructions
+/fractary-faber:run --work-id 123 --prompt "Focus on performance"
 ```
 
 ### Supported Input Formats
@@ -285,7 +281,7 @@ Set default in `.fractary/plugins/faber/config.json`:
 Override per workflow:
 
 ```bash
-/faber:run 123 --autonomy autonomous
+/fractary-faber:run --work-id 123 --autonomy autonomous
 ```
 
 ## Architecture
@@ -328,10 +324,10 @@ Layer 3: Scripts (Deterministic Operations)
 - `file-manager` - R2/S3/local storage adapters
 
 #### Commands (User Interface)
-- `/faber` - Main entry point with intelligent routing
-- `/faber:init` - Initialize FABER in a project
-- `/faber:run` - Execute workflow
-- `/faber:status` - Show workflow status
+- `/fractary-faber:init` - Initialize FABER in a project
+- `/fractary-faber:run` - Execute workflow (consolidated command)
+- `/fractary-faber:status` - Show workflow status
+- `/fractary-faber:audit` - Validate configuration
 
 ## Domain Support
 
@@ -342,28 +338,28 @@ FABER supports multiple work domains:
 - Code implementation and testing
 - Pull requests and code review
 
-**Usage**: `/faber:run 123 --domain engineering`
+**Usage**: `/fractary-faber:run --work-id 123`
 
 ### Design 🚧 (Future)
 - Design brief generation
 - Asset creation
 - Design review and publication
 
-**Usage**: `/faber:run 123 --domain design`
+**Usage**: `/fractary-faber:run --work-id 123 --workflow design`
 
 ### Writing 🚧 (Future)
 - Content outlines
 - Writing and editing
 - Content review and publication
 
-**Usage**: `/faber:run 123 --domain writing`
+**Usage**: `/fractary-faber:run --work-id 123 --workflow writing`
 
 ### Data 🚧 (Future)
 - Pipeline design and implementation
 - Data quality checks
 - Pipeline deployment
 
-**Usage**: `/faber:run 123 --domain data`
+**Usage**: `/fractary-faber:run --work-id 123 --workflow data`
 
 ## Platform Support
 
@@ -388,10 +384,10 @@ FABER supports multiple work domains:
 
 ```bash
 # Initialize FABER
-/faber:init
+/fractary-faber:init
 
 # Run workflow for GitHub issue #123
-/faber:run 123
+/fractary-faber:run --work-id 123
 
 # FABER executes:
 # 1. Frame: Fetches issue, creates branch
@@ -401,7 +397,7 @@ FABER supports multiple work domains:
 # 5. Release: Creates PR, waits for approval
 
 # Check status
-/faber:status abc12345
+/fractary-faber:status
 
 # Approve and merge (manual)
 # - Review PR
@@ -412,24 +408,25 @@ FABER supports multiple work domains:
 
 ```bash
 # Run with full automation
-/faber:run 456 --autonomy autonomous --auto-merge
+/fractary-faber:run --work-id 456 --autonomy autonomous
 
 # FABER executes all phases and merges PR automatically
 # ⚠️ Use only for non-critical changes!
 ```
 
-### Example 3: Design Workflow (Future)
+### Example 3: Target-First Workflow
 
 ```bash
-# Design workflow for Jira ticket
-/faber:run PROJ-789 --domain design
+# Specify target artifact with work item context
+/fractary-faber:run customer-analytics --work-id 789
+
+# Run specific phases only
+/fractary-faber:run api-refactor --work-id 789 --phase frame,architect
 
 # FABER executes:
-# 1. Frame: Fetches design brief
+# 1. Frame: Fetches issue, classifies
 # 2. Architect: Creates design spec
-# 3. Build: Generates design assets
-# 4. Evaluate: Design review
-# 5. Release: Publishes assets
+# (Stops after architect - no build/evaluate/release)
 ```
 
 ## Monitoring and Troubleshooting
@@ -437,17 +434,14 @@ FABER supports multiple work domains:
 ### Check Workflow Status
 
 ```bash
-# Show all active workflows
-/faber:status
+# Show current workflow status
+/fractary-faber:status
 
-# Show specific workflow
-/faber:status abc12345
+# Show detailed log history
+/fractary-faber:status --logs 20
 
-# Show failed workflows
-/faber:status --failed
-
-# Show workflows waiting for approval
-/faber:status --waiting
+# Show timing breakdown
+/fractary-faber:status --timing
 ```
 
 ### View Session Details
@@ -463,7 +457,7 @@ cat .faber/sessions/abc12345.json | jq .
 ### Common Issues
 
 #### "Configuration file not found"
-**Solution**: Run `/faber:init` or copy a preset
+**Solution**: Run `/fractary-faber:init` or copy a preset
 
 #### "Authentication failed"
 **Solution**: Configure platform authentication
@@ -481,7 +475,7 @@ cat .faber/sessions/abc12345.json | jq .
 Run with dry-run to see what would happen:
 
 ```bash
-/faber:run 123 --autonomy dry-run
+/fractary-faber:run --work-id 123 --autonomy dry-run
 ```
 
 ## Safety Features

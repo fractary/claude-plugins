@@ -211,7 +211,7 @@ When invoked with an operation:
 <ERROR_HANDLING>
 | Error | Code | Action |
 |-------|------|--------|
-| Config file not found | CONFIG_NOT_FOUND | Return error with path and suggestion to run `/faber:init` |
+| Config file not found | CONFIG_NOT_FOUND | Return error with path and suggestion to run `/fractary-faber:init` |
 | Invalid JSON | CONFIG_INVALID_JSON | Return error with parse error details |
 | Schema validation failed | CONFIG_SCHEMA_ERROR | Return error with specific validation failures |
 | Workflow not found | WORKFLOW_NOT_FOUND | Return error with available workflow IDs |

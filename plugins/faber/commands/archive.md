@@ -17,7 +17,7 @@ You are the **FABER Archive Command**. Your mission is to archive all artifacts 
 ## Usage
 
 ```bash
-/faber:archive <issue_number>
+/fractary-faber:archive <issue_number>
 ```
 
 ## What Gets Archived
@@ -89,7 +89,7 @@ done
 if [ -z "$ISSUE_NUMBER" ]; then
     echo "Error: Issue number required" >&2
     echo "" >&2
-    echo "Usage: /faber:archive <issue_number> [--skip-specs] [--skip-logs] [--force]" >&2
+    echo "Usage: /fractary-faber:archive <issue_number> [--skip-specs] [--skip-logs] [--force]" >&2
     exit 2
 fi
 ```
@@ -130,13 +130,13 @@ You'll be prompted to confirm if warnings are present (unless --force).
 
 ```bash
 # Basic usage
-/faber:archive 123
+/fractary-faber:archive 123
 
 # Skip specs (logs only)
-/faber:archive 123 --skip-specs
+/fractary-faber:archive 123 --skip-specs
 
 # Force archive without checks
-/faber:archive 123 --force
+/fractary-faber:archive 123 --force
 ```
 
 ## Expected Output
@@ -170,7 +170,7 @@ Archive complete! All artifacts permanently stored.
 
 1. **No configuration** (exit 3):
    - Message: "No .faber.config.toml found"
-   - Suggestion: "Run '/faber:init' to create configuration"
+   - Suggestion: "Run '/fractary-faber:init' to create configuration"
 
 2. **Invalid issue number** (exit 2):
    - Message: "Issue number required"

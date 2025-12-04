@@ -68,23 +68,37 @@ You have direct tool access for reading files, executing operations, and user in
 You receive workflow execution requests with:
 
 **Required Parameters:**
-- `work_id` (string): Work item identifier
+- `target` (string): What to work on - artifact name, module, dataset, or natural language description
+
+**Context Parameters:**
+- `work_id` (string, optional): Work item identifier for issue context
 - `source_type` (string): Issue tracker (github, jira, linear, manual)
 - `source_id` (string): External issue ID
 
-**Optional Parameters:**
+**Execution Control:**
 - `workflow_id` (string): Workflow to use (default: first in config)
 - `autonomy` (string): Override level (dry-run, assist, guarded, autonomous)
-- `start_from_phase` (string): Resume from specific phase
-- `stop_at_phase` (string): Stop after specific phase
-- `phase_only` (string): Execute single phase only
+- `phases` (array, optional): Specific phases to execute (e.g., ["frame", "architect"])
+  - If null/empty: Execute all enabled phases
+  - If specified: Execute only listed phases in order
+- `step_id` (string, optional): Single step to execute (format: `phase:step-name`)
+  - If specified: Execute ONLY this step, skip all others
+  - Mutually exclusive with `phases`
+- `additional_instructions` (string, optional): Custom prompt content to guide execution
+  - Passed to all phase skills as context
+  - Can influence implementation decisions
 - `worktree` (boolean): Use git worktree (default: true)
 
-**Issue Data** (passed from faber-director):
-- `issue_title` (string): Issue title
-- `issue_description` (string): Issue body
-- `issue_labels` (array): Issue labels
-- `issue_url` (string): Issue URL
+**Issue Data** (passed from faber-director when work_id provided):
+- `issue_data.title` (string): Issue title
+- `issue_data.description` (string): Issue body
+- `issue_data.labels` (array): Issue labels
+- `issue_data.url` (string): Issue URL
+
+**Deprecated Parameters** (backwards compatibility):
+- `start_from_phase` → Use `phases` instead
+- `stop_at_phase` → Use `phases` instead
+- `phase_only` → Use `phases` with single value instead
 </INPUTS>
 
 <WORKFLOW>
@@ -148,18 +162,62 @@ Parameters: work_id, workflow_id
 
 ## Step 3: Determine Execution Scope
 
-Based on parameters:
-- If `start_from_phase`: Resume from that phase
-- If `stop_at_phase`: Stop after that phase
-- If `phase_only`: Execute only that phase
+**Handle step_id (single step execution):**
 
-Build execution plan:
+If `step_id` is provided (format: `phase:step-name`):
 ```
+1. Parse step_id:
+   step_phase = step_id.split(":")[0]  # e.g., "build"
+   step_name = step_id.split(":")[1]   # e.g., "implement"
+
+2. Validate step exists in workflow config:
+   config.phases[step_phase].steps.find(s => s.name == step_name)
+   If not found: ERROR "Step '{step_name}' not found in {step_phase} phase"
+
+3. Set execution mode:
+   execution_mode = "single_step"
+   target_phase = step_phase
+   target_step = step_name
+   phases_to_execute = [step_phase]
+```
+
+**Handle phases array (multi-phase execution):**
+
+If `phases` array is provided:
+```
+1. Validate all phases exist:
+   for each p in phases:
+     if p not in [frame, architect, build, evaluate, release]:
+       ERROR "Invalid phase: '{p}'"
+
+2. Validate phases are in order:
+   phases must be subset of [frame, architect, build, evaluate, release] in order
+   e.g., ["architect", "build"] is valid
+   e.g., ["build", "architect"] is INVALID (wrong order)
+
+3. Set execution mode:
+   execution_mode = "multi_phase"
+   phases_to_execute = phases.filter(p => config.phases[p].enabled)
+```
+
+**Default (full workflow):**
+
+If neither `step_id` nor `phases` provided:
+```
+execution_mode = "full_workflow"
 phases_to_execute = [frame, architect, build, evaluate, release]
-  .filter(p => p >= start_from_phase)
-  .filter(p => p <= stop_at_phase)
-  .filter(p => phase_only ? p == phase_only : true)
   .filter(p => config.phases[p].enabled)
+```
+
+**Backwards Compatibility** (deprecated parameters):
+```
+# Convert deprecated params to new format
+if start_from_phase:
+  phases_to_execute = phases_to_execute.filter(p => p >= start_from_phase)
+if stop_at_phase:
+  phases_to_execute = phases_to_execute.filter(p => p <= stop_at_phase)
+if phase_only:
+  phases_to_execute = [phase_only]
 ```
 
 ---
@@ -244,19 +302,46 @@ IF phase == "build" THEN
 
 ### 4.3 Execute Phase Steps
 
-For each step in phase.steps:
+**Determine steps to execute:**
+```
+IF execution_mode == "single_step" AND phase == target_phase THEN
+  # Execute only the target step
+  steps_to_execute = [config.phases[phase].steps.find(s => s.name == target_step)]
+ELSE
+  # Execute all steps in the phase
+  steps_to_execute = config.phases[phase].steps
+```
+
+For each step in steps_to_execute:
 
 **Update state - step starting:**
 ```
 Invoke Skill: faber-state
 Operation: update-step
 Parameters: phase, step_name, "in_progress"
+
+# Log step ID for workflow tracking
+LOG "Executing step: {phase}:{step_name}"
+```
+
+**Build step context:**
+```
+step_context = {
+  target: target,
+  work_id: work_id,
+  issue_data: issue_data,
+  additional_instructions: additional_instructions,  # Custom prompt content
+  previous_results: state.phases[phase].results,
+  artifacts: state.artifacts,
+  execution_mode: execution_mode,
+  step_id: "{phase}:{step_name}"  # For logging
+}
 ```
 
 **Execute step:**
-- If step has `skill`: Invoke that skill
-- If step has `prompt`: Execute as instruction
-- Pass context: work item, previous results, artifacts
+- If step has `skill`: Invoke that skill with step_context
+- If step has `prompt`: Execute as instruction with step_context
+- ALWAYS include `additional_instructions` in context for AI-driven steps
 
 **Capture results:**
 - Artifacts created
@@ -267,7 +352,7 @@ Parameters: phase, step_name, "in_progress"
 ```
 Invoke Skill: faber-state
 Operation: update-step
-Parameters: phase, step_name, "completed", {results}
+Parameters: phase, step_name, "completed", {results, step_id: "{phase}:{step_name}"}
 ```
 
 ---
@@ -527,7 +612,7 @@ Phase hook execution.
 <ERROR_HANDLING>
 
 ## Configuration Errors
-- **Missing config**: Log error, suggest `/faber:init`
+- **Missing config**: Log error, suggest `/fractary-faber:init`
 - **Invalid JSON**: Report parse error with line number
 - **Missing fields**: Report specific missing fields
 
@@ -645,8 +730,9 @@ Next: PR is ready for review
 
 ```
 ❌ FAILED: FABER Workflow
+Target: {target}
 Work ID: {work_id}
-Failed at: {phase} phase
+Failed at: {phase}:{step_name}
 Reason: {error_message}
 ───────────────────────────────────────
 Details:
@@ -654,13 +740,17 @@ Details:
 ───────────────────────────────────────
 State: Saved to .fractary/plugins/faber/state.json
 ───────────────────────────────────────
-Next: Fix the issue and retry with /faber:run {work_id} --from {phase}
+Next: Fix the issue and retry with:
+  /fractary-faber:run {target} --work-id {work_id} --phase {phase}
+  or for specific step:
+  /fractary-faber:run {target} --work-id {work_id} --step {phase}:{step_name}
 ```
 
 ## Paused Output
 
 ```
 ⏸️ PAUSED: FABER Workflow
+Target: {target}
 Work ID: {work_id}
 Paused at: {phase} phase
 Reason: Awaiting approval
@@ -668,7 +758,7 @@ Reason: Awaiting approval
 Completed: {completed_phases}
 Pending: {pending_phases}
 ───────────────────────────────────────
-Resume: /faber:run {work_id}
+Resume: /fractary-faber:run {target} --work-id {work_id}
 ```
 
 </OUTPUTS>
@@ -701,9 +791,11 @@ This agent is complete when:
 ## Integration Points
 
 **Invoked By:**
-- `/fractary-faber:run` command
-- `/fractary-faber:frame|architect|build|evaluate|release` commands
-- faber-director skill
+- `/fractary-faber:run` command → faber-director skill → this agent
+- faber-director skill (primary entry point)
+
+**Deprecated Invocation Paths:**
+- `/fractary-faber:frame|architect|build|evaluate|release` commands (use `/fractary-faber:run --phase` instead)
 
 **Invokes:**
 - faber-config skill (configuration)
@@ -712,6 +804,14 @@ This agent is complete when:
 - Phase skills (frame, architect, build, evaluate, release)
 - fractary-repo commands (branch, PR)
 - fractary-work commands (issue updates)
+
+## New Parameters (SPEC-00107)
+
+This agent now accepts:
+- `target`: What to work on (primary parameter)
+- `phases`: Array of phases to execute (replaces start_from_phase, stop_at_phase, phase_only)
+- `step_id`: Single step in format `phase:step-name`
+- `additional_instructions`: Custom prompt content from `--prompt` argument
 
 </DOCUMENTATION>
 

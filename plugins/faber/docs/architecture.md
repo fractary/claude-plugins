@@ -30,13 +30,13 @@ FABER is a **tool-agnostic SDLC workflow framework** built on a 3-layer architec
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    User Interface                        │
-│  /faber (router) → /fractary-faber:init, /fractary-faber:run, /fractary-faber:status│
+│     /fractary-faber:init, /fractary-faber:run, /fractary-faber:status     │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
 │                   Orchestration                          │
-│              director (Agent - Lightweight Router)       │
-│   Routes requests to workflow-manager + parses mentions  │
+│               director (Skill - Lightweight Router)      │
+│    Routes requests to workflow-manager with full context │
 └──────────────────────┬──────────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────────┐
@@ -88,7 +88,7 @@ FABER uses a 3-layer architecture to achieve context efficiency:
 - ~200-400 lines per agent
 
 **Components**:
-- `director` - Lightweight router, parses mentions, routes to workflow-manager
+- `director` - Lightweight router, parses input, routes to workflow-manager
 - `workflow-manager` - Orchestrates complete FABER workflow across all 5 phases
 - Phase skills (via workflow-manager):
   - `frame` - Work fetching, classification, branch creation
@@ -201,12 +201,12 @@ Additional benefits:
 
 ```
 User
-  └─ /faber (Command - Main Router)
+  └─ /fractary-faber:* (Commands)
       ├─ /fractary-faber:init (Command)
       │   └─ Auto-detects project settings
       ├─ /fractary-faber:run (Command)
-      │   └─ director (Agent - Lightweight Router)
-      │       └─ workflow-manager (Agent - Orchestrates all 5 phases)
+      │   └─ faber-director (Skill - Lightweight Router)
+      │       └─ faber-manager (Agent - Orchestrates all 5 phases)
       │           ├─ frame (Skill)
       │           │   ├─ workflow/basic.md (batteries-included)
       │           │   ├─ work-manager (Agent via @agent mention)
@@ -240,16 +240,13 @@ User
 ### Invocation Chain Example
 
 ```
-User: /faber:run 123
+User: /fractary-faber:run --work-id 123
   ↓
-/faber (router)
-  ↓ Routes to
-/fractary-faber:run
-  ↓ Parses input, generates work_id
-  ↓ Invokes
-director "abc12345 github 123 engineering"
-  ↓ Routes to
-workflow-manager "abc12345 github 123 engineering"
+/fractary-faber:run (command)
+  ↓ Parses arguments, invokes
+faber-director skill
+  ↓ Fetches issue, detects labels, routes to
+faber-manager agent
   ↓ Phase 1: Frame
 workflow-manager invokes frame skill
   ↓ Reads workflow/basic.md
@@ -264,10 +261,10 @@ frame skill classifies work → feature
 repo-manager → scripts/github/create-branch.sh
   ↓ Returns
 "Branch created: feat/123-add-auth"
-  ↓ Back to workflow-manager
-workflow-manager → Frame complete, proceed to Architect
+  ↓ Back to faber-manager
+faber-manager → Frame complete, proceed to Architect
   ↓ Phase 2: Architect (with full Frame context)
-workflow-manager invokes architect skill...
+faber-manager invokes architect skill...
   ↓ Phase 3: Build (with Frame + Architect context)
   ↓ Phase 4: Evaluate (with all previous context)
   ↓ Phase 5: Release (with complete workflow context)
@@ -587,7 +584,7 @@ Note: Platform-specific configuration lives in the primitive plugin (fractary-re
 # Edit .fractary/plugins/repo/config.json to set platform = "gitlab"
 
 # Run workflow - automatically uses GitLab scripts!
-/faber:run 123
+/fractary-faber:run --work-id 123
 ```
 
 **No agent changes required!** The skill layer automatically routes to the correct platform.
@@ -615,7 +612,7 @@ mkdir -p domains/design/
 
 **Step 3: Domain-Specific Workflows**
 ```bash
-/faber:run 123 --domain design
+/fractary-faber:run --work-id 123 --workflow design
 # Uses design-specific Build and Evaluate logic
 ```
 

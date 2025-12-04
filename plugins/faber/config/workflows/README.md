@@ -83,8 +83,8 @@ Use the `--workflow` flag to explicitly specify which workflow to use:
 
 ```bash
 # Use specific workflow
-/fractary-faber:run 123 --workflow hotfix
-/fractary-faber:frame 456 --workflow default
+/fractary-faber:run --work-id 123 --workflow hotfix
+/fractary-faber:run --work-id 456 --workflow default
 ```
 
 #### 2. Automatic Inference from Issue Labels (Smart Default)
@@ -169,7 +169,7 @@ If no `--workflow` flag is provided AND no labels match, uses the first workflow
 
 4. **Validate**:
    ```bash
-   /faber:audit
+   /fractary-faber:audit
    ```
 
 ## Workflow Schema
@@ -209,7 +209,7 @@ Old TOML configs embedded workflows inline. To migrate:
 2. Convert to JSON format
 3. Save as `workflows/default.json`
 4. Update config.json to reference file
-5. Validate with `/faber:audit`
+5. Validate with `/fractary-faber:audit`
 
 See [docs/MIGRATION-v2.md](../../docs/MIGRATION-v2.md) for detailed migration guide.
 

@@ -26,10 +26,10 @@ This provides both **operational efficiency** (fast state queries) and **complet
               │                   │
               └───────┬───────────┘
                       ▼
-              ┌──────────────────┐
-              │  /faber:status   │
-              │ (combines both)  │
-              └──────────────────┘
+              ┌───────────────────────────┐
+              │  /fractary-faber:status   │
+              │     (combines both)       │
+              └───────────────────────────┘
 ```
 
 ## Current State (state.json)

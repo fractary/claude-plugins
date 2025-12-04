@@ -150,8 +150,8 @@ Next Steps:
   → Estimated time remaining: ~3 minutes
 
   When architect completes:
-    /fractary-faber:build 158    # Continue to build phase
-    /fractary-faber:run 158      # Continue full workflow
+    /fractary-faber:run --work-id 158 --phase build   # Continue to build phase
+    /fractary-faber:run --work-id 158                 # Continue full workflow
 ```
 
 ## State Information Tracked

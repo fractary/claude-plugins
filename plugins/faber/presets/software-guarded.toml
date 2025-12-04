@@ -12,7 +12,7 @@
 # To use this preset:
 #   cp presets/software-guarded.toml .faber.config.toml
 #   # Edit values marked with <...>
-#   /faber:run <issue-id>
+#   /fractary-faber:run --work-id <issue-id>
 
 [project]
 name = "<project-name>"
