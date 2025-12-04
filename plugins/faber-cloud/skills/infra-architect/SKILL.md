@@ -1,6 +1,6 @@
 ---
 name: infra-architect
-model: claude-haiku-4-5
+model: claude-opus-4-5
 description: |
   Design infrastructure solutions - analyze requirements, design cloud architecture, create comprehensive
   design documents with resource specifications, security considerations, cost estimates, and implementation

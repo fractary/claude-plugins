@@ -1,7 +1,7 @@
 ---
 name: fractary-spec:create
 description: Create specification from conversation context
-model: claude-haiku-4-5
+model: claude-opus-4-5
 argument-hint: [--work-id <id>] [--template <type>] [--prompt "<instructions>"]
 ---
 
