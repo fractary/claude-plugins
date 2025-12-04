@@ -62,12 +62,16 @@ You receive input from the `/fractary-faber:run` command:
 - `step_id` (string, optional): Specific step to execute (format: `phase:step-name`)
 - `prompt` (string, optional): Additional custom instructions
 - `working_directory` (string): Project root for config loading
+- `resume` (string, optional): Run ID to resume from (format: `org/project/uuid`)
+- `rerun` (string, optional): Run ID to rerun with optional parameter changes
 
 **Validation Constraints:**
-- Either `target` OR `work_id` must be provided (or both)
+- Either `target` OR `work_id` must be provided (or both) - unless `resume` or `rerun` is specified
 - `phases` and `step_id` are mutually exclusive
 - `phases` must be comma-separated with no spaces
 - `step_id` must match format `phase:step-name`
+- `resume` and `rerun` are mutually exclusive
+- `resume` and `rerun` are mutually exclusive with `target`
 
 ### Example Invocations
 
@@ -152,6 +156,81 @@ work_id: null
 
 ---
 
+## Step 0.5: Handle Resume/Rerun OR Generate Run ID
+
+**CRITICAL**: This step determines if this is a new run, resume, or rerun.
+
+### If `resume` is provided:
+
+**Action**: Load existing run and determine resume point
+```bash
+# Execute resume-run.sh
+RESUME_CONTEXT=$(./skills/run-manager/scripts/resume-run.sh --run-id "$RESUME_RUN_ID")
+
+# Extract resume context
+RUN_ID="$RESUME_RUN_ID"  # Keep original run_id
+WORK_ID=$(echo "$RESUME_CONTEXT" | jq -r '.work_id')
+RESUME_FROM_PHASE=$(echo "$RESUME_CONTEXT" | jq -r '.resume_from.phase')
+RESUME_FROM_STEP=$(echo "$RESUME_CONTEXT" | jq -r '.resume_from.step')
+COMPLETED_PHASES=$(echo "$RESUME_CONTEXT" | jq -r '.completed_phases')
+```
+
+**Emit Event:**
+```bash
+./skills/run-manager/scripts/emit-event.sh \
+  --run-id "$RUN_ID" \
+  --type "workflow_resumed" \
+  --status "started" \
+  --message "Resuming workflow from $RESUME_FROM_PHASE:$RESUME_FROM_STEP" \
+  --metadata "{\"resume_from\": {\"phase\": \"$RESUME_FROM_PHASE\", \"step\": \"$RESUME_FROM_STEP\"}}"
+```
+
+**Then**: Skip to Step 7 (Build Manager Parameters) with resume context.
+
+### If `rerun` is provided:
+
+**Action**: Load original run and create new run based on it
+```bash
+# Execute rerun-run.sh
+RERUN_CONTEXT=$(./skills/run-manager/scripts/rerun-run.sh --run-id "$RERUN_RUN_ID")
+
+# Extract new run_id and original parameters
+RUN_ID=$(echo "$RERUN_CONTEXT" | jq -r '.new_run_id')
+ORIGINAL_PARAMS=$(echo "$RERUN_CONTEXT" | jq -r '.original_params')
+WORK_ID=$(echo "$ORIGINAL_PARAMS" | jq -r '.work_id')
+```
+
+**Initialize new run directory:**
+```bash
+./skills/run-manager/scripts/init-run-directory.sh \
+  --run-id "$RUN_ID" \
+  --work-id "$WORK_ID" \
+  --rerun-of "$RERUN_RUN_ID"
+```
+
+**Emit Event:**
+```bash
+./skills/run-manager/scripts/emit-event.sh \
+  --run-id "$RUN_ID" \
+  --type "workflow_rerun" \
+  --status "started" \
+  --message "Rerunning workflow from $RERUN_RUN_ID" \
+  --metadata "{\"rerun_of\": \"$RERUN_RUN_ID\", \"parameter_changes\": {...}}"
+```
+
+### If neither resume nor rerun (new workflow):
+
+**Action**: Generate new run_id
+```bash
+# Generate unique run ID
+RUN_ID=$(./skills/run-manager/scripts/generate-run-id.sh)
+echo "Generated run_id: $RUN_ID"
+```
+
+**Store run_id** for later use in Step 1.5.
+
+---
+
 ## Step 1: Fetch Issue Data (if work_id provided)
 
 **Condition**: Only if `work_id` is provided
@@ -172,6 +251,40 @@ work_id: null
 ```
 Error: Issue #{work_id} not found
 Please verify the issue ID exists
+```
+
+---
+
+## Step 1.5: Initialize Run Directory (for new workflows)
+
+**Condition**: Only for new workflows (not resume or rerun)
+
+**Action**: Create run directory with initial state
+```bash
+./skills/run-manager/scripts/init-run-directory.sh \
+  --run-id "$RUN_ID" \
+  --work-id "$WORK_ID" \
+  --target "$TARGET" \
+  --workflow "$WORKFLOW_ID" \
+  --autonomy "$AUTONOMY"
+```
+
+**Emit workflow_start event:**
+```bash
+./skills/run-manager/scripts/emit-event.sh \
+  --run-id "$RUN_ID" \
+  --type "workflow_start" \
+  --status "started" \
+  --message "Starting FABER workflow for issue #$WORK_ID" \
+  --metadata "{
+    \"work_id\": \"$WORK_ID\",
+    \"target\": \"$TARGET\",
+    \"workflow_id\": \"$WORKFLOW_ID\",
+    \"autonomy\": \"$AUTONOMY\",
+    \"source_type\": \"github\",
+    \"issue_title\": \"$ISSUE_TITLE\",
+    \"issue_url\": \"$ISSUE_URL\"
+  }"
 ```
 
 ---
@@ -341,6 +454,7 @@ If issue.description contains "```faber-prompt" block:
 
 ```json
 {
+  "run_id": "fractary/claude-plugins/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "target": "resolved-target-name",
   "work_id": "158",
   "source_type": "github",
@@ -351,6 +465,8 @@ If issue.description contains "```faber-prompt" block:
   "step_id": null,
   "additional_instructions": "Focus on performance...",
   "worktree": true,
+  "is_resume": false,
+  "resume_context": null,
   "issue_data": {
     "title": "Issue title",
     "description": "Issue body",
@@ -361,10 +477,26 @@ If issue.description contains "```faber-prompt" block:
 ```
 
 **Key Mappings:**
+- `run_id`: Full run identifier (org/project/uuid) - REQUIRED
 - `phases`: Array from comma-separated string, or null for all phases
 - `step_id`: String in format `phase:step-name`, or null
 - `additional_instructions`: Merged prompt from CLI and/or issue
 - `worktree`: Always true (isolation is mandatory)
+- `is_resume`: True if resuming from a previous run
+- `resume_context`: If resuming, contains completed phases and resume point
+
+**For Resume:**
+```json
+{
+  "run_id": "original-run-id",
+  "is_resume": true,
+  "resume_context": {
+    "resume_from": {"phase": "build", "step": "implement"},
+    "completed_phases": ["frame", "architect"],
+    "completed_steps": {"build": ["setup"]}
+  }
+}
+```
 
 ---
 
@@ -379,6 +511,7 @@ Task(
   subagent_type="fractary-faber:faber-manager",
   description="Execute FABER workflow for {target}",
   prompt='{
+    "run_id": "fractary/claude-plugins/a1b2c3d4-...",
     "target": "customer-analytics",
     "work_id": "158",
     "source_type": "github",
@@ -389,6 +522,7 @@ Task(
     "step_id": null,
     "additional_instructions": "Focus on performance",
     "worktree": true,
+    "is_resume": false,
     "issue_data": {...}
   }'
 )

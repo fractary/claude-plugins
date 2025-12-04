@@ -3,7 +3,8 @@
 # state-write.sh - Atomically write FABER workflow state
 #
 # Usage:
-#   state-write.sh [<state-file>] < state.json
+#   state-write.sh --run-id <run-id> < state.json
+#   state-write.sh [<state-file>] < state.json  # Legacy mode
 #   echo '{"status":"completed"}' | state-write.sh
 #
 # Features:
@@ -15,10 +16,18 @@
 
 set -euo pipefail
 
-STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOCK_FILE="${STATE_FILE}.lock"
 LOCK_TIMEOUT=30  # seconds to wait for lock
+
+# Parse arguments
+if [[ "${1:-}" == "--run-id" ]]; then
+    RUN_ID="${2:?Run ID required with --run-id flag}"
+    STATE_FILE=".fractary/plugins/faber/runs/$RUN_ID/state.json"
+else
+    STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
+fi
+
+LOCK_FILE="${STATE_FILE}.lock"
 
 # Create state directory if needed
 STATE_DIR=$(dirname "$STATE_FILE")

@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/faber/event-types/workflow_complete.json",
+  "title": "Workflow Complete Event",
+  "description": "Emitted when a FABER workflow run completes successfully",
+  "allOf": [
+    { "$ref": "../event.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "workflow_complete" },
+    "status": { "const": "completed" },
+    "duration_ms": {
+      "type": "integer",
+      "description": "Total workflow duration in milliseconds",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "phases_executed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Phases that were executed"
+        },
+        "phases_skipped": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Phases that were skipped"
+        },
+        "total_steps": {
+          "type": "integer",
+          "description": "Total number of steps executed"
+        },
+        "total_events": {
+          "type": "integer",
+          "description": "Total events emitted during run"
+        },
+        "retry_count": {
+          "type": "integer",
+          "description": "Number of retries in evaluate phase"
+        },
+        "pr_number": {
+          "type": "integer",
+          "description": "Pull request number if created"
+        },
+        "pr_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Pull request URL if created"
+        }
+      }
+    }
+  },
+  "required": ["duration_ms"],
+  "examples": [
+    {
+      "event_id": 45,
+      "type": "workflow_complete",
+      "timestamp": "2025-12-04T11:30:00Z",
+      "run_id": "fractary/claude-plugins/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "status": "completed",
+      "duration_ms": 5400000,
+      "source": "faber-manager",
+      "message": "FABER workflow completed successfully",
+      "metadata": {
+        "phases_executed": ["frame", "architect", "build", "evaluate", "release"],
+        "phases_skipped": [],
+        "total_steps": 12,
+        "total_events": 45,
+        "retry_count": 0,
+        "pr_number": 225,
+        "pr_url": "https://github.com/fractary/claude-plugins/pull/225"
+      },
+      "artifacts": [
+        {
+          "type": "spec",
+          "name": "SPEC-00108",
+          "path": "specs/SPEC-00108-faber-run-id-system.md"
+        },
+        {
+          "type": "branch",
+          "name": "feat/220-run-id-system"
+        },
+        {
+          "type": "pr",
+          "name": "PR #225",
+          "url": "https://github.com/fractary/claude-plugins/pull/225"
+        }
+      ]
+    }
+  ]
+}

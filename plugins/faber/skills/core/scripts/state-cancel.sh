@@ -3,20 +3,37 @@
 # state-cancel.sh - Cancel FABER workflow
 #
 # Usage:
-#   state-cancel.sh [reason]
+#   state-cancel.sh --run-id <run-id> [reason]
+#   state-cancel.sh [reason]  # Legacy mode
 #
 # Arguments:
-#   reason  - Optional cancellation reason (default: "User cancelled")
+#   --run-id  - Optional run identifier (format: org/project/uuid)
+#   reason    - Optional cancellation reason (default: "User cancelled")
 #
-# Example:
-#   state-cancel.sh "User requested cancellation"
+# Examples:
+#   state-cancel.sh --run-id "org/project/uuid" "User requested cancellation"
+#   state-cancel.sh "User requested cancellation"  # Legacy
 #
 
 set -euo pipefail
 
-REASON="${1:-User cancelled}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STATE_FILE=".fractary/plugins/faber/state.json"
+
+# Parse arguments
+RUN_ID=""
+if [[ "${1:-}" == "--run-id" ]]; then
+    RUN_ID="${2:?Run ID required with --run-id flag}"
+    shift 2
+fi
+
+REASON="${1:-User cancelled}"
+
+# Compute state file path
+if [ -n "$RUN_ID" ]; then
+    STATE_FILE=".fractary/plugins/faber/runs/$RUN_ID/state.json"
+else
+    STATE_FILE=".fractary/plugins/faber/state.json"
+fi
 
 # Check if state file exists
 if [ ! -f "$STATE_FILE" ]; then
