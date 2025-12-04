@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 # state-backup.sh - Create timestamped backup of state file
+#
+# Usage:
+#   state-backup.sh --run-id <run-id>
+#   state-backup.sh [<state-file>]  # Legacy mode
+#
 set -euo pipefail
-STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
+
+# Parse arguments
+if [[ "${1:-}" == "--run-id" ]]; then
+    RUN_ID="${2:?Run ID required with --run-id flag}"
+    STATE_FILE=".fractary/plugins/faber/runs/$RUN_ID/state.json"
+else
+    STATE_FILE="${1:-.fractary/plugins/faber/state.json}"
+fi
 
 if [ ! -f "$STATE_FILE" ]; then
     exit 0  # No file to backup

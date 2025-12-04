@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/faber/event-types/phase_start.json",
+  "title": "Phase Start Event",
+  "description": "Emitted when a FABER phase begins execution",
+  "allOf": [
+    { "$ref": "../event.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "phase_start" },
+    "status": { "const": "started" },
+    "phase": {
+      "type": "string",
+      "enum": ["frame", "architect", "build", "evaluate", "release"]
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Steps to execute in this phase"
+        },
+        "pre_hooks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Pre-phase hooks to execute"
+        },
+        "post_hooks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Post-phase hooks to execute"
+        },
+        "previous_phase": {
+          "type": ["string", "null"],
+          "description": "Phase that completed before this one"
+        },
+        "is_resume": {
+          "type": "boolean",
+          "description": "Whether this phase is being resumed"
+        }
+      }
+    }
+  },
+  "required": ["phase"],
+  "examples": [
+    {
+      "event_id": 5,
+      "type": "phase_start",
+      "timestamp": "2025-12-04T10:05:00Z",
+      "run_id": "fractary/claude-plugins/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "phase": "architect",
+      "status": "started",
+      "source": "faber-manager",
+      "message": "Starting Architect phase",
+      "metadata": {
+        "steps": ["generate-spec"],
+        "pre_hooks": ["load-architecture-standards"],
+        "post_hooks": [],
+        "previous_phase": "frame",
+        "is_resume": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fractary.dev/schemas/faber/event-types/workflow_start.json",
+  "title": "Workflow Start Event",
+  "description": "Emitted when a FABER workflow run begins",
+  "allOf": [
+    { "$ref": "../event.schema.json" }
+  ],
+  "properties": {
+    "type": { "const": "workflow_start" },
+    "status": { "const": "started" },
+    "metadata": {
+      "type": "object",
+      "required": ["work_id", "workflow_id", "autonomy"],
+      "properties": {
+        "work_id": {
+          "type": "string",
+          "description": "Work item identifier (issue number)"
+        },
+        "target": {
+          "type": ["string", "null"],
+          "description": "Target artifact name"
+        },
+        "workflow_id": {
+          "type": "string",
+          "description": "Workflow configuration ID"
+        },
+        "autonomy": {
+          "type": "string",
+          "enum": ["dry-run", "assist", "guarded", "autonomous"],
+          "description": "Autonomy level for this run"
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["frame", "architect", "build", "evaluate", "release"]
+          },
+          "description": "Phases to execute"
+        },
+        "source_type": {
+          "type": "string",
+          "description": "Work item source (github, jira, linear)"
+        },
+        "issue_title": {
+          "type": "string",
+          "description": "Title from work item"
+        },
+        "issue_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to work item"
+        },
+        "triggered_by": {
+          "type": "string",
+          "description": "How the workflow was triggered"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "event_id": 1,
+      "type": "workflow_start",
+      "timestamp": "2025-12-04T10:00:00Z",
+      "run_id": "fractary/claude-plugins/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "status": "started",
+      "user": "developer",
+      "source": "faber-director",
+      "message": "Starting FABER workflow for issue #220",
+      "metadata": {
+        "work_id": "220",
+        "target": "run-id-system",
+        "workflow_id": "default",
+        "autonomy": "guarded",
+        "phases": ["frame", "architect", "build", "evaluate", "release"],
+        "source_type": "github",
+        "issue_title": "FABER Run ID System and Workflow Event Logging",
+        "issue_url": "https://github.com/fractary/claude-plugins/issues/220",
+        "triggered_by": "/fractary-faber:run --work-id 220"
+      }
+    }
+  ]
+}
