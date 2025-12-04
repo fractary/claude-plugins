@@ -1,7 +1,7 @@
 ---
 name: fractary-faber-article:content-draft
 description: Convert existing outline into full blog post draft (800-2000 words)
-model: claude-haiku-4-5
+model: claude-opus-4-5
 argument-hint: <slug>
 ---
 

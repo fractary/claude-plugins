@@ -1,7 +1,7 @@
 ---
 name: fractary-faber-article:content-research
 description: Research topic and create detailed outline with sources (research → outline)
-model: claude-haiku-4-5
+model: claude-opus-4-5
 argument-hint: '"<topic>" [--depth basic|moderate|deep]'
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: workflow-designer
 description: Designs and generates workflow components following Manager-as-Agent pattern with architectural compliance
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # Workflow Designer Skill
