@@ -90,10 +90,20 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --metadata)
+            # Validate metadata is valid JSON object
+            if ! echo "$2" | jq -e 'type == "object"' > /dev/null 2>&1; then
+                echo '{"status": "error", "error": {"code": "INVALID_METADATA", "message": "--metadata must be a valid JSON object"}}' >&2
+                exit 1
+            fi
             METADATA="$2"
             shift 2
             ;;
         --artifacts)
+            # Validate artifacts is valid JSON array
+            if ! echo "$2" | jq -e 'type == "array"' > /dev/null 2>&1; then
+                echo '{"status": "error", "error": {"code": "INVALID_ARTIFACTS", "message": "--artifacts must be a valid JSON array"}}' >&2
+                exit 1
+            fi
             ARTIFACTS="$2"
             shift 2
             ;;
@@ -260,10 +270,15 @@ echo "$EVENT_JSON" > "$EVENT_PATH"
 
 # Update state.json with last_event_id
 if [[ -f "$STATE_FILE" ]]; then
-    # Update last_event_id and updated_at
-    jq --argjson eid "$EVENT_ID" --arg ts "$TIMESTAMP" \
+    # Update last_event_id and updated_at with error handling
+    if ! jq --argjson eid "$EVENT_ID" --arg ts "$TIMESTAMP" \
         '.last_event_id = $eid | .updated_at = $ts' \
-        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+        "$STATE_FILE" > "${STATE_FILE}.tmp" 2>/dev/null; then
+        echo "Warning: Failed to update state.json - state may be inconsistent" >&2
+    elif ! mv "${STATE_FILE}.tmp" "$STATE_FILE" 2>/dev/null; then
+        echo "Warning: Failed to write state.json - state may be inconsistent" >&2
+        rm -f "${STATE_FILE}.tmp" 2>/dev/null || true
+    fi
 fi
 
 # Output result

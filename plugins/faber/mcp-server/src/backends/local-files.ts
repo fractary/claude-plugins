@@ -47,6 +47,12 @@ export class LocalFilesBackend {
 
   /**
    * Get next event ID atomically
+   *
+   * Note: This uses a simple file-based locking mechanism that provides
+   * basic coordination but is not a true exclusive lock on Unix systems.
+   * For high-concurrency scenarios, consider using a proper locking library
+   * like 'proper-lockfile'. For typical FABER usage (single-agent workflows),
+   * this implementation is sufficient.
    */
   private async getNextEventId(runId: string): Promise<number> {
     const eventsDir = this.getEventsDir(runId);
@@ -56,8 +62,8 @@ export class LocalFilesBackend {
     // Simple file-based locking
     let lockFd: number | undefined;
     try {
-      // Create lock file
-      lockFd = fs.openSync(lockFile, "w");
+      // Create lock file with exclusive flags for basic coordination
+      lockFd = fs.openSync(lockFile, "wx");
 
       // Read current ID
       let currentId = 1;
@@ -70,9 +76,32 @@ export class LocalFilesBackend {
       fs.writeFileSync(nextIdFile, String(currentId + 1));
 
       return currentId;
+    } catch (err) {
+      // If lock file already exists (EEXIST), retry with regular open
+      // This handles the case where a previous process didn't clean up
+      if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+        lockFd = fs.openSync(lockFile, "w");
+
+        let currentId = 1;
+        if (fs.existsSync(nextIdFile)) {
+          const content = fs.readFileSync(nextIdFile, "utf-8").trim();
+          currentId = parseInt(content, 10) || 1;
+        }
+
+        fs.writeFileSync(nextIdFile, String(currentId + 1));
+
+        return currentId;
+      }
+      throw err;
     } finally {
       if (lockFd !== undefined) {
         fs.closeSync(lockFd);
+        // Clean up lock file after releasing
+        try {
+          fs.unlinkSync(lockFile);
+        } catch {
+          // Ignore cleanup errors - file may have been removed by another process
+        }
       }
     }
   }
