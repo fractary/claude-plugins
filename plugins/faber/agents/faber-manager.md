@@ -546,6 +546,78 @@ Phase hook execution.
 - **Hook failure**: Log error, continue or fail based on config
 - **Hook timeout**: Log timeout, continue
 
+## Retry Context Structure
+
+When a Build-Evaluate retry loop triggers, context is passed to help fix issues:
+
+**failure_context** (passed to Build phase on retry):
+```json
+{
+  "retry_attempt": 2,
+  "max_retries": 3,
+  "previous_failure": {
+    "phase": "evaluate",
+    "step": "test",
+    "error_type": "test_failure",
+    "error_message": "5 tests failed in auth module",
+    "failed_at": "2025-12-03T10:15:00Z",
+    "details": {
+      "test_results": {
+        "total": 42,
+        "passed": 37,
+        "failed": 5,
+        "skipped": 0
+      },
+      "failing_tests": [
+        "test_login_invalid_credentials",
+        "test_logout_session_cleanup",
+        "test_token_refresh_expired"
+      ],
+      "stack_traces": ["...truncated..."]
+    }
+  },
+  "previous_attempts": [
+    {
+      "attempt": 1,
+      "phase": "evaluate",
+      "error_message": "8 tests failed",
+      "changes_made": ["Fixed auth validation in login.ts"]
+    }
+  ],
+  "suggestions": [
+    "Focus on the auth module based on failing tests",
+    "Check token refresh logic",
+    "Review session cleanup in logout handler"
+  ]
+}
+```
+
+**Key Fields:**
+- `retry_attempt`: Current retry number (1-indexed)
+- `max_retries`: Maximum allowed from config
+- `previous_failure`: Details of the most recent failure
+- `previous_attempts`: History of all prior attempts (for pattern detection)
+- `suggestions`: AI-generated suggestions based on failure analysis
+
+**Usage in Build Phase:**
+
+When `failure_context` is present:
+1. Review `previous_failure.details` to understand what failed
+2. Check `previous_attempts` to avoid repeating the same fix
+3. Consider `suggestions` for guidance
+4. Focus changes on areas related to the failure
+
+**State Tracking:**
+
+On each retry, state is updated:
+```
+Invoke Skill: faber-state
+Operation: increment-retry
+Parameters: context={failure_context}
+```
+
+This records the failure history for debugging and prevents infinite loops.
+
 </ERROR_HANDLING>
 
 <OUTPUTS>

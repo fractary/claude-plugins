@@ -20,9 +20,18 @@ set -euo pipefail
 FINAL_STATUS="${1:?Final status required (completed, failed, cancelled)}"
 SUMMARY_OR_ERROR="${2:-}"
 
+# Resolve paths robustly (works regardless of execution context)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CORE_SCRIPTS="$SCRIPT_DIR/../../core/scripts"
+SKILL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+FABER_ROOT="$(cd "$SKILL_ROOT/../.." && pwd)"
+CORE_SCRIPTS="$FABER_ROOT/skills/core/scripts"
 STATE_FILE=".fractary/plugins/faber/state.json"
+
+# Verify core scripts exist
+if [ ! -d "$CORE_SCRIPTS" ]; then
+    echo "Error: Core scripts not found at: $CORE_SCRIPTS" >&2
+    exit 1
+fi
 
 # Validate status
 case "$FINAL_STATUS" in
