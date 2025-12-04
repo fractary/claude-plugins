@@ -82,10 +82,10 @@ Operations monitoring functionality has been extracted from `fractary-faber-clou
 ### Monitoring Configuration
 
 **Old location:**
-- Part of `.fractary/plugins/faber-cloud/config/devops.json`
+- Part of `.fractary/plugins/faber-cloud/config.json`
 
 **New location:**
-- Monitoring-specific: `.fractary/plugins/helm-cloud/config/monitoring.toml`
+- Monitoring-specific: `.fractary/plugins/helm-cloud/monitoring.toml`
 - Shared AWS config: `.fractary/shared/aws-credentials.json`
 - Shared environments: `.fractary/shared/environments.json`
 
@@ -93,13 +93,13 @@ Operations monitoring functionality has been extracted from `fractary-faber-clou
 
 1. **Create monitoring configuration:**
    ```bash
-   mkdir -p .fractary/plugins/helm-cloud/config
+   mkdir -p .fractary/plugins/helm-cloud
    cp plugins/helm-cloud/config/monitoring.example.toml \
-      .fractary/plugins/helm-cloud/config/monitoring.toml
+      .fractary/plugins/helm-cloud/monitoring.toml
    ```
 
 2. **Configure monitoring settings:**
-   Edit `.fractary/plugins/helm-cloud/config/monitoring.toml`:
+   Edit `.fractary/plugins/helm-cloud/monitoring.toml`:
    ```toml
    [monitoring]
    health_check_interval = "5m"
@@ -197,7 +197,7 @@ For backward compatibility, the old commands still work via delegation:
 - [ ] Update scripts/workflows to use new commands
 - [ ] Test health checks work: `/fractary-helm-cloud:health --env=test`
 - [ ] Test investigations work: `/fractary-helm-cloud:investigate "test query" --env=test`
-- [ ] Verify monitoring config exists: `.fractary/plugins/helm-cloud/config/monitoring.toml`
+- [ ] Verify monitoring config exists: `.fractary/plugins/helm-cloud/monitoring.toml`
 - [ ] Update documentation/runbooks with new commands
 
 ### For Plugin Developers
@@ -247,7 +247,7 @@ For backward compatibility, the old commands still work via delegation:
 
 **Verify monitoring config:**
 ```bash
-cat .fractary/plugins/helm-cloud/config/monitoring.toml
+cat .fractary/plugins/helm-cloud/monitoring.toml
 ```
 
 **Expected:** File exists with valid TOML.
@@ -289,7 +289,7 @@ cat .fractary/registry/deployments.json
 1. Copy example config:
    ```bash
    cp plugins/helm-cloud/config/monitoring.example.toml \
-      .fractary/plugins/helm-cloud/config/monitoring.toml
+      .fractary/plugins/helm-cloud/monitoring.toml
    ```
 2. Verify shared config:
    ```bash

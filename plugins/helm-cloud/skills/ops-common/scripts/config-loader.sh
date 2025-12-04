@@ -8,14 +8,14 @@ set -euo pipefail
 # Configuration paths
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 SHARED_CONFIG_DIR="${PROJECT_ROOT}/.fractary/shared"
-HELM_CLOUD_CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/helm-cloud/config"
+HELM_CLOUD_CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/helm-cloud"
 MONITORING_CONFIG_FILE="${HELM_CLOUD_CONFIG_DIR}/monitoring.toml"
 REGISTRY_DIR="${PROJECT_ROOT}/.fractary/registry"
 DEPLOYMENTS_REGISTRY="${REGISTRY_DIR}/deployments.json"
 
 # Backward compatibility with faber-cloud structure
-LEGACY_CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/faber-cloud/config"
-LEGACY_CONFIG_FILE="${LEGACY_CONFIG_DIR}/devops.json"
+LEGACY_CONFIG_DIR="${PROJECT_ROOT}/.fractary/plugins/faber-cloud"
+LEGACY_CONFIG_FILE="${LEGACY_CONFIG_DIR}/config.json"
 
 # Color codes for output
 RED='\033[0;31m'

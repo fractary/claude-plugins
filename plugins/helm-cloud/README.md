@@ -267,7 +267,7 @@ Both plugins use shared configuration:
 
 ### Monitoring Configuration
 
-**Location:** `.fractary/plugins/helm-cloud/config/monitoring.toml`
+**Location:** `.fractary/plugins/helm-cloud/monitoring.toml`
 
 **Template:** `plugins/helm-cloud/config/monitoring.example.toml`
 
@@ -293,9 +293,9 @@ never_auto = ["delete_resources", "modify_security_groups"]
 
 1. **Copy monitoring config:**
    ```bash
-   mkdir -p .fractary/plugins/helm-cloud/config
+   mkdir -p .fractary/plugins/helm-cloud
    cp plugins/helm-cloud/config/monitoring.example.toml \
-      .fractary/plugins/helm-cloud/config/monitoring.toml
+      .fractary/plugins/helm-cloud/monitoring.toml
    ```
 
 2. **Configure AWS credentials** (if not already done):
@@ -396,7 +396,7 @@ See [MIGRATION.md](./MIGRATION.md) for detailed migration guide.
 - Use `aws configure list-profiles` to verify profiles
 
 **Configuration not loading:**
-- Check monitoring config exists: `.fractary/plugins/helm-cloud/config/monitoring.toml`
+- Check monitoring config exists: `.fractary/plugins/helm-cloud/monitoring.toml`
 - Verify TOML syntax is valid
 - Check file permissions
 
