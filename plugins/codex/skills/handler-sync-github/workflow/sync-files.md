@@ -1,39 +1,55 @@
 # Workflow: Sync Files
 
-**Purpose**: Copy files between repositories based on patterns using the sync-docs.sh script
+**Purpose**: Copy files from codex repository to local cache based on patterns using the sync-docs.sh script
+
+> **Note (v3.0)**: This workflow now supports `cache_mode` which writes to the local cache directory
+> instead of a target git repository. When `cache_mode: true`, no git operations are performed
+> on the target side - files are written directly to `.fractary/plugins/codex/cache/`.
 
 ## Steps
 
-### 1. Prepare Temporary Workspace
+### 1. Prepare Sync Environment
 
-Create temporary directory for sync operation:
+Determine mode and prepare workspace:
+
+**If cache_mode = true**:
+```bash
+SYNC_WORKSPACE=$(mktemp -d /tmp/codex-sync.XXXXXX)
+SOURCE_DIR="$SYNC_WORKSPACE/source"
+TARGET_DIR="<target_path>"  # e.g., .fractary/plugins/codex/cache/org/project
+CACHE_MODE=true
+```
+
+**If cache_mode = false** (legacy):
 ```bash
 SYNC_WORKSPACE=$(mktemp -d /tmp/codex-sync.XXXXXX)
 SOURCE_DIR="$SYNC_WORKSPACE/source"
 TARGET_DIR="$SYNC_WORKSPACE/target"
+CACHE_MODE=false
 ```
 
-Output: "Workspace created: $SYNC_WORKSPACE"
+Output: "Workspace created: $SYNC_WORKSPACE (mode: ${CACHE_MODE ? 'cache' : 'git'})"
 
 ### 2. Clone Source Repository
 
-Use repo plugin to clone source repository:
+Use repo plugin or git to clone source (codex) repository:
 - If sparse_checkout enabled: clone only patterns needed
 - Otherwise: full clone
 
 Output: "Cloning source: <source_repo>"
 
-**Note**: Actual git clone is handled by repo plugin, not this script
+**Note**: Actual git clone is handled by repo plugin or lib/fetch-github.sh
 
-### 3. Clone Target Repository
+### 3. Prepare Target Directory
 
-Use repo plugin to clone target repository:
-- If sparse_checkout enabled: clone only patterns needed
-- Otherwise: full clone
+**If cache_mode = true**:
+- Ensure cache directory exists: `mkdir -p "$TARGET_DIR"`
+- No git clone needed (local directory)
+- Output: "Using cache directory: $TARGET_DIR"
 
-Output: "Cloning target: <target_repo>"
-
-**Note**: Actual git clone is handled by repo plugin, not this script
+**If cache_mode = false** (legacy):
+- Use repo plugin to clone target repository
+- Output: "Cloning target: <target_repo>"
 
 ### 4. Execute Sync Script
 
@@ -48,6 +64,7 @@ Run the sync-docs.sh script:
   --dry-run "$DRY_RUN" \
   --deletion-threshold "$DELETION_THRESHOLD" \
   --deletion-threshold-percent "$DELETION_THRESHOLD_PERCENT" \
+  --cache-mode "$CACHE_MODE" \
   --json
 ```
 
@@ -82,6 +99,7 @@ Script returns JSON:
     "deleted": ["docs/old.md", ...]
   },
   "dry_run": false,
+  "cache_mode": true,
   "error": null
 }
 ```
@@ -91,12 +109,33 @@ If success is false:
 - Clean up workspace
 - Return failure to handler skill
 
-### 6. Validate Results
+### 6. Update Cache Index (if cache_mode)
+
+**If cache_mode = true AND not dry-run**:
+
+For each synced file, update the cache index:
+```bash
+for file in ${files_added[@]} ${files_modified[@]}; do
+  uri="codex://${org}/${project}/${file}"
+  lib/cache-manager.sh put "$uri" \
+    --content-file "$TARGET_DIR/$file" \
+    --source "github" \
+    --synced-via "sync-project"
+done
+```
+
+Output: "Cache index updated with ${files_synced} entries"
+
+**If cache_mode = false** (legacy):
+- Skip this step
+
+### 7. Validate Results
 
 Check the results:
 - Files synced >= 0
 - Deletion count <= deletion threshold (if not exceeded flag set)
 - Files list makes sense
+- Cache index updated (if cache_mode)
 - No unexpected errors
 
 If validation fails:
@@ -104,21 +143,35 @@ If validation fails:
 - Include in results
 - Don't fail unless critical
 
-### 7. Cleanup Workspace (if not dry-run)
+### 8. Cleanup Workspace
 
 If dry-run:
 - Keep workspace for inspection
 - Output: "Workspace preserved for review: $SYNC_WORKSPACE"
 
 If not dry-run:
-- Remove temporary directories
+- Remove temporary directories (source clone only)
+- **If cache_mode**: Keep target (cache) directory
 - Output: "Workspace cleaned up"
 
-### 8. Return Results to Handler
+### 9. Return Results to Handler
 
-Return the parsed JSON results to handler skill.
+Return the parsed JSON results to handler skill:
 
-The handler will then pass results to project-syncer.
+**If cache_mode = true**:
+```json
+{
+  "status": "success",
+  "files_synced": 25,
+  "files_deleted": 2,
+  "cache_path": ".fractary/plugins/codex/cache/org/project",
+  "cache_index_updated": true,
+  "dry_run": false
+}
+```
+
+**If cache_mode = false** (legacy):
+The handler will pass results to project-syncer.
 The project-syncer will use repo plugin to commit and push.
 
 ## Script Behavior
@@ -201,7 +254,21 @@ If deletion threshold exceeded:
 
 ## Outputs
 
-**Success**:
+**Success (cache_mode = true)**:
+```json
+{
+  "status": "success",
+  "files_synced": 25,
+  "files_deleted": 2,
+  "deletion_threshold_exceeded": false,
+  "files_list": {...},
+  "cache_path": ".fractary/plugins/codex/cache/org/project",
+  "cache_index_updated": true,
+  "dry_run": false
+}
+```
+
+**Success (cache_mode = false, legacy)**:
 ```json
 {
   "status": "success",
@@ -218,6 +285,6 @@ If deletion threshold exceeded:
 {
   "status": "failure",
   "error": "Error message",
-  "phase": "clone|sync|validate"
+  "phase": "clone|sync|cache-index|validate"
 }
 ```

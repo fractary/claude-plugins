@@ -10,19 +10,20 @@ You are the **handler-sync-github skill** for the codex plugin.
 Your responsibility is to implement the GitHub-specific sync mechanism. You are a HANDLER skill - you provide the concrete implementation of sync operations for GitHub repositories, following the handler pattern.
 
 You handle:
-- **File Copying**: Copying files between repositories based on patterns
+- **File Copying**: Copying files from codex repository to local cache (or target repo in legacy mode)
 - **Pattern Matching**: Glob and regex pattern matching for includes/excludes
 - **Frontmatter Parsing**: Extracting sync rules from markdown file frontmatter
 - **Safety Checks**: Deletion thresholds, dry-run mode, validation
 - **Sparse Checkout**: Efficient cloning of only necessary files
+- **Cache Mode (v3.0)**: Writing to ephemeral cache directory with cache index updates
 
-You are called by project-syncer and org-syncer skills. You do NOT handle git operations (clone, commit, push) - those are delegated to the fractary-repo plugin.
+You are called by project-syncer and org-syncer skills. When `cache_mode: true`, you write to the local cache directory and update the cache index. When `cache_mode: false` (legacy), you delegate git operations to the fractary-repo plugin.
 
 **Handler Contract**:
-- Input: Source repo, target repo, patterns, options
-- Output: Files synced, files deleted, validation results
-- Responsibility: File operations only
-- Does NOT: Create commits or push (that's repo plugin's job)
+- Input: Source repo, target path (or repo), patterns, options
+- Output: Files synced, files deleted, cache index updated (if cache_mode)
+- Responsibility: File operations and cache management
+- Does NOT: Create commits or push (unless legacy mode with repo plugin)
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -54,7 +55,30 @@ You are called by project-syncer and org-syncer skills. You do NOT handle git op
 <INPUTS>
 You receive sync operation requests in this format:
 
+**Cache Mode (v3.0 - default)**:
+```json
+{
+  "operation": "sync-docs",
+  "source_repo": "<org>/<codex-repo>",
+  "target_path": ".fractary/plugins/codex/cache/<org>/<project>",
+  "direction": "to-cache",
+  "patterns": {
+    "include": ["docs/**", "CLAUDE.md", ...],
+    "exclude": ["**/.git/**", "**/node_modules/**", ...]
+  },
+  "options": {
+    "dry_run": false,
+    "deletion_threshold": 50,
+    "deletion_threshold_percent": 20,
+    "sparse_checkout": true,
+    "cache_mode": true,
+    "update_cache_index": true
+  }
+}
 ```
+
+**Legacy Mode (git-to-git)**:
+```json
 {
   "operation": "sync-docs",
   "source_repo": "<org>/<source-repo>",
@@ -69,6 +93,7 @@ You receive sync operation requests in this format:
     "deletion_threshold": 50,
     "deletion_threshold_percent": 20,
     "sparse_checkout": true,
+    "cache_mode": false,
     "create_commit": true,
     "commit_message": "sync: Update docs from project",
     "push": true
@@ -81,14 +106,16 @@ You receive sync operation requests in this format:
 
 **Required Parameters:**
 - `operation`: Must be "sync-docs"
-- `source_repo`: Source repository full name
-- `target_repo`: Target repository full name
+- `source_repo`: Source (codex) repository full name
+- `target_path` (cache mode) OR `target_repo` (legacy): Target location
 - `patterns`: Include and exclude patterns
 
 **Optional Parameters:**
-- `direction`: "to-target" (default, only direction supported)
-- `options`: Configuration options with defaults
-- `repo_plugin`: Repo plugin integration config
+- `direction`: "to-cache" (v3.0) or "to-target" (legacy)
+- `options.cache_mode`: true (default in v3.0) to write to cache directory
+- `options.update_cache_index`: true to update cache index after sync
+- `options`: Other configuration options with defaults
+- `repo_plugin`: Repo plugin integration config (legacy mode only)
 </INPUTS>
 
 <WORKFLOW>
@@ -222,12 +249,36 @@ This skill is complete when:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-## Success Output
+## Success Output (Cache Mode)
 
 ```json
 {
   "status": "success",
   "handler": "github",
+  "mode": "cache",
+  "files_synced": 25,
+  "files_deleted": 2,
+  "files_modified": 15,
+  "files_added": 10,
+  "deletion_threshold_exceeded": false,
+  "cache_path": ".fractary/plugins/codex/cache/org/project",
+  "cache_index_updated": true,
+  "files_list": {
+    "added": [...],
+    "modified": [...],
+    "deleted": [...]
+  },
+  "dry_run": false
+}
+```
+
+## Success Output (Legacy Mode)
+
+```json
+{
+  "status": "success",
+  "handler": "github",
+  "mode": "git",
   "files_synced": 25,
   "files_deleted": 2,
   "files_modified": 15,
@@ -249,7 +300,7 @@ This skill is complete when:
   "status": "failure",
   "handler": "github",
   "error": "Error message",
-  "phase": "clone|sync|validate",
+  "phase": "clone|sync|cache-index|validate",
   "partial_results": null
 }
 ```
