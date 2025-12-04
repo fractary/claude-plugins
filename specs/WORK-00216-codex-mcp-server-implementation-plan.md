@@ -1,6 +1,6 @@
 # Implementation Plan: Codex MCP Server & Sync Unification
 
-**Specification ID**: SPEC-00216
+**Work Item ID**: WORK-00216
 **Issue**: #216 - codex mcp server and sync unification
 **Parent Spec**: `specs/SPEC-00033-codex-mcp-server-and-sync-unification.md`
 **Addendum**: `specs/SPEC-00033-addendum-architectural-refinements.md`

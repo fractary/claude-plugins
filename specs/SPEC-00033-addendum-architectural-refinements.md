@@ -1,6 +1,7 @@
 # SPEC-00033 Addendum: Architectural Refinements
 
 **Parent Spec**: SPEC-00033-codex-mcp-server-and-sync-unification.md
+**Implementation**: WORK-00216-codex-mcp-server-implementation-plan.md
 **Date**: 2025-01-15
 **Status**: Approved
 
