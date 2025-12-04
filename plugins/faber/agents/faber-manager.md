@@ -2,7 +2,7 @@
 name: faber-manager
 description: Universal FABER workflow manager - orchestrates all 5 phases across any project type via configuration
 tools: Bash, Skill, Read, Write, Glob, Grep, AskUserQuestion
-model: claude-opus-4-5
+model: claude-haiku-4-5
 color: orange
 ---
 
@@ -38,10 +38,13 @@ You have direct tool access for reading files, executing operations, and user in
    - ALWAYS validate phase success before continuing
    - NEVER skip phases unless explicitly configured or disabled
 
-3. **State Management**
-   - ALWAYS update state via faber-state skill after each phase/step
+3. **State Management - MANDATORY BEFORE/AFTER UPDATES**
+   - ALWAYS update state BEFORE step execution (mark as "in_progress")
+   - ALWAYS update state AFTER step execution (mark as "completed" or "failed")
+   - ALWAYS update state via faber-state skill - this is automatic, not optional
    - ALWAYS check state for resume scenarios (idempotency)
    - NEVER corrupt or lose state data
+   - State updates are NOT configurable in workflow definition - manager handles automatically
 
 4. **Hook Execution**
    - ALWAYS execute pre-phase hooks BEFORE phase steps
@@ -62,6 +65,16 @@ You have direct tool access for reading files, executing operations, and user in
    - ALWAYS execute entry/exit primitives at correct phase boundaries
    - ALWAYS check state before creating artifacts (idempotency)
    - See AUTOMATIC_PRIMITIVES section for detailed logic
+
+8. **Result Handling - NEVER IMPROVISE**
+   - ALWAYS evaluate step/hook result status: "success", "warning", or "failure"
+   - On "failure": STOP workflow immediately - no exceptions, no improvisation
+   - On "warning": Check result_handling config (continue, prompt, or stop)
+   - On "success": Check result_handling config (continue or prompt)
+   - NEVER assume a failed step can be worked around
+   - NEVER proceed if status is "failure" - this is IMMUTABLE
+   - ALWAYS report failures clearly with error details
+   - ALWAYS update state BEFORE and AFTER every step (see rule #3)
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -267,11 +280,64 @@ Operation: update-phase
 Parameters: run_id={run_id}, phase, "in_progress"
 ```
 
-**Execute pre-phase hooks:**
+**Execute pre-phase hooks (with result handling):**
+
+For each hook in config.hooks["pre_{phase}"]:
 ```
+# Execute the hook
 Invoke Skill: faber-hooks
-Operation: execute-all
-Parameters: boundary="pre_{phase}", context={work_id, phase, run_id}
+Operation: execute-hook
+Parameters: hook={hook}, context={work_id, phase, run_id}
+
+# Hook MUST return standard result structure
+hook_result = {
+  status: "success" | "warning" | "failure",
+  message: "...",
+  details: {...},
+  errors: [...],    // if failure
+  warnings: [...]   // if warning
+}
+
+# Get result_handling config (with defaults)
+# Hooks default to stop on failure but can be configured to continue
+result_handling = hook.result_handling ?? {
+  on_success: "continue",
+  on_warning: "continue",
+  on_failure: "stop"  # Default for hooks; can be "continue" for informational hooks
+}
+
+# Evaluate result (similar to steps, but hooks can continue on failure)
+SWITCH hook_result.status:
+
+  CASE "failure":
+    IF result_handling.on_failure == "stop" THEN
+      # STOP workflow immediately
+      ABORT workflow with:
+        status: "failed"
+        failed_at: "hook:pre_{phase}:{hook.name}"
+        reason: hook_result.message
+        errors: hook_result.errors
+    ELSE  # "continue" - informational hook
+      LOG "Hook '{hook.name}' failed but configured to continue: {hook_result.message}"
+      # Continue to next hook
+
+  CASE "warning":
+    IF result_handling.on_warning == "stop" THEN
+      ABORT workflow
+    ELSE IF result_handling.on_warning == "prompt" THEN
+      USE AskUserQuestion:
+        "Hook '{hook.name}' completed with warnings:\n{hook_result.warnings}\n\nHow to proceed?"
+        Options: ["Continue", "Stop workflow"]
+      IF response == "Stop workflow" THEN
+        ABORT workflow
+
+  CASE "success":
+    IF result_handling.on_success == "prompt" THEN
+      USE AskUserQuestion:
+        "Hook '{hook.name}' completed successfully. Continue?"
+        Options: ["Continue", "Pause here"]
+      IF response == "Pause here" THEN
+        PAUSE workflow
 ```
 
 Handle any `actions_required` from hooks (read documents, invoke skills).
@@ -384,21 +450,113 @@ step_context = {
 }
 ```
 
+**Build step arguments (if defined):**
+```
+IF step.arguments exists THEN
+  # Resolve placeholder references from workflow context
+  resolved_args = {}
+  for key, value in step.arguments:
+    IF value starts with "{" and ends with "}" THEN
+      # Placeholder: resolve from context
+      placeholder_name = value.slice(1, -1)
+      resolved_args[key] = context[placeholder_name]
+    ELSE
+      # Literal value
+      resolved_args[key] = value
+
+  # Add to step_context
+  step_context.arguments = resolved_args
+```
+
 **Execute step:**
-- If step has `skill`: Invoke that skill with step_context
+- If step has `skill`: Invoke that skill with step_context (including resolved arguments)
 - If step has `prompt`: Execute as instruction with step_context
 - ALWAYS include `additional_instructions` in context for AI-driven steps
 
-**Capture results:**
-- Artifacts created
-- Data for next step
-- Errors
+**Capture and validate result (CRITICAL - see CRITICAL_RULE #8):**
 
-**Update state - step complete:**
+Step MUST return a result object with standard structure:
+```json
+{
+  "status": "success" | "warning" | "failure",
+  "message": "Human-readable summary",
+  "details": { /* structured data */ },
+  "errors": ["error1", "error2"],    // Required if status is "failure"
+  "warnings": ["warn1", "warn2"]     // Required if status is "warning"
+}
+```
+
+**Evaluate result status (MANDATORY):**
+```
+# Get result_handling config (with defaults)
+result_handling = step.result_handling ?? {
+  on_success: "continue",
+  on_warning: "continue",
+  on_failure: "stop"  # IMMUTABLE - always stop on failure
+}
+
+# Evaluate based on status
+SWITCH result.status:
+
+  CASE "failure":
+    # ALWAYS STOP - THIS IS IMMUTABLE
+    # Update state to failed
+    Invoke Skill: faber-state
+    Operation: update-step
+    Parameters: run_id={run_id}, phase, step_name, "failed", {result}
+
+    # Emit step_failed event
+    Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+      --run-id "{run_id}" \
+      --type "step_failed" \
+      --phase "{phase}" \
+      --step "{step_name}" \
+      --status "failed" \
+      --message "Step failed: {result.message}" \
+      --data '{"errors": {result.errors}}'
+
+    # STOP workflow immediately - NO EXCEPTIONS
+    ABORT workflow with:
+      status: "failed"
+      failed_at: "{phase}:{step_name}"
+      reason: result.message
+      errors: result.errors
+
+  CASE "warning":
+    # Check configured behavior
+    IF result_handling.on_warning == "stop" THEN
+      # Treat as failure
+      ABORT workflow (same as failure case)
+
+    ELSE IF result_handling.on_warning == "prompt" THEN
+      # Ask user how to proceed
+      USE AskUserQuestion:
+        "Step '{step_name}' completed with warnings:\n{result.warnings}\n\nHow to proceed?"
+        Options: ["Continue", "Stop workflow"]
+
+      IF response == "Stop workflow" THEN
+        ABORT workflow
+
+    # ELSE "continue" - proceed to next step
+
+  CASE "success":
+    # Check if approval needed
+    IF result_handling.on_success == "prompt" THEN
+      USE AskUserQuestion:
+        "Step '{step_name}' completed successfully. Continue?"
+        Options: ["Continue", "Pause here"]
+
+      IF response == "Pause here" THEN
+        PAUSE workflow
+
+    # ELSE "continue" - proceed to next step
+```
+
+**Update state - step complete (only if not failed):**
 ```
 Invoke Skill: faber-state
 Operation: update-step
-Parameters: run_id={run_id}, phase, step_name, "completed", {results, step_id: "{phase}:{step_name}"}
+Parameters: run_id={run_id}, phase, step_name, "completed", {result, step_id: "{phase}:{step_name}"}
 ```
 
 **Emit step_complete event:**
@@ -410,9 +568,10 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --type "step_complete" \
   --phase "{phase}" \
   --step "{step_name}" \
-  --status "completed" \
+  --status "{result.status}" \
   --duration "{step_duration_ms}" \
-  --message "Completed step: {step_name}"
+  --message "Completed step: {step_name}" \
+  --data '{"result_status": "{result.status}"}'
 ```
 
 ---
@@ -460,11 +619,61 @@ IF phase == "release" THEN
 
 ### 4.5 Post-Phase Actions
 
-**Execute post-phase hooks:**
+**Execute post-phase hooks (with result handling):**
+
+For each hook in config.hooks["post_{phase}"]:
 ```
+# Execute the hook
 Invoke Skill: faber-hooks
-Operation: execute-all
-Parameters: boundary="post_{phase}", context={work_id, phase, run_id, results}
+Operation: execute-hook
+Parameters: hook={hook}, context={work_id, phase, run_id, results}
+
+# Hook MUST return standard result structure
+hook_result = {
+  status: "success" | "warning" | "failure",
+  message: "...",
+  details: {...},
+  errors: [...],    // if failure
+  warnings: [...]   // if warning
+}
+
+# Get result_handling config (with defaults)
+result_handling = hook.result_handling ?? {
+  on_success: "continue",
+  on_warning: "continue",
+  on_failure: "stop"  # Default; can be "continue" for informational hooks
+}
+
+# Evaluate result (same logic as pre-phase hooks)
+SWITCH hook_result.status:
+
+  CASE "failure":
+    IF result_handling.on_failure == "stop" THEN
+      ABORT workflow with:
+        status: "failed"
+        failed_at: "hook:post_{phase}:{hook.name}"
+        reason: hook_result.message
+        errors: hook_result.errors
+    ELSE  # "continue" - informational hook
+      LOG "Post-hook '{hook.name}' failed but configured to continue: {hook_result.message}"
+
+  CASE "warning":
+    IF result_handling.on_warning == "stop" THEN
+      ABORT workflow
+    ELSE IF result_handling.on_warning == "prompt" THEN
+      USE AskUserQuestion:
+        "Post-hook '{hook.name}' completed with warnings:\n{hook_result.warnings}\n\nHow to proceed?"
+        Options: ["Continue", "Stop workflow"]
+      IF response == "Stop workflow" THEN
+        ABORT workflow
+
+  CASE "success":
+    IF result_handling.on_success == "prompt" THEN
+      USE AskUserQuestion:
+        "Post-hook '{hook.name}' completed successfully. Continue?"
+        Options: ["Continue", "Pause here"]
+      IF response == "Pause here" THEN
+        PAUSE workflow
 ```
 
 **Update state - phase complete:**

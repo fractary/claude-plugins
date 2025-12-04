@@ -42,6 +42,9 @@
     },
     "hooks": {
       "$ref": "#/definitions/hooks"
+    },
+    "glue_execution": {
+      "$ref": "#/definitions/glue_execution"
     }
   },
   "definitions": {
@@ -390,7 +393,145 @@
         "failureMode": {
           "type": "string",
           "enum": ["stop", "continue", "warn"],
-          "description": "How to handle hook failures"
+          "description": "DEPRECATED: Use result_handling instead. How to handle hook failures"
+        },
+        "result_handling": {
+          "$ref": "#/definitions/hook_result_handling"
+        }
+      }
+    },
+    "hook_result_handling": {
+      "type": "object",
+      "description": "Unified result handling for hooks (matches FABER workflow hooks)",
+      "additionalProperties": false,
+      "properties": {
+        "on_success": {
+          "type": "string",
+          "enum": ["continue", "prompt"],
+          "default": "continue",
+          "description": "Action when hook succeeds"
+        },
+        "on_warning": {
+          "type": "string",
+          "enum": ["continue", "prompt", "stop"],
+          "default": "continue",
+          "description": "Action when hook has warnings"
+        },
+        "on_failure": {
+          "type": "string",
+          "enum": ["stop", "continue"],
+          "default": "stop",
+          "description": "Action when hook fails: 'stop' (default) or 'continue' for informational hooks"
+        }
+      }
+    },
+    "glue_execution": {
+      "type": "object",
+      "description": "AWS Glue job execution configuration for standardized argument handling",
+      "additionalProperties": false,
+      "properties": {
+        "default_arguments": {
+          "type": "object",
+          "description": "Default arguments for all Glue jobs. Keys are EXACT argument names (case-sensitive), values support {placeholder} syntax.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "pattern": "^--[A-Za-z][A-Za-z0-9_-]*$",
+            "description": "Argument names must start with -- and use consistent casing"
+          }
+        },
+        "environment_arguments": {
+          "type": "object",
+          "description": "Environment-specific argument overrides",
+          "additionalProperties": {
+            "type": "object",
+            "description": "Arguments for this environment",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "job_arguments": {
+          "type": "object",
+          "description": "Job-specific argument overrides (keyed by job name pattern)",
+          "additionalProperties": {
+            "type": "object",
+            "description": "Arguments for jobs matching this pattern",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "argument_case": {
+          "type": "string",
+          "enum": ["UPPERCASE", "lowercase", "preserve"],
+          "default": "UPPERCASE",
+          "description": "Standard casing for argument names (UPPERCASE recommended for AWS Glue)"
+        },
+        "standard_arguments": {
+          "type": "array",
+          "description": "List of standard arguments that ALL Glue jobs should receive",
+          "items": {
+            "type": "object",
+            "required": ["name", "source"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^--[A-Za-z][A-Za-z0-9_-]*$",
+                "description": "Argument name (e.g., --ENVIRONMENT, --VERSION)"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["context", "config", "literal"],
+                "description": "Where to get the value: context (workflow), config (this file), literal"
+              },
+              "context_key": {
+                "type": "string",
+                "description": "Key in workflow context (when source is 'context')"
+              },
+              "config_path": {
+                "type": "string",
+                "description": "JSON path in config (when source is 'config')"
+              },
+              "value": {
+                "type": "string",
+                "description": "Literal value (when source is 'literal')"
+              },
+              "required": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether this argument is required"
+              }
+            }
+          }
+        },
+        "retry_config": {
+          "type": "object",
+          "description": "Retry configuration for failed Glue jobs",
+          "additionalProperties": false,
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 3,
+              "description": "Maximum retry attempts"
+            },
+            "backoff_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 30,
+              "description": "Initial backoff between retries"
+            },
+            "backoff_multiplier": {
+              "type": "number",
+              "minimum": 1,
+              "default": 2,
+              "description": "Multiplier for exponential backoff"
+            }
+          }
         }
       }
     }
