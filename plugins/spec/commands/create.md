@@ -2,7 +2,7 @@
 name: fractary-spec:create
 description: Create specification from conversation context
 model: claude-opus-4-5
-argument-hint: [--work-id <id>] [--template <type>] [--prompt "<instructions>"]
+argument-hint: [--work-id <id>] [--template <type>] [--prompt "<instructions>"] [--force]
 ---
 
 Create a specification from current conversation context.
@@ -12,6 +12,7 @@ This command uses the full conversation context as the primary source for genera
 **Key Features**:
 - **Context Preservation**: Directly invokes the spec-generator skill to preserve conversation context, bypassing the agent layer
 - **Auto-Detection**: Automatically detects the current issue ID from your branch name (via repo plugin cache) if `--work-id` is not provided
+- **Idempotent**: Safely skips creation if a spec already exists for the issue (use `--force` to override)
 
 ## Usage
 
@@ -24,6 +25,25 @@ This command uses the full conversation context as the primary source for genera
 - `--work-id <id>`: Optional - Link to issue and enrich with issue data (description + all comments). If omitted, automatically detects issue ID from current branch name (e.g., `feat/123-description` → `123`)
 - `--template <type>`: Optional - Override auto-detection (basic|feature|infrastructure|api|bug)
 - `--prompt "<instructions>"`: Optional - Instructions for how to generate the spec from conversation context
+- `--force`: Optional - Force creation of a new spec even if one already exists for the issue. Use this when requirements have evolved and you need a new spec.
+
+## Idempotent Behavior
+
+When a spec already exists for an issue, this command will:
+
+1. **Detect existing specs** matching `WORK-{issue_id}-*.md` pattern
+2. **Read the existing spec(s)** to load context into the session
+3. **Skip creation** and return a "skipped" status
+4. **Show hint** about using `--force` to create additional specs
+
+This makes it safe to embed `/fractary-spec:create` in workflows without worrying about duplicate specs.
+
+**Override with `--force`**:
+When you intentionally need multiple specs (e.g., requirements have evolved), use `--force`:
+```bash
+/fractary-spec:create --work-id 123 --force
+```
+This creates an additional spec with a unique slug (timestamp-suffixed if needed).
 
 ## Auto-Detection Behavior
 
@@ -264,6 +284,27 @@ After discussing phase 1 of a complex feature:
 /fractary-spec:create --work-id 123 --prompt "Phase 1: User Authentication"
 ```
 
+### Force Creation (When Spec Exists)
+When requirements have evolved and you need an additional spec:
+```bash
+/fractary-spec:create --work-id 123 --force
+```
+Creates: `/specs/WORK-00123-{new-slug}-{timestamp}.md`
+
+### Re-running on Existing Issue (Idempotent)
+Running the command twice on the same issue:
+```bash
+# First run - creates spec
+/fractary-spec:create --work-id 123
+# Output: Spec created: /specs/WORK-00123-feature-name.md
+
+# Second run - skips creation
+/fractary-spec:create --work-id 123
+# Output: SKIPPED: Spec already exists
+#         Existing spec: /specs/WORK-00123-feature-name.md
+#         Hint: Use --force to create additional spec
+```
+
 ## Recommended Workflow
 
 **Best Practice**: Work on issue-tied branches and let auto-detection handle linking:
@@ -307,3 +348,14 @@ After discussing phase 1 of a complex feature:
 **Warning: GitHub comment failed**:
 - Non-critical, spec still created
 - Can manually link if needed
+
+**Spec creation skipped unexpectedly**:
+- A spec already exists for this issue
+- View existing spec: check `/specs/WORK-{issue_id}-*.md`
+- To create additional spec: use `--force` flag
+- This is expected behavior (idempotent design)
+
+**Force flag not creating unique filename**:
+- Check if slugs are different (different context = different slug)
+- If slugs collide, timestamp suffix is automatically added
+- Example: `WORK-00123-feature-20251205180000.md`

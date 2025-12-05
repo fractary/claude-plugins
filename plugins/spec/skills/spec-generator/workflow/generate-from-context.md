@@ -91,6 +91,106 @@ Load the configuration:
 - Get `templates.default` (default: spec-basic)
 - Get `integration` settings
 
+## Step 3.5: Check for Existing Specs (Idempotency Check)
+
+**Purpose**: Before creating a new spec, check if specs already exist for the work_id to ensure idempotent behavior.
+
+**When to Run**: Only if `work_id` is provided or was auto-detected in Step 1.
+
+**Process**:
+1. If no `work_id`, skip this step (standalone specs don't have idempotency constraints)
+2. Run `scripts/check-existing-specs.sh` with work_id and specs directory
+3. Parse JSON result to get existing spec list
+4. Decision logic:
+   - If specs exist AND `force=false`: Return "skipped" response with existing specs
+   - If specs exist AND `force=true`: Continue, but flag for unique slug generation
+   - If no specs exist: Continue normally
+
+**Implementation**:
+```bash
+# Only check if we have a work_id
+if [[ -n "$WORK_ID" ]]; then
+    SPECS_DIR="${PROJECT_ROOT}/specs"
+    SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")/../scripts"
+
+    # Run existence check
+    CHECK_RESULT=$("${SCRIPT_DIR}/check-existing-specs.sh" "$WORK_ID" "$SPECS_DIR")
+
+    # Parse result
+    EXISTS=$(echo "$CHECK_RESULT" | jq -r '.exists')
+    COUNT=$(echo "$CHECK_RESULT" | jq -r '.count')
+    EXISTING_SPECS=$(echo "$CHECK_RESULT" | jq -r '.specs[]')
+
+    if [[ "$EXISTS" == "true" ]]; then
+        if [[ "${FORCE:-false}" != "true" ]]; then
+            # Spec exists and force not set - return skipped response
+            echo "ℹ Existing spec(s) found for issue #${WORK_ID}:"
+            echo "$CHECK_RESULT" | jq -r '.specs[]' | while read -r spec; do
+                echo "  - /specs/$spec"
+            done
+            echo ""
+            echo "✓ Reading existing specification(s)..."
+
+            # Read existing specs into context (for session awareness)
+            for spec in $EXISTING_SPECS; do
+                cat "${SPECS_DIR}/${spec}" >/dev/null 2>&1 || true
+            done
+
+            echo "✓ Spec context loaded into session"
+            echo ""
+            echo "⏭ SKIPPED: Spec already exists"
+            echo "Existing spec: /specs/$(echo "$CHECK_RESULT" | jq -r '.specs[0]')"
+            echo "───────────────────────────────────────"
+            echo "Hint: Use --force to create additional spec"
+
+            # Return skipped response and exit
+            exit 0
+        else
+            # Force mode - continue but remember existing specs for unique slug
+            echo "⚠ Existing spec(s) found (force mode enabled):"
+            echo "$CHECK_RESULT" | jq -r '.specs[]' | while read -r spec; do
+                echo "  - /specs/$spec"
+            done
+            echo ""
+            echo "Creating additional specification..."
+            EXISTING_SPEC_COUNT=$COUNT
+        fi
+    else
+        echo "✓ No existing specs for issue #${WORK_ID}"
+    fi
+fi
+```
+
+**Output Messages**:
+
+When spec exists (force=false):
+```
+ℹ Existing spec(s) found for issue #123:
+  - /specs/WORK-00123-user-auth.md
+
+✓ Reading existing specification(s)...
+✓ Spec context loaded into session
+
+⏭ SKIPPED: Spec already exists
+Existing spec: /specs/WORK-00123-user-auth.md
+───────────────────────────────────────
+Hint: Use --force to create additional spec
+```
+
+When spec exists (force=true):
+```
+⚠ Existing spec(s) found (force mode enabled):
+  - /specs/WORK-00123-user-auth.md
+
+Creating additional specification...
+```
+
+**Notes**:
+- This check happens BEFORE issue fetch to avoid unnecessary API calls
+- Reading existing specs ensures session has context even when skipping
+- The `force` flag is passed from command input (default: false)
+- Unique slug generation in Step 8 handles collision avoidance when force=true
+
 ## Step 4: Extract Conversation Context
 
 **This is the primary data source.**
@@ -240,15 +340,35 @@ Where:
 3. Convert to lowercase kebab-case
 4. Example: "User authentication with OAuth" → "user-auth-oauth"
 
+**Unique Slug Generation (when force=true and specs exist)**:
+
+When creating additional specs via `--force`, ensure the slug is unique to avoid filename collisions:
+
+1. Generate base slug from context (as normal)
+2. Check if `WORK-{id}-{slug}.md` already exists
+3. If collision detected, append timestamp suffix: `{slug}-{YYYYMMDDHHmmss}`
+4. Alternative: append incrementing suffix: `{slug}-v2`, `{slug}-v3`, etc.
+
 **Implementation**:
 ```bash
 padded_issue=$(printf "%05d" "$work_id")
-filename="WORK-${padded_issue}-${slug}.md"
+base_filename="WORK-${padded_issue}-${slug}.md"
+
+# Check for collision when force mode
+if [[ "${FORCE:-false}" == "true" && -f "${SPECS_DIR}/${base_filename}" ]]; then
+    # Collision detected - generate unique slug
+    timestamp=$(date +%Y%m%d%H%M%S)
+    filename="WORK-${padded_issue}-${slug}-${timestamp}.md"
+    echo "✓ Unique slug generated: ${slug}-${timestamp}"
+else
+    filename="$base_filename"
+fi
 ```
 
 **Examples**:
 - Issue 123, slug "user-authentication": `WORK-00123-user-authentication.md`
 - Issue 84, slug "api-redesign": `WORK-00084-api-redesign.md`
+- Issue 123, slug "user-authentication" (force, collision): `WORK-00123-user-authentication-20251205180000.md`
 
 ### Without `work_id` (Standalone)
 
