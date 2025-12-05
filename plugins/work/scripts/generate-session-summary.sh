@@ -5,6 +5,9 @@
 # Part of fractary-work plugin - used by auto-comment-on-stop.sh
 # Analyzes commits and changes to determine what was accomplished
 # Enhanced to provide context-aware summaries based on actual work done
+#
+# OPTIMIZATION (Option 3): Detailed analysis is now opt-in via config
+# Set hooks.auto_comment.detailed_analysis: true to enable full code analysis
 
 set -euo pipefail
 
@@ -17,7 +20,16 @@ fi
 # Configuration
 CACHE_DIR="${HOME}/.fractary/work"
 LAST_STOP_FILE="${CACHE_DIR}/last_stop_ref"
+CONFIG_FILE="${HOME}/.fractary/plugins/work/config.json"
 mkdir -p "${CACHE_DIR}"
+
+# =============================================================================
+# OPTIMIZATION: Check if detailed analysis is enabled (default: false for speed)
+# =============================================================================
+DETAILED_ANALYSIS=false
+if [ -f "$CONFIG_FILE" ] && command -v jq &> /dev/null; then
+    DETAILED_ANALYSIS=$(jq -r '.hooks.auto_comment.detailed_analysis // false' "$CONFIG_FILE" 2>/dev/null || echo "false")
+fi
 
 # Get current branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -285,37 +297,45 @@ if [ -n "$COMMITS" ]; then
 fi
 
 # ============================================================================
-# Enhanced Context Analysis
+# Enhanced Context Analysis (CONDITIONAL - only if detailed_analysis enabled)
 # ============================================================================
 
-# Get issue ID
+# Get issue ID (fast - just regex)
 ISSUE_ID=$(get_issue_id_from_branch "$CURRENT_BRANCH")
 
-# Find spec file
+# Initialize variables
 SPEC_FILE=""
-if [ -n "$ISSUE_ID" ]; then
-    SPEC_FILE=$(find_spec_file "$ISSUE_ID")
-fi
-
-# Analyze code changes
 CODE_DIFF=""
-if [ "$COMMIT_COUNT" -gt 0 ]; then
-    CODE_DIFF=$(analyze_code_changes "$LAST_STOP_REF" "$CURRENT_HEAD")
-fi
-
-# Determine workflow state
-WORKFLOW_STATE=$(determine_workflow_state "$COMMITS" "$SPEC_FILE" "$UNCOMMITTED_CHANGES")
-
-# Check if tests exist (use more specific pattern to avoid false positives)
+WORKFLOW_STATE="in-progress"
 HAS_TESTS="no"
-if git ls-files | grep -qE "(test|spec)/.*\.(js|ts|py|go|rb|java|rs)$|_(test|spec)\.(js|ts|py|go|rb|java|rs)$" 2>/dev/null; then
-    HAS_TESTS="yes"
-fi
-
-# Analyze accomplishments
 ACCOMPLISHMENTS=""
-if [ -n "$CODE_DIFF" ]; then
-    ACCOMPLISHMENTS=$(analyze_accomplishments "$CODE_DIFF" "$COMMITS")
+
+# =============================================================================
+# OPTIMIZATION: Only run expensive analysis if detailed_analysis is enabled
+# =============================================================================
+if [ "$DETAILED_ANALYSIS" = "true" ]; then
+    # Find spec file (involves filesystem search)
+    if [ -n "$ISSUE_ID" ]; then
+        SPEC_FILE=$(find_spec_file "$ISSUE_ID")
+    fi
+
+    # Analyze code changes (involves git diff)
+    if [ "$COMMIT_COUNT" -gt 0 ]; then
+        CODE_DIFF=$(analyze_code_changes "$LAST_STOP_REF" "$CURRENT_HEAD")
+    fi
+
+    # Determine workflow state
+    WORKFLOW_STATE=$(determine_workflow_state "$COMMITS" "$SPEC_FILE" "$UNCOMMITTED_CHANGES")
+
+    # Check if tests exist (use more specific pattern to avoid false positives)
+    if git ls-files | grep -qE "(test|spec)/.*\.(js|ts|py|go|rb|java|rs)$|_(test|spec)\.(js|ts|py|go|rb|java|rs)$" 2>/dev/null; then
+        HAS_TESTS="yes"
+    fi
+
+    # Analyze accomplishments (involves multiple grep operations on diff)
+    if [ -n "$CODE_DIFF" ]; then
+        ACCOMPLISHMENTS=$(analyze_accomplishments "$CODE_DIFF" "$COMMITS")
+    fi
 fi
 
 # ============================================================================
@@ -331,28 +351,30 @@ if [ -n "$LAST_STOP_REF" ] && git rev-parse "$LAST_STOP_REF" &>/dev/null; then
 _Changes since last update (from \`$LAST_REF_SHORT\`)_
 
 EOF
-    # Add workflow state indicator
-    case "$WORKFLOW_STATE" in
-        spec-created)
-            echo "**Current State:** 📋 Specification Created"
-            ;;
-        implementing)
-            echo "**Current State:** 🔨 Implementation In Progress"
-            if [ -n "$SPEC_FILE" ]; then
-                echo "_Following spec:_ \`${SPEC_FILE##*/}\`"
-            fi
-            ;;
-        testing)
-            echo "**Current State:** 🧪 Testing Phase"
-            ;;
-        ready-for-review)
-            echo "**Current State:** ✅ Ready for Review"
-            ;;
-        in-progress)
-            echo "**Current State:** 🚧 Work In Progress"
-            ;;
-    esac
-    echo ""
+    # Add workflow state indicator (only if detailed analysis enabled)
+    if [ "$DETAILED_ANALYSIS" = "true" ]; then
+        case "$WORKFLOW_STATE" in
+            spec-created)
+                echo "**Current State:** 📋 Specification Created"
+                ;;
+            implementing)
+                echo "**Current State:** 🔨 Implementation In Progress"
+                if [ -n "$SPEC_FILE" ]; then
+                    echo "_Following spec:_ \`${SPEC_FILE##*/}\`"
+                fi
+                ;;
+            testing)
+                echo "**Current State:** 🧪 Testing Phase"
+                ;;
+            ready-for-review)
+                echo "**Current State:** ✅ Ready for Review"
+                ;;
+            in-progress)
+                echo "**Current State:** 🚧 Work In Progress"
+                ;;
+        esac
+        echo ""
+    fi
     echo "### What Was Done"
     echo ""
 else
@@ -377,8 +399,8 @@ if [ "$COMMIT_COUNT" -gt 0 ]; then
     done
     echo ""
 
-    # Show accomplishments from code analysis
-    if [ -n "$ACCOMPLISHMENTS" ]; then
+    # Show accomplishments from code analysis (only if detailed analysis enabled)
+    if [ "$DETAILED_ANALYSIS" = "true" ] && [ -n "$ACCOMPLISHMENTS" ]; then
         echo "**Key Accomplishments:**"
         echo ""
         echo "$ACCOMPLISHMENTS" | while IFS= read -r line; do
@@ -387,8 +409,8 @@ if [ "$COMMIT_COUNT" -gt 0 ]; then
         echo ""
     fi
 
-    # Show key files changed
-    if [ -n "$CODE_DIFF" ]; then
+    # Show key files changed (only if detailed analysis enabled)
+    if [ "$DETAILED_ANALYSIS" = "true" ] && [ -n "$CODE_DIFF" ]; then
         KEY_FILES=$(echo "$CODE_DIFF" | grep "^diff --git" | sed 's/^diff --git a\///' | sed 's/ b\/.*//' | head -10)
         if [ -n "$KEY_FILES" ]; then
             FILE_COUNT_DISPLAY=$(echo "$KEY_FILES" | wc -l | tr -d ' ')
@@ -456,8 +478,8 @@ if [ "$UNCOMMITTED_CHANGES" -gt 0 ]; then
     echo "- ⚠️ **$UNCOMMITTED_CHANGES uncommitted change(s)** - work in progress"
 fi
 
-# Check if tests exist and suggest running them (use cached result)
-if [ "$HAS_TESTS" = "yes" ]; then
+# Check if tests exist and suggest running them (only if detailed analysis enabled)
+if [ "$DETAILED_ANALYSIS" = "true" ] && [ "$HAS_TESTS" = "yes" ]; then
     echo "- 🧪 **Test validation** - ensure tests pass before merging"
 fi
 
@@ -466,15 +488,17 @@ if [ "$UNCOMMITTED_CHANGES" -eq 0 ]; then
     echo "No obvious outstanding work detected."
 fi
 
-# Next steps section - use context-aware next steps
-cat <<EOF
+# Next steps section - use context-aware next steps (only if detailed analysis enabled)
+if [ "$DETAILED_ANALYSIS" = "true" ]; then
+    cat <<EOF
 
 ### Recommended Next Steps
 
 EOF
 
-# Use the enhanced context-aware next steps
-generate_context_aware_next_steps "$WORKFLOW_STATE" "$ISSUE_ID" "$SPEC_FILE" "$UNCOMMITTED_CHANGES" "$HAS_TESTS"
+    # Use the enhanced context-aware next steps
+    generate_context_aware_next_steps "$WORKFLOW_STATE" "$ISSUE_ID" "$SPEC_FILE" "$UNCOMMITTED_CHANGES" "$HAS_TESTS"
+fi
 
 cat <<EOF
 

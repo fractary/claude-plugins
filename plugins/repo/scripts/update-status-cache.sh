@@ -146,11 +146,15 @@ elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
     ISSUE_ID="${BASH_REMATCH[1]}"
 fi
 
-# Get PR number if PR exists for current branch
-# Optimization: Only query network when needed (saves ~100-200ms per call)
+# =============================================================================
+# OPTIMIZATION: Async PR number lookup (Option 1)
+# PR number is now fetched asynchronously to avoid blocking the main cache update
+# Results are stored in a separate file and merged into the main cache
+# =============================================================================
 PR_NUMBER=""
 CACHED_BRANCH=""
 CACHED_PR_NUMBER=""
+PR_CACHE_FILE="${CACHE_DIR}/pr-${REPO_ID}.cache"
 
 # Read previous cache to check if branch changed
 if [ -f "${CACHE_FILE}" ]; then
@@ -158,34 +162,67 @@ if [ -f "${CACHE_FILE}" ]; then
     CACHED_PR_NUMBER=$(grep '"pr_number"' "${CACHE_FILE}" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
 fi
 
+# Check if async PR lookup result is available
+if [ -f "$PR_CACHE_FILE" ]; then
+    PR_CACHE_BRANCH=$(grep '"branch"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+    PR_CACHE_TIMESTAMP=$(grep '"timestamp"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+
+    # Validate cache freshness (max 5 minutes old)
+    if [ -n "$PR_CACHE_TIMESTAMP" ]; then
+        CACHE_AGE_SECONDS=0
+        if command -v date &> /dev/null; then
+            CACHE_EPOCH=$(date -d "$PR_CACHE_TIMESTAMP" +%s 2>/dev/null || echo "0")
+            NOW_EPOCH=$(date +%s)
+            CACHE_AGE_SECONDS=$((NOW_EPOCH - CACHE_EPOCH))
+        fi
+
+        # Only use cache if fresh (< 300 seconds) and branch matches
+        if [ "$PR_CACHE_BRANCH" = "$BRANCH" ] && [ "$CACHE_AGE_SECONDS" -lt 300 ]; then
+            PR_NUMBER=$(grep '"pr_number"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+        fi
+    fi
+fi
+
 # Detect if we need to refresh PR number:
 # - Branch changed (new branch, need fresh lookup)
 # - Same branch but no cached PR (PR may have been created since last check)
 if [ "$BRANCH" != "$CACHED_BRANCH" ] || [ -z "$CACHED_PR_NUMBER" ]; then
-    # Try gh CLI first (fastest, most reliable)
-    if command -v gh &> /dev/null; then
-        PR_NUMBER=$(gh pr view --json number -q .number 2>/dev/null || echo "")
-    # Fallback: use GitHub API directly (for environments without gh, like web IDE)
-    elif command -v curl &> /dev/null; then
-        # Extract GitHub repo from remote URL
-        REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
-        if [[ -n "$REMOTE_URL" ]]; then
-            # Parse owner/repo from various URL formats
-            # Handles: https://github.com/owner/repo.git, git@github.com:owner/repo.git,
-            #          http://proxy@host/git/owner/repo
-            GITHUB_REPO_PATH=$(echo "$REMOTE_URL" | sed -E 's|.*github\.com[:/]([^/]+/[^/]+)(\.git)?$|\1|; s|.*/git/([^/]+/[^/]+)$|\1|')
+    # If we don't have a PR number yet, use cached one temporarily and start async lookup
+    if [ -z "$PR_NUMBER" ]; then
+        PR_NUMBER="$CACHED_PR_NUMBER"
+    fi
 
-            if [[ -n "$GITHUB_REPO_PATH" ]] && [[ "$GITHUB_REPO_PATH" =~ ^[^/]+/[^/]+$ ]]; then
-                # Query GitHub API for open PRs on this branch
-                # Format: repos/owner/repo/pulls?head=owner:branch&state=open
-                REPO_OWNER=$(echo "$GITHUB_REPO_PATH" | cut -d/ -f1)
-                API_URL="https://api.github.com/repos/${GITHUB_REPO_PATH}/pulls?head=${REPO_OWNER}:${BRANCH}&state=open"
+    # Start async PR lookup in background (non-blocking)
+    # This writes results to PR_CACHE_FILE for next cache read
+    (
+        ASYNC_PR=""
+        # Try gh CLI first (fastest, most reliable)
+        if command -v gh &> /dev/null; then
+            ASYNC_PR=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+        # Fallback: use GitHub API directly (for environments without gh, like web IDE)
+        elif command -v curl &> /dev/null; then
+            # Extract GitHub repo from remote URL
+            REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
+            if [[ -n "$REMOTE_URL" ]]; then
+                # Parse owner/repo from various URL formats
+                GITHUB_REPO_PATH=$(echo "$REMOTE_URL" | sed -E 's|.*github\.com[:/]([^/]+/[^/]+)(\.git)?$|\1|; s|.*/git/([^/]+/[^/]+)$|\1|')
 
-                # Use timeout to prevent hanging (max 3 seconds)
-                PR_NUMBER=$(timeout 3 curl -s "$API_URL" 2>/dev/null | grep -o '"number":[0-9]*' | head -1 | cut -d: -f2 || echo "")
+                if [[ -n "$GITHUB_REPO_PATH" ]] && [[ "$GITHUB_REPO_PATH" =~ ^[^/]+/[^/]+$ ]]; then
+                    REPO_OWNER=$(echo "$GITHUB_REPO_PATH" | cut -d/ -f1)
+                    API_URL="https://api.github.com/repos/${GITHUB_REPO_PATH}/pulls?head=${REPO_OWNER}:${BRANCH}&state=open"
+                    ASYNC_PR=$(timeout 3 curl -s "$API_URL" 2>/dev/null | grep -o '"number":[0-9]*' | head -1 | cut -d: -f2 || echo "")
+                fi
             fi
         fi
-    fi
+
+        # Write async result to PR cache file
+        cat > "${PR_CACHE_FILE}.tmp" <<PREOF
+{"branch": "${BRANCH}", "pr_number": "${ASYNC_PR}", "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"}
+PREOF
+        mv -f "${PR_CACHE_FILE}.tmp" "${PR_CACHE_FILE}" 2>/dev/null || true
+    ) &
+    # Disown to prevent waiting for background job
+    disown 2>/dev/null || true
 else
     # Same branch - reuse cached PR number (fast, no network)
     PR_NUMBER="$CACHED_PR_NUMBER"

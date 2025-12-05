@@ -163,6 +163,26 @@
     }
   },
 
+  "hooks": {
+    "$comment": "Hook configuration for auto-commit and unified stop handler",
+
+    "auto_commit": {
+      "enabled": true,
+      "$comment_enabled": "Enable auto-commit on session stop (default: true)",
+      "throttle_minutes": 0,
+      "$comment_throttle": "Minimum minutes between auto-commits (0 = no throttle)"
+    },
+
+    "unified": {
+      "enabled": false,
+      "$comment_enabled": "Use unified stop handler (combines commit + comment hooks)",
+      "run_commit": true,
+      "$comment_commit": "Run auto-commit in unified mode",
+      "run_comment": true,
+      "$comment_comment": "Run auto-comment in unified mode"
+    }
+  },
+
   "platform_specific": {
     "$comment": "Platform-specific overrides (optional)",
 
