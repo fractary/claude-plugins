@@ -185,6 +185,58 @@ workflow_complete
 }
 ```
 
+## Hook Result Handling
+
+Hooks support the same `result_handling` configuration as steps, with one key difference: hooks can optionally continue on failure for informational hooks.
+
+### Default Hook Result Handling
+
+If `result_handling` is not specified, these defaults are applied:
+
+```json
+{
+  "on_success": "continue",
+  "on_warning": "continue",
+  "on_failure": "stop"
+}
+```
+
+### Informational Hooks (Continue on Failure)
+
+For hooks that provide optional functionality (notifications, telemetry, etc.), you can configure them to continue on failure:
+
+```json
+{
+  "type": "script",
+  "name": "notify-team",
+  "path": "./scripts/notify.sh",
+  "description": "Send team notification",
+  "result_handling": {
+    "on_failure": "continue"
+  }
+}
+```
+
+This ensures notification failures don't block the workflow.
+
+### Warning Prompt for Hooks
+
+To prompt users when hooks complete with warnings:
+
+```json
+{
+  "type": "skill",
+  "name": "security-scan",
+  "skill": "fractary-security:scanner",
+  "description": "Run security scan",
+  "result_handling": {
+    "on_warning": "prompt"
+  }
+}
+```
+
+For complete result handling documentation, see [RESULT-HANDLING.md](./RESULT-HANDLING.md).
+
 ## Best Practices
 
 1. **Use phase-level hooks** - Don't try to hook at sub-step level (not supported in v2.0)
@@ -193,6 +245,7 @@ workflow_complete
 4. **Document purpose** - Always include meaningful descriptions
 5. **Test hooks separately** - Ensure scripts work before adding to workflow
 6. **Handle errors gracefully** - Scripts should return appropriate exit codes
+7. **Use `on_failure: "continue"`** for informational hooks that shouldn't block workflow
 
 ## Hook Logging
 
@@ -212,6 +265,7 @@ All hook executions are logged to `fractary-logs` with event type `hook_execute`
 
 ## See Also
 
-- [CONFIGURATION.md](./CONFIGURATION.md) - Complete configuration guide
+- [CONFIGURATION.md](./configuration.md) - Complete configuration guide
+- [RESULT-HANDLING.md](./RESULT-HANDLING.md) - Complete result handling guide
 - [STATE-TRACKING.md](./STATE-TRACKING.md) - Dual-state tracking guide
 - Example config: `plugins/faber/config/faber.example.json`

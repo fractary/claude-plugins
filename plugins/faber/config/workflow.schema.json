@@ -325,45 +325,44 @@
     },
     "step_result_handling": {
       "type": "object",
-      "description": "Defines behavior for step execution outcomes. on_failure is ALWAYS 'stop' (immutable).",
-      "required": ["on_failure"],
+      "description": "Defines behavior for step execution outcomes. Optional - if omitted, defaults are: on_success='continue', on_warning='continue', on_failure='stop'. on_failure is ALWAYS 'stop' (immutable).",
       "additionalProperties": false,
       "properties": {
         "on_success": {
           "type": "string",
           "enum": ["continue", "prompt"],
           "default": "continue",
-          "description": "Action when step succeeds: 'continue' proceeds automatically, 'prompt' asks user"
+          "description": "Action when step succeeds: 'continue' proceeds automatically (default), 'prompt' asks user"
         },
         "on_warning": {
           "type": "string",
           "enum": ["continue", "prompt", "stop"],
           "default": "continue",
-          "description": "Action when step has warnings: 'continue' proceeds, 'prompt' asks user, 'stop' halts workflow"
+          "description": "Action when step has warnings: 'continue' proceeds (default), 'prompt' asks user with options, 'stop' halts workflow"
         },
         "on_failure": {
           "const": "stop",
-          "description": "IMMUTABLE: Failure ALWAYS stops workflow execution. This cannot be changed."
+          "default": "stop",
+          "description": "IMMUTABLE: Failure ALWAYS stops workflow execution. This cannot be changed. Default: 'stop'"
         }
       }
     },
     "hook_result_handling": {
       "type": "object",
-      "description": "Defines behavior for hook execution outcomes. Hooks can optionally continue on failure for informational hooks.",
-      "required": ["on_failure"],
+      "description": "Defines behavior for hook execution outcomes. Optional - if omitted, defaults are: on_success='continue', on_warning='continue', on_failure='stop'. Hooks can optionally set on_failure='continue' for informational hooks.",
       "additionalProperties": false,
       "properties": {
         "on_success": {
           "type": "string",
           "enum": ["continue", "prompt"],
           "default": "continue",
-          "description": "Action when hook succeeds: 'continue' proceeds automatically, 'prompt' asks user"
+          "description": "Action when hook succeeds: 'continue' proceeds automatically (default), 'prompt' asks user"
         },
         "on_warning": {
           "type": "string",
           "enum": ["continue", "prompt", "stop"],
           "default": "continue",
-          "description": "Action when hook has warnings: 'continue' proceeds, 'prompt' asks user, 'stop' halts workflow"
+          "description": "Action when hook has warnings: 'continue' proceeds (default), 'prompt' asks user with options, 'stop' halts workflow"
         },
         "on_failure": {
           "type": "string",

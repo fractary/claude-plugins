@@ -354,8 +354,65 @@ FABER v2.0 introduces a powerful distinction between documentation and execution
 3. **Use prompt to customize skills** - Avoid forking plugins for small changes
 4. **Keep prompts concise** - Focus on execution details, not full instructions
 
+## Result Handling
+
+Steps and hooks can optionally define `result_handling` to control behavior based on execution outcomes. **If omitted, sensible defaults are applied automatically.**
+
+### Default Result Handling
+
+```json
+{
+  "on_success": "continue",
+  "on_warning": "continue",
+  "on_failure": "stop"
+}
+```
+
+- **on_success**: `"continue"` (proceed automatically) or `"prompt"` (ask user)
+- **on_warning**: `"continue"` (log and proceed), `"prompt"` (ask user with options), or `"stop"` (halt workflow)
+- **on_failure**: `"stop"` (IMMUTABLE for steps - always stops workflow)
+
+### Example: Using Defaults
+
+Most steps don't need explicit result_handling:
+
+```json
+{
+  "name": "implement",
+  "description": "Implement solution"
+}
+```
+
+This uses defaults: continue on success/warning, stop on failure.
+
+### Example: Custom Warning Behavior
+
+Override only what you need:
+
+```json
+{
+  "name": "security-scan",
+  "description": "Run security scan",
+  "result_handling": {
+    "on_warning": "prompt"
+  }
+}
+```
+
+This prompts the user on warnings, but uses defaults for success/failure.
+
+### Intelligent Prompts
+
+When warnings or failures occur with `prompt` behavior, FABER displays intelligent prompts with:
+- Analysis of what went wrong
+- Suggested fixes or actions
+- Options ordered by recommendation (ignore and continue first for warnings, stop workflow recommended for failures)
+
+For complete documentation, see [RESULT-HANDLING.md](./RESULT-HANDLING.md).
+
 ## See Also
 
+- [RESULT-HANDLING.md](./RESULT-HANDLING.md) - Complete result handling guide
 - [HOOKS.md](./HOOKS.md) - Complete guide to phase-level hooks
 - [STATE-TRACKING.md](./STATE-TRACKING.md) - Dual-state tracking guide
 - [MIGRATION-v2.md](./MIGRATION-v2.md) - Migration from v1.x to v2.0
