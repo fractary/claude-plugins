@@ -1,7 +1,7 @@
 ---
 name: fractary-repo:pr-review
 description: Analyze or review a pull request (default: analyze if no action provided)
-model: claude-haiku-4-5
+model: claude-opus-4-5
 argument-hint: '<pr_number> [--action "analyze|approve|request_changes|comment" (default: analyze)] [--comment "<text>"] [--wait-for-ci] [--ci-timeout <seconds>]'
 ---
 
