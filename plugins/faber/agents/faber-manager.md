@@ -457,6 +457,100 @@ IF phase == "build" THEN
     Parameters: artifact_type="branch_name", artifact_value={branch_name}
 ```
 
+**Evaluate Phase Entry: Issue Review**
+
+```
+IF phase == "evaluate" THEN
+  # Issue review runs automatically at the START of evaluate phase
+  # This verifies implementation completeness before other evaluation steps
+  # Uses claude-opus-4-5 model for deep analysis
+
+  LOG "🔍 Running automatic issue review..."
+
+  # Invoke issue-reviewer skill
+  Invoke Skill: issue-reviewer
+  Operation: execute
+  Parameters:
+    work_id: {work_id}
+    run_id: {run_id}
+    issue_data: {issue_data}
+    artifacts: {state.artifacts}
+
+  # Process issue-reviewer result
+  review_result = {
+    status: "success" | "warning" | "failure",
+    message: "...",
+    details: { spec_coverage, requirements_met, quality_issues, ... },
+    errors: [...],    // if failure
+    warnings: [...]   // if warning
+  }
+
+  # Handle review result
+  SWITCH review_result.status:
+
+    CASE "failure":
+      # Implementation incomplete - stop for review
+      LOG "❌ Issue review: FAILURE - Implementation incomplete"
+      LOG "Findings: {review_result.errors}"
+
+      # Record review result in state
+      Invoke Skill: faber-state
+      Operation: update-phase
+      Parameters: run_id={run_id}, phase="evaluate", "requires_review", {review_result}
+
+      # Present to user with options
+      USE AskUserQuestion:
+        question: "Issue review found critical gaps in implementation:\n\n{review_result.errors.join('\n')}\n\nHow would you like to proceed?"
+        header: "Review Failed"
+        options:
+          - label: "Return to Build phase"
+            description: "Go back to Build phase to address the gaps"
+          - label: "Continue anyway (not recommended)"
+            description: "Proceed despite incomplete implementation"
+          - label: "Stop workflow"
+            description: "Stop the workflow to investigate"
+        multiSelect: false
+
+      SWITCH user_selection:
+        CASE "Return to Build phase":
+          # Set up retry context and go back to build
+          failure_context = {
+            retry_reason: "issue_review_failed",
+            findings: review_result.errors,
+            suggestions: review_result.details.suggestions
+          }
+          GOTO phase="build" with failure_context
+
+        CASE "Continue anyway (not recommended)":
+          LOG "⚠️ User chose to continue despite issue review failure"
+          # Continue to evaluate steps
+
+        CASE "Stop workflow":
+          ABORT workflow with:
+            status: "stopped"
+            stopped_at: "evaluate:issue-review"
+            reason: "User stopped after issue review failure"
+
+    CASE "warning":
+      # Implementation complete with minor issues
+      LOG "⚠️ Issue review: WARNING - Minor improvements identified"
+      LOG "Warnings: {review_result.warnings}"
+
+      # Record and continue to evaluate steps
+      Invoke Skill: faber-state
+      Operation: record-artifact
+      Parameters: artifact_type="issue_review", artifact_value={review_result}
+
+    CASE "success":
+      # Implementation verified complete
+      LOG "✅ Issue review: SUCCESS - All requirements implemented"
+
+      # Record and continue to evaluate steps
+      Invoke Skill: faber-state
+      Operation: record-artifact
+      Parameters: artifact_type="issue_review", artifact_value={review_result}
+```
+
 ---
 
 ### 4.3 Execute Phase Steps
@@ -1035,6 +1129,34 @@ Automatic primitives are operations that happen at specific phase boundaries wit
 - Path: `../{repo}-wt-{branch-slug}`
 - Enables parallel development
 - Isolated from main working directory
+
+## Issue Review (Evaluate Entry)
+
+**Trigger**: Entering Evaluate phase
+**Condition**: Always (automatic, no configuration required)
+**Action**: Analyze code changes against issue/spec for implementation completeness
+**Model**: claude-opus-4-5
+
+**Review Analysis:**
+- Gathers issue details, specification, and code changes
+- Analyzes specification compliance (requirements coverage)
+- Evaluates code quality (bugs, best practices, tests)
+- Determines status: success, warning, or failure
+
+**Status Codes:**
+| Status | Meaning | Action |
+|--------|---------|--------|
+| success | All requirements met, no issues | Continue to evaluate steps |
+| warning | Requirements met, minor improvements | Log warnings, continue |
+| failure | Requirements missing or major issues | Stop for user decision |
+
+**On Failure:**
+- Presents user with options: Return to Build, Continue anyway, Stop workflow
+- "Return to Build" triggers retry loop with failure context
+
+**Report:**
+- Saved to `.fractary/plugins/faber/reviews/{work_id}-{timestamp}.md`
+- Optional GitHub comment on issue
 
 ## PR Creation (Release Exit)
 
