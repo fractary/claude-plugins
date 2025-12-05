@@ -163,6 +163,44 @@ else
     done
 fi
 
+# Validate step ID uniqueness across all phases
+echo -e "${BLUE}Validating step ID uniqueness...${NC}"
+echo ""
+
+# Get workflow file path for step ID validation
+WORKFLOW_FILE=$(jq -r --arg id "$WORKFLOW_ID" '.workflows[] | select(.id == $id) | .file' "$CONFIG_FILE" 2>/dev/null)
+
+if [ -n "$WORKFLOW_FILE" ] && [ "$WORKFLOW_FILE" != "null" ]; then
+    # Resolve relative path from config directory
+    CONFIG_DIR=$(dirname "$CONFIG_FILE")
+    WORKFLOW_FULL_PATH="$CONFIG_DIR/${WORKFLOW_FILE#./}"
+
+    if [ -f "$WORKFLOW_FULL_PATH" ]; then
+        set +e
+        STEP_ID_RESULT=$("$SCRIPT_DIR/validate-step-ids.sh" "$WORKFLOW_FULL_PATH" 2>&1)
+        STEP_ID_EXIT=$?
+        set -e
+
+        if [ $STEP_ID_EXIT -ne 0 ]; then
+            echo "$STEP_ID_RESULT" | sed 's/^/  /'
+            ERRORS=$((ERRORS + 1))
+        else
+            # Check for deprecation warnings in output
+            if echo "$STEP_ID_RESULT" | grep -q "Warning:"; then
+                STEP_WARNINGS=$(echo "$STEP_ID_RESULT" | grep -c "Warning:" || true)
+                WARNINGS=$((WARNINGS + STEP_WARNINGS))
+            fi
+            echo -e "  ${GREEN}OK${NC} All step IDs are unique across phases"
+        fi
+    else
+        echo -e "  ${YELLOW}!${NC} Workflow file not found for step ID validation: $WORKFLOW_FULL_PATH"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+else
+    echo -e "  ${BLUE}i${NC} Skipping step ID validation (embedded workflow)"
+fi
+echo ""
+
 # Check hooks
 HOOKS=$(echo "$WORKFLOW" | jq -r '.hooks // empty')
 if [ -n "$HOOKS" ] && [ "$HOOKS" != "null" ]; then

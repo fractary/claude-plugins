@@ -56,7 +56,7 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors, la
       "started_at": "2025-12-03T10:05:00Z",
       "completed_at": "2025-12-03T10:15:00Z",
       "steps": [
-        {"name": "generate-spec", "status": "completed", "started_at": "...", "completed_at": "...", "duration_ms": 5000}
+        {"id": "generate-spec", "status": "completed", "started_at": "...", "completed_at": "...", "duration_ms": 5000}
       ],
       "retry_count": 0
     },
@@ -64,8 +64,8 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors, la
       "status": "in_progress",
       "started_at": "2025-12-03T10:15:00Z",
       "steps": [
-        {"name": "implement", "status": "in_progress", "started_at": "..."},
-        {"name": "commit", "status": "pending"}
+        {"id": "implement", "status": "in_progress", "started_at": "..."},
+        {"id": "commit", "status": "pending"}
       ],
       "retry_count": 0
     },
@@ -81,6 +81,8 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors, la
   "errors": []
 }
 ```
+
+**Note:** Steps in state use `id` field for identification. For backward compatibility with existing state files, `name` field is also supported during reads.
 </STATE_STRUCTURE>
 
 <OPERATIONS>
@@ -202,7 +204,7 @@ Update a step's status within a phase.
 **Parameters:**
 - `run_id` (optional): Run identifier. If provided, updates per-run state.
 - `phase` (required): Phase containing the step
-- `step_name` (required): Name of the step
+- `step_id` (required): Unique identifier of the step (uses `id` field, falls back to `name` for backward compatibility)
 - `status` (required): New status (pending, in_progress, completed, failed, skipped)
 - `data` (optional): Step result data
 
@@ -212,7 +214,7 @@ Update a step's status within a phase.
   "status": "success",
   "operation": "update-step",
   "phase": "build",
-  "step": "implement",
+  "step_id": "implement",
   "step_status": "completed"
 }
 ```
@@ -220,9 +222,11 @@ Update a step's status within a phase.
 **Execution:**
 1. Compute state path from run_id if provided
 2. Read current state
-3. Find step in phase.steps array
+3. Find step in phase.steps array by matching `step_id` (check `id` field first, then `name` for backward compatibility)
 4. Update step status and data
 5. Write state back
+
+**Note:** Step identification uses the `id` field (preferred) or `name` field (deprecated, backward compatible). This ensures consistent step tracking across logging, state management, and step targeting.
 
 ---
 

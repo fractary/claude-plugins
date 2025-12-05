@@ -14,7 +14,8 @@
       "description": "Architect: Generate technical specification. Work type classification is automatic at phase entry.",
       "steps": [
         {
-          "name": "generate-spec",
+          "id": "generate-spec",
+          "name": "Generate Specification",
           "description": "Generate technical specification from requirements (conditional based on work type)",
           "skill": "fractary-spec:spec-generator",
           "config": {
@@ -33,11 +34,13 @@
       "description": "Build: Implement solution and commit changes. Branch creation is automatic at phase entry.",
       "steps": [
         {
-          "name": "implement",
+          "id": "implement",
+          "name": "Implement Solution",
           "description": "Implement the solution based on specification"
         },
         {
-          "name": "commit",
+          "id": "commit",
+          "name": "Create Commit",
           "description": "Commit implementation with semantic commit message",
           "skill": "fractary-repo:commit-creator",
           "config": {
@@ -57,15 +60,18 @@
       "max_retries": 3,
       "steps": [
         {
-          "name": "test",
+          "id": "test",
+          "name": "Run Tests",
           "description": "Run automated tests (unit, integration, e2e)"
         },
         {
-          "name": "review",
+          "id": "review",
+          "name": "Code Review",
           "description": "Code review and quality checks"
         },
         {
-          "name": "fix",
+          "id": "fix",
+          "name": "Fix Issues",
           "description": "Fix issues found during evaluation",
           "conditional": "only_if_failures"
         }
@@ -82,7 +88,8 @@
       "require_approval": true,
       "steps": [
         {
-          "name": "update-docs",
+          "id": "update-docs",
+          "name": "Update Documentation",
           "description": "Update project documentation",
           "skill": "fractary-docs:docs-manager",
           "config": {

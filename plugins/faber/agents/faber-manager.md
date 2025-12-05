@@ -481,9 +481,9 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --run-id "{run_id}" \
   --type "step_start" \
   --phase "{phase}" \
-  --step "{step_name}" \
+  --step "{step_id}" \
   --status "started" \
-  --message "Starting step: {step_name}"
+  --message "Starting step: {step_display}"
 ```
 
 **Update state - step starting (with error handling):**
@@ -491,7 +491,7 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
 # CRITICAL: State update must succeed before step execution
 state_update_result = Invoke Skill: faber-state
   Operation: update-step
-  Parameters: run_id={run_id}, phase, step_name, "in_progress"
+  Parameters: run_id={run_id}, phase, step_id, "in_progress"
 
 # Handle state update failure
 IF state_update_result.status == "failure" OR state_update_result is null THEN
@@ -640,16 +640,16 @@ SWITCH result.status:
     # Update state to failed
     Invoke Skill: faber-state
     Operation: update-step
-    Parameters: run_id={run_id}, phase, step_name, "failed", {result}
+    Parameters: run_id={run_id}, phase, step_id, "failed", {result}
 
     # Emit step_failed event
     Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
       --run-id "{run_id}" \
       --type "step_failed" \
       --phase "{phase}" \
-      --step "{step_name}" \
+      --step "{step_id}" \
       --status "failed" \
-      --message "Step failed: {result.message}" \
+      --message "Step failed: {step_display} - {result.message}" \
       --data '{"errors": {result.errors}}'
 
     # Display intelligent failure prompt with options
@@ -738,7 +738,7 @@ SWITCH result.status:
 ```
 Invoke Skill: faber-state
 Operation: update-step
-Parameters: run_id={run_id}, phase, step_name, "completed", {result, step_id: "{phase}:{step_name}"}
+Parameters: run_id={run_id}, phase, step_id, "completed", {result}
 ```
 
 **Emit step_complete event:**
@@ -749,10 +749,10 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --run-id "{run_id}" \
   --type "step_complete" \
   --phase "{phase}" \
-  --step "{step_name}" \
+  --step "{step_id}" \
   --status "{result.status}" \
   --duration "{step_duration_ms}" \
-  --message "Completed step: {step_name}" \
+  --message "Completed step: {step_display}" \
   --data '{"result_status": "{result.status}"}'
 ```
 

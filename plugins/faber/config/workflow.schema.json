@@ -119,13 +119,16 @@
     },
     "step": {
       "type": "object",
-      "required": ["name"],
       "additionalProperties": false,
       "properties": {
-        "name": {
+        "id": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$",
-          "description": "Step identifier (lowercase, hyphens allowed)"
+          "description": "Unique step identifier (lowercase, hyphens allowed). Required for step targeting, logging, and state tracking. Must be unique across all phases in the workflow."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional human-readable display name for the step. When 'id' is present, 'name' serves as a display name. For backward compatibility with workflows that don't have 'id', 'name' can also serve as the identifier (deprecated pattern: lowercase, hyphens only)."
         },
         "description": {
           "type": "string",
@@ -160,10 +163,20 @@
           "$ref": "#/definitions/step_result_handling"
         }
       },
-      "anyOf": [
-        {"required": ["description"]},
-        {"required": ["prompt"]},
-        {"required": ["skill"]}
+      "allOf": [
+        {
+          "anyOf": [
+            {"required": ["id"]},
+            {"required": ["name"]}
+          ]
+        },
+        {
+          "anyOf": [
+            {"required": ["description"]},
+            {"required": ["prompt"]},
+            {"required": ["skill"]}
+          ]
+        }
       ]
     },
     "hooks": {

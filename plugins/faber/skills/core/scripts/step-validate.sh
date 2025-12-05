@@ -31,6 +31,26 @@ WARNINGS=0
 echo -e "${BLUE}Validating step configuration...${NC}"
 echo ""
 
+# Check step identifier (id field preferred, name field for backward compatibility)
+STEP_ID=$(echo "$STEP_JSON" | jq -r '.id // empty')
+STEP_NAME=$(echo "$STEP_JSON" | jq -r '.name // empty')
+
+if [ -z "$STEP_ID" ] && [ -z "$STEP_NAME" ]; then
+    echo -e "${RED}X${NC} Step must have 'id' field (or 'name' for backward compatibility)" >&2
+    ERRORS=$((ERRORS + 1))
+elif [ -z "$STEP_ID" ] && [ -n "$STEP_NAME" ]; then
+    # Using name as ID - deprecation warning
+    echo -e "${YELLOW}!${NC} Step uses deprecated 'name' field as identifier: $STEP_NAME" >&2
+    echo "   Add explicit 'id' field for forward compatibility" >&2
+    WARNINGS=$((WARNINGS + 1))
+    echo -e "${GREEN}OK${NC} Step identifier (from name): $STEP_NAME"
+elif [ -n "$STEP_ID" ]; then
+    echo -e "${GREEN}OK${NC} Step ID: $STEP_ID"
+    if [ -n "$STEP_NAME" ]; then
+        echo -e "${GREEN}OK${NC} Step display name: $STEP_NAME"
+    fi
+fi
+
 # Check description and/or prompt (at least one recommended)
 DESCRIPTION=$(echo "$STEP_JSON" | jq -r '.description // empty')
 PROMPT=$(echo "$STEP_JSON" | jq -r '.prompt // empty')
