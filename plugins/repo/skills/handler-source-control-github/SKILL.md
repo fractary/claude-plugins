@@ -50,7 +50,7 @@ You receive structured operation requests from core skills:
 
 ```json
 {
-  "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|pull-branch|create-pr|comment-pr|analyze-pr|review-pr|merge-pr|create-tag|push-tag|list-stale-branches",
+  "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|pull-branch|create-pr|comment-pr|analyze-pr|review-pr|merge-pr|create-tag|push-tag|wait-for-ci|list-stale-branches",
   "parameters": {
     // Operation-specific parameters
   },
@@ -542,6 +542,64 @@ Next: {what_calling_skill_should_do}
   "remote": "origin"
 }
 ```
+
+---
+
+## CI Workflow Operations
+
+### wait-for-ci
+**Purpose**: Poll GitHub CI workflows until they complete or timeout
+**Script**: `scripts/poll-ci-workflows.sh`
+**Parameters**:
+- `pr_number` - PR number to check
+- `interval` - Polling interval in seconds (default: 60)
+- `timeout` - Maximum wait time in seconds (default: 900 = 15 minutes)
+- `initial_delay` - Initial delay before first check (default: 10)
+
+**Features**:
+- Polls GitHub API for CI check status
+- Waits until all checks complete (success or failure)
+- Reports progress during polling (unless quiet mode)
+- Timeout protection prevents infinite polling
+- Returns detailed status of each check
+
+**Example Invocation**:
+```bash
+./scripts/poll-ci-workflows.sh "456" --interval 60 --timeout 900 --json
+```
+
+**Output Format**:
+```json
+{
+  "status": "success",
+  "message": "All CI checks passed",
+  "pr_number": 456,
+  "ci_summary": {
+    "total_checks": 3,
+    "passed": 3,
+    "failed": 0,
+    "pending": 0
+  },
+  "elapsed_seconds": 180,
+  "check_details": [
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "is_complete": true,
+      "is_success": true,
+      "is_failure": false
+    }
+  ]
+}
+```
+
+**Exit Codes**:
+- `0` - All CI checks passed
+- `4` - CI checks failed
+- `5` - Timeout reached (CI still pending)
+- `6` - No CI checks configured (neutral)
+- `11` - Authentication error
 
 ---
 

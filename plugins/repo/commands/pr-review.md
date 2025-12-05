@@ -2,7 +2,7 @@
 name: fractary-repo:pr-review
 description: Analyze or review a pull request (default: analyze if no action provided)
 model: claude-haiku-4-5
-argument-hint: '<pr_number> [--action "analyze|approve|request_changes|comment" (default: analyze)] [--comment "<text>"]'
+argument-hint: '<pr_number> [--action "analyze|approve|request_changes|comment" (default: analyze)] [--comment "<text>"] [--wait-for-ci] [--ci-timeout <seconds>]'
 ---
 
 <CONTEXT>
@@ -99,6 +99,9 @@ This command follows the **space-separated** argument syntax (consistent with wo
 - `--action` (enum): Action to perform. One of: `analyze` (default), `approve`, `request_changes`, `comment`
   - If not specified, defaults to `analyze`
 - `--comment` (string): Review comment/feedback, use quotes if multi-word (e.g., "Please add tests for edge cases")
+- `--wait-for-ci` (boolean flag): Wait for CI workflows to complete before analyzing. Useful when running pr-review immediately after pr-create. No value needed, just include the flag.
+- `--ci-timeout` (number): Maximum seconds to wait for CI completion (default: 900 = 15 minutes). Only applies when --wait-for-ci is set.
+- `--ci-interval` (number): Seconds between CI status checks (default: 60). Only applies when --wait-for-ci is set.
 
 **Maps to**: analyze-pr (when action is analyze or not provided) or review-pr (when action is approve/request_changes/comment)
 
@@ -124,6 +127,15 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 # Explicitly analyze PR
 /repo:pr-review 456 --action analyze
+
+# Analyze PR and wait for CI to complete first (useful after pr-create)
+/repo:pr-review 456 --wait-for-ci
+
+# Wait for CI with custom timeout (10 minutes)
+/repo:pr-review 456 --wait-for-ci --ci-timeout 600
+
+# Wait for CI with faster polling (every 30 seconds)
+/repo:pr-review 456 --wait-for-ci --ci-interval 30
 
 # Approve PR
 /repo:pr-review 456 --action approve --comment "LGTM!"
@@ -152,7 +164,22 @@ Use the Task tool with these parameters:
 
 **Example Task tool invocation** (customize based on the specific operation):
 
-**Request structure**:
+**Request structure (analyze with wait-for-ci)**:
+```json
+{
+  "operation": "analyze-pr",
+  "parameters": {
+    "pr_number": "456",
+    "wait_for_ci": true,
+    "ci_polling": {
+      "interval": 60,
+      "timeout": 900
+    }
+  }
+}
+```
+
+**Request structure (review)**:
 ```json
 {
   "operation": "review-pr",
@@ -166,9 +193,10 @@ Use the Task tool with these parameters:
 
 The repo-manager agent will:
 1. Receive the request
-2. Route to appropriate skill based on operation
-3. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Return structured response
+2. If `wait_for_ci` is true, poll until CI completes (or timeout)
+3. Route to appropriate skill based on operation
+4. Execute platform-specific logic (GitHub/GitLab/Bitbucket)
+5. Return structured response
 
 **DO NOT**:
 - ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent"
@@ -206,6 +234,25 @@ Verify the PR number and try again
 - **approve**: Approve the PR (ready to merge)
 - **request_changes**: Request changes before approval
 - **comment**: Add review comment without approval/rejection
+
+## CI Workflow Polling
+
+The `--wait-for-ci` flag enables automatic polling for CI check completion. This is particularly useful when:
+
+1. **After PR creation**: Run `pr-review --wait-for-ci` immediately after `pr-create` to wait for CI checks before analyzing
+2. **FABER workflows**: Allows automated workflows to chain `pr-create` → `pr-review` without manual timing
+3. **Long-running CI**: Projects with extended CI pipelines can use custom timeouts
+
+**Polling behavior**:
+- Default interval: 60 seconds between checks
+- Default timeout: 15 minutes (900 seconds)
+- Configurable via `--ci-interval` and `--ci-timeout`
+
+**Exit conditions**:
+- CI passes: Proceeds to PR analysis
+- CI fails: Reports failure and proceeds to analysis (you'll see CI failure in the analysis)
+- Timeout: Reports warning and proceeds to analysis with pending CI status
+- No CI configured: Proceeds immediately to analysis
 
 ## Comment vs Review
 
