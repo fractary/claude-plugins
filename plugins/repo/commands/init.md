@@ -498,112 +498,54 @@ You detect platform, authentication, and create appropriate configuration files.
 - 12: Network/connectivity error
 </OUTPUTS>
 
-<MANDATORY_IMPLEMENTATION>
-**YOU MUST EXECUTE THESE STEPS - DO NOT SKIP ANY STEP:**
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
 
-**Step 1: Detect platform from git remote**
 ```bash
-# Get git remote URL
-REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-# Detect platform
-if echo "$REMOTE_URL" | grep -qi "github"; then
-    PLATFORM="github"
-elif echo "$REMOTE_URL" | grep -qi "gitlab"; then
-    PLATFORM="gitlab"
-elif echo "$REMOTE_URL" | grep -qi "bitbucket"; then
-    PLATFORM="bitbucket"
-else
-    PLATFORM="github"  # Default to github
-fi
-echo "Detected platform: $PLATFORM"
+bash plugins/repo/skills/config-wizard/scripts/init.sh
 ```
 
-**Step 2: Check if config already exists**
+The script will:
+1. Auto-detect the platform from git remote (github, gitlab, or bitbucket)
+2. Create `.fractary/plugins/repo/config.json` with appropriate defaults
+3. Set secure file permissions (600)
+4. Output JSON with the result
+
+**With options:**
 ```bash
-if [ -f ".fractary/plugins/repo/config.json" ]; then
-    echo "⚠️ Configuration already exists at .fractary/plugins/repo/config.json"
-    # If --force flag was NOT provided, ask user before overwriting
-fi
+# Force overwrite existing config
+bash plugins/repo/skills/config-wizard/scripts/init.sh --force
+
+# Specify platform explicitly
+bash plugins/repo/skills/config-wizard/scripts/init.sh --platform github
 ```
 
-**Step 3: Create the configuration directory and file**
-This is the CRITICAL step - you MUST run these commands:
-```bash
-# Create directory
-mkdir -p .fractary/plugins/repo
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
 
-# Create config file
-cat > .fractary/plugins/repo/config.json << 'EOF'
-{
-  "handlers": {
-    "source_control": {
-      "active": "PLATFORM_PLACEHOLDER",
-      "PLATFORM_PLACEHOLDER": {
-        "token": "$PLATFORM_TOKEN_PLACEHOLDER"
-      }
-    }
-  },
-  "defaults": {
-    "default_branch": "main",
-    "protected_branches": ["main", "master", "production"],
-    "merge_strategy": "no-ff",
-    "push_sync_strategy": "auto-merge"
-  }
-}
-EOF
-
-# Set permissions
-chmod 600 .fractary/plugins/repo/config.json
-```
-
-Replace PLATFORM_PLACEHOLDER with the detected platform (github, gitlab, or bitbucket).
-Replace PLATFORM_TOKEN_PLACEHOLDER with the appropriate token variable ($GITHUB_TOKEN, $GITLAB_TOKEN, or $BITBUCKET_TOKEN).
-
-**Step 4: Verify the file was created**
-```bash
-if [ -f ".fractary/plugins/repo/config.json" ]; then
-    echo "✅ Configuration created: .fractary/plugins/repo/config.json"
-    cat .fractary/plugins/repo/config.json
-else
-    echo "❌ Failed to create configuration file"
-fi
-```
-
-**Step 5: Show success message and next steps**
-Display:
+**Success output should include:**
 ```
 ✅ Fractary Repo Plugin initialized!
 
 Configuration: .fractary/plugins/repo/config.json
-Platform: {detected_platform}
+Platform: {platform from script output}
 
 Next steps:
 1. Ensure your token is set: export {PLATFORM}_TOKEN="your_token"
 2. Test with: /repo:branch-create "test" --work-id 1
 ```
 
-**Step 6: Prompt for permissions setup**
+**Then prompt for permissions setup:**
 Ask: "Would you like to configure permissions now? (y/n)"
 - If 'y': Run `/repo:init-permissions` command
 - If 'n': Show: "Run /repo:init-permissions later to avoid permission prompts"
-
-</MANDATORY_IMPLEMENTATION>
+</IMPLEMENTATION>
 
 <AGENT_INVOCATION>
-**ALTERNATIVE**: For full interactive wizard with validation, invoke the `repo-manager` agent:
-
-```json
-{
-  "operation": "initialize-configuration",
-  "parameters": {
-    "platform": "github|gitlab|bitbucket",
-    "interactive": true,
-    "force": false
-  }
-}
-```
-
-However, if the agent approach fails, fall back to the MANDATORY_IMPLEMENTATION steps above.
+**For full interactive wizard** with token validation and connectivity testing, invoke the `repo-manager` agent with operation `initialize-configuration`. The agent will use the config-wizard skill for the complete interactive experience.
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

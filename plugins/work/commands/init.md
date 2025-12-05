@@ -529,103 +529,36 @@ This is a GitHub-focused MVP - Jira and Linear support is simplified for now.
 - 13: Invalid platform
 </OUTPUTS>
 
-<MANDATORY_IMPLEMENTATION>
-**YOU MUST EXECUTE THESE STEPS - DO NOT SKIP ANY STEP:**
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
 
-**Step 1: Detect platform and repository info from git remote**
 ```bash
-# Get git remote URL
-REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
-
-# Detect platform and extract owner/repo
-if echo "$REMOTE_URL" | grep -qi "github"; then
-    PLATFORM="github"
-    # Extract owner/repo from SSH or HTTPS URL
-    if echo "$REMOTE_URL" | grep -q "git@"; then
-        OWNER_REPO=$(echo "$REMOTE_URL" | sed 's/.*://' | sed 's/\.git$//')
-    else
-        OWNER_REPO=$(echo "$REMOTE_URL" | sed 's|.*github.com/||' | sed 's/\.git$//')
-    fi
-    OWNER=$(echo "$OWNER_REPO" | cut -d'/' -f1)
-    REPO=$(echo "$OWNER_REPO" | cut -d'/' -f2)
-    echo "Detected: GitHub - $OWNER/$REPO"
-else
-    PLATFORM="github"  # Default to github
-    OWNER=""
-    REPO=""
-    echo "Platform: GitHub (default)"
-fi
+bash plugins/work/skills/work-initializer/scripts/init.sh
 ```
 
-**Step 2: Check if config already exists**
+The script will:
+1. Auto-detect the platform from git remote (defaults to GitHub)
+2. Extract owner/repo from GitHub remote URL
+3. Create `.fractary/plugins/work/config.json` with appropriate defaults
+4. Set secure file permissions (600)
+5. Output JSON with the result
+
+**With options:**
 ```bash
-if [ -f ".fractary/plugins/work/config.json" ]; then
-    echo "⚠️ Configuration already exists at .fractary/plugins/work/config.json"
-    # If --force flag was NOT provided, ask user before overwriting
-fi
+# Force overwrite existing config
+bash plugins/work/skills/work-initializer/scripts/init.sh --force
+
+# Specify platform explicitly
+bash plugins/work/skills/work-initializer/scripts/init.sh --platform github
 ```
 
-**Step 3: Create the configuration directory and file**
-This is the CRITICAL step - you MUST run these commands:
-```bash
-# Create directory
-mkdir -p .fractary/plugins/work
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
 
-# Create config file for GitHub (most common case)
-cat > .fractary/plugins/work/config.json << 'EOF'
-{
-  "version": "2.0",
-  "project": {
-    "issue_system": "github",
-    "repository": "OWNER/REPO"
-  },
-  "handlers": {
-    "work-tracker": {
-      "active": "github",
-      "github": {
-        "owner": "OWNER",
-        "repo": "REPO",
-        "api_url": "https://api.github.com",
-        "classification": {
-          "type_labels": {
-            "feature": "type: feature",
-            "bug": "type: bug",
-            "chore": "type: chore"
-          }
-        },
-        "states": {
-          "open": "open",
-          "in_progress": "in_progress",
-          "closed": "closed"
-        }
-      }
-    }
-  },
-  "defaults": {
-    "auto_assign": true,
-    "template_issue_type": "feature"
-  }
-}
-EOF
-
-# Set permissions
-chmod 600 .fractary/plugins/work/config.json
-```
-
-Replace OWNER and REPO with the detected values from Step 1.
-
-**Step 4: Verify the file was created**
-```bash
-if [ -f ".fractary/plugins/work/config.json" ]; then
-    echo "✅ Configuration created: .fractary/plugins/work/config.json"
-    cat .fractary/plugins/work/config.json
-else
-    echo "❌ Failed to create configuration file"
-fi
-```
-
-**Step 5: Show success message and next steps**
-Display:
+**Success output should include:**
 ```
 ✅ Fractary Work Plugin initialized!
 
@@ -637,24 +570,10 @@ Next steps:
 1. Ensure your token is set: export GITHUB_TOKEN="your_token"
 2. Test with: /work:issue-fetch 1
 ```
-
-</MANDATORY_IMPLEMENTATION>
+</IMPLEMENTATION>
 
 <AGENT_INVOCATION>
-**ALTERNATIVE**: For full interactive wizard with validation, invoke the `work-manager` agent:
-
-```json
-{
-  "operation": "initialize-configuration",
-  "parameters": {
-    "platform": "github|jira|linear",
-    "interactive": true,
-    "force": false
-  }
-}
-```
-
-However, if the agent approach fails, fall back to the MANDATORY_IMPLEMENTATION steps above.
+**For full interactive wizard** with token validation and Jira/Linear support, invoke the `work-manager` agent with operation `initialize-configuration`. The agent will use the work-initializer skill for the complete interactive experience.
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

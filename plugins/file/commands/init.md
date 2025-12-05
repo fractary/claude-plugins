@@ -310,64 +310,34 @@ Success: Configuration saved message with next steps
 Failure: Error message with troubleshooting guidance
 </OUTPUTS>
 
-<MANDATORY_IMPLEMENTATION>
-**YOU MUST EXECUTE THESE STEPS - DO NOT SKIP ANY STEP:**
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
 
-**Step 1: Check if config already exists**
 ```bash
-if [ -f ".fractary/plugins/file/config.json" ]; then
-    echo "⚠️ Configuration already exists at .fractary/plugins/file/config.json"
-    # If --force flag was NOT provided, ask user before overwriting
-fi
+bash plugins/file/skills/config-wizard/scripts/init.sh
 ```
 
-**Step 2: Create the configuration directory**
-This is the CRITICAL step - you MUST run these commands:
+The script will:
+1. Create `.fractary/plugins/file/config.json` with local handler as default
+2. Set secure file permissions (600)
+3. Output JSON with the result
+
+**With options:**
 ```bash
-# Create directory
-mkdir -p .fractary/plugins/file
+# Force overwrite existing config
+bash plugins/file/skills/config-wizard/scripts/init.sh --force
+
+# Specify handler (for future use)
+bash plugins/file/skills/config-wizard/scripts/init.sh --handler local
 ```
 
-**Step 3: Create the configuration file with local handler (default)**
-```bash
-# Create config file with local handler as default
-cat > .fractary/plugins/file/config.json << 'EOF'
-{
-  "schema_version": "1.0",
-  "active_handler": "local",
-  "handlers": {
-    "local": {
-      "base_path": ".",
-      "create_directories": true,
-      "permissions": "0755"
-    }
-  },
-  "global_settings": {
-    "retry_attempts": 3,
-    "retry_delay_ms": 1000,
-    "timeout_seconds": 300,
-    "verify_checksums": true,
-    "parallel_uploads": 4
-  }
-}
-EOF
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
 
-# Set permissions
-chmod 600 .fractary/plugins/file/config.json
-```
-
-**Step 4: Verify the file was created**
-```bash
-if [ -f ".fractary/plugins/file/config.json" ]; then
-    echo "✅ Configuration created: .fractary/plugins/file/config.json"
-    cat .fractary/plugins/file/config.json
-else
-    echo "❌ Failed to create configuration file"
-fi
-```
-
-**Step 5: Show success message and next steps**
-Display:
+**Success output should include:**
 ```
 ✅ Fractary File Plugin initialized!
 
@@ -382,5 +352,4 @@ Next steps:
 
 **Adding Additional Handlers:**
 To add S3, R2, or other handlers, edit `.fractary/plugins/file/config.json` and add handler sections from the example config at `plugins/file/config/config.example.json`.
-
-</MANDATORY_IMPLEMENTATION>
+</IMPLEMENTATION>

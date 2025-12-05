@@ -120,102 +120,33 @@ After initialization, review and customize:
 
 ---
 
-<MANDATORY_IMPLEMENTATION>
-**YOU MUST EXECUTE THESE STEPS - DO NOT SKIP ANY STEP:**
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
 
-**Step 1: Check if config already exists**
 ```bash
-if [ -f ".fractary/plugins/spec/config.json" ]; then
-    echo "⚠️ Configuration already exists at .fractary/plugins/spec/config.json"
-    # Safe to continue - will not overwrite
-fi
+bash plugins/spec/skills/spec-initializer/scripts/init.sh
 ```
 
-**Step 2: Create the configuration directory and specs directory**
-This is the CRITICAL step - you MUST run these commands:
-```bash
-# Create plugin config directory
-mkdir -p .fractary/plugins/spec
+The script will:
+1. Create `.fractary/plugins/spec/config.json` with defaults
+2. Create `specs/` directory for spec files
+3. Create `.fractary/plugins/spec/archive-index.json` for tracking
+4. Set secure file permissions (600)
+5. Output JSON with the result
 
-# Create specs directory
-mkdir -p specs
+**With options:**
+```bash
+# Force overwrite existing config
+bash plugins/spec/skills/spec-initializer/scripts/init.sh --force
 ```
 
-**Step 3: Create the configuration file**
-```bash
-# Create config file
-cat > .fractary/plugins/spec/config.json << 'EOF'
-{
-  "schema_version": "1.0",
-  "storage": {
-    "local_path": "/specs",
-    "cloud_archive_path": "archive/specs/{year}/{spec_id}.md",
-    "archive_index": {
-      "local_cache": ".fractary/plugins/spec/archive-index.json",
-      "cloud_backup": "archive/specs/.archive-index.json"
-    }
-  },
-  "naming": {
-    "issue_specs": {
-      "prefix": "WORK",
-      "digits": 5,
-      "phase_format": "numeric",
-      "phase_separator": "-"
-    },
-    "standalone_specs": {
-      "prefix": "SPEC",
-      "digits": 4,
-      "auto_increment": true,
-      "start_from": null
-    }
-  },
-  "archive": {
-    "strategy": "lifecycle",
-    "auto_archive_on": {
-      "issue_close": true,
-      "pr_merge": true,
-      "faber_release": true
-    }
-  },
-  "integration": {
-    "work_plugin": "fractary-work",
-    "file_plugin": "fractary-file",
-    "link_to_issue": true
-  },
-  "templates": {
-    "default": "spec-basic"
-  }
-}
-EOF
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
 
-# Set permissions
-chmod 600 .fractary/plugins/spec/config.json
-```
-
-**Step 4: Create empty archive index**
-```bash
-# Create archive index file
-echo '{"specs": [], "last_updated": null}' > .fractary/plugins/spec/archive-index.json
-chmod 600 .fractary/plugins/spec/archive-index.json
-```
-
-**Step 5: Verify the files were created**
-```bash
-if [ -f ".fractary/plugins/spec/config.json" ]; then
-    echo "✅ Configuration created: .fractary/plugins/spec/config.json"
-else
-    echo "❌ Failed to create configuration file"
-fi
-
-if [ -d "specs" ]; then
-    echo "✅ Specs directory created: specs/"
-else
-    echo "❌ Failed to create specs directory"
-fi
-```
-
-**Step 6: Show success message and next steps**
-Display:
+**Success output should include:**
 ```
 ✅ Fractary Spec Plugin initialized!
 
@@ -227,5 +158,4 @@ Next steps:
 1. Generate your first spec: /fractary-spec:create --work-id 123
 2. Review configuration: cat .fractary/plugins/spec/config.json
 ```
-
-</MANDATORY_IMPLEMENTATION>
+</IMPLEMENTATION>
