@@ -88,25 +88,25 @@ Manager expects but doesn't always get:
 
 ### 1. Response Format Specification
 
-- [ ] **AC1.1**: Define standard response object schema:
-  - [ ] `status` (required, enum): "success" | "warning" | "failure"
-  - [ ] `message` (required, string): Human-readable summary (1-2 sentences)
-  - [ ] `details` (optional, object): Operation-specific details
-  - [ ] `errors` (optional, array): List of error messages (if status="failure")
-  - [ ] `warnings` (optional, array): List of warning messages (if status="warning")
-  - [ ] `error_analysis` (optional, string): Analysis of what went wrong (root cause)
-  - [ ] `warning_analysis` (optional, string): Analysis of warnings (impact assessment)
-  - [ ] `suggested_fixes` (optional, array): List of suggested fixes (for failures/warnings)
+- [x] **AC1.1**: Define standard response object schema:
+  - [x] `status` (required, enum): "success" | "warning" | "failure"
+  - [x] `message` (required, string): Human-readable summary (1-2 sentences)
+  - [x] `details` (optional, object): Operation-specific details
+  - [x] `errors` (optional, array): List of error messages (if status="failure")
+  - [x] `warnings` (optional, array): List of warning messages (if status="warning")
+  - [x] `error_analysis` (optional, string): Analysis of what went wrong (root cause)
+  - [x] `warning_analysis` (optional, string): Analysis of warnings (impact assessment)
+  - [x] `suggested_fixes` (optional, array): List of suggested fixes (for failures/warnings)
 
-- [ ] **AC1.2**: Document response format in:
-  - [ ] Create `plugins/faber/docs/RESPONSE-FORMAT.md` with full schema
-  - [ ] Add JSON schema file: `plugins/faber/config/schemas/skill-response.schema.json`
+- [x] **AC1.2**: Document response format in:
+  - [x] Create `plugins/faber/docs/RESPONSE-FORMAT.md` with full schema
+  - [x] Add JSON schema file: `plugins/faber/config/schemas/skill-response.schema.json`
   - [ ] Update faber-manager.md with response handling logic
-  - [ ] Add examples for success/warning/failure cases
+  - [x] Add examples for success/warning/failure cases
 
-- [ ] **AC1.3**: Validate response format:
-  - [ ] Create `plugins/faber/skills/response-validator/` skill
-  - [ ] Validates all step/hook responses against schema
+- [x] **AC1.3**: Validate response format:
+  - [x] Create `plugins/faber/skills/response-validator/` skill
+  - [x] Validates all step/hook responses against schema
   - [ ] Returns error if response malformed
   - [ ] Provides helpful error message for common mistakes
 
@@ -135,28 +135,28 @@ Manager expects but doesn't always get:
 
 ### 3. FABER Plugin Skill Updates
 
-- [ ] **AC3.1**: Identify all FABER plugin skills needing updates:
-  - [ ] List skills in `plugins/faber/skills/` that don't return status responses
-  - [ ] Prioritize by frequency and criticality
-  - [ ] Create migration checklist (see implementation plan)
+- [x] **AC3.1**: Identify all FABER plugin skills needing updates:
+  - [x] List skills in `plugins/faber/skills/` that don't return status responses
+  - [x] Prioritize by frequency and criticality
+  - [x] Create migration checklist (see implementation plan)
 
-- [ ] **AC3.2**: Update core FABER skills:
-  - [ ] `frame-phase` skill
-  - [ ] `architect-phase` skill (spec generator)
-  - [ ] `build-phase` skill
-  - [ ] `evaluate-phase` skill
-  - [ ] `release-phase` skill
-  - [ ] `branch-creator` (automatic primitive)
-  - [ ] `pr-creator` (automatic primitive)
-  - [ ] `issue-fetcher` (automatic primitive)
+- [x] **AC3.2**: Update core FABER skills:
+  - [x] `frame-phase` skill (updated OUTPUTS section)
+  - [x] `architect-phase` skill (updated OUTPUTS section)
+  - [x] `build-phase` skill (updated OUTPUTS section)
+  - [x] `evaluate-phase` skill (updated OUTPUTS section)
+  - [x] `release-phase` skill (updated OUTPUTS section)
+  - [ ] `branch-creator` (automatic primitive - in repo plugin)
+  - [ ] `pr-creator` (automatic primitive - in repo plugin)
+  - [ ] `issue-fetcher` (automatic primitive - in work plugin)
 
-- [ ] **AC3.3**: Each skill update includes:
-  - [ ] Return status: "success", "warning", or "failure"
-  - [ ] Return operation-specific details in `details` field
-  - [ ] Include error_analysis if status="failure"
-  - [ ] Include suggested_fixes if fixable
-  - [ ] Update skill documentation with response format
-  - [ ] Add examples to skill docs
+- [x] **AC3.3**: Each skill update includes:
+  - [x] Return status: "success", "warning", or "failure"
+  - [x] Return operation-specific details in `details` field
+  - [x] Include error_analysis if status="failure"
+  - [x] Include suggested_fixes if fixable
+  - [x] Update skill documentation with response format
+  - [x] Add examples to skill docs
 
 - [ ] **AC3.4**: Update fractary-spec plugin skill:
   - [ ] spec-generator skill returns standardized response
@@ -165,23 +165,23 @@ Manager expects but doesn't always get:
 
 ### 4. Cross-Project Skill Guidance
 
-- [ ] **AC4.1**: Create response format best practices guide:
-  - [ ] Create `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md`
-  - [ ] Include response object examples (success/warning/failure)
-  - [ ] Provide skill template with correct response format
-  - [ ] Include common patterns and anti-patterns
-  - [ ] Add error/warning categorization guidance
+- [x] **AC4.1**: Create response format best practices guide:
+  - [x] Create `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md`
+  - [x] Include response object examples (success/warning/failure)
+  - [x] Provide skill template with correct response format
+  - [x] Include common patterns and anti-patterns
+  - [x] Add error/warning categorization guidance
 
-- [ ] **AC4.2**: Provide skill development template:
-  - [ ] Create `plugins/faber/templates/skill-response-template.md`
-  - [ ] Shows correct response structure
-  - [ ] Includes commented examples
-  - [ ] Can be referenced by project skill developers
+- [x] **AC4.2**: Provide skill development template:
+  - [x] Create `plugins/faber/templates/skill-response-template.md`
+  - [x] Shows correct response structure
+  - [x] Includes commented examples
+  - [x] Can be referenced by project skill developers
 
-- [ ] **AC4.3**: Documentation updates:
-  - [ ] Update `docs/standards/FRACTARY-PLUGIN-STANDARDS.md` to include response format
-  - [ ] Add response format section to skill development guide
-  - [ ] Include migration checklist for existing skills
+- [x] **AC4.3**: Documentation updates:
+  - [x] Update `docs/standards/FRACTARY-PLUGIN-STANDARDS.md` to include response format
+  - [x] Add response format section to skill development guide
+  - [x] Include migration checklist for existing skills
 
 ### 5. Audit and Validation Tooling
 

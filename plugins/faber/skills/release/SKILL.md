@@ -52,14 +52,66 @@ See `workflow/basic.md` for detailed steps.
 </WORKFLOW>
 
 <OUTPUTS>
+Return Release results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**Success Response:**
 ```json
 {
   "status": "success",
-  "phase": "release",
-  "pr_url": "https://github.com/org/repo/pull/456",
-  "pr_number": 456,
-  "merge_status": "merged|open",
-  "closed_work": true
+  "message": "Release phase completed - PR created and work item closed",
+  "details": {
+    "phase": "release",
+    "pr_url": "https://github.com/org/repo/pull/456",
+    "pr_number": 456,
+    "merge_status": "open",
+    "work_item_closed": true
+  }
+}
+```
+
+**Warning Response** (PR created but work item not closed):
+```json
+{
+  "status": "warning",
+  "message": "Release phase completed with warnings - PR created but work item not closed",
+  "details": {
+    "phase": "release",
+    "pr_url": "https://github.com/org/repo/pull/456",
+    "pr_number": 456,
+    "merge_status": "open",
+    "work_item_closed": false
+  },
+  "warnings": [
+    "Could not close work item #123 - permission denied",
+    "Work item may need manual closure"
+  ],
+  "warning_analysis": "The pull request was created successfully but the work item could not be automatically closed",
+  "suggested_fixes": [
+    "Manually close issue #123 after PR is merged",
+    "Check GitHub token has 'issues:write' permission"
+  ]
+}
+```
+
+**Failure Response:**
+```json
+{
+  "status": "failure",
+  "message": "Release phase failed - could not create pull request",
+  "details": {
+    "phase": "release"
+  },
+  "errors": [
+    "No commits to create PR from",
+    "Branch 'feat/123-export' does not exist on remote"
+  ],
+  "error_analysis": "The pull request could not be created because the branch has not been pushed to the remote repository",
+  "suggested_fixes": [
+    "Push local commits: git push -u origin feat/123-export",
+    "Verify branch exists locally with: git branch -a"
+  ]
 }
 ```
 </OUTPUTS>

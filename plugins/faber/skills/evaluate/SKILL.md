@@ -50,25 +50,66 @@ See `workflow/basic.md` for detailed steps.
 </WORKFLOW>
 
 <OUTPUTS>
-**GO Decision:**
+Return Evaluate results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**GO Decision (Success):**
 ```json
 {
   "status": "success",
-  "phase": "evaluate",
-  "decision": "go",
-  "test_results": {"passed": 42, "failed": 0},
-  "review_results": {"issues": 0}
+  "message": "Evaluate phase completed - all tests pass, ready for release",
+  "details": {
+    "phase": "evaluate",
+    "decision": "go",
+    "test_results": {"total": 42, "passed": 42, "failed": 0},
+    "review_results": {"issues": 0, "warnings": 0}
+  }
 }
 ```
 
-**NO-GO Decision:**
+**NO-GO Decision (Warning - triggers retry):**
 ```json
 {
-  "status": "success",
-  "phase": "evaluate",
-  "decision": "no-go",
-  "test_results": {"passed": 40, "failed": 2},
-  "failure_reasons": ["Test X failed", "Linting errors in file.py"]
+  "status": "warning",
+  "message": "Evaluate phase completed - issues found, returning to build",
+  "details": {
+    "phase": "evaluate",
+    "decision": "no-go",
+    "test_results": {"total": 42, "passed": 40, "failed": 2},
+    "review_results": {"issues": 3, "warnings": 5}
+  },
+  "warnings": [
+    "test_auth_login: AssertionError on line 45",
+    "test_export_csv: TimeoutError after 30s",
+    "Linting: unused variable in utils.py"
+  ],
+  "warning_analysis": "Two tests are failing due to authentication changes, and there are code quality issues to address",
+  "suggested_fixes": [
+    "Update test_auth_login to use new auth flow",
+    "Increase timeout for test_export_csv",
+    "Remove unused variable in utils.py:23"
+  ]
+}
+```
+
+**Failure Response** (evaluation itself failed):
+```json
+{
+  "status": "failure",
+  "message": "Evaluate phase failed - could not run tests",
+  "details": {
+    "phase": "evaluate"
+  },
+  "errors": [
+    "Test framework not found: pytest",
+    "Database connection failed during test setup"
+  ],
+  "error_analysis": "The test suite could not be executed due to missing dependencies and infrastructure issues",
+  "suggested_fixes": [
+    "Run 'pip install pytest' to install test framework",
+    "Check database connection string in test config"
+  ]
 }
 ```
 </OUTPUTS>

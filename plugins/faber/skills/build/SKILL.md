@@ -51,13 +51,65 @@ See `workflow/basic.md` for detailed steps.
 </WORKFLOW>
 
 <OUTPUTS>
+Return Build results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**Success Response:**
 ```json
 {
   "status": "success",
-  "phase": "build",
-  "commits": ["sha1", "sha2"],
-  "files_changed": ["file1.py", "file2.ts"],
-  "retry_count": 0
+  "message": "Build phase completed - implementation committed successfully",
+  "details": {
+    "phase": "build",
+    "commits": ["sha1", "sha2"],
+    "files_changed": ["file1.py", "file2.ts"],
+    "retry_count": 0
+  }
+}
+```
+
+**Warning Response** (build succeeded with minor issues):
+```json
+{
+  "status": "warning",
+  "message": "Build phase completed with warnings",
+  "details": {
+    "phase": "build",
+    "commits": ["sha1"],
+    "files_changed": ["file1.py"],
+    "retry_count": 0
+  },
+  "warnings": [
+    "Deprecated API usage detected in file1.py",
+    "TODO comments remain in implementation"
+  ],
+  "warning_analysis": "Implementation is complete but uses deprecated patterns that should be addressed",
+  "suggested_fixes": [
+    "Update API calls to use new interface",
+    "Resolve TODO comments before release"
+  ]
+}
+```
+
+**Failure Response:**
+```json
+{
+  "status": "failure",
+  "message": "Build phase failed - implementation could not be completed",
+  "details": {
+    "phase": "build",
+    "retry_count": 1
+  },
+  "errors": [
+    "Type error in file1.py: Expected str, got int",
+    "Import error: Module 'xyz' not found"
+  ],
+  "error_analysis": "Implementation failed due to type mismatches and missing dependencies",
+  "suggested_fixes": [
+    "Fix type annotation on line 45 of file1.py",
+    "Add 'xyz' to requirements.txt and run pip install"
+  ]
 }
 ```
 </OUTPUTS>

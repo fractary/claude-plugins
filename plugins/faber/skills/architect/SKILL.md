@@ -167,30 +167,69 @@ Architect skill is complete when:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-Return Architect results to workflow-manager:
+Return Architect results to workflow-manager using the **standard FABER response format**.
 
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**Success Response:**
 ```json
 {
   "status": "success",
-  "phase": "architect",
-  "spec_file": ".faber/specs/abc12345-add-export.md",
-  "commit_sha": "a1b2c3d4e5f6",
-  "spec_url": "https://github.com/org/repo/blob/feat/123-add-export/.faber/specs/abc12345-add-export.md",
-  "key_decisions": [
-    "Use REST API for export",
-    "Support CSV and JSON formats",
-    "Implement async processing for large exports"
+  "message": "Architect phase completed - specification generated and committed",
+  "details": {
+    "phase": "architect",
+    "spec_file": ".faber/specs/abc12345-add-export.md",
+    "commit_sha": "a1b2c3d4e5f6",
+    "spec_url": "https://github.com/org/repo/blob/feat/123-add-export/.faber/specs/abc12345-add-export.md",
+    "key_decisions": [
+      "Use REST API for export",
+      "Support CSV and JSON formats",
+      "Implement async processing for large exports"
+    ]
+  }
+}
+```
+
+**Warning Response** (spec generated but push failed):
+```json
+{
+  "status": "warning",
+  "message": "Architect phase completed with warnings - spec not pushed to remote",
+  "details": {
+    "phase": "architect",
+    "spec_file": ".faber/specs/abc12345-add-export.md",
+    "commit_sha": "a1b2c3d4e5f6"
+  },
+  "warnings": [
+    "Failed to push specification to remote repository",
+    "Remote branch may need to be set up"
+  ],
+  "warning_analysis": "The specification was generated and committed locally but not pushed. Build phase can proceed.",
+  "suggested_fixes": [
+    "Run 'git push -u origin <branch>' to set upstream",
+    "Check remote repository permissions"
   ]
 }
 ```
 
-On error:
+**Failure Response:**
 ```json
 {
-  "status": "error",
-  "phase": "architect",
-  "error": "Failed to generate specification",
-  "error_code": 1
+  "status": "failure",
+  "message": "Architect phase failed - could not generate specification",
+  "details": {
+    "phase": "architect"
+  },
+  "errors": [
+    "Insufficient context to generate specification",
+    "Work item description is empty"
+  ],
+  "error_analysis": "The specification could not be generated because the work item lacks sufficient detail. A clear description of requirements is needed.",
+  "suggested_fixes": [
+    "Update the work item with a detailed description",
+    "Add acceptance criteria to the work item",
+    "Provide technical context in work item comments"
+  ]
 }
 ```
 </OUTPUTS>
