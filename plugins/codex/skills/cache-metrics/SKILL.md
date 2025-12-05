@@ -156,7 +156,7 @@ Recommendations:
   },
   "recommendations": [
     "Consider enabling compression to save disk space",
-    "Clear 14 expired documents: /codex:cache-clear --expired"
+    "Clear 14 expired documents: /fractary-codex:cache-clear --expired"
   ]
 }
 ```
@@ -186,7 +186,7 @@ After showing metrics, provide context:
    - Review if all sources are needed
 
 3. **If many expired docs** (> 20%):
-   - Run `/codex:cache-clear --expired`
+   - Run `/fractary-codex:cache-clear --expired`
    - Consider shorter TTL for frequently changing docs
    - Or longer TTL for stable docs
 

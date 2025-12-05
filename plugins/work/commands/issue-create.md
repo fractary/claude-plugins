@@ -95,22 +95,22 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Always use quotes for multi-word values:**
 ```bash
-✅ /work:issue-create "Title with spaces" --body "Description with spaces"
-✅ /work:issue-create "Bug fix" --type bug --label high-priority
+✅ /fractary-work:issue-create "Title with spaces" --body "Description with spaces"
+✅ /fractary-work:issue-create "Bug fix" --type bug --label high-priority
 
-❌ /work:issue-create Title with spaces --body Description with spaces
+❌ /fractary-work:issue-create Title with spaces --body Description with spaces
 ```
 
 **Single-word values don't require quotes:**
 ```bash
-✅ /work:issue-create "Title" --type feature
-✅ /work:issue-create "Title" --label urgent
+✅ /fractary-work:issue-create "Title" --type feature
+✅ /fractary-work:issue-create "Title" --label urgent
 ```
 
 **Labels cannot contain spaces:**
 ```bash
-✅ /work:issue-create "Title" --label urgent --label high-priority
-❌ /work:issue-create "Title" --label "high priority"  # Spaces not supported in label values
+✅ /fractary-work:issue-create "Title" --label urgent --label high-priority
+❌ /fractary-work:issue-create "Title" --label "high priority"  # Spaces not supported in label values
 ```
 
 Use hyphens or underscores instead: `high-priority`, `high_priority`
@@ -148,32 +148,32 @@ Use hyphens or underscores instead: `high-priority`, `high_priority`
 
 ```bash
 # Create a new feature issue
-/work:issue-create "Add CSV export feature" --type feature
+/fractary-work:issue-create "Add CSV export feature" --type feature
 
 # Create a bug with description
-/work:issue-create "Fix login timeout" --type bug --body "Users logged out after 5 minutes"
+/fractary-work:issue-create "Fix login timeout" --type bug --body "Users logged out after 5 minutes"
 
 # Create with multiple labels
-/work:issue-create "Fix login bug" --type bug --label urgent --label security
+/fractary-work:issue-create "Fix login bug" --type bug --label urgent --label security
 
 # Create with milestone and assignee
-/work:issue-create "Implement auth" --type feature --milestone "v1.0 Release" --assignee @me
+/fractary-work:issue-create "Implement auth" --type feature --milestone "v1.0 Release" --assignee @me
 
 # Create and automatically create branch
-/work:issue-create "Add dark mode" --type feature --branch-create
+/fractary-work:issue-create "Add dark mode" --type feature --branch-create
 
 # Create, create branch, and create spec (full workflow)
-/work:issue-create "Add CSV export" --type feature --branch-create --spec-create
+/fractary-work:issue-create "Add CSV export" --type feature --branch-create --spec-create
 
 # Create issue with body generated from conversation context
 # (Claude will use the discussion to craft a detailed body)
-/work:issue-create "Implement user auth flow" --type feature --prompt "Include the OAuth2 approach we discussed, the token refresh strategy, and the error handling requirements"
+/fractary-work:issue-create "Implement user auth flow" --type feature --prompt "Include the OAuth2 approach we discussed, the token refresh strategy, and the error handling requirements"
 
 # Create issue capturing the full problem/solution discussion
-/work:issue-create "Fix race condition in queue processor" --type bug --prompt "Summarize the root cause analysis and agreed solution from our discussion"
+/fractary-work:issue-create "Fix race condition in queue processor" --type bug --prompt "Summarize the root cause analysis and agreed solution from our discussion"
 
 # Use context to guide body generation with additional labels
-/work:issue-create "Add dark mode support" --type feature --prompt "Focus on the CSS variables approach and component changes we identified" --label frontend --label ui
+/fractary-work:issue-create "Add dark mode support" --type feature --prompt "Focus on the CSS variables approach and component changes we identified" --label frontend --label ui
 ```
 </EXAMPLES>
 
@@ -226,7 +226,7 @@ When the user provides `--type <value>`, convert it to `"type: <value>"` label f
 - `--type chore` → `"type: chore"` label
 - `--type patch` → `"type: patch"` label
 
-Example: `/work:issue-create "Title" --type bug --label urgent` becomes:
+Example: `/fractary-work:issue-create "Title" --type bug --label urgent` becomes:
 ```json
 {
   "operation": "create-issue",
@@ -244,7 +244,7 @@ Common errors to handle:
 **Missing required argument**:
 ```
 Error: title is required
-Usage: /work:issue-create <title> [--type <type>]
+Usage: /fractary-work:issue-create <title> [--type <type>]
 ```
 
 **Invalid type**:
@@ -275,7 +275,7 @@ This command works with:
 - Jira Cloud
 - Linear
 
-Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
+Platform is configured via `/fractary-work:init` and stored in `.fractary/plugins/work/config.json`.
 
 ## Prompt-Based Body Generation
 
@@ -288,7 +288,7 @@ The `--prompt` argument enables a powerful workflow pattern: after discussing a 
 
 **How it works**:
 1. Have a conversation with Claude about the problem/solution
-2. Invoke `/work:issue-create` with `--prompt` providing instructions
+2. Invoke `/fractary-work:issue-create` with `--prompt` providing instructions
 3. Claude reviews the conversation and crafts an issue body following your instructions
 4. The issue is created with a well-structured body that captures the discussion
 
@@ -296,7 +296,7 @@ The `--prompt` argument enables a powerful workflow pattern: after discussing a 
 ```
 User: Let's discuss how to implement rate limiting for our API...
 [... discussion about approaches, trade-offs, decisions ...]
-User: /work:issue-create "Implement API rate limiting" --type feature --prompt "Include the token bucket approach we agreed on, the Redis backend decision, and the per-endpoint configuration requirements"
+User: /fractary-work:issue-create "Implement API rate limiting" --type feature --prompt "Include the token bucket approach we agreed on, the Redis backend decision, and the per-endpoint configuration requirements"
 ```
 
 ## See Also
@@ -304,11 +304,11 @@ User: /work:issue-create "Implement API rate limiting" --type feature --prompt "
 For detailed documentation, see: [/docs/commands/work-issue.md](../../../docs/commands/work-issue.md)
 
 Related commands:
-- `/work:issue-fetch` - Fetch issue details
-- `/work:issue-list` - List issues
-- `/work:issue-update` - Update issue
-- `/work:issue-assign` - Assign issue
-- `/work:comment-create` - Add comment
-- `/work:label-add` - Add labels
-- `/work:init` - Configure work plugin
+- `/fractary-work:issue-fetch` - Fetch issue details
+- `/fractary-work:issue-list` - List issues
+- `/fractary-work:issue-update` - Update issue
+- `/fractary-work:issue-assign` - Assign issue
+- `/fractary-work:comment-create` - Add comment
+- `/fractary-work:label-add` - Add labels
+- `/fractary-work:init` - Configure work plugin
 </NOTES>

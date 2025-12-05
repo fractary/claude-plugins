@@ -34,7 +34,7 @@ This command supports:
 **Note**: The repo-manager agent handles all work tracking integration, including:
 - Detecting if fractary-work plugin is configured
 - Presenting the three-option prompt (create issue+branch, branch only, cancel)
-- Invoking /work:issue-create if user selects Option 1
+- Invoking /fractary-work:issue-create if user selects Option 1
 - Extracting and displaying URLs for created resources
 </CRITICAL_RULES>
 
@@ -47,7 +47,7 @@ This command supports:
 
 2. **Handle Semantic Mode (if applicable)**
    - If Mode 3 detected (no first arg, only --work-id):
-     a. Invoke `/work:issue-fetch {work_id}` using SlashCommand tool
+     a. Invoke `/fractary-work:issue-fetch {work_id}` using SlashCommand tool
      b. Extract issue title and type from response
      c. If --prefix not provided, infer from issue type:
         - feature/enhancement → feat
@@ -166,7 +166,7 @@ This command intelligently determines the invocation mode based on the arguments
 - Generate branch name: `{prefix}/{work_id-}{issue-title-slug}`
 
 **Process**:
-1. Invoke `/work:issue-fetch {work_id}` to retrieve issue details
+1. Invoke `/fractary-work:issue-fetch {work_id}` to retrieve issue details
 2. Extract issue title from response
 3. Infer prefix from issue type if not provided (feature→feat, bug→fix, etc.)
 4. Use title as description for branch naming
@@ -416,7 +416,7 @@ Examples:
 Error: Cannot fetch issue details - work plugin not configured
 To use semantic mode (--work-id only), you need:
 1. Install fractary-work plugin
-2. Run /work:init to configure it
+2. Run /fractary-work:init to configure it
 3. Then retry: /repo:branch-create --work-id {id}
 
 Or provide a description: /repo:branch-create "description" --work-id {id}
@@ -508,8 +508,8 @@ Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/co
 - `/repo:init` - Configure repo plugin
 
 ### Work Plugin Integration
-- `/work:issue-create` - Create new work item/issue
-- `/work:issue-list` - List work items
-- `/work:issue-close` - Close work item
-- `/work:init` - Configure work tracking plugin
+- `/fractary-work:issue-create` - Create new work item/issue
+- `/fractary-work:issue-list` - List work items
+- `/fractary-work:issue-close` - Close work item
+- `/fractary-work:init` - Configure work tracking plugin
 </NOTES>

@@ -360,7 +360,7 @@ Link database changes to work items:
 
 ```bash
 # Create issue for database work
-/work:issue-create "Add user profiles table" --type feature
+/fractary-work:issue-create "Add user profiles table" --type feature
 
 # Generate migration linked to issue
 /faber-db:generate-migration "add user profiles" --work-id 123

@@ -60,17 +60,17 @@ Your role is to parse user input and invoke the work-manager agent to list label
 ## Command Argument Syntax
 
 This command takes a simple positional argument:
-- **Format**: `/work:label-list <number>`
+- **Format**: `/fractary-work:label-list <number>`
 - **number**: Issue number (e.g., 123, not "#123")
 
 ### Examples
 
 ```bash
-✅ /work:label-list 123
-✅ /work:label-list 42
+✅ /fractary-work:label-list 123
+✅ /fractary-work:label-list 42
 
-❌ /work:label-list #123  # Don't include # symbol
-❌ /work:label-list       # Issue number required
+❌ /fractary-work:label-list #123  # Don't include # symbol
+❌ /fractary-work:label-list       # Issue number required
 ```
 </ARGUMENT_SYNTAX>
 
@@ -88,10 +88,10 @@ This command takes a simple positional argument:
 
 ```bash
 # List all labels on an issue
-/work:label-list 123
+/fractary-work:label-list 123
 
 # List labels on different issue
-/work:label-list 456
+/fractary-work:label-list 456
 ```
 </EXAMPLES>
 
@@ -123,7 +123,7 @@ Common errors to handle:
 **Missing issue number**:
 ```
 Error: issue_number is required
-Usage: /work:label-list <number>
+Usage: /fractary-work:label-list <number>
 ```
 
 **Invalid issue number**:
@@ -157,16 +157,16 @@ This command works with:
 - Jira Cloud (simple text tags)
 - Linear (labels have colors, team-specific)
 
-Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
+Platform is configured via `/fractary-work:init` and stored in `.fractary/plugins/work/config.json`.
 
 ## See Also
 
 For detailed documentation, see: [/docs/commands/work-label.md](../../../docs/commands/work-label.md)
 
 Related commands:
-- `/work:label-add` - Add label
-- `/work:label-remove` - Remove label
-- `/work:label-set` - Set all labels
+- `/fractary-work:label-add` - Add label
+- `/fractary-work:label-remove` - Remove label
+- `/fractary-work:label-set` - Set all labels
 - `/work:issue-fetch` - Fetch issue details
-- `/work:init` - Configure work plugin
+- `/fractary-work:init` - Configure work plugin
 </NOTES>

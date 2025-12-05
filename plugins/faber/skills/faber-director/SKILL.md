@@ -237,7 +237,7 @@ echo "Generated run_id: $RUN_ID"
 
 **Action**:
 ```
-1. Use /work:issue-fetch {work_id} via SlashCommand tool
+1. Use /fractary-work:issue-fetch {work_id} via SlashCommand tool
 2. Extract from response:
    - title: Issue title
    - description: Issue body
@@ -719,7 +719,7 @@ faber-manager agent (execution layer)
 - Other skills (programmatic)
 
 **Invokes:**
-- `/work:issue-fetch` - To fetch issue data
+- `/fractary-work:issue-fetch` - To fetch issue data
 - `faber-manager` agent - For workflow execution (via Task tool)
 
 **Does NOT Invoke:**

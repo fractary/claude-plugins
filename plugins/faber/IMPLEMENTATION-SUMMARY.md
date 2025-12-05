@@ -307,8 +307,8 @@ Return Results
    - AWS S3 storage (scripts/agents ready, implementation needed)
 
 2. **Commands**:
-   - `/faber:approve` - Manual approval command
-   - `/faber:retry` - Retry failed workflow command
+   - `/fractary-faber:approve` - Manual approval command
+   - `/fractary-faber:retry` - Retry failed workflow command
 
 3. **Domains**:
    - Design domain (agent structure in place)
@@ -382,8 +382,8 @@ Return Results
 4. Implement GitLab repo-manager scripts
 
 ### Priority 5: Feature Additions
-1. Implement /faber:approve command
-2. Implement /faber:retry command
+1. Implement /fractary-faber:approve command
+2. Implement /fractary-faber:retry command
 3. Add interactive mode options
 4. Add progress indicators
 

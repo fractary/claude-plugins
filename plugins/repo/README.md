@@ -24,7 +24,7 @@ The plugin uses a **3-layer architecture** with handler pattern:
 ```
 ┌─────────────────────────────────────────┐
 │  Layer 1: Commands (User Interface)    │
-│  /repo:branch, /repo:commit, etc.      │
+│  /fractary-repo:branch-create, etc.    │
 └─────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────┐
@@ -57,7 +57,7 @@ claude plugin install fractary/repo
 The fastest way to get started:
 
 ```bash
-/repo:init
+/fractary-repo:init
 ```
 
 The interactive wizard will:
@@ -69,7 +69,7 @@ The interactive wizard will:
 
 **Time to setup**: ~2 minutes
 
-See [`/repo:init` documentation](commands/init.md) for all options.
+See [`/fractary-repo:init` documentation](commands/init.md) for all options.
 
 ### Option 2: Manual Configuration
 
@@ -111,7 +111,7 @@ EOF
 
 ```bash
 # Setup permissions once per project
-/repo:init-permissions
+/fractary-repo:init-permissions
 ```
 
 This configures `.claude/settings.json` with a **branch-aware permission system**:
@@ -152,33 +152,33 @@ See [Branch-Aware Permissions Guide](docs/branch-aware-permissions.md) for full 
 
 ```bash
 # Create a feature branch
-/repo:branch create 123 "add user export feature"
+/fractary-repo:branch-create create 123 "add user export feature"
 
 # Make commits
-/repo:commit "Add CSV export functionality" --type feat --work-id 123
+/fractary-repo:commit "Add CSV export functionality" --type feat --work-id 123
 
 # Push changes
-/repo:push --set-upstream
+/fractary-repo:push --set-upstream
 
 # Create pull request
-/repo:pr create "feat: Add user export feature" --work-id 123
+/fractary-repo:pr create "feat: Add user export feature" --work-id 123
 ```
 
 ## User Commands
 
-### /repo:init-permissions - Permission Management ⚡
+### /fractary-repo:init-permissions - Permission Management ⚡
 
 Configure Claude Code permissions with **branch-aware intelligence**.
 
 ```bash
 # Setup permissions (first time or update)
-/repo:init-permissions
+/fractary-repo:init-permissions
 
 # Validate current permissions
-/repo:init-permissions --mode validate
+/fractary-repo:init-permissions --mode validate
 
 # Reset to defaults
-/repo:init-permissions --mode reset
+/fractary-repo:init-permissions --mode reset
 ```
 
 **What It Does:**
@@ -224,107 +224,107 @@ git push origin main → ⚠️ Approve? (only this one)
 - [Permission Behavior](docs/permissions-behavior.md) - Technical details
 - [Original Guide](docs/permissions-guide.md) - Historical reference
 
-### /repo:branch - Branch Management
+### /fractary-repo:branch-create - Branch Management
 
 Create, delete, and manage Git branches.
 
 ```bash
 # Create feature branch
-/repo:branch create 123 "add export feature"
+/fractary-repo:branch-create create 123 "add export feature"
 
 # Delete old branch
-/repo:branch delete feat/old-feature
+/fractary-repo:branch-create delete feat/old-feature
 
 # List stale branches
-/repo:branch list --stale --merged
+/fractary-repo:branch-create list --stale --merged
 ```
 
 [Full documentation](commands/branch.md)
 
-### /repo:commit - Semantic Commits
+### /fractary-repo:commit - Semantic Commits
 
 Create commits with conventional format and FABER metadata.
 
 ```bash
 # Feature commit
-/repo:commit "Add CSV export" --type feat --work-id 123
+/fractary-repo:commit "Add CSV export" --type feat --work-id 123
 
 # Bug fix
-/repo:commit "Fix auth timeout" --type fix --scope auth --work-id 456
+/fractary-repo:commit "Fix auth timeout" --type fix --scope auth --work-id 456
 
 # Breaking change
-/repo:commit "Change API signature" --type feat --breaking --work-id 789
+/fractary-repo:commit "Change API signature" --type feat --breaking --work-id 789
 ```
 
 [Full documentation](commands/commit.md)
 
-### /repo:push - Push Branches
+### /fractary-repo:push - Push Branches
 
 Push branches to remote with safety checks.
 
 ```bash
 # Push current branch
-/repo:push
+/fractary-repo:push
 
 # Push with upstream tracking
-/repo:push feat/123-export --set-upstream
+/fractary-repo:push feat/123-export --set-upstream
 
 # Safe force push
-/repo:push feat/456-refactor --force
+/fractary-repo:push feat/456-refactor --force
 ```
 
 [Full documentation](commands/push.md)
 
-### /repo:pr - Pull Request Management
+### /fractary-repo:pr - Pull Request Management
 
 Create, comment, review, and merge pull requests.
 
 ```bash
 # Create PR
-/repo:pr create "feat: Add user export" --work-id 123
+/fractary-repo:pr create "feat: Add user export" --work-id 123
 
 # Add comment
-/repo:pr comment 456 "LGTM! Tests passing."
+/fractary-repo:pr comment 456 "LGTM! Tests passing."
 
 # Approve PR
-/repo:pr review 456 approve
+/fractary-repo:pr review 456 approve
 
 # Merge PR
-/repo:pr merge 456 --strategy no-ff --delete-branch
+/fractary-repo:pr merge 456 --strategy no-ff --delete-branch
 ```
 
 [Full documentation](commands/pr.md)
 
-### /repo:tag - Version Tags
+### /fractary-repo:tag - Version Tags
 
 Create and push semantic version tags.
 
 ```bash
 # Create release tag
-/repo:tag create v1.2.3 --message "Release version 1.2.3"
+/fractary-repo:tag create v1.2.3 --message "Release version 1.2.3"
 
 # Create signed tag
-/repo:tag create v2.0.0 --message "Major release" --sign
+/fractary-repo:tag create v2.0.0 --message "Major release" --sign
 
 # Push tag
-/repo:tag push v1.2.3
+/fractary-repo:tag push v1.2.3
 ```
 
 [Full documentation](commands/tag.md)
 
-### /repo:cleanup - Branch Cleanup
+### /fractary-repo:cleanup - Branch Cleanup
 
 Clean up stale and merged branches.
 
 ```bash
 # Preview stale branches
-/repo:cleanup --merged
+/fractary-repo:cleanup --merged
 
 # Delete merged branches
-/repo:cleanup --delete --merged
+/fractary-repo:cleanup --delete --merged
 
 # Delete old inactive branches
-/repo:cleanup --delete --inactive --days 60
+/fractary-repo:cleanup --delete --inactive --days 60
 ```
 
 [Full documentation](commands/cleanup.md)
@@ -573,7 +573,7 @@ This means even `rm -rf /` will execute without protection.
 ```bash
 # Run once per project
 cd your-project
-/repo:init-permissions
+/fractary-repo:init-permissions
 
 # Output shows:
 # - ~50 auto-allowed commands
@@ -586,7 +586,7 @@ cd your-project
 - **[Branch-Aware Permissions Guide](docs/branch-aware-permissions.md)** - Comprehensive guide with examples
 - **[Permission Behavior](docs/permissions-behavior.md)** - Technical details and edge cases
 - **[Permission Guide](docs/permissions-guide.md)** - Original permission system documentation
-- **[Command Reference](commands/init-permissions.md)** - `/repo:init-permissions` command details
+- **[Command Reference](commands/init-permissions.md)** - `/fractary-repo:init-permissions` command details
 
 ### Benefits
 

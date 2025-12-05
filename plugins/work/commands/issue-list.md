@@ -78,17 +78,17 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Always use quotes for multi-word values:**
 ```bash
-✅ /work:issue-list --milestone "v1.0 Release"
-✅ /work:issue-list --assignee @username
+✅ /fractary-work:issue-list --milestone "v1.0 Release"
+✅ /fractary-work:issue-list --assignee @username
 
-❌ /work:issue-list --milestone v1.0 Release
+❌ /fractary-work:issue-list --milestone v1.0 Release
 ```
 
 **Single-word values don't require quotes:**
 ```bash
-✅ /work:issue-list --state open
-✅ /work:issue-list --label bug
-✅ /work:issue-list --limit 10
+✅ /fractary-work:issue-list --state open
+✅ /fractary-work:issue-list --label bug
+✅ /fractary-work:issue-list --limit 10
 ```
 </ARGUMENT_SYNTAX>
 
@@ -110,25 +110,25 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 ```bash
 # List open issues (default)
-/work:issue-list
+/fractary-work:issue-list
 
 # List all issues
-/work:issue-list --state all
+/fractary-work:issue-list --state all
 
 # List closed issues
-/work:issue-list --state closed
+/fractary-work:issue-list --state closed
 
 # List issues by label
-/work:issue-list --label bug
+/fractary-work:issue-list --label bug
 
 # List issues assigned to me
-/work:issue-list --assignee @me
+/fractary-work:issue-list --assignee @me
 
 # List issues in milestone
-/work:issue-list --milestone "v1.0 Release"
+/fractary-work:issue-list --milestone "v1.0 Release"
 
 # Combine filters
-/work:issue-list --state open --label bug --limit 10
+/fractary-work:issue-list --state open --label bug --limit 10
 ```
 </EXAMPLES>
 
@@ -177,7 +177,7 @@ Valid states: open, closed, all
 **Invalid limit**:
 ```
 Error: limit must be a positive number
-Usage: /work:issue-list --limit <n>
+Usage: /fractary-work:issue-list --limit <n>
 ```
 </ERROR_HANDLING>
 
@@ -189,15 +189,15 @@ This command works with:
 - Jira Cloud
 - Linear
 
-Platform is configured via `/work:init` and stored in `.fractary/plugins/work/config.json`.
+Platform is configured via `/fractary-work:init` and stored in `.fractary/plugins/work/config.json`.
 
 ## See Also
 
 For detailed documentation, see: [/docs/commands/work-issue.md](../../../docs/commands/work-issue.md)
 
 Related commands:
-- `/work:issue-create` - Create new issue
-- `/work:issue-fetch` - Fetch issue details
-- `/work:issue-search` - Search issues
-- `/work:init` - Configure work plugin
+- `/fractary-work:issue-create` - Create new issue
+- `/fractary-work:issue-fetch` - Fetch issue details
+- `/fractary-work:issue-search` - Search issues
+- `/fractary-work:init` - Configure work plugin
 </NOTES>

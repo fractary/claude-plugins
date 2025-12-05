@@ -55,24 +55,24 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Always use quotes for multi-word values:**
 ```bash
-✅ /repo:tag-create v1.0.0 --message "Release version 1.0.0"
-✅ /repo:tag-create v1.0.0 --message "Major release with breaking changes"
+✅ /fractary-repo:tag-create v1.0.0 --message "Release version 1.0.0"
+✅ /fractary-repo:tag-create v1.0.0 --message "Major release with breaking changes"
 
-❌ /repo:tag-create v1.0.0 --message Release version 1.0.0
+❌ /fractary-repo:tag-create v1.0.0 --message Release version 1.0.0
 ```
 
 **Single-word values don't require quotes:**
 ```bash
-✅ /repo:tag-create v1.0.0
-✅ /repo:tag-create v1.0.0 --commit abc123
+✅ /fractary-repo:tag-create v1.0.0
+✅ /fractary-repo:tag-create v1.0.0 --commit abc123
 ```
 
 **Boolean flags have no value:**
 ```bash
-✅ /repo:tag-create v1.0.0 --sign
-✅ /repo:tag-create v1.0.0 --force
+✅ /fractary-repo:tag-create v1.0.0 --sign
+✅ /fractary-repo:tag-create v1.0.0 --force
 
-❌ /repo:tag-create v1.0.0 --sign true
+❌ /fractary-repo:tag-create v1.0.0 --sign true
 ```
 
 **Tag naming conventions:**
@@ -97,7 +97,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Example**:
 ```
-/repo:tag-create v1.0.0 --message "Release version 1.0.0"
+/fractary-repo:tag-create v1.0.0 --message "Release version 1.0.0"
 → Invoke agent with {"operation": "create-tag", "parameters": {"tag_name": "v1.0.0", "message": "Release version 1.0.0"}}
 ```
 </ARGUMENT_PARSING>
@@ -107,19 +107,19 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 ```bash
 # Create tag
-/repo:tag-create v1.0.0
+/fractary-repo:tag-create v1.0.0
 
 # Create with message
-/repo:tag-create v1.0.0 --message "Release version 1.0.0"
+/fractary-repo:tag-create v1.0.0 --message "Release version 1.0.0"
 
 # Create signed tag
-/repo:tag-create v1.0.0 --message "Signed release" --sign
+/fractary-repo:tag-create v1.0.0 --message "Signed release" --sign
 
 # Tag specific commit
-/repo:tag-create v0.9.0 --commit abc123
+/fractary-repo:tag-create v0.9.0 --commit abc123
 
 # Force update existing tag
-/repo:tag-create v1.0.0 --message "Updated release" --force
+/fractary-repo:tag-create v1.0.0 --message "Updated release" --force
 ```
 </EXAMPLES>
 
@@ -168,7 +168,7 @@ Common errors to handle:
 **Missing tag name**:
 ```
 Error: tag_name is required
-Usage: /repo:tag-create <tag_name>
+Usage: /fractary-repo:tag-create <tag_name>
 ```
 
 **Tag already exists**:

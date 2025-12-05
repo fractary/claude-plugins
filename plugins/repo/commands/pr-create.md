@@ -27,7 +27,7 @@ Your role is to parse user input and invoke the repo-manager agent to create a p
 - NEVER push branches before creating PR (assume already pushed)
 - NEVER commit changes before creating PR
 - NEVER chain other git operations
-- User must have already pushed branch with /repo:push
+- User must have already pushed branch with /fractary-repo:push
 
 **WHEN COMMANDS FAIL:**
 - NEVER bypass the command architecture with manual bash/git commands
@@ -85,23 +85,23 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Always use quotes for multi-word values:**
 ```bash
-✅ /repo:pr-create "Add CSV export feature" --body "Implements user data export"
-✅ /repo:pr-create "Fix authentication bug" --work-id 123
+✅ /fractary-repo:pr-create "Add CSV export feature" --body "Implements user data export"
+✅ /fractary-repo:pr-create "Fix authentication bug" --work-id 123
 
-❌ /repo:pr-create Add CSV export feature --body Implements export
+❌ /fractary-repo:pr-create Add CSV export feature --body Implements export
 ```
 
 **Single-word values don't require quotes:**
 ```bash
-✅ /repo:pr-create "Title" --work-id 123
-✅ /repo:pr-create "Title" --base develop
+✅ /fractary-repo:pr-create "Title" --work-id 123
+✅ /fractary-repo:pr-create "Title" --base develop
 ```
 
 **Boolean flags have no value:**
 ```bash
-✅ /repo:pr-create "WIP: Feature" --draft
+✅ /fractary-repo:pr-create "WIP: Feature" --draft
 
-❌ /repo:pr-create "WIP: Feature" --draft true
+❌ /fractary-repo:pr-create "WIP: Feature" --draft true
 ```
 </ARGUMENT_SYNTAX>
 
@@ -129,7 +129,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Example**:
 ```
-/repo:pr-create "Add CSV export feature" --work-id 123 --body "Implements CSV export functionality"
+/fractary-repo:pr-create "Add CSV export feature" --work-id 123 --body "Implements CSV export functionality"
 → Invoke agent with {"operation": "create-pr", "parameters": {"title": "Add CSV export feature", "work_id": "123", "body": "Implements CSV export functionality"}}
 ```
 </ARGUMENT_PARSING>
@@ -139,22 +139,22 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 ```bash
 # Create PR
-/repo:pr-create "Add CSV export feature" --work-id 123
+/fractary-repo:pr-create "Add CSV export feature" --work-id 123
 
 # Create draft PR
-/repo:pr-create "WIP: Refactor auth module" --draft
+/fractary-repo:pr-create "WIP: Refactor auth module" --draft
 
 # Create with custom base
-/repo:pr-create "Hotfix: Fix login bug" --base main --head hotfix/urgent-fix
+/fractary-repo:pr-create "Hotfix: Fix login bug" --base main --head hotfix/urgent-fix
 
 # Create with detailed body
-/repo:pr-create "Add export feature" --body "Implements CSV and JSON export" --work-id 123
+/fractary-repo:pr-create "Add export feature" --body "Implements CSV and JSON export" --work-id 123
 
 # Create PR with description generated from conversation context
-/repo:pr-create "Implement user authentication" --work-id 123 --prompt "Summarize the OAuth2 implementation approach and include the test coverage we discussed"
+/fractary-repo:pr-create "Implement user authentication" --work-id 123 --prompt "Summarize the OAuth2 implementation approach and include the test coverage we discussed"
 
 # Create PR capturing the full implementation discussion
-/repo:pr-create "Fix race condition in queue processor" --prompt "Include the root cause analysis and the locking strategy we implemented"
+/fractary-repo:pr-create "Fix race condition in queue processor" --prompt "Include the root cause analysis and the locking strategy we implemented"
 ```
 </EXAMPLES>
 
@@ -223,13 +223,13 @@ Common errors to handle:
 **Missing title**:
 ```
 Error: title is required
-Usage: /repo:pr-create <title>
+Usage: /fractary-repo:pr-create <title>
 ```
 
 **Branch not pushed**:
 ```
 Error: Branch not found on remote: feature/123-export
-Push the branch first: /repo:push
+Push the branch first: /fractary-repo:push
 ```
 </ERROR_HANDLING>
 
@@ -249,15 +249,15 @@ This command works with:
 - GitLab (Merge Requests)
 - Bitbucket (Pull Requests)
 
-Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/config.json`.
+Platform is configured via `/fractary-repo:init` and stored in `.fractary/plugins/repo/config.json`.
 
 ## See Also
 
 Related commands:
-- `/repo:pr-comment` - Add comments to PRs
-- `/repo:pr-review` - Review PRs
-- `/repo:pr-merge` - Merge PRs
-- `/repo:branch-create` - Create branches
-- `/repo:push` - Push changes
-- `/repo:init` - Configure repo plugin
+- `/fractary-repo:pr-comment` - Add comments to PRs
+- `/fractary-repo:pr-review` - Review PRs
+- `/fractary-repo:pr-merge` - Merge PRs
+- `/fractary-repo:branch-create` - Create branches
+- `/fractary-repo:push` - Push changes
+- `/fractary-repo:init` - Configure repo plugin
 </NOTES>

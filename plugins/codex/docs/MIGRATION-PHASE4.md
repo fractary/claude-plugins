@@ -79,8 +79,8 @@ The migration follows a **4-stage rollout over 6-12 months**:
 - ⚠️ Start testing retrieval commands
 
 **Commands available**:
-- Legacy: `/codex:sync-project`, `/codex:sync-org` (still work)
-- New: `/codex:fetch`, `/codex:cache-list` (opt-in)
+- Legacy: `/fractary-codex:sync-project`, `/fractary-codex:sync-org` (still work)
+- New: `/fractary-codex:fetch`, `/fractary-codex:cache-list` (opt-in)
 
 ### Stage 2: Retrieval Adoption, Disable Pull-sync (Months 3-6)
 
@@ -92,14 +92,14 @@ The migration follows a **4-stage rollout over 6-12 months**:
 - Retrieval becomes recommended approach
 
 **Actions required**:
-- ⚠️ Migrate configurations (run `/codex:migrate`)
+- ⚠️ Migrate configurations (run `/fractary-codex:migrate`)
 - ⚠️ Test retrieval workflows
 - ⚠️ Update team documentation
 
 **Commands available**:
-- Deprecated: `/codex:sync-org` (pull direction)
-- Working: `/codex:sync-project` (push only)
-- Recommended: `/codex:fetch`, `/codex:cache-prefetch`
+- Deprecated: `/fractary-codex:sync-org` (pull direction)
+- Working: `/fractary-codex:sync-project` (push only)
+- Recommended: `/fractary-codex:fetch`, `/fractary-codex:cache-prefetch`
 
 ### Stage 3: Full Migration, Rename Commands (Months 6-9)
 
@@ -116,8 +116,8 @@ The migration follows a **4-stage rollout over 6-12 months**:
 - ✅ Update CI/CD pipelines
 
 **Commands available**:
-- Deprecated (with warnings): All `/codex:sync-*` commands
-- Standard: All `/codex:fetch` and `/codex:cache-*` commands
+- Deprecated (with warnings): All `/fractary-codex:sync-*` commands
+- Standard: All `/fractary-codex:fetch` and `/fractary-codex:cache-*` commands
 
 ### Stage 4: Deprecation Complete (Months 9-12)
 
@@ -159,10 +159,10 @@ Use the migration script to automatically convert your configuration:
 
 ```bash
 # Run migration script
-/codex:migrate
+/fractary-codex:migrate
 
 # Or with preview (dry-run):
-/codex:migrate --dry-run
+/fractary-codex:migrate --dry-run
 ```
 
 The script will:
@@ -243,10 +243,10 @@ Verify retrieval works with your configuration:
 
 ```bash
 # Fetch a document
-/codex:fetch @codex/your-project/docs/test.md
+/fractary-codex:fetch @codex/your-project/docs/test.md
 
 # Check cache
-/codex:cache-list
+/fractary-codex:cache-list
 
 # Verify content
 cat codex/your-project/docs/test.md
@@ -259,18 +259,18 @@ Replace sync commands with retrieval commands:
 **Old workflow**:
 ```bash
 # Pull latest from codex
-/codex:sync-project my-project --from-codex
+/fractary-codex:sync-project my-project --from-codex
 
 # Make changes...
 
 # Push back to codex
-/codex:sync-project my-project --to-codex
+/fractary-codex:sync-project my-project --to-codex
 ```
 
 **New workflow**:
 ```bash
 # Fetch on-demand
-/codex:fetch @codex/my-project/docs/architecture.md
+/fractary-codex:fetch @codex/my-project/docs/architecture.md
 
 # Changes are fetched automatically when needed
 # No manual sync required!
@@ -355,24 +355,24 @@ npm run build
 
 | Old Command (v2.0) | New Command (v3.0) | Notes |
 |--------------------|-------------------|-------|
-| `/codex:sync-project --from-codex` | `/codex:fetch @codex/{project}/**` | Fetch specific docs |
-| `/codex:sync-project --to-codex` | _Not needed_ | Publish to codex repo directly |
-| `/codex:sync-org` | `/codex:cache-prefetch` | Pre-fetch multiple projects |
-| `/codex:sync-status` | `/codex:metrics` | View cache statistics |
-| _N/A_ | `/codex:cache-list` | List cached documents |
-| _N/A_ | `/codex:cache-clear` | Clear expired cache |
-| _N/A_ | `/codex:health` | Check system health |
+| `/fractary-codex:sync-project --from-codex` | `/fractary-codex:fetch @codex/{project}/**` | Fetch specific docs |
+| `/fractary-codex:sync-project --to-codex` | _Not needed_ | Publish to codex repo directly |
+| `/fractary-codex:sync-org` | `/fractary-codex:cache-prefetch` | Pre-fetch multiple projects |
+| `/fractary-codex:sync-status` | `/fractary-codex:metrics` | View cache statistics |
+| _N/A_ | `/fractary-codex:cache-list` | List cached documents |
+| _N/A_ | `/fractary-codex:cache-clear` | Clear expired cache |
+| _N/A_ | `/fractary-codex:health` | Check system health |
 
 ### Command Examples
 
 **Fetching documents**:
 ```bash
 # Old (v2.0)
-/codex:sync-project auth-service --from-codex
+/fractary-codex:sync-project auth-service --from-codex
 
 # New (v3.0)
-/codex:fetch @codex/auth-service/docs/oauth.md
-/codex:fetch @codex/auth-service/docs/**  # wildcard support
+/fractary-codex:fetch @codex/auth-service/docs/oauth.md
+/fractary-codex:fetch @codex/auth-service/docs/**  # wildcard support
 ```
 
 **Cache management**:
@@ -381,20 +381,20 @@ npm run build
 # No equivalent - manual cleanup
 
 # New (v3.0)
-/codex:cache-list                    # View cache
-/codex:cache-list --expired          # Show expired only
-/codex:cache-clear --expired         # Clean expired
-/codex:metrics                       # View statistics
+/fractary-codex:cache-list                    # View cache
+/fractary-codex:cache-list --expired          # Show expired only
+/fractary-codex:cache-clear --expired         # Clean expired
+/fractary-codex:metrics                       # View statistics
 ```
 
 **Pre-fetching**:
 ```bash
 # Old (v2.0)
-/codex:sync-org fractary --from-codex
+/fractary-codex:sync-org fractary --from-codex
 
 # New (v3.0)
-/codex:cache-prefetch                # Scan project for @codex/ refs
-/codex:cache-prefetch --all-sources  # Prefetch from all sources
+/fractary-codex:cache-prefetch                # Scan project for @codex/ refs
+/fractary-codex:cache-prefetch --all-sources  # Prefetch from all sources
 ```
 
 ## Rollback Procedures
@@ -411,7 +411,7 @@ cp .fractary/plugins/codex/config.json.backup .fractary/plugins/codex/config.jso
 rm -rf codex/.cache-index.json
 
 # 3. Use old sync commands
-/codex:sync-project your-project --from-codex
+/fractary-codex:sync-project your-project --from-codex
 ```
 
 ### Full Rollback
@@ -468,7 +468,7 @@ rm -rf codex/
 
 ### Q: How do I know if cache is stale?
 
-**A**: Use `/codex:cache-list` to see cache age and freshness. Expired docs are automatically refetched.
+**A**: Use `/fractary-codex:cache-list` to see cache age and freshness. Expired docs are automatically refetched.
 
 ### Q: Can I customize TTL per source?
 
@@ -478,7 +478,7 @@ rm -rf codex/
 
 ### Issue: Migration script fails
 
-**Symptoms**: `/codex:migrate` shows errors
+**Symptoms**: `/fractary-codex:migrate` shows errors
 
 **Solutions**:
 1. Check you have valid v2.0 configuration:
@@ -493,12 +493,12 @@ rm -rf codex/
 
 3. Run with debug logging:
    ```bash
-   /codex:migrate --debug
+   /fractary-codex:migrate --debug
    ```
 
 ### Issue: Fetch fails after migration
 
-**Symptoms**: `/codex:fetch` returns errors
+**Symptoms**: `/fractary-codex:fetch` returns errors
 
 **Solutions**:
 1. Verify source configuration:
@@ -508,12 +508,12 @@ rm -rf codex/
 
 2. Check permissions on document:
    ```bash
-   /codex:fetch @codex/project/path --verbose
+   /fractary-codex:fetch @codex/project/path --verbose
    ```
 
 3. Test with simple reference:
    ```bash
-   /codex:fetch @codex/README.md
+   /fractary-codex:fetch @codex/README.md
    ```
 
 ### Issue: Cache not updating
@@ -523,13 +523,13 @@ rm -rf codex/
 **Solutions**:
 1. Check cache freshness:
    ```bash
-   /codex:cache-list --expired
+   /fractary-codex:cache-list --expired
    ```
 
 2. Force refetch:
    ```bash
-   /codex:cache-clear --path project/path
-   /codex:fetch @codex/project/path
+   /fractary-codex:cache-clear --path project/path
+   /fractary-codex:fetch @codex/project/path
    ```
 
 3. Verify TTL settings in config
@@ -551,7 +551,7 @@ rm -rf codex/
 
 3. Check cache size:
    ```bash
-   /codex:metrics
+   /fractary-codex:metrics
    ```
 
 ### Issue: MCP resources not appearing
@@ -584,7 +584,7 @@ After successful migration:
 2. **CI/CD Integration**: Update automated workflows
 3. **Enable MCP**: Set up MCP server for Claude Desktop/Code
 4. **Explore Multi-Source**: Add additional documentation sources
-5. **Monitor Performance**: Use `/codex:metrics` to track usage
+5. **Monitor Performance**: Use `/fractary-codex:metrics` to track usage
 
 ## Related Documentation
 

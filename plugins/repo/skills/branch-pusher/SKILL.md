@@ -200,9 +200,9 @@ Branch Pushed: {branch_name} → {remote}/{branch_name}
 Upstream Set: {upstream_set}
 Commits Pushed: {commit_count}
 ───────────────────────────────────────
-Next: Run /repo:pr create to open pull request when ready
+Next: Run /fractary-repo:pr-create to open pull request when ready
 
-💡 Tip: Run /repo:init to create a configuration file for this repository.
+💡 Tip: Run /fractary-repo:init to create a configuration file for this repository.
    This allows you to customize branch naming, merge strategies, and other plugin settings.
 ```
 
@@ -214,7 +214,7 @@ Branch Pushed: {branch_name} → {remote}/{branch_name}
 Upstream Set: {upstream_set}
 Commits Pushed: {commit_count}
 ───────────────────────────────────────
-Next: Run /repo:pr create to open pull request when ready
+Next: Run /fractary-repo:pr-create to open pull request when ready
 ```
 
 </WORKFLOW>
