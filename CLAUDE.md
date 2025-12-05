@@ -6,6 +6,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **Fractary Claude Code Plugins** repository, containing a collection of interconnected plugins that implement the FABER (Frame → Architect → Build → Evaluate → Release) workflow framework and supporting primitives for AI-assisted development.
 
+## CRITICAL: Protected Paths - Never Edit Installed Plugins
+
+**This repository is the SOURCE CODE for plugins.** When plugins are installed, they are copied to the user's home directory. You must NEVER edit the installed copies.
+
+### Forbidden Paths (NEVER write to these locations):
+
+- ❌ `~/.claude/plugins/` - Installed plugins directory
+- ❌ `~/.claude/plugins/marketplaces/` - Marketplace plugin installations
+- ❌ Any path starting with `/home/user/.claude/` or `$HOME/.claude/`
+- ❌ Any path outside this repository's working directory (wherever this repo is cloned)
+
+### Why This Matters:
+
+1. **Changes to installed plugins are NOT committed to git** - They exist only in the user's home directory
+2. **Changes are LOST when branches are deleted** - Since they're not in version control
+3. **Changes don't propagate** - Other users won't receive your updates
+4. **It's the wrong location** - The source code lives HERE in this repository
+
+### Correct Behavior:
+
+| Want to edit... | ✅ Correct Path | ❌ Wrong Path |
+|-----------------|-----------------|---------------|
+| faber plugin | `plugins/faber/...` | `~/.claude/plugins/marketplaces/.../faber/...` |
+| repo plugin | `plugins/repo/...` | `~/.claude/plugins/marketplaces/.../repo/...` |
+| work plugin | `plugins/work/...` | `~/.claude/plugins/marketplaces/.../work/...` |
+| Any plugin | `plugins/{name}/...` | `~/.claude/plugins/...` |
+
+### Common Mistake Example:
+
+❌ **Wrong**: User asks "update the repo plugin to add feature X"
+→ Claude edits `~/.claude/plugins/marketplaces/fractary/plugins/repo/skills/repo-manager/SKILL.md`
+→ Changes are lost when branch is deleted
+
+✅ **Correct**: User asks "update the repo plugin to add feature X"
+→ Claude edits `plugins/repo/skills/repo-manager/SKILL.md`
+→ Changes are committed to git and propagate to all users
+
+### Rule Enforcement:
+
+**Before ANY file write operation, verify:**
+1. The path starts with the current working directory (`/home/user/claude-plugins/` or similar)
+2. The path does NOT contain `/.claude/plugins/`
+3. The path does NOT start with `~/.claude/` or expand to the user's home `.claude` directory
+
+**If you find yourself about to edit a file in `~/.claude/`:**
+1. STOP immediately
+2. Find the equivalent source file in this repository under `plugins/` (see [Directory Structure](#directory-structure) below)
+3. Edit the source file instead
+
 ## Architecture
 
 ### Plugin Ecosystem
