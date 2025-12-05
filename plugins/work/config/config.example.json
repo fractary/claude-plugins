@@ -176,6 +176,24 @@
     "_comment_link_pr_to_issue": "Reference issue number in PR description"
   },
 
+  "hooks": {
+    "_comment": "Hook configuration for auto-comment on session stop",
+
+    "auto_comment": {
+      "enabled": true,
+      "_comment_enabled": "Enable auto-comment on session stop (default: true)",
+
+      "throttle_minutes": 0,
+      "_comment_throttle": "Minimum minutes between auto-comments (0 = no throttle)",
+
+      "async": false,
+      "_comment_async": "Queue comments for background posting (faster hook completion)",
+
+      "detailed_analysis": false,
+      "_comment_detailed": "Enable detailed code analysis in summaries (slower but richer content)"
+    }
+  },
+
   "advanced": {
     "retry": {
       "enabled": true,

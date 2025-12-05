@@ -10,6 +10,15 @@ if [ -n "$CLAUDE_SUB_AGENT" ] || [ -n "$CLAUDE_AGENT_NAME" ]; then
     exit 0
 fi
 
+# =============================================================================
+# OPTIMIZATION: Check if running in unified mode (Option 7)
+# If unified mode is active, reuse shared variables from parent
+# =============================================================================
+RUNNING_UNIFIED=false
+if [ "$UNIFIED_MODE" = "true" ]; then
+    RUNNING_UNIFIED=true
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,8 +32,37 @@ LOG_FILE="${CACHE_DIR}/auto-comment.log"
 LOG_MAX_SIZE=1048576  # 1MB in bytes
 LOG_KEEP_SIZE=102400  # 100KB to keep after truncation
 LOCK_HELD=false  # Track if we hold the cleanup lock (prevents self-deadlock)
+CONFIG_FILE="${HOME}/.fractary/plugins/work/config.json"
 
 mkdir -p "${CACHE_DIR}"
+
+# =============================================================================
+# OPTIMIZATION: Check config to see if hook is enabled (Option 6)
+# =============================================================================
+ASYNC_COMMENTS=false  # Option 5: Async comment posting
+if [ -f "$CONFIG_FILE" ] && command -v jq &> /dev/null; then
+    HOOK_ENABLED=$(jq -r '.hooks.auto_comment.enabled // true' "$CONFIG_FILE" 2>/dev/null || echo "true")
+    if [ "$HOOK_ENABLED" = "false" ]; then
+        exit 0
+    fi
+
+    # Check if async comments are enabled (Option 5)
+    ASYNC_COMMENTS=$(jq -r '.hooks.auto_comment.async // false' "$CONFIG_FILE" 2>/dev/null || echo "false")
+
+    # Throttle check: skip if last run was within throttle window
+    THROTTLE_MINUTES=$(jq -r '.hooks.auto_comment.throttle_minutes // 0' "$CONFIG_FILE" 2>/dev/null || echo "0")
+    if [ "$THROTTLE_MINUTES" -gt 0 ]; then
+        LAST_RUN_FILE="${CACHE_DIR}/auto-comment-last-run"
+        if [ -f "$LAST_RUN_FILE" ]; then
+            LAST_RUN=$(cat "$LAST_RUN_FILE" 2>/dev/null || echo "0")
+            NOW=$(date +%s)
+            ELAPSED=$(( (NOW - LAST_RUN) / 60 ))
+            if [ "$ELAPSED" -lt "$THROTTLE_MINUTES" ]; then
+                exit 0
+            fi
+        fi
+    fi
+fi
 
 # Get script directory (needed early for relative path resolution)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -211,15 +249,73 @@ if [ "$ACTIVE_HANDLER" = "github" ] && ! command -v gh &> /dev/null; then
 fi
 
 # Post comment to issue
-echo -e "${BLUE}💬 Posting session summary to issue #${ISSUE_ID}...${NC}"
 log_message "INFO" "Posting comment to issue #$ISSUE_ID"
 
-# Call handler script directly (no work_id or author for standalone comment)
+# =============================================================================
+# OPTIMIZATION: Async comment posting (Option 5)
+# Queue comment for background processing if async mode is enabled
+# =============================================================================
 COMMENT_SUCCESS=false
-if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
-    COMMENT_SUCCESS=true
-    echo -e "${GREEN}✅ Session summary posted to issue #${ISSUE_ID}${NC}"
-    log_message "INFO" "Comment posted successfully to issue #$ISSUE_ID"
+QUEUE_FILE="${CACHE_DIR}/pending_comments.queue"
+
+if [ "$ASYNC_COMMENTS" = "true" ]; then
+    echo -e "${BLUE}💬 Queuing session summary for issue #${ISSUE_ID}...${NC}"
+
+    # Queue the comment for async processing
+    if command -v jq &> /dev/null; then
+        echo "{\"issue_id\": \"$ISSUE_ID\", \"comment\": $(echo "$SESSION_SUMMARY" | jq -Rs .), \"handler\": \"$ACTIVE_HANDLER\", \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" >> "$QUEUE_FILE"
+        COMMENT_SUCCESS=true
+        echo -e "${GREEN}✅ Session summary queued for issue #${ISSUE_ID}${NC}"
+        log_message "INFO" "Comment queued for async posting to issue #$ISSUE_ID"
+
+        # Start queue processor in background (if not already running)
+        QUEUE_PROCESSOR="${SCRIPT_DIR}/process-comment-queue.sh"
+        if [ -f "$QUEUE_PROCESSOR" ]; then
+            (nohup "$QUEUE_PROCESSOR" >/dev/null 2>&1 &)
+            disown 2>/dev/null || true
+        fi
+    else
+        echo -e "${YELLOW}⚠️  jq not found, falling back to sync mode${NC}"
+        log_message "WARN" "jq not found, async mode unavailable"
+        ASYNC_COMMENTS=false
+    fi
+fi
+
+# Synchronous comment posting (default or fallback)
+if [ "$ASYNC_COMMENTS" != "true" ]; then
+    echo -e "${BLUE}💬 Posting session summary to issue #${ISSUE_ID}...${NC}"
+
+    # Call handler script directly (no work_id or author for standalone comment)
+    if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
+        COMMENT_SUCCESS=true
+        echo -e "${GREEN}✅ Session summary posted to issue #${ISSUE_ID}${NC}"
+        log_message "INFO" "Comment posted successfully to issue #$ISSUE_ID"
+    else
+        EXIT_CODE=$?
+        echo -e "${YELLOW}⚠️  Could not post comment (exit code: ${EXIT_CODE})${NC}"
+
+        case $EXIT_CODE in
+            10)
+                echo -e "${YELLOW}ℹ️  Issue #${ISSUE_ID} not found in repository${NC}"
+                log_message "WARN" "Issue not found: #$ISSUE_ID"
+                ;;
+            11)
+                echo -e "${YELLOW}ℹ️  GitHub authentication required - run 'gh auth login'${NC}"
+                log_message "WARN" "Authentication failed for issue #$ISSUE_ID"
+                ;;
+            *)
+                echo -e "${YELLOW}ℹ️  Comment posting failed - see log for details${NC}"
+                log_message "ERROR" "Comment posting failed with exit code $EXIT_CODE"
+                ;;
+        esac
+    fi
+fi
+
+# Post-success handling (works for both sync and async)
+if [ "$COMMENT_SUCCESS" = "true" ]; then
+    # Update throttle timestamp (Option 6)
+    THROTTLE_LAST_RUN_FILE="${CACHE_DIR}/auto-comment-last-run"
+    date +%s > "$THROTTLE_LAST_RUN_FILE" 2>/dev/null || true
 
     # Save current HEAD as reference for next time (with flock to prevent race conditions)
     # This allows us to show "work since last comment" on the next stop
@@ -248,24 +344,6 @@ if "${HANDLER_SCRIPT}" "$ISSUE_ID" "$SESSION_SUMMARY" 2>&1; then
         log_message "WARN" "Failed to acquire lock for last_stop_ref update"
     fi
     # Lock auto-releases when FD closes (kept open for cleanup section to reuse)
-else
-    EXIT_CODE=$?
-    echo -e "${YELLOW}⚠️  Could not post comment (exit code: ${EXIT_CODE})${NC}"
-
-    case $EXIT_CODE in
-        10)
-            echo -e "${YELLOW}ℹ️  Issue #${ISSUE_ID} not found in repository${NC}"
-            log_message "WARN" "Issue not found: #$ISSUE_ID"
-            ;;
-        11)
-            echo -e "${YELLOW}ℹ️  GitHub authentication required - run 'gh auth login'${NC}"
-            log_message "WARN" "Authentication failed for issue #$ISSUE_ID"
-            ;;
-        *)
-            echo -e "${YELLOW}ℹ️  Comment posting failed - see log for details${NC}"
-            log_message "ERROR" "Comment posting failed with exit code $EXIT_CODE"
-            ;;
-    esac
 fi
 
 # Periodic cache cleanup (runs unconditionally, not only on success)
