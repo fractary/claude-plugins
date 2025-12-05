@@ -309,3 +309,47 @@ Documentation: plugins/file/README.md
 Success: Configuration saved message with next steps
 Failure: Error message with troubleshooting guidance
 </OUTPUTS>
+
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
+
+```bash
+bash plugins/file/skills/config-wizard/scripts/init.sh
+```
+
+The script will:
+1. Create `.fractary/plugins/file/config.json` with local handler as default
+2. Set secure file permissions (600)
+3. Output JSON with the result
+
+**With options:**
+```bash
+# Force overwrite existing config
+bash plugins/file/skills/config-wizard/scripts/init.sh --force
+
+# Specify handler (for future use)
+bash plugins/file/skills/config-wizard/scripts/init.sh --handler local
+```
+
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
+
+**Success output should include:**
+```
+✅ Fractary File Plugin initialized!
+
+Configuration: .fractary/plugins/file/config.json
+Default handler: local
+
+Next steps:
+1. Test connection: /fractary-file:test-connection
+2. Add cloud handlers (S3, R2, etc.): Edit the config file
+3. Upload a file: Use @agent-fractary-file:file-manager
+```
+
+**Adding Additional Handlers:**
+To add S3, R2, or other handlers, edit `.fractary/plugins/file/config.json` and add handler sections from the example config at `plugins/file/config/config.example.json`.
+</IMPLEMENTATION>

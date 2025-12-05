@@ -498,33 +498,54 @@ You detect platform, authentication, and create appropriate configuration files.
 - 12: Network/connectivity error
 </OUTPUTS>
 
-<AGENT_INVOCATION>
-Invoke the `repo-manager` agent with operation `initialize-configuration`:
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
 
-```json
-{
-  "operation": "initialize-configuration",
-  "parameters": {
-    "platform": "github|gitlab|bitbucket",
-    "token": "masked-token-value",
-    "interactive": true|false,
-    "force": true|false,
-    "prompt_for_permissions": true,
-    "options": {
-      "default_branch": "main",
-      "protected_branches": ["main", "master"],
-      "merge_strategy": "no-ff",
-      "push_sync_strategy": "auto-merge"
-    }
-  }
-}
+```bash
+bash plugins/repo/skills/config-wizard/scripts/init.sh
 ```
 
-**IMPORTANT**: After the config-wizard skill completes:
-1. Always prompt user: "Would you like to configure permissions now? (y/n)"
-2. If user responds 'y': Invoke `/repo:init-permissions` command
-3. If user responds 'n': Show message about running it later
-4. NEVER automatically configure permissions without user confirmation
+The script will:
+1. Auto-detect the platform from git remote (github, gitlab, or bitbucket)
+2. Create `.fractary/plugins/repo/config.json` with appropriate defaults
+3. Set secure file permissions (600)
+4. Output JSON with the result
+
+**With options:**
+```bash
+# Force overwrite existing config
+bash plugins/repo/skills/config-wizard/scripts/init.sh --force
+
+# Specify platform explicitly
+bash plugins/repo/skills/config-wizard/scripts/init.sh --platform github
+```
+
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
+
+**Success output should include:**
+```
+✅ Fractary Repo Plugin initialized!
+
+Configuration: .fractary/plugins/repo/config.json
+Platform: {platform from script output}
+
+Next steps:
+1. Ensure your token is set: export {PLATFORM}_TOKEN="your_token"
+2. Test with: /repo:branch-create "test" --work-id 1
+```
+
+**Then prompt for permissions setup:**
+Ask: "Would you like to configure permissions now? (y/n)"
+- If 'y': Run `/repo:init-permissions` command
+- If 'n': Show: "Run /repo:init-permissions later to avoid permission prompts"
+</IMPLEMENTATION>
+
+<AGENT_INVOCATION>
+**For full interactive wizard** with token validation and connectivity testing, invoke the `repo-manager` agent with operation `initialize-configuration`. The agent will use the config-wizard skill for the complete interactive experience.
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>

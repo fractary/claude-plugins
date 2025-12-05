@@ -117,3 +117,45 @@ After initialization, review and customize:
 - Install fractary-work plugin
 - Install fractary-file plugin
 - Required for full functionality
+
+---
+
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
+
+```bash
+bash plugins/spec/skills/spec-initializer/scripts/init.sh
+```
+
+The script will:
+1. Create `.fractary/plugins/spec/config.json` with defaults
+2. Create `specs/` directory for spec files
+3. Create `.fractary/plugins/spec/archive-index.json` for tracking
+4. Set secure file permissions (600)
+5. Output JSON with the result
+
+**With options:**
+```bash
+# Force overwrite existing config
+bash plugins/spec/skills/spec-initializer/scripts/init.sh --force
+```
+
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
+
+**Success output should include:**
+```
+✅ Fractary Spec Plugin initialized!
+
+Configuration: .fractary/plugins/spec/config.json
+Specs directory: specs/
+Archive index: .fractary/plugins/spec/archive-index.json
+
+Next steps:
+1. Generate your first spec: /fractary-spec:create --work-id 123
+2. Review configuration: cat .fractary/plugins/spec/config.json
+```
+</IMPLEMENTATION>

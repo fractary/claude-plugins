@@ -529,35 +529,51 @@ This is a GitHub-focused MVP - Jira and Linear support is simplified for now.
 - 13: Invalid platform
 </OUTPUTS>
 
-<AGENT_INVOCATION>
-Invoke the `work-manager` agent with operation `initialize-configuration`:
+<IMPLEMENTATION>
+**Run the init script to create the configuration:**
 
-```json
-{
-  "operation": "initialize-configuration",
-  "parameters": {
-    "platform": "github|jira|linear",
-    "token": "masked-token-value",
-    "interactive": true|false,
-    "force": true|false,
-    "github_config": {
-      "owner": "owner",
-      "repo": "repo",
-      "api_url": "https://api.github.com"
-    },
-    "jira_config": {
-      "url": "https://domain.atlassian.net",
-      "project_key": "PROJ",
-      "email": "user@example.com"
-    },
-    "linear_config": {
-      "workspace_id": "workspace-id",
-      "team_id": "team-id",
-      "team_key": "ENG"
-    }
-  }
-}
+```bash
+bash plugins/work/skills/work-initializer/scripts/init.sh
 ```
+
+The script will:
+1. Auto-detect the platform from git remote (defaults to GitHub)
+2. Extract owner/repo from GitHub remote URL
+3. Create `.fractary/plugins/work/config.json` with appropriate defaults
+4. Set secure file permissions (600)
+5. Output JSON with the result
+
+**With options:**
+```bash
+# Force overwrite existing config
+bash plugins/work/skills/work-initializer/scripts/init.sh --force
+
+# Specify platform explicitly
+bash plugins/work/skills/work-initializer/scripts/init.sh --platform github
+```
+
+**After running the script:**
+1. Parse the JSON output to check status
+2. If status is "success": Display success message and next steps
+3. If status is "exists": Inform user config already exists
+4. If status is "failure": Display error message
+
+**Success output should include:**
+```
+✅ Fractary Work Plugin initialized!
+
+Configuration: .fractary/plugins/work/config.json
+Platform: GitHub
+Repository: {owner}/{repo}
+
+Next steps:
+1. Ensure your token is set: export GITHUB_TOKEN="your_token"
+2. Test with: /work:issue-fetch 1
+```
+</IMPLEMENTATION>
+
+<AGENT_INVOCATION>
+**For full interactive wizard** with token validation and Jira/Linear support, invoke the `work-manager` agent with operation `initialize-configuration`. The agent will use the work-initializer skill for the complete interactive experience.
 </AGENT_INVOCATION>
 
 <ERROR_HANDLING>
