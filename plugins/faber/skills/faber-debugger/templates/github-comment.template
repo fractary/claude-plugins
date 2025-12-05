@@ -1,0 +1,58 @@
+## 🔍 Debugger Analysis
+
+**Status**: {{status_emoji}} {{diagnosis_summary}}
+
+### Problem Detected
+
+{{problem_description}}
+
+### Root Cause Analysis
+
+{{root_cause}}
+
+**Confidence**: {{confidence}}
+{{#kb_reference}}
+**KB Reference**: [{{kb_id}}] Similar issue resolved {{usage_count}} times previously
+{{/kb_reference}}
+
+### Contributing Factors
+
+{{#contributing_factors}}
+- {{.}}
+{{/contributing_factors}}
+
+### Proposed Solutions
+
+{{#solutions}}
+{{rank}}. **{{title}}**{{#recommended}} (Recommended){{/recommended}}
+{{#steps}}
+   - {{.}}
+{{/steps}}
+
+{{/solutions}}
+
+### Recommended Next Step
+
+```
+{{faber_run_command}}
+```
+
+### Debug Context
+
+| Metric | Value |
+|--------|-------|
+| Run ID | `{{run_id}}` |
+| Failed Phase | {{failed_phase}} |
+| Failed Step | {{failed_step}} |
+| Errors Analyzed | {{error_count}} |
+| KB Matches | {{kb_match_count}} |
+
+{{#spec_created}}
+### Specification Created
+
+A specification has been created for this complex issue:
+- [{{spec_filename}}]({{spec_path}})
+{{/spec_created}}
+
+---
+*Analyzed by faber-debugger at {{timestamp}}*

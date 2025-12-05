@@ -1,0 +1,23 @@
+/faber:run --work-id {{work_id}}{{#workflow}} --workflow {{workflow}}{{/workflow}} --step {{step}} --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes.
+
+## Debugger Analysis Summary
+{{diagnosis_summary}}
+
+## Recommended Fix
+{{solution_title}}
+
+## Steps to Implement
+{{#solution_steps}}
+{{index}}. {{.}}
+{{/solution_steps}}
+
+## Files to Modify
+{{#files_to_modify}}
+- {{.}}
+{{/files_to_modify}}
+
+## Verification
+After implementing, run:
+{{#verification_commands}}
+- {{.}}
+{{/verification_commands}}"
