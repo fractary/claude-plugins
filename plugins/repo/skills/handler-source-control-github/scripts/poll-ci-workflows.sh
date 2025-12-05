@@ -115,6 +115,29 @@ if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
     exit 2
 fi
 
+# Validate numeric parameters are positive integers
+validate_positive_integer() {
+    local name="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^[0-9]+$ ]] || [[ "$value" -le 0 ]]; then
+        echo "Error: $name must be a positive integer (got: $value)" >&2
+        exit 2
+    fi
+}
+
+validate_positive_integer "interval" "$POLL_INTERVAL"
+validate_positive_integer "timeout" "$TIMEOUT"
+# Initial delay can be 0
+if ! [[ "$INITIAL_DELAY" =~ ^[0-9]+$ ]]; then
+    echo "Error: initial-delay must be a non-negative integer (got: $INITIAL_DELAY)" >&2
+    exit 2
+fi
+
+# Validate timeout is greater than interval (otherwise we might never poll)
+if [[ "$TIMEOUT" -le "$POLL_INTERVAL" ]]; then
+    echo "Warning: timeout ($TIMEOUT) should be greater than interval ($POLL_INTERVAL)" >&2
+fi
+
 # =============================================================================
 # Environment Checks
 # =============================================================================
@@ -149,7 +172,15 @@ log() {
 
 log_progress() {
     if [[ "$QUIET" != "true" ]]; then
-        echo -e "\r$@"
+        # Use printf for portable carriage return (echo -e is not portable)
+        printf "\r%s" "$*"
+    fi
+}
+
+log_progress_line() {
+    # Print progress with newline (for final status messages)
+    if [[ "$QUIET" != "true" ]]; then
+        printf "%s\n" "$*"
     fi
 }
 
@@ -313,6 +344,13 @@ fi
 START_TIME=$(date +%s)
 POLL_COUNT=0
 
+# Store last known check status for timeout reporting
+LAST_TOTAL=0
+LAST_PASSED=0
+LAST_FAILED=0
+LAST_PENDING=0
+LAST_DETAILS="[]"
+
 while true; do
     POLL_COUNT=$((POLL_COUNT + 1))
     CURRENT_TIME=$(date +%s)
@@ -322,10 +360,12 @@ while true; do
     if [[ "$ELAPSED" -ge "$TIMEOUT" ]]; then
         log ""
         log "Timeout reached after ${ELAPSED}s (${POLL_COUNT} polls)"
+        log "Last known status: $LAST_PASSED passed, $LAST_FAILED failed, $LAST_PENDING pending"
 
         if [[ "$JSON_OUTPUT" == "true" ]]; then
-            output_json "timeout" "CI checks still pending after ${TIMEOUT}s timeout" \
-                0 0 0 0 "$ELAPSED" "[]"
+            # Include last known check details in timeout response
+            output_json "timeout" "CI checks still pending after ${TIMEOUT}s timeout ($LAST_PENDING pending)" \
+                "$LAST_TOTAL" "$LAST_PASSED" "$LAST_FAILED" "$LAST_PENDING" "$ELAPSED" "$LAST_DETAILS"
         fi
         exit 5
     fi
@@ -361,6 +401,13 @@ while true; do
     SUCCESS=$(echo "$CHECK_STATUS" | jq -r '.success')
     NO_CI=$(echo "$CHECK_STATUS" | jq -r '.no_ci')
     DETAILS=$(echo "$CHECK_STATUS" | jq -r '.details')
+
+    # Store last known status for timeout reporting
+    LAST_TOTAL="$TOTAL"
+    LAST_PASSED="$PASSED"
+    LAST_FAILED="$FAILED"
+    LAST_PENDING="$PENDING"
+    LAST_DETAILS="$DETAILS"
 
     # Log progress
     log_progress "[Poll #$POLL_COUNT | ${ELAPSED}s] Checks: $PASSED passed, $FAILED failed, $PENDING pending (total: $TOTAL)"

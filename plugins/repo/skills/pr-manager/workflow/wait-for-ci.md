@@ -169,4 +169,74 @@ This ensures the PR review step waits for CI before analyzing, enabling fully au
 1. **Use appropriate timeouts**: Set timeout based on your CI pipeline's typical duration
 2. **Initial delay**: The default 10-second delay allows CI to initialize on GitHub
 3. **Interval tuning**: Shorter intervals (30s) for fast CI, longer (120s) for slow CI
-4. **Monitor rate limits**: Frequent polling may hit GitHub API rate limits
+4. **Monitor rate limits**: Frequent polling may hit GitHub API rate limits (see below)
+
+## GitHub API Rate Limiting
+
+GitHub has API rate limits that affect CI polling:
+
+### Rate Limit Overview
+
+- **Authenticated requests**: 5,000 requests per hour
+- **Each poll**: ~2 API calls (PR view + status checks)
+- **Default settings**: 60s interval × 15min timeout = 15 polls = ~30 API calls
+
+### Calculating API Usage
+
+| Interval | Timeout | Max Polls | API Calls |
+|----------|---------|-----------|-----------|
+| 30s | 15min | 30 | ~60 |
+| 60s | 15min | 15 | ~30 |
+| 60s | 30min | 30 | ~60 |
+| 120s | 30min | 15 | ~30 |
+
+### Recommendations
+
+1. **Default settings are safe**: 60s interval with 15min timeout uses ~30 calls (0.6% of hourly limit)
+2. **Avoid aggressive polling**: Intervals below 30s may cause issues with multiple concurrent polls
+3. **Long CI pipelines**: Increase timeout, not decrease interval
+4. **Multiple concurrent polls**: Each polling session consumes its own API calls
+
+### Rate Limit Errors
+
+If you hit rate limits:
+1. Script will receive API errors from `gh` CLI
+2. Error will be reported and polling will exit
+3. Wait for rate limit reset (typically 1 hour) or reduce polling frequency
+
+### Monitoring Rate Limits
+
+Check your current rate limit status:
+```bash
+gh api rate_limit --jq '.rate | "Limit: \(.limit), Used: \(.used), Remaining: \(.remaining)"'
+```
+
+## Troubleshooting
+
+### CI Checks Not Appearing
+
+If CI checks don't appear after PR creation:
+1. Increase `--initial-delay` (default: 10s)
+2. GitHub may take 10-30 seconds to trigger workflows
+3. Check if workflows are configured in `.github/workflows/`
+
+### Timeout Too Short
+
+If CI consistently times out:
+1. Increase `--timeout` to match your typical CI duration
+2. Consider running analysis without waiting, then re-checking later
+3. Example: `--timeout 1800` for 30-minute timeout
+
+### Script Hangs
+
+If the script appears to hang:
+1. Check network connectivity
+2. Verify GitHub authentication: `gh auth status`
+3. Check GitHub status: https://www.githubstatus.com/
+
+### Invalid Parameter Errors
+
+If you see parameter validation errors:
+1. Ensure all numeric values are positive integers
+2. Timeout must be greater than interval
+3. Initial delay can be 0 but not negative
