@@ -196,7 +196,7 @@ analyze_skill() {
     local skill_name
     skill_name=$(basename "${skill_path}")
     local plugin_name
-    plugin_name=$(basename "$(dirname "${skill_path}")")
+    plugin_name=$(basename "$(dirname "$(dirname "${skill_path}")")")
 
     ((TOTAL_SKILLS++))
 
