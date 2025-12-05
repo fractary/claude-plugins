@@ -15,7 +15,7 @@ This is the **Fractary Claude Code Plugins** repository, containing a collection
 - ❌ `~/.claude/plugins/` - Installed plugins directory
 - ❌ `~/.claude/plugins/marketplaces/` - Marketplace plugin installations
 - ❌ Any path starting with `/home/user/.claude/` or `$HOME/.claude/`
-- ❌ Any path outside the current project directory
+- ❌ Any path outside this repository's working directory (wherever this repo is cloned)
 
 ### Why This Matters:
 
@@ -33,6 +33,16 @@ This is the **Fractary Claude Code Plugins** repository, containing a collection
 | work plugin | `plugins/work/...` | `~/.claude/plugins/marketplaces/.../work/...` |
 | Any plugin | `plugins/{name}/...` | `~/.claude/plugins/...` |
 
+### Common Mistake Example:
+
+❌ **Wrong**: User asks "update the repo plugin to add feature X"
+→ Claude edits `~/.claude/plugins/marketplaces/fractary/plugins/repo/skills/repo-manager/SKILL.md`
+→ Changes are lost when branch is deleted
+
+✅ **Correct**: User asks "update the repo plugin to add feature X"
+→ Claude edits `plugins/repo/skills/repo-manager/SKILL.md`
+→ Changes are committed to git and propagate to all users
+
 ### Rule Enforcement:
 
 **Before ANY file write operation, verify:**
@@ -42,7 +52,7 @@ This is the **Fractary Claude Code Plugins** repository, containing a collection
 
 **If you find yourself about to edit a file in `~/.claude/`:**
 1. STOP immediately
-2. Find the equivalent source file in this repository under `plugins/`
+2. Find the equivalent source file in this repository under `plugins/` (see [Directory Structure](#directory-structure) below)
 3. Edit the source file instead
 
 ## Architecture
