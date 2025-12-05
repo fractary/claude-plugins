@@ -150,60 +150,60 @@ The work plugin provides user-facing commands for common operations:
 
 ### Setup
 
-- **`/work:init`** - Interactive setup wizard
+- **`/fractary-work:init`** - Interactive setup wizard
   ```bash
-  /work:init                    # Interactive mode
-  /work:init --platform github  # Specify platform
-  /work:init --force            # Reconfigure
+  /fractary-work:init                    # Interactive mode
+  /fractary-work:init --platform github  # Specify platform
+  /fractary-work:init --force            # Reconfigure
   ```
 
 ### Issue Management
 
-- **`/work:issue`** - Create, fetch, update, search, and manage issues
+- **`/fractary-work:issue`** - Create, fetch, update, search, and manage issues
   ```bash
-  /work:issue create "Add feature" --type feature
-  /work:issue fetch 123
-  /work:issue list --state open --label bug
-  /work:issue update 123 --title "New title"
-  /work:issue assign 123 @me
-  /work:issue search "authentication"
+  /fractary-work:issue create "Add feature" --type feature
+  /fractary-work:issue fetch 123
+  /fractary-work:issue list --state open --label bug
+  /fractary-work:issue update 123 --title "New title"
+  /fractary-work:issue assign 123 @me
+  /fractary-work:issue search "authentication"
   ```
 
 ### Comments
 
-- **`/work:comment`** - Create and manage comments
+- **`/fractary-work:comment`** - Create and manage comments
   ```bash
-  /work:comment create 123 "Working on this"
-  /work:comment list 123
+  /fractary-work:comment create 123 "Working on this"
+  /fractary-work:comment list 123
   ```
 
 ### State Management
 
-- **`/work:state`** - Manage issue lifecycle states
+- **`/fractary-work:state`** - Manage issue lifecycle states
   ```bash
-  /work:state close 123 --comment "Fixed in PR #456"
-  /work:state reopen 123
-  /work:state transition 123 in_progress
+  /fractary-work:state close 123 --comment "Fixed in PR #456"
+  /fractary-work:state reopen 123
+  /fractary-work:state transition 123 in_progress
   ```
 
 ### Labels
 
-- **`/work:label`** - Add, remove, and manage labels
+- **`/fractary-work:label`** - Add, remove, and manage labels
   ```bash
-  /work:label add 123 bug
-  /work:label remove 123 wontfix
-  /work:label list 123
-  /work:label set 123 bug high-priority
+  /fractary-work:label add 123 bug
+  /fractary-work:label remove 123 wontfix
+  /fractary-work:label list 123
+  /fractary-work:label set 123 bug high-priority
   ```
 
 ### Milestones
 
-- **`/work:milestone`** - Create and manage milestones
+- **`/fractary-work:milestone`** - Create and manage milestones
   ```bash
-  /work:milestone create "v1.0" --due 2025-12-31
-  /work:milestone list
-  /work:milestone set 123 "v1.0"
-  /work:milestone remove 123
+  /fractary-work:milestone create "v1.0" --due 2025-12-31
+  /fractary-work:milestone list
+  /fractary-work:milestone set 123 "v1.0"
+  /fractary-work:milestone remove 123
   ```
 
 **Command Documentation:** See `commands/*.md` for detailed command documentation and examples.

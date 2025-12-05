@@ -73,7 +73,7 @@ Creates:
 
 ```bash
 # Create/checkout issue branch
-/repo:branch-create "implement auth" --work-id 123
+/fractary-repo:branch-create "implement auth" --work-id 123
 
 # Discuss and plan with Claude
 # ... conversation about approach, design, requirements ...
@@ -460,7 +460,7 @@ If `fractary-repo` is not installed:
 /fractary-spec:init
 
 # 2. Create/checkout issue branch
-/repo:branch-create "implement feature" --work-id 123
+/fractary-repo:branch-create "implement feature" --work-id 123
 
 # 3. Create spec (auto-detects issue #123 from branch)
 /fractary-spec:create
@@ -502,7 +502,7 @@ If `fractary-repo` is not installed:
 ### Spec Generation
 
 **Recommended Workflow**:
-1. Create/checkout issue branch using `/repo:branch-create --work-id <id>`
+1. Create/checkout issue branch using `/fractary-repo:branch-create --work-id <id>`
 2. Discuss and plan with Claude (capture requirements, architecture, approach)
 3. Run `/fractary-spec:create` (auto-detects issue from branch)
 4. Spec is created with full conversation context + issue enrichment

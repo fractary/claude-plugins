@@ -203,7 +203,7 @@ Commit SHA: {commit_sha}
 Work Item: {work_id or "none"}
 Message: {message}
 ───────────────────────────────────────
-Next: Run /repo:push to push changes when ready
+Next: Run /fractary-repo:push to push changes when ready
 ```
 
 </WORKFLOW>

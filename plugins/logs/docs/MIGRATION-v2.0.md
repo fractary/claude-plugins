@@ -111,7 +111,7 @@ title: "My session"
     test-001.md
 ```
 
-**Migration**: Logs will be moved to type directories on first `/logs:list` or classification.
+**Migration**: Logs will be moved to type directories on first `/fractary-logs:list` or classification.
 
 ### 3. Archive Index Format
 

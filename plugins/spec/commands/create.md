@@ -270,7 +270,7 @@ After discussing phase 1 of a complex feature:
 
 ```bash
 # 1. Create/checkout issue branch (via repo plugin or manually)
-/repo:branch-create "implement feature" --work-id 123
+/fractary-repo:branch-create "implement feature" --work-id 123
 
 # 2. Discuss and plan in Claude Code session
 # ... conversation about approach, design, requirements ...

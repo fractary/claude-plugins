@@ -15,7 +15,7 @@ argument-hint: [--to-codex|--from-codex|--bidirectional] [--dry-run] [--exclude 
 
 ```bash
 # Instead of organization-wide sync FROM codex:
-/codex:sync-org --from-codex
+/fractary-codex:sync-org --from-codex
 
 # Use the new prefetch command to scan and cache multiple projects:
 /fractary-codex:cache-prefetch

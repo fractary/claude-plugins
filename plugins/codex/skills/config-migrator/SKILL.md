@@ -120,8 +120,8 @@ After migration, provide user with:
 1. **Summary** of what changed
 2. **Backup location** for rollback
 3. **Next steps**:
-   - Test retrieval: `/codex:fetch @codex/project/path`
-   - View cache: `/codex:cache-list`
+   - Test retrieval: `/fractary-codex:fetch @codex/project/path`
+   - View cache: `/fractary-codex:cache-list`
    - Read migration guide: `docs/MIGRATION-PHASE4.md`
 4. **Rollback command** if needed
 </DOCUMENTATION>

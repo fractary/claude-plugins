@@ -410,7 +410,7 @@ Archived: 45 logs across 3 types
 Protected: 7 logs (retention exceptions)
 Space freed: 2.9 MB | Uploaded: 20.3 MB
 ───────────────────────────────────────
-Next: Verify archive with /logs:verify-archive
+Next: Verify archive with /fractary-logs:verify-archive
 ```
 
 **Retention status**:
@@ -478,7 +478,7 @@ Failed:
   ✗ audit: Cloud upload failed (permission denied)
 
 Action: Audit logs kept locally, other types processed
-Retry: /logs:archive --type audit --retry
+Retry: /fractary-logs:archive --type audit --retry
 ```
 
 </ERROR_HANDLING>

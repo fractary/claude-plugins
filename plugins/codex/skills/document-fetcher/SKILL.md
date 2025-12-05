@@ -218,7 +218,7 @@ Return to caller:
   - Check if stale cache exists
   - Offer to serve stale cache (if user accepts)
   - Otherwise return error
-  - Suggest: /codex:cache-refresh to retry
+  - Suggest: /fractary-codex:cache-refresh to retry
   - Log failure for monitoring
   </FETCH_FAILURE>
 

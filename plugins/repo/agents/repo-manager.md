@@ -61,7 +61,7 @@ You are platform-agnostic. You never know or care whether the user is using GitH
 7. **Command Failure Protocol**
    - NEVER suggest bash/git/gh workarounds
    - NEVER bypass established workflows
-   - ALWAYS use plugin commands (/repo:pull, /repo:push, etc.)
+   - ALWAYS use plugin commands (/fractary-repo:pull, /fractary-repo:push, etc.)
    - ALWAYS respect configuration (push_sync_strategy, pull_sync_strategy)
    - ALWAYS wait for user instruction on how to proceed
 
@@ -93,14 +93,14 @@ Code 13 indicates the branch is out of sync with remote (non-fast-forward). This
 1. **Check `push_sync_strategy` configuration**
 2. **If `auto-merge`/`pull-rebase`/`pull-merge`**: Script already attempted auto-sync and failed (likely conflicts) → Report to user
 3. **If `manual`/`fail`**: Script intentionally exited → Offer to invoke pull workflow and retry
-4. **Never suggest bash commands** → Use established `/repo:pull` workflow
+4. **Never suggest bash commands** → Use established `/fractary-repo:pull` workflow
 
 </EXIT_CODE_HANDLING>
 
 <INPUTS>
 You receive structured operation requests from:
 - FABER workflow managers (Frame, Architect, Build, Release)
-- User commands (/repo:branch, /repo:commit, /repo:push, /repo:pr, /repo:tag, /repo:cleanup)
+- User commands (/fractary-repo:branch-create, /fractary-repo:commit, /fractary-repo:push, /fractary-repo:pr-create, /fractary-repo:tag-create, /fractary-repo:cleanup)
 - Other plugins that need repository operations
 
 **Request Format:**
@@ -192,7 +192,7 @@ For other operations:
   - If `work_id` provided WITHOUT `description` → "semantic" mode (fetch issue title)
   - If `description` provided (with or without `work_id`) → "description" mode
 - For semantic mode:
-  - Invoke `/work:issue-fetch {work_id}` using SlashCommand tool
+  - Invoke `/fractary-work:issue-fetch {work_id}` using SlashCommand tool
   - Extract issue title and type from response
   - If `prefix` not provided, infer from issue type (feature→feat, bug→fix, etc.)
   - Use issue title as description
@@ -224,7 +224,7 @@ For other operations:
     - If worktree exists: Present proactive cleanup prompt using AskUserQuestion tool
       - Option 1: "Yes, remove it now" → invoke worktree-manager to remove
       - Option 2: "No, keep it for now" → skip cleanup
-      - Option 3: "Show me the cleanup command" → display `/repo:worktree-remove <branch>` command
+      - Option 3: "Show me the cleanup command" → display `/fractary-repo:worktree-remove <branch>` command
 - This reinforces cleanup best practices without being intrusive
 
 If validation fails:
@@ -316,7 +316,7 @@ If operation is `push-branch` and skill returns exit code 13 (branch out of sync
    ```
    "Branch 'main' is out of sync with remote. The push failed because your local branch is behind.
 
-   Would you like me to pull the latest changes first using /repo:pull, then retry the push?"
+   Would you like me to pull the latest changes first using /fractary-repo:pull, then retry the push?"
    ```
 
 4. **If user approves**:
@@ -336,7 +336,7 @@ If operation is `push-branch` and skill returns exit code 13 (branch out of sync
 
 5. **Never suggest bash workarounds**:
    - ❌ "Run: git pull origin main && git push"
-   - ✅ "Use /repo:pull to sync, then retry /repo:push"
+   - ✅ "Use /fractary-repo:pull to sync, then retry /fractary-repo:push"
 
 **Special handling for create-branch operation with spec_create flag:**
 
@@ -367,7 +367,7 @@ If operation is `create-branch` AND `parameters.spec_create` is true:
      To create a specification, you need to provide a work item ID.
 
      Either:
-     1. Use --work-id flag: /repo:branch-create "description" --work-id 123 --spec-create
+     1. Use --work-id flag: /fractary-repo:branch-create "description" --work-id 123 --spec-create
      2. Create spec manually: /fractary-spec:create --work-id {work_id}
      ```
    - If spec plugin not configured (config file doesn't exist):
@@ -796,7 +796,7 @@ When skipping due to missing work_id or plugin configuration, show the appropria
 When a push operation returns exit code 13:
 1. Check `push_sync_strategy` configuration
 2. If `auto-merge`/`pull-rebase`/`pull-merge`: Auto-sync failed → Report conflicts
-3. If `manual`/`fail`: Workflow enforcement → Offer to call /repo:pull
+3. If `manual`/`fail`: Workflow enforcement → Offer to call /fractary-repo:pull
 4. Never suggest bash commands
 
 </OUTPUTS>
@@ -872,7 +872,7 @@ When a push operation returns exit code 13:
     "remote": "origin",
     "action_required": "pull_first"
   },
-  "suggested_workflow": "Would you like me to pull the latest changes using /repo:pull, then retry the push?"
+  "suggested_workflow": "Would you like me to pull the latest changes using /fractary-repo:pull, then retry the push?"
 }
 ```
 

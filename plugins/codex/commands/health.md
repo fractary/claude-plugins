@@ -171,6 +171,6 @@ When using `--fix`, the health check will attempt to automatically repair:
 
 ## Related
 
-- [/codex:metrics](./metrics.md) - View statistics and metrics
-- [/codex:cache-list](./cache-list.md) - List cached documents
+- [/fractary-codex:metrics](./metrics.md) - View statistics and metrics
+- [/fractary-codex:cache-list](./cache-list.md) - List cached documents
 - [Troubleshooting](../docs/MIGRATION-PHASE4.md#troubleshooting) - Troubleshooting guide

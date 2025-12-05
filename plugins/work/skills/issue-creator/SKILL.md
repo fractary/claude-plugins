@@ -239,7 +239,7 @@ Issue created: #124 - "Add dark mode support"
 URL: https://github.com/owner/repo/issues/124
 Platform: github
 ───────────────────────────────────────
-Next: Use /work:issue fetch 124 to view details
+Next: Use /fractary-work:issue-fetch 124 to view details
 ```
 
 ### End Message (Error)

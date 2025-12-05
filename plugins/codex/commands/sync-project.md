@@ -15,7 +15,7 @@ argument-hint: [project-name] [--to-codex|--from-codex|--bidirectional] [--dry-r
 
 ```bash
 # Instead of syncing FROM codex:
-/codex:sync-project my-project --from-codex
+/fractary-codex:sync-project my-project --from-codex
 
 # Use the new fetch command:
 /fractary-codex:fetch @codex/my-project/docs/architecture.md

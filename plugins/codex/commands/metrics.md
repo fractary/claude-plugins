@@ -120,11 +120,11 @@ HEALTH STATUS: ✅ Healthy
 
 Recommendations:
   • Consider enabling compression to save disk space
-  • Clear 14 expired documents: /codex:cache-clear --expired
+  • Clear 14 expired documents: /fractary-codex:cache-clear --expired
 ```
 
 ## Related
 
-- [/codex:health](./health.md) - Detailed health checks
-- [/codex:cache-list](./cache-list.md) - List cached documents
+- [/fractary-codex:health](./health.md) - Detailed health checks
+- [/fractary-codex:cache-list](./cache-list.md) - List cached documents
 - [README](../README.md) - Full documentation

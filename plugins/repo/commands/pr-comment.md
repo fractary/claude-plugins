@@ -74,16 +74,16 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Always use quotes for multi-word comments:**
 ```bash
-✅ /repo:pr-comment 456 "Looks great! Approving now."
-✅ /repo:pr-comment 123 "Please add tests for edge cases"
+✅ /fractary-repo:pr-comment 456 "Looks great! Approving now."
+✅ /fractary-repo:pr-comment 123 "Please add tests for edge cases"
 
-❌ /repo:pr-comment 456 Looks great! Approving now.
+❌ /fractary-repo:pr-comment 456 Looks great! Approving now.
 ```
 
 **Single-word comments don't require quotes:**
 ```bash
-✅ /repo:pr-comment 456 LGTM
-✅ /repo:pr-comment 456 Approved
+✅ /fractary-repo:pr-comment 456 LGTM
+✅ /fractary-repo:pr-comment 456 Approved
 ```
 </ARGUMENT_SYNTAX>
 
@@ -107,7 +107,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 **Example**:
 ```
-/repo:pr-comment 456 "LGTM! Approving."
+/fractary-repo:pr-comment 456 "LGTM! Approving."
 → Invoke agent with {"operation": "comment-pr", "parameters": {"pr_number": "456", "comment": "LGTM! Approving."}}
 ```
 </ARGUMENT_PARSING>
@@ -117,22 +117,22 @@ This command follows the **space-separated** argument syntax (consistent with wo
 
 ```bash
 # Add comment
-/repo:pr-comment 456 "Tested locally - works great!"
+/fractary-repo:pr-comment 456 "Tested locally - works great!"
 
 # Simple approval comment
-/repo:pr-comment 456 LGTM
+/fractary-repo:pr-comment 456 LGTM
 
 # Request changes
-/repo:pr-comment 456 "Please add unit tests before merging"
+/fractary-repo:pr-comment 456 "Please add unit tests before merging"
 
 # Generate review feedback from conversation context
-/repo:pr-comment 456 --prompt "Summarize the code review feedback we discussed, including the security concern"
+/fractary-repo:pr-comment 456 --prompt "Summarize the code review feedback we discussed, including the security concern"
 
 # Generate approval comment with context
-/repo:pr-comment 456 --prompt "Post an approval comment mentioning the improvements we identified during review"
+/fractary-repo:pr-comment 456 --prompt "Post an approval comment mentioning the improvements we identified during review"
 
 # Enhance comment with review details
-/repo:pr-comment 456 "Great improvements!" --prompt "Add specific details about the refactoring we discussed"
+/fractary-repo:pr-comment 456 "Great improvements!" --prompt "Add specific details about the refactoring we discussed"
 ```
 </EXAMPLES>
 
@@ -174,13 +174,13 @@ Common errors to handle:
 **Missing PR number**:
 ```
 Error: pr_number is required
-Usage: /repo:pr-comment <pr_number> <comment>
+Usage: /fractary-repo:pr-comment <pr_number> <comment>
 ```
 
 **Missing comment**:
 ```
 Error: comment text is required
-Usage: /repo:pr-comment <pr_number> <comment>
+Usage: /fractary-repo:pr-comment <pr_number> <comment>
 ```
 
 **PR not found**:
@@ -194,7 +194,7 @@ Verify the PR number and try again
 ## Comment vs Review
 
 - **Comment**: General comment on the PR (this command)
-- **Review**: Formal review with approve/request changes (use `/repo:pr-review`)
+- **Review**: Formal review with approve/request changes (use `/fractary-repo:pr-review`)
 
 ## Platform Support
 
@@ -203,13 +203,13 @@ This command works with:
 - GitLab (Merge Requests)
 - Bitbucket (Pull Requests)
 
-Platform is configured via `/repo:init` and stored in `.fractary/plugins/repo/config.json`.
+Platform is configured via `/fractary-repo:init` and stored in `.fractary/plugins/repo/config.json`.
 
 ## See Also
 
 Related commands:
-- `/repo:pr-create` - Create PRs
-- `/repo:pr-review` - Review PRs with approval/changes
-- `/repo:pr-merge` - Merge PRs
-- `/repo:init` - Configure repo plugin
+- `/fractary-repo:pr-create` - Create PRs
+- `/fractary-repo:pr-review` - Review PRs with approval/changes
+- `/fractary-repo:pr-merge` - Merge PRs
+- `/fractary-repo:init` - Configure repo plugin
 </NOTES>
