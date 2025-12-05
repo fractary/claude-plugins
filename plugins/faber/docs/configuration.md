@@ -1,4 +1,4 @@
-# FABER Configuration Guide (v2.0)
+# FABER Configuration Guide (v2.1)
 
 Complete guide to configuring FABER workflow for your projects using the new JSON-based configuration.
 
@@ -202,6 +202,81 @@ See `plugins/faber/config/faber.example.json` for a complete configuration with:
 
 ## Step Configuration
 
+### Step Identification (id vs name)
+
+FABER v2.1 introduces a required `id` field for step identification. This enables:
+- **Step targeting**: Run specific steps via `--step build:implement`
+- **Logging**: Clear identification in event logs
+- **State tracking**: Precise step status in state.json
+- **Uniqueness validation**: Catch duplicate step IDs during config validation
+
+#### Step Schema
+
+```json
+{
+  "id": "implement",
+  "name": "Implement Solution",
+  "description": "Implement solution from specification",
+  "skill": "fractary-spec:spec-generator"
+}
+```
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `id` | Yes* | Unique identifier for targeting, logging, state tracking |
+| `name` | No | Human-readable display name (defaults to `id` if omitted) |
+| `description` | Conditional | Documentation (what the step does) |
+| `prompt` | Conditional | Execution instruction (how to do it) |
+| `skill` | Conditional | Skill to invoke |
+
+*For backward compatibility, `name` is accepted as identifier if `id` is missing. New workflows should use explicit `id` fields.
+
+#### Uniqueness Requirement
+
+Step IDs must be unique across ALL phases in a workflow. This allows unambiguous step targeting:
+
+```bash
+# Target specific step
+/fractary-faber:run --work-id 123 --step build:implement
+
+# If "implement" existed in both build and evaluate phases, this would be ambiguous
+# Solution: use unique IDs like "build-implement" and "evaluate-implement"
+```
+
+**Example: Same skill, different IDs**
+```json
+{
+  "phases": {
+    "frame": {
+      "steps": [
+        {"id": "initial-inspect", "name": "Initial Inspection", "skill": "data-inspector"}
+      ]
+    },
+    "evaluate": {
+      "steps": [
+        {"id": "final-inspect", "name": "Final Validation", "skill": "data-inspector"}
+      ]
+    }
+  }
+}
+```
+
+#### Validation
+
+Workflow validation now checks for:
+- Missing step identifier (requires `id` or `name`)
+- Duplicate step IDs across phases
+- Deprecation warning for steps using `name` as identifier
+
+```bash
+# Run validation
+/fractary-faber:audit
+
+# Output includes step ID validation:
+# ✓ All step IDs are unique across phases
+# ⚠ Step 'test' uses deprecated 'name' as identifier. Add explicit 'id' field.
+```
+
 ### Understanding `description` vs `prompt`
 
 FABER v2.0 introduces a powerful distinction between documentation and execution instructions:
@@ -223,7 +298,8 @@ FABER v2.0 introduces a powerful distinction between documentation and execution
 #### Pattern 1: Step with Skill Only
 ```json
 {
-  "name": "fetch-work",
+  "id": "fetch-work",
+  "name": "Fetch Work Item",
   "description": "Fetch work item details from issue tracker",
   "skill": "fractary-work:issue-fetcher"
 }
@@ -233,7 +309,8 @@ FABER v2.0 introduces a powerful distinction between documentation and execution
 #### Pattern 2: Step with Skill + Prompt
 ```json
 {
-  "name": "create-pr",
+  "id": "create-pr",
+  "name": "Create Pull Request",
   "description": "Create pull request for review",
   "skill": "fractary-repo:pr-manager",
   "prompt": "Create PR with comprehensive summary, test plan, and FABER attribution"
@@ -244,21 +321,22 @@ FABER v2.0 introduces a powerful distinction between documentation and execution
 #### Pattern 3: Direct Claude Execution (No Skill)
 ```json
 {
-  "name": "implement",
+  "id": "implement",
+  "name": "Implement Solution",
   "description": "Implement solution from specification",
   "prompt": "Implement based on specification, following project code standards and best practices"
 }
 ```
 **Behavior**: Claude executes directly using prompt as instruction. Description used for documentation.
 
-#### Pattern 4: Legacy (Description Only, No Skill)
+#### Pattern 4: Legacy (Description Only, No Skill) - Deprecated
 ```json
 {
   "name": "test",
   "description": "Run automated tests"
 }
 ```
-**Behavior**: Claude executes using description as prompt (backward compatibility). Recommended to add explicit `prompt` field for clarity.
+**Behavior**: Claude executes using description as prompt (backward compatibility). Recommended to add explicit `id` and `prompt` fields for clarity.
 
 ### When to Use Each Pattern
 

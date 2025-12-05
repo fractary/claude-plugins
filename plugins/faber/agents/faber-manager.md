@@ -199,21 +199,35 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
 
 **Handle step_id (single step execution):**
 
-If `step_id` is provided (format: `phase:step-name`):
+If `step_id` is provided (format: `phase:step-id`):
 ```
 1. Parse step_id:
    step_phase = step_id.split(":")[0]  # e.g., "build"
-   step_name = step_id.split(":")[1]   # e.g., "implement"
+   target_step_id = step_id.split(":")[1]   # e.g., "implement"
 
 2. Validate step exists in workflow config:
-   config.phases[step_phase].steps.find(s => s.name == step_name)
-   If not found: ERROR "Step '{step_name}' not found in {step_phase} phase"
+   # Helper: get_step_identifier(step) returns step.id if present, else step.name (backward compatibility)
+   config.phases[step_phase].steps.find(s => get_step_identifier(s) == target_step_id)
+   If not found: ERROR "Step with ID '{target_step_id}' not found in {step_phase} phase"
 
 3. Set execution mode:
    execution_mode = "single_step"
    target_phase = step_phase
-   target_step = step_name
+   target_step = target_step_id
    phases_to_execute = [step_phase]
+```
+
+**Helper: get_step_identifier(step)**
+```
+# Returns the unique identifier for a step
+# Prefers 'id' field, falls back to 'name' for backward compatibility
+IF step.id exists AND step.id is not empty THEN
+  RETURN step.id
+ELSE IF step.name exists AND step.name is not empty THEN
+  LOG "DEPRECATION: Step uses 'name' as identifier. Add explicit 'id' field."
+  RETURN step.name
+ELSE
+  ERROR "Step has no identifier (missing both 'id' and 'name' fields)"
 ```
 
 **Handle phases array (multi-phase execution):**
@@ -403,8 +417,8 @@ IF phase == "build" THEN
 **Determine steps to execute:**
 ```
 IF execution_mode == "single_step" AND phase == target_phase THEN
-  # Execute only the target step
-  steps_to_execute = [config.phases[phase].steps.find(s => s.name == target_step)]
+  # Execute only the target step (use get_step_identifier for matching)
+  steps_to_execute = [config.phases[phase].steps.find(s => get_step_identifier(s) == target_step)]
 ELSE
   # Execute all steps in the phase
   steps_to_execute = config.phases[phase].steps
@@ -415,22 +429,25 @@ For each step in steps_to_execute:
 **Emit step_start event:**
 ```
 step_start_time = current_timestamp()
+step_id = get_step_identifier(step)  # Use helper to get id or name
+step_display = step.name ?? step_id  # Display name, fallback to id
 
 Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --run-id "{run_id}" \
   --type "step_start" \
   --phase "{phase}" \
-  --step "{step_name}" \
+  --step "{step_id}" \
   --status "started" \
-  --message "Starting step: {step_name}"
+  --message "Starting step: {step_display}"
 ```
 
 **Update state - step starting (with error handling):**
 ```
 # CRITICAL: State update must succeed before step execution
+# Note: step_id was computed above via get_step_identifier(step)
 state_update_result = Invoke Skill: faber-state
   Operation: update-step
-  Parameters: run_id={run_id}, phase, step_name, "in_progress"
+  Parameters: run_id={run_id}, phase, step_id, "in_progress"
 
 # Handle state update failure
 IF state_update_result.status == "failure" OR state_update_result is null THEN
@@ -445,13 +462,13 @@ IF state_update_result.status == "failure" OR state_update_result is null THEN
     # State is corrupted - cannot proceed safely
     ABORT workflow with:
       status: "failed"
-      failed_at: "{phase}:{step_name}"
+      failed_at: "{phase}:{step_id}"
       reason: "State update failed before step execution - state may be corrupted"
       errors: [state_update_result.message ?? "Unknown state error", "Recovery attempt also failed"]
       recovery_hint: "Check .fractary/plugins/faber/runs/{run_id}/state.json and restore from backup if needed"
 
 # Log step ID for workflow tracking
-LOG "Executing step: {phase}:{step_name}"
+LOG "Executing step: {phase}:{step_id}"
 ```
 
 **Build step context:**
@@ -465,7 +482,8 @@ step_context = {
   previous_results: state.phases[phase].results,
   artifacts: state.artifacts,
   execution_mode: execution_mode,
-  step_id: "{phase}:{step_name}"  # For logging
+  step_id: "{phase}:{step_id}",  # For logging (uses id field)
+  step_display: step_display  # Human-readable name for display
 }
 ```
 
@@ -510,7 +528,8 @@ IF step.arguments exists THEN
       message: "Failed to resolve step arguments due to undefined placeholders"
       errors: validation_errors
       details: {
-        step_name: step.name,
+        step_id: step_id,  # Use computed step_id
+        step_display: step_display,
         defined_arguments: step.arguments,
         available_context_keys: Object.keys(context)
       }
@@ -540,12 +559,13 @@ Step MUST return a result object with standard structure:
 **RESULT VALIDATION (MANDATORY before using result):**
 ```
 # Validate result object exists and has required structure
+# Note: step_id and step_display were computed earlier via get_step_identifier(step)
 IF result is null OR result is undefined THEN
   # Treat missing result as failure
   result = {
     status: "failure",
     message: "Step returned null or undefined result",
-    errors: ["Step '{step_name}' did not return a valid result object"]
+    errors: ["Step '{step_id}' ({step_display}) did not return a valid result object"]
   }
 
 ELSE IF result.status is null OR result.status not in ["success", "warning", "failure"] THEN
@@ -553,7 +573,7 @@ ELSE IF result.status is null OR result.status not in ["success", "warning", "fa
   result = {
     status: "failure",
     message: "Step returned invalid result structure",
-    errors: ["Step '{step_name}' returned result without valid status field. Got: " + JSON.stringify(result.status)]
+    errors: ["Step '{step_id}' returned result without valid status field. Got: " + JSON.stringify(result.status)]
   }
 
 ELSE IF result.status == "failure" AND (result.errors is null OR result.errors.length == 0) THEN
@@ -579,25 +599,25 @@ SWITCH result.status:
 
   CASE "failure":
     # ALWAYS STOP - THIS IS IMMUTABLE
-    # Update state to failed
+    # Update state to failed (use step_id for state tracking)
     Invoke Skill: faber-state
     Operation: update-step
-    Parameters: run_id={run_id}, phase, step_name, "failed", {result}
+    Parameters: run_id={run_id}, phase, step_id, "failed", {result}
 
     # Emit step_failed event
     Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
       --run-id "{run_id}" \
       --type "step_failed" \
       --phase "{phase}" \
-      --step "{step_name}" \
+      --step "{step_id}" \
       --status "failed" \
-      --message "Step failed: {result.message}" \
+      --message "Step failed: {step_display} - {result.message}" \
       --data '{"errors": {result.errors}}'
 
     # STOP workflow immediately - NO EXCEPTIONS
     ABORT workflow with:
       status: "failed"
-      failed_at: "{phase}:{step_name}"
+      failed_at: "{phase}:{step_id}"
       reason: result.message
       errors: result.errors
 
@@ -608,9 +628,9 @@ SWITCH result.status:
       ABORT workflow (same as failure case)
 
     ELSE IF result_handling.on_warning == "prompt" THEN
-      # Ask user how to proceed
+      # Ask user how to proceed (use display name for user-facing messages)
       USE AskUserQuestion:
-        "Step '{step_name}' completed with warnings:\n{result.warnings}\n\nHow to proceed?"
+        "Step '{step_display}' completed with warnings:\n{result.warnings}\n\nHow to proceed?"
         Options: ["Continue", "Stop workflow"]
 
       IF response == "Stop workflow" THEN
@@ -622,7 +642,7 @@ SWITCH result.status:
     # Check if approval needed
     IF result_handling.on_success == "prompt" THEN
       USE AskUserQuestion:
-        "Step '{step_name}' completed successfully. Continue?"
+        "Step '{step_display}' completed successfully. Continue?"
         Options: ["Continue", "Pause here"]
 
       IF response == "Pause here" THEN
@@ -635,7 +655,7 @@ SWITCH result.status:
 ```
 Invoke Skill: faber-state
 Operation: update-step
-Parameters: run_id={run_id}, phase, step_name, "completed", {result, step_id: "{phase}:{step_name}"}
+Parameters: run_id={run_id}, phase, step_id, "completed", {result, step_id: "{phase}:{step_id}"}
 ```
 
 **Emit step_complete event:**
@@ -646,10 +666,10 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --run-id "{run_id}" \
   --type "step_complete" \
   --phase "{phase}" \
-  --step "{step_name}" \
+  --step "{step_id}" \
   --status "{result.status}" \
   --duration "{step_duration_ms}" \
-  --message "Completed step: {step_name}" \
+  --message "Completed step: {step_display}" \
   --data '{"result_status": "{result.status}"}'
 ```
 

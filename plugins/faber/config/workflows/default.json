@@ -21,17 +21,20 @@
       "description": "Fetch work item, classify, and setup environment",
       "steps": [
         {
-          "name": "fetch-work",
+          "id": "fetch-work",
+          "name": "Fetch Work Item",
           "description": "Fetch work item details from issue tracker",
           "skill": "fractary-work:issue-fetcher"
         },
         {
-          "name": "classify",
+          "id": "classify",
+          "name": "Classify Work Type",
           "description": "Classify work type (bug, feature, chore, patch)",
           "skill": "fractary-work:issue-classifier"
         },
         {
-          "name": "setup-env",
+          "id": "setup-env",
+          "name": "Setup Environment",
           "description": "Create branch and setup environment",
           "skill": "fractary-repo:branch-manager"
         }
@@ -43,7 +46,8 @@
       "description": "Generate technical specification",
       "steps": [
         {
-          "name": "generate-spec",
+          "id": "generate-spec",
+          "name": "Generate Specification",
           "description": "Generate specification from context",
           "skill": "fractary-spec:spec-generator",
           "config": {
@@ -59,12 +63,14 @@
       "description": "Implement solution and commit",
       "steps": [
         {
-          "name": "implement",
+          "id": "implement",
+          "name": "Implement Solution",
           "description": "Implement solution from specification",
           "prompt": "Implement based on specification, following project code standards and best practices"
         },
         {
-          "name": "commit",
+          "id": "commit",
+          "name": "Create Commit",
           "description": "Create semantic commit with conventional format",
           "skill": "fractary-repo:commit-creator",
           "prompt": "Create commit using conventional commit format, link to issue, and include co-author attribution",
@@ -82,17 +88,20 @@
       "max_retries": 3,
       "steps": [
         {
-          "name": "test",
+          "id": "test",
+          "name": "Run Tests",
           "description": "Run automated test suite",
           "prompt": "Run automated tests and report results with coverage metrics"
         },
         {
-          "name": "review",
+          "id": "review",
+          "name": "Code Review",
           "description": "Perform code quality review",
           "prompt": "Code review focusing on: correctness, maintainability, security, and adherence to spec"
         },
         {
-          "name": "fix",
+          "id": "fix",
+          "name": "Fix Issues",
           "description": "Fix issues identified in testing",
           "prompt": "Address test failures and review issues, then re-run validation",
           "conditional": "only_if_failures"
@@ -106,7 +115,8 @@
       "require_approval": true,
       "steps": [
         {
-          "name": "update-project-docs",
+          "id": "update-project-docs",
+          "name": "Update Documentation",
           "description": "Update high-level project documentation (CLAUDE.md, README.md, etc.)",
           "skill": "fractary-docs:docs-manager",
           "config": {
@@ -116,7 +126,8 @@
           }
         },
         {
-          "name": "create-pr",
+          "id": "create-pr",
+          "name": "Create Pull Request",
           "description": "Create pull request for review",
           "skill": "fractary-repo:pr-manager",
           "prompt": "Create PR with comprehensive summary, test plan, and FABER attribution",

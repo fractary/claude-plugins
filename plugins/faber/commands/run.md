@@ -68,7 +68,7 @@ This command follows the principle: **commands never do work** - they immediatel
 | `--workflow <id>` | string | `default` | Workflow to use (e.g., `default`, `hotfix`). Can be detected from issue labels. |
 | `--autonomy <level>` | string | `guarded` | Autonomy level: `dry-run`, `assist`, `guarded`, `autonomous`. Can be detected from issue labels. |
 | `--phase <phases>` | string | all | Comma-separated phases to execute (e.g., `frame,architect`). **No spaces**. |
-| `--step <step-id>` | string | - | Specific step to execute. Format: `phase:step-name` (e.g., `build:implement`). Mutually exclusive with `--phase`. |
+| `--step <step-id>` | string | - | Specific step to execute. Format: `phase:step-id` (e.g., `build:implement`). Uses the step's `id` field (or `name` for backward compatibility). Mutually exclusive with `--phase`. |
 | `--prompt "<text>"` | string | - | Additional custom instructions to guide the workflow. |
 
 **Examples:**
@@ -147,7 +147,7 @@ Extract from user input:
 - If both `--resume` AND `--rerun` provided: show error (mutually exclusive)
 - If `--resume` or `--rerun` AND `--work-id`: `--work-id` is ignored (run already has work_id)
 - If `--phase` contains spaces: show error
-- If `--step` doesn't match pattern `phase:step-name`: show error
+- If `--step` doesn't match pattern `phase:step-id`: show error
 - If `--autonomy` is invalid level: show error
 - If both `--phase` and `--step` provided: show error (mutually exclusive)
 - If `--resume` or `--rerun` doesn't match format `org/project/uuid`: show error
@@ -254,12 +254,14 @@ Wrong:   --phase frame, architect, build
 
 **Invalid Step Format Error:**
 ```
-Error: --step must be in format 'phase:step-name'
+Error: --step must be in format 'phase:step-id'
 
 Examples:
   --step build:implement
   --step evaluate:test
-  --step release:create-pr
+  --step release:update-docs
+
+Note: Uses the step's 'id' field (or 'name' for backward compatibility).
 ```
 
 **Invalid Autonomy Level Error:**
@@ -314,7 +316,7 @@ If `--phase` contains spaces:
 - Do NOT invoke director skill
 
 ## Invalid Step Format
-If `--step` doesn't match `phase:step-name`:
+If `--step` doesn't match `phase:step-id`:
 - Show error with valid format examples
 - Do NOT invoke director skill
 
@@ -393,17 +395,18 @@ When `--work-id` is provided, the director skill checks issue labels for configu
 
 ## Step ID Format
 
-Steps use the format `phase:step-name`:
+Steps use the format `phase:step-id` where `step-id` is the value of the step's `id` field (or `name` for backward compatibility):
 
-- `frame:fetch-work`
-- `frame:classify`
+**Current (uses `id` field):**
 - `architect:generate-spec`
 - `build:implement`
 - `build:commit`
 - `evaluate:test`
 - `evaluate:review`
-- `release:update-project-docs`
-- `release:create-pr`
+- `evaluate:fix`
+- `release:update-docs`
+
+**Note:** Step IDs must be unique across all phases in a workflow. This enables unambiguous step targeting, logging, and state tracking. If you see deprecation warnings about using `name` as identifier, add explicit `id` fields to your workflow steps.
 
 ## See Also
 
