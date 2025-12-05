@@ -7,7 +7,7 @@ description: |
 
   Specifications are point-in-time requirements that become stale once work completes. Unlike documentation (living state), specs are temporary and archived after completion to prevent context pollution.
 tools: Bash, Skill
-model: claude-haiku-4-5
+model: claude-opus-4-5
 color: orange
 tags: [specification, requirements, validation, archival]
 ---

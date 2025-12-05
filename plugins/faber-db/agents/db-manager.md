@@ -2,7 +2,7 @@
 name: db-manager
 description: Pure router for database management operations - delegates to focused skills
 tools: Bash, Skill
-model: claude-haiku-4-5
+model: claude-opus-4-5
 color: blue
 ---
 
