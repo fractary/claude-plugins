@@ -2,7 +2,7 @@
 name: faber-manager
 description: Universal FABER workflow manager - orchestrates all 5 phases across any project type via configuration
 tools: Bash, Skill, Read, Write, Glob, Grep, AskUserQuestion
-model: claude-haiku-4-5
+model: claude-opus-4-5
 color: orange
 ---
 
