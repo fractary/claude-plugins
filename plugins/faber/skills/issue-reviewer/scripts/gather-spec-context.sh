@@ -28,25 +28,16 @@ SEARCH_PATTERNS=(
   ".fractary/specs/*${WORK_ID}*.md"
 )
 
-# Find spec file
+# Find spec file safely using find command only (no glob expansion)
 find_spec() {
   for pattern in "${SEARCH_PATTERNS[@]}"; do
-    # Use find to handle glob patterns safely
+    # Use find to handle glob patterns safely - avoids command injection
     local matches
     matches=$(find . -path "./$pattern" -type f 2>/dev/null | head -1)
     if [[ -n "$matches" ]]; then
       echo "$matches"
       return 0
     fi
-
-    # Also try direct glob
-    # shellcheck disable=SC2086
-    for file in $pattern; do
-      if [[ -f "$file" ]]; then
-        echo "$file"
-        return 0
-      fi
-    done
   done
 
   return 1
@@ -72,19 +63,31 @@ extract_acceptance_criteria() {
 SPEC_PATH=$(find_spec) || SPEC_PATH=""
 
 if [[ -z "$SPEC_PATH" ]]; then
-  jq -n '{
+  # Use jq --arg to safely escape WORK_ID and avoid JSON injection
+  jq -n --arg work_id "$WORK_ID" '{
     "found": false,
     "spec_path": null,
     "spec_content": null,
     "requirements": [],
     "acceptance_criteria": [],
-    "message": "No specification found for work ID '$WORK_ID'"
+    "message": ("No specification found for work ID " + $work_id)
   }'
   exit 0
 fi
 
-# Read spec content
-SPEC_CONTENT=$(cat "$SPEC_PATH")
+# Read spec content with error handling
+SPEC_CONTENT=$(cat "$SPEC_PATH" 2>/dev/null) || {
+  jq -n --arg work_id "$WORK_ID" --arg path "$SPEC_PATH" '{
+    "found": false,
+    "spec_path": $path,
+    "spec_content": null,
+    "requirements": [],
+    "acceptance_criteria": [],
+    "error": ("Failed to read specification file: " + $path),
+    "message": ("Specification found but unreadable for work ID " + $work_id)
+  }'
+  exit 1
+}
 
 # Extract structured data
 REQUIREMENTS=$(extract_requirements "$SPEC_CONTENT")

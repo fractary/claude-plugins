@@ -90,7 +90,11 @@ for attempt in $(seq 1 $MAX_RETRIES); do
 done
 
 if [[ -z "$issue_result" ]]; then
-  echo '{"error": "Failed to fetch issue after retries", "work_id": "'$WORK_ID'"}' >&2
+  # Use jq --arg to safely escape WORK_ID and avoid JSON injection
+  jq -n --arg work_id "$WORK_ID" '{
+    "error": "Failed to fetch issue after retries",
+    "work_id": $work_id
+  }' >&2
   exit 1
 fi
 

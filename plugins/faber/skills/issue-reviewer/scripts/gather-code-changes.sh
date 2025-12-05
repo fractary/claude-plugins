@@ -27,8 +27,15 @@ fi
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "HEAD")
 
+# Capture HEAD SHA at start to ensure consistency across all operations
+# This prevents race conditions if commits are made during script execution
+HEAD_SHA=$(git rev-parse HEAD 2>/dev/null) || {
+  echo '{"error": "Could not determine HEAD commit"}' >&2
+  exit 1
+}
+
 # Check if we have commits since base
-COMMIT_COUNT=$(git rev-list --count "${BASE_BRANCH}..HEAD" 2>/dev/null || echo "0")
+COMMIT_COUNT=$(git rev-list --count "${BASE_BRANCH}..${HEAD_SHA}" 2>/dev/null || echo "0")
 
 if [[ "$COMMIT_COUNT" == "0" ]]; then
   jq -n \
@@ -53,9 +60,9 @@ if [[ "$COMMIT_COUNT" == "0" ]]; then
   exit 0
 fi
 
-# Get file changes with stats
+# Get file changes with stats (uses HEAD_SHA for consistency)
 get_file_changes() {
-  git diff --stat --name-status "${BASE_BRANCH}...HEAD" 2>/dev/null | while read -r line; do
+  git diff --stat --name-status "${BASE_BRANCH}...${HEAD_SHA}" 2>/dev/null | while read -r line; do
     if [[ -z "$line" ]]; then continue; fi
 
     # Parse status and filename
@@ -73,9 +80,9 @@ get_file_changes() {
       *) status_name="unknown" ;;
     esac
 
-    # Get line stats
+    # Get line stats (uses HEAD_SHA for consistency)
     local stats
-    stats=$(git diff --numstat "${BASE_BRANCH}...HEAD" -- "$file" 2>/dev/null | head -1)
+    stats=$(git diff --numstat "${BASE_BRANCH}...${HEAD_SHA}" -- "$file" 2>/dev/null | head -1)
     local additions deletions
     additions=$(echo "$stats" | awk '{print $1}')
     deletions=$(echo "$stats" | awk '{print $2}')
@@ -96,9 +103,10 @@ get_file_changes() {
 }
 
 # Get diff content (summarized if large)
+# Uses HEAD_SHA for consistency with other operations
 get_diff_content() {
   local diff
-  diff=$(git diff "${BASE_BRANCH}...HEAD" 2>/dev/null)
+  diff=$(git diff "${BASE_BRANCH}...${HEAD_SHA}" 2>/dev/null)
 
   local line_count
   line_count=$(echo "$diff" | wc -l)
@@ -106,7 +114,7 @@ get_diff_content() {
   if [[ $line_count -gt 5000 ]]; then
     echo "# Diff too large ($line_count lines) - showing summary only"
     echo ""
-    git diff --stat "${BASE_BRANCH}...HEAD" 2>/dev/null
+    git diff --stat "${BASE_BRANCH}...${HEAD_SHA}" 2>/dev/null
     echo ""
     echo "# End of summary (full diff: $line_count lines)"
   else

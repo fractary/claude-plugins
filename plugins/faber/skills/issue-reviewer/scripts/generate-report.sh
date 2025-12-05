@@ -51,9 +51,12 @@ if [[ -z "$WORK_ID" ]] || [[ -z "$STATUS" ]]; then
   exit 1
 fi
 
-# Setup output directory
+# Setup output directory with error handling
 REVIEWS_DIR=".fractary/plugins/faber/reviews"
-mkdir -p "$REVIEWS_DIR"
+if ! mkdir -p "$REVIEWS_DIR" 2>/dev/null; then
+  echo "Error: Failed to create reviews directory: $REVIEWS_DIR" >&2
+  exit 1
+fi
 
 # Generate timestamp
 TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
@@ -211,6 +214,12 @@ cat >> "$REPORT_FILE" << EOF
 *Model: claude-opus-4-5*
 *Timestamp: ${TIMESTAMP}*
 EOF
+
+# Verify report was written successfully
+if [[ ! -f "$REPORT_FILE" ]]; then
+  echo "Error: Failed to create report file: $REPORT_FILE" >&2
+  exit 1
+fi
 
 # Output the report path
 echo "$REPORT_FILE"
