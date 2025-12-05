@@ -75,7 +75,71 @@ You have direct tool access for reading files, executing operations, and user in
    - NEVER proceed if status is "failure" - this is IMMUTABLE
    - ALWAYS report failures clearly with error details
    - ALWAYS update state BEFORE and AFTER every step (see rule #3)
+
+9. **Default Result Handling**
+   - ALWAYS apply defaults when result_handling is not specified:
+     - Steps: `{ on_success: "continue", on_warning: "continue", on_failure: "stop" }`
+     - Hooks: `{ on_success: "continue", on_warning: "continue", on_failure: "stop" }`
+   - `on_failure: "stop"` is IMMUTABLE for steps - always enforced regardless of config
+   - Hooks MAY set `on_failure: "continue"` for informational hooks only
+   - Merge user's partial config with defaults (user values override defaults)
 </CRITICAL_RULES>
+
+<DEFAULT_RESULT_HANDLING>
+## Default Configuration Constants
+
+When a step or hook does not specify `result_handling`, apply these defaults:
+
+**Step Defaults:**
+```
+DEFAULT_STEP_RESULT_HANDLING = {
+  on_success: "continue",    // Proceed automatically to next step
+  on_warning: "continue",    // Log warning, proceed to next step
+  on_failure: "stop"         // IMMUTABLE - always stop on failure
+}
+```
+
+**Hook Defaults:**
+```
+DEFAULT_HOOK_RESULT_HANDLING = {
+  on_success: "continue",    // Proceed automatically
+  on_warning: "continue",    // Log warning, proceed
+  on_failure: "stop"         // Default; can be "continue" for informational hooks
+}
+```
+
+## Applying Defaults
+
+When loading step/hook configuration, merge user config with defaults:
+
+```
+function applyResultHandlingDefaults(stepOrHook, isHook = false):
+  defaults = isHook ? DEFAULT_HOOK_RESULT_HANDLING : DEFAULT_STEP_RESULT_HANDLING
+
+  # If no result_handling defined, use full defaults
+  IF stepOrHook.result_handling is null OR undefined THEN
+    RETURN defaults
+
+  # Merge user's partial config with defaults
+  merged = {
+    on_success: stepOrHook.result_handling.on_success ?? defaults.on_success,
+    on_warning: stepOrHook.result_handling.on_warning ?? defaults.on_warning,
+    on_failure: stepOrHook.result_handling.on_failure ?? defaults.on_failure
+  }
+
+  # ENFORCE: on_failure is IMMUTABLE for steps (always "stop")
+  IF NOT isHook THEN
+    merged.on_failure = "stop"
+
+  RETURN merged
+```
+
+## Backward Compatibility
+
+- Existing configs with explicit result_handling continue to work unchanged
+- New configs can omit result_handling entirely to use defaults
+- Partial result_handling (e.g., only on_warning) is allowed - missing fields use defaults
+</DEFAULT_RESULT_HANDLING>
 
 <INPUTS>
 You receive workflow execution requests with:
@@ -298,13 +362,10 @@ hook_result = {
   warnings: [...]   // if warning
 }
 
-# Get result_handling config (with defaults)
-# Hooks default to stop on failure but can be configured to continue
-result_handling = hook.result_handling ?? {
-  on_success: "continue",
-  on_warning: "continue",
-  on_failure: "stop"  # Default for hooks; can be "continue" for informational hooks
-}
+# Get result_handling config (with defaults applied)
+result_handling = applyResultHandlingDefaults(hook, isHook=true)
+# Result: { on_success, on_warning, on_failure } with defaults filled in
+# Note: Hooks can have on_failure="continue" for informational hooks
 
 # Evaluate result (similar to steps, but hooks can continue on failure)
 SWITCH hook_result.status:
@@ -567,18 +628,15 @@ ELSE IF result.status == "warning" AND (result.warnings is null OR result.warnin
 
 **Evaluate result status (MANDATORY):**
 ```
-# Get result_handling config (with defaults)
-result_handling = step.result_handling ?? {
-  on_success: "continue",
-  on_warning: "continue",
-  on_failure: "stop"  # IMMUTABLE - always stop on failure
-}
+# Get result_handling config (with defaults applied)
+result_handling = applyResultHandlingDefaults(step, isHook=false)
+# Result: { on_success, on_warning, on_failure } with defaults filled in
 
 # Evaluate based on status
 SWITCH result.status:
 
   CASE "failure":
-    # ALWAYS STOP - THIS IS IMMUTABLE
+    # ALWAYS STOP - THIS IS IMMUTABLE (on_failure is always "stop" for steps)
     # Update state to failed
     Invoke Skill: faber-state
     Operation: update-step
@@ -594,29 +652,74 @@ SWITCH result.status:
       --message "Step failed: {result.message}" \
       --data '{"errors": {result.errors}}'
 
-    # STOP workflow immediately - NO EXCEPTIONS
-    ABORT workflow with:
-      status: "failed"
-      failed_at: "{phase}:{step_name}"
-      reason: result.message
-      errors: result.errors
+    # Display intelligent failure prompt with options
+    USE AskUserQuestion with FAILURE_PROMPT_TEMPLATE (see below)
+
+    # Handle user selection
+    SWITCH user_selection:
+      CASE "Suggested fix" (if available):
+        # Record recovery attempt in state
+        Invoke Skill: faber-state
+        Operation: record-failure-recovery
+        Parameters: run_id={run_id}, step={step_name}, action="suggested_fix"
+        # Execute suggested fix, then retry step
+        RETRY step with fix applied
+
+      CASE "Run diagnostic" (if available):
+        # Execute diagnostic command
+        Invoke Skill: faber-state
+        Operation: record-failure-recovery
+        Parameters: run_id={run_id}, step={step_name}, action="diagnostic"
+        # Show diagnostic results, ask again
+
+      CASE "Continue anyway (NOT RECOMMENDED)":
+        # Log explicit warning about continuing past failure
+        LOG "⚠️ WARNING: User chose to continue past failure in step '{step_name}'. This is NOT RECOMMENDED."
+        Invoke Skill: faber-state
+        Operation: record-failure-recovery
+        Parameters: run_id={run_id}, step={step_name}, action="force_continue", acknowledged=true
+        # Continue to next step (exceptional case)
+
+      CASE "Stop workflow (recommended)":
+        # STOP workflow immediately - default/recommended action
+        ABORT workflow with:
+          status: "failed"
+          failed_at: "{phase}:{step_name}"
+          reason: result.message
+          errors: result.errors
 
   CASE "warning":
     # Check configured behavior
     IF result_handling.on_warning == "stop" THEN
-      # Treat as failure
+      # Treat as failure - abort workflow
       ABORT workflow (same as failure case)
 
     ELSE IF result_handling.on_warning == "prompt" THEN
-      # Ask user how to proceed
-      USE AskUserQuestion:
-        "Step '{step_name}' completed with warnings:\n{result.warnings}\n\nHow to proceed?"
-        Options: ["Continue", "Stop workflow"]
+      # Display intelligent warning prompt with options
+      USE AskUserQuestion with WARNING_PROMPT_TEMPLATE (see below)
 
-      IF response == "Stop workflow" THEN
-        ABORT workflow
+      # Handle user selection
+      SWITCH user_selection:
+        CASE "Ignore and continue":
+          # Log warning and proceed
+          LOG "User acknowledged warnings and chose to continue"
+          # Continue to next step
 
-    # ELSE "continue" - proceed to next step
+        CASE "Fix and retry" (if available):
+          # Execute suggested fix
+          RETRY step with fix applied
+
+        CASE "Stop workflow":
+          ABORT workflow with:
+            status: "stopped"
+            stopped_at: "{phase}:{step_name}"
+            reason: "User stopped due to warnings"
+            warnings: result.warnings
+
+    ELSE  # "continue" (default)
+      # Log warning and proceed automatically
+      LOG "Step '{step_name}' completed with warnings: {result.warnings}"
+      # Continue to next step
 
   CASE "success":
     # Check if approval needed
@@ -628,7 +731,7 @@ SWITCH result.status:
       IF response == "Pause here" THEN
         PAUSE workflow
 
-    # ELSE "continue" - proceed to next step
+    # ELSE "continue" (default) - proceed to next step
 ```
 
 **Update state - step complete (only if not failed):**
@@ -716,12 +819,9 @@ hook_result = {
   warnings: [...]   // if warning
 }
 
-# Get result_handling config (with defaults)
-result_handling = hook.result_handling ?? {
-  on_success: "continue",
-  on_warning: "continue",
-  on_failure: "stop"  # Default; can be "continue" for informational hooks
-}
+# Get result_handling config (with defaults applied)
+result_handling = applyResultHandlingDefaults(hook, isHook=true)
+# Result: { on_success, on_warning, on_failure } with defaults filled in
 
 # Evaluate result (same logic as pre-phase hooks)
 SWITCH hook_result.status:
@@ -1112,6 +1212,153 @@ Parameters: context={failure_context}
 This records the failure history for debugging and prevents infinite loops.
 
 </ERROR_HANDLING>
+
+<INTELLIGENT_PROMPTS>
+
+## Warning Prompt Template
+
+When `on_warning: "prompt"` is configured, display an intelligent warning prompt:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ⚠️  STEP WARNING                                           │
+├─────────────────────────────────────────────────────────────┤
+│  Step: {step.name}                                          │
+│  Phase: {phase}                                             │
+│  Status: Completed with warnings                            │
+├─────────────────────────────────────────────────────────────┤
+│  WARNINGS:                                                  │
+│    • {warning_1}                                            │
+│    • {warning_2}                                            │
+│    ...                                                      │
+├─────────────────────────────────────────────────────────────┤
+│  ANALYSIS:                                                  │
+│  {result.warning_analysis ?? "No analysis available"}       │
+├─────────────────────────────────────────────────────────────┤
+│  SUGGESTED ACTIONS:                                         │
+│  {result.suggested_actions ?? "No suggestions available"}   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Options to present (in order):**
+1. **"Ignore and continue"** (default, first option) - Acknowledge warnings and proceed
+2. **"Fix: {suggested_fix}"** (if result.suggested_fix available) - Apply fix and retry
+3. **"Investigate: {diagnostic}"** (if result.diagnostic available) - Run diagnostic
+4. **"Stop workflow"** (last option) - Conservative choice to halt
+
+**AskUserQuestion format:**
+```
+USE AskUserQuestion:
+  question: "Step '{step_name}' completed with warnings. How would you like to proceed?"
+  header: "Warning"
+  options:
+    - label: "Ignore and continue"
+      description: "Acknowledge the warnings and proceed to the next step"
+    - label: "{suggested_fix_label}"  # If available
+      description: "{suggested_fix_description}"
+    - label: "Stop workflow"
+      description: "Stop the workflow to investigate the warnings"
+  multiSelect: false
+```
+
+## Failure Prompt Template
+
+When a step fails, display an intelligent failure prompt:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ❌  STEP FAILURE                                           │
+├─────────────────────────────────────────────────────────────┤
+│  Step: {step.name}                                          │
+│  Phase: {phase}                                             │
+│  Status: Failed                                             │
+├─────────────────────────────────────────────────────────────┤
+│  ERROR:                                                     │
+│    {result.message}                                         │
+├─────────────────────────────────────────────────────────────┤
+│  DETAILS:                                                   │
+│    {result.errors.join('\n    ')}                           │
+├─────────────────────────────────────────────────────────────┤
+│  ANALYSIS & SUGGESTIONS:                                    │
+│  {result.error_analysis ?? "No analysis available"}         │
+│                                                             │
+│  Suggested fixes:                                           │
+│    • {result.suggested_fixes[0] ?? "None available"}        │
+│    • {result.suggested_fixes[1] ?? ""}                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Options to present (in priority order - NOT RECOMMENDED option is LAST):**
+1. **"Fix: {suggested_fix}"** (if available) - Apply suggested fix
+2. **"Diagnose: {diagnostic_command}"** (if available) - Run diagnostic
+3. **"Continue anyway (NOT RECOMMENDED)"** (second-to-last) - Explicitly discouraged
+4. **"Stop workflow (recommended)"** (last, but highlighted as recommended)
+
+**AskUserQuestion format:**
+```
+USE AskUserQuestion:
+  question: "Step '{step_name}' failed. What would you like to do?"
+  header: "Failure"
+  options:
+    - label: "Fix: {suggested_fix}"  # If available
+      description: "Apply the suggested fix and retry the step"
+    - label: "Diagnose: {diagnostic}"  # If available
+      description: "Run diagnostic to gather more information"
+    - label: "Continue anyway (NOT RECOMMENDED)"
+      description: "⚠️ DANGER: Proceeding despite failure may cause issues downstream"
+    - label: "Stop workflow (recommended)"
+      description: "Stop the workflow and fix the issue manually"
+  multiSelect: false
+```
+
+## Analysis Sources
+
+The warning/failure analysis can come from multiple sources:
+
+1. **Step/skill result data**: `result.warning_analysis`, `result.error_analysis`
+2. **Context inspection**: Analyze the error type and suggest fixes
+3. **Common patterns**: Match against known error patterns
+
+**Error Pattern Examples:**
+```
+IF error matches "ENOENT" THEN
+  suggested_fix = "Create the missing file or directory"
+  diagnostic = "ls -la {path}"
+
+IF error matches "ECONNREFUSED" THEN
+  suggested_fix = "Check if the service is running"
+  diagnostic = "curl -v {url}"
+
+IF error matches "test.*failed" THEN
+  suggested_fix = "Review failing tests and fix implementation"
+  diagnostic = "npm test -- --verbose"
+```
+
+## Recovery Tracking
+
+All failure recovery attempts are tracked in workflow state:
+
+```json
+{
+  "failure_recoveries": [
+    {
+      "step": "build:implement",
+      "timestamp": "2025-12-05T10:30:00Z",
+      "action": "suggested_fix",
+      "outcome": "retry_attempted"
+    },
+    {
+      "step": "build:implement",
+      "timestamp": "2025-12-05T10:35:00Z",
+      "action": "force_continue",
+      "acknowledged": true,
+      "outcome": "continued_despite_failure"
+    }
+  ]
+}
+```
+
+</INTELLIGENT_PROMPTS>
 
 <OUTPUTS>
 
