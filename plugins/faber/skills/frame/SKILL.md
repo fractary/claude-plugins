@@ -159,33 +159,71 @@ Frame skill is complete when:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-Return Frame results to workflow-manager:
+Return Frame results to workflow-manager using the **standard FABER response format**.
 
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**Success Response:**
 ```json
 {
   "status": "success",
-  "phase": "frame",
-  "work_type": "/feature",
-  "work_item": {
-    "title": "Add export feature",
-    "description": "Users should be able to export data...",
-    "labels": ["feature", "enhancement"]
-  },
-  "environment": {
-    "branch_name": "feat/123-add-export",
-    "worktree_path": "/path/to/worktree",
-    "ready": true
+  "message": "Frame phase completed - work item fetched and environment prepared",
+  "details": {
+    "phase": "frame",
+    "work_type": "/feature",
+    "work_item": {
+      "title": "Add export feature",
+      "description": "Users should be able to export data...",
+      "labels": ["feature", "enhancement"]
+    },
+    "environment": {
+      "branch_name": "feat/123-add-export",
+      "worktree_path": "/path/to/worktree",
+      "ready": true
+    }
   }
 }
 ```
 
-On error:
+**Warning Response** (environment setup had minor issues):
 ```json
 {
-  "status": "error",
-  "phase": "frame",
-  "error": "Failed to fetch work item",
-  "error_code": 1
+  "status": "warning",
+  "message": "Frame phase completed with warnings",
+  "details": {
+    "phase": "frame",
+    "work_type": "/feature",
+    "work_item": {...}
+  },
+  "warnings": [
+    "Branch already exists, using existing branch",
+    "Optional dependency 'foo' not installed"
+  ],
+  "warning_analysis": "The work can proceed but some optional features may not be available",
+  "suggested_fixes": [
+    "Run 'npm install foo' to enable optional features"
+  ]
+}
+```
+
+**Failure Response:**
+```json
+{
+  "status": "failure",
+  "message": "Frame phase failed - could not fetch work item",
+  "details": {
+    "phase": "frame"
+  },
+  "errors": [
+    "Work item #123 not found in GitHub Issues",
+    "HTTP 404: Resource not found"
+  ],
+  "error_analysis": "The specified issue ID does not exist or you may not have permission to access it",
+  "suggested_fixes": [
+    "Verify the issue ID is correct",
+    "Check that you have access to the repository",
+    "Ensure GitHub token has 'issues:read' scope"
+  ]
 }
 ```
 </OUTPUTS>

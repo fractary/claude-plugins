@@ -12,16 +12,17 @@
 2. [Architecture Patterns](#architecture-patterns)
 3. [Manager Pattern](#manager-pattern)
 4. [Skill Pattern](#skill-pattern)
-5. [Handler Pattern](#handler-pattern)
-6. [Command Pattern](#command-pattern)
-7. [Configuration Pattern](#configuration-pattern)
-8. [Hook Pattern](#hook-pattern)
-9. [Documentation Standards](#documentation-standards)
-10. [XML Markup Standards](#xml-markup-standards)
-11. [Example: DevOps Plugin](#example-devops-plugin)
-12. [Checklist for New Plugins](#checklist-for-new-plugins)
-13. [Development Tools](#development-tools)
-14. [Best Practices Summary](#best-practices-summary)
+5. [Skill Response Format](#skill-response-format)
+6. [Handler Pattern](#handler-pattern)
+7. [Command Pattern](#command-pattern)
+8. [Configuration Pattern](#configuration-pattern)
+9. [Hook Pattern](#hook-pattern)
+10. [Documentation Standards](#documentation-standards)
+11. [XML Markup Standards](#xml-markup-standards)
+12. [Example: DevOps Plugin](#example-devops-plugin)
+13. [Checklist for New Plugins](#checklist-for-new-plugins)
+14. [Development Tools](#development-tools)
+15. [Best Practices Summary](#best-practices-summary)
 
 ---
 
@@ -310,14 +311,26 @@ This skill is complete and successful when ALL verified:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-After successful completion, return to agent:
+After successful completion, return to agent using the **standard response format**:
 
-1. **Output Name**
-   - Location: [path]
-   - Format: [format]
-   - Contains: [description]
+```json
+{
+  "status": "success" | "warning" | "failure",
+  "message": "Human-readable summary",
+  "details": {
+    // Operation-specific structured data
+  },
+  "errors": ["..."],        // Required for failure
+  "warnings": ["..."],      // Required for warning
+  "error_analysis": "...",  // Optional root cause
+  "warning_analysis": "...", // Optional impact
+  "suggested_fixes": ["..."] // Optional actions
+}
+```
 
-Return to agent: [Primary output for next step]
+**See:** `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+**Schema:** `plugins/faber/config/schemas/skill-response.schema.json`
+**Best Practices:** `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md`
 </OUTPUTS>
 
 <HANDLERS>
@@ -373,6 +386,81 @@ skills/skill-name/
     ├── script-1.sh
     └── script-2.py
 ```
+
+---
+
+## Skill Response Format
+
+All skills must return responses in the **standard FABER response format**. This enables intelligent workflow routing, rich error handling, and user-friendly recovery suggestions.
+
+### Required Fields
+
+Every response MUST include:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | enum | `"success"`, `"warning"`, or `"failure"` |
+| `message` | string | Human-readable summary (1-2 sentences) |
+
+### Optional Fields
+
+| Field | Type | When to Use |
+|-------|------|-------------|
+| `details` | object | Operation-specific data (paths, counts, IDs) |
+| `errors` | string[] | Error list (required when status="failure") |
+| `warnings` | string[] | Warning list (required when status="warning") |
+| `error_analysis` | string | Root cause explanation |
+| `warning_analysis` | string | Impact assessment |
+| `suggested_fixes` | string[] | Actionable recovery steps |
+
+### Status Values
+
+- **success**: Goal achieved completely, no issues
+- **warning**: Goal achieved but with non-blocking concerns
+- **failure**: Goal NOT achieved, operation failed
+
+### Example Responses
+
+**Success:**
+```json
+{
+  "status": "success",
+  "message": "Specification generated successfully",
+  "details": {
+    "spec_path": "/specs/WORK-00123.md",
+    "word_count": 2847
+  }
+}
+```
+
+**Warning:**
+```json
+{
+  "status": "warning",
+  "message": "Build completed with deprecated API usage",
+  "warnings": ["Deprecated API: useCallback (removed in v3.0)"],
+  "warning_analysis": "Should be addressed before next major version",
+  "suggested_fixes": ["Replace useCallback with useMemo"]
+}
+```
+
+**Failure:**
+```json
+{
+  "status": "failure",
+  "message": "Test suite failed - 5 tests failed",
+  "errors": ["test_auth_login: AssertionError", "test_export: TimeoutError"],
+  "error_analysis": "Authentication tests failing due to session handling issues",
+  "suggested_fixes": ["Add await to session.cleanup()", "Check token expiry"]
+}
+```
+
+### Documentation
+
+- **Full Specification:** `plugins/faber/docs/RESPONSE-FORMAT.md`
+- **JSON Schema:** `plugins/faber/config/schemas/skill-response.schema.json`
+- **Best Practices:** `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md`
+- **Templates:** `plugins/faber/templates/skill-response-template.md`
 
 ---
 

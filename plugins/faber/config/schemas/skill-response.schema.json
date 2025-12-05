@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/schemas/skill-response.schema.json",
+  "title": "FABER Skill Response Schema",
+  "description": "Standard response format for all FABER workflow skills. All steps and hooks must return responses conforming to this schema.",
+  "type": "object",
+  "required": ["status", "message"],
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["success", "warning", "failure"],
+      "description": "Execution outcome status. 'success' = goal achieved with no issues. 'warning' = goal achieved but with concerns. 'failure' = goal NOT achieved, operation failed."
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Human-readable summary of what happened (1-2 sentences). Should be concise and informative."
+    },
+    "details": {
+      "type": "object",
+      "description": "Operation-specific structured data. Contains artifacts, metrics, paths, or other relevant information from the execution. Schema varies by skill type.",
+      "additionalProperties": true
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of error messages. Required when status is 'failure'. Each error should be a clear, specific description of what went wrong."
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of warning messages. Used when status is 'warning' or when a successful operation has minor concerns. Each warning should describe a non-blocking issue."
+    },
+    "error_analysis": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Root cause analysis for failures. Explains what went wrong, why it happened, and provides context. Should help users understand the failure without requiring deep technical investigation."
+    },
+    "warning_analysis": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Impact assessment for warnings. Explains potential consequences if warnings are not addressed, severity, and any timeline concerns (e.g., deprecation dates)."
+    },
+    "suggested_fixes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "List of actionable recovery suggestions. Each suggestion should be specific and actionable. Ordered by likelihood of success. Used by manager to offer recovery options in prompts."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "failure" }
+        }
+      },
+      "then": {
+        "required": ["errors"],
+        "properties": {
+          "errors": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "warning" }
+        }
+      },
+      "then": {
+        "required": ["warnings"],
+        "properties": {
+          "warnings": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "status": "success",
+      "message": "Specification generated successfully",
+      "details": {
+        "spec_path": "/specs/WORK-00123-feature.md",
+        "word_count": 2847,
+        "sections": 7
+      }
+    },
+    {
+      "status": "warning",
+      "message": "Build completed with deprecated API usage",
+      "details": {
+        "files_compiled": 45,
+        "warnings_found": 3
+      },
+      "warnings": [
+        "Deprecated API: useCallback (will be removed in v3.0)",
+        "Performance: Large bundle size (2.5MB)",
+        "Missing type annotations in 2 files"
+      ],
+      "warning_analysis": "The deprecated API usage should be addressed before the next major version upgrade.",
+      "suggested_fixes": [
+        "Replace useCallback with useMemo for memoization",
+        "Code split lazy-loaded components to reduce bundle",
+        "Add type annotations to exported functions"
+      ]
+    },
+    {
+      "status": "failure",
+      "message": "Test suite failed - 5 tests failed",
+      "details": {
+        "total_tests": 47,
+        "passed": 42,
+        "failed": 5,
+        "skipped": 0
+      },
+      "errors": [
+        "test_auth_login: AssertionError: expected true but got false",
+        "test_auth_logout: TimeoutError: HTTP request timeout",
+        "test_token_refresh: KeyError: 'refresh_token' not in response"
+      ],
+      "error_analysis": "Authentication tests are failing due to session handling issues. The logout handler is not properly awaiting async cleanup.",
+      "suggested_fixes": [
+        "Add await to session.cleanup() in logout handler",
+        "Check token refresh expiry calculation",
+        "Verify session state is cleared before new login"
+      ]
+    }
+  ]
+}

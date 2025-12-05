@@ -681,14 +681,21 @@ IF step.arguments exists THEN
 
 **Capture and validate result (CRITICAL - see CRITICAL_RULE #8):**
 
-Step MUST return a result object with standard structure:
+Step MUST return a result object with **standard FABER response format**.
+
+**Schema Reference**: `plugins/faber/config/schemas/skill-response.schema.json`
+**Documentation**: `plugins/faber/docs/RESPONSE-FORMAT.md`
+
 ```json
 {
   "status": "success" | "warning" | "failure",
   "message": "Human-readable summary",
-  "details": { /* structured data */ },
-  "errors": ["error1", "error2"],    // Required if status is "failure"
-  "warnings": ["warn1", "warn2"]     // Required if status is "warning"
+  "details": { /* operation-specific data */ },
+  "errors": ["error1", "error2"],       // Required if status is "failure"
+  "warnings": ["warn1", "warn2"],       // Required if status is "warning"
+  "error_analysis": "Root cause...",    // Recommended for failures
+  "warning_analysis": "Impact...",      // Recommended for warnings
+  "suggested_fixes": ["Fix 1", "Fix 2"] // Recommended for actionable issues
 }
 ```
 

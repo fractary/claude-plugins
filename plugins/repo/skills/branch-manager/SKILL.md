@@ -313,29 +313,71 @@ Next: Make changes and use commit-creator skill to commit them
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-Return structured JSON response:
+Return results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
 
 **Success Response:**
 ```json
 {
   "status": "success",
-  "operation": "create-branch",
-  "branch_name": "feat/123-add-export",
-  "base_branch": "main",
-  "commit_sha": "abc123def456789...",
-  "checked_out": true,
-  "cache_updated": true,
-  "platform": "github"
+  "message": "Branch 'feat/123-add-export' created from main",
+  "details": {
+    "operation": "create-branch",
+    "branch_name": "feat/123-add-export",
+    "base_branch": "main",
+    "commit_sha": "abc123def456789...",
+    "checked_out": true,
+    "cache_updated": true,
+    "platform": "github"
+  }
 }
 ```
 
-**Error Response:**
+**Warning Response** (branch exists, reusing):
+```json
+{
+  "status": "warning",
+  "message": "Branch 'feat/123-add-export' already exists, checked out existing branch",
+  "details": {
+    "operation": "create-branch",
+    "branch_name": "feat/123-add-export",
+    "base_branch": "main",
+    "commit_sha": "abc123def456789...",
+    "checked_out": true,
+    "reused_existing": true
+  },
+  "warnings": [
+    "Branch already existed, using existing branch instead of creating new"
+  ],
+  "warning_analysis": "The branch was previously created. Work can continue on existing branch.",
+  "suggested_fixes": [
+    "Use --force to recreate branch from base if needed",
+    "Use /repo:branch-delete to remove and recreate"
+  ]
+}
+```
+
+**Failure Response:**
 ```json
 {
   "status": "failure",
-  "operation": "create-branch",
-  "error": "Branch already exists: feat/123-add-export",
-  "error_code": 10
+  "message": "Failed to create branch 'feat/123-add-export'",
+  "details": {
+    "operation": "create-branch",
+    "branch_name": "feat/123-add-export",
+    "base_branch": "main"
+  },
+  "errors": [
+    "Branch already exists: feat/123-add-export",
+    "Use --force to overwrite existing branch"
+  ],
+  "error_analysis": "A branch with this name already exists and --force was not specified",
+  "suggested_fixes": [
+    "Add --force flag to overwrite existing branch",
+    "Choose a different branch name",
+    "Delete existing branch first: /repo:branch-delete feat/123-add-export"
+  ]
 }
 ```
 </OUTPUTS>

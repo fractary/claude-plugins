@@ -374,22 +374,22 @@
     },
     "step_result": {
       "type": "object",
-      "description": "Standard result structure that ALL steps and hooks must return",
-      "required": ["status"],
+      "description": "Standard result structure that ALL steps and hooks must return. See plugins/faber/config/schemas/skill-response.schema.json for complete schema.",
+      "required": ["status", "message"],
       "additionalProperties": false,
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["success", "failure", "warning"],
-          "description": "Execution outcome status"
+          "enum": ["success", "warning", "failure"],
+          "description": "Execution outcome status: 'success' = goal achieved, 'warning' = goal achieved with concerns, 'failure' = goal NOT achieved"
         },
         "message": {
           "type": "string",
-          "description": "Human-readable summary of what happened"
+          "description": "Human-readable summary of what happened (1-2 sentences)"
         },
         "details": {
           "type": "object",
-          "description": "Structured data from execution (artifacts, metrics, etc.)"
+          "description": "Operation-specific structured data (artifacts, metrics, paths, etc.)"
         },
         "errors": {
           "type": "array",
@@ -404,6 +404,21 @@
             "type": "string"
           },
           "description": "List of warning messages (required when status is 'warning')"
+        },
+        "error_analysis": {
+          "type": "string",
+          "description": "Root cause analysis for failures - explains what went wrong and why"
+        },
+        "warning_analysis": {
+          "type": "string",
+          "description": "Impact assessment for warnings - explains potential consequences"
+        },
+        "suggested_fixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Actionable recovery suggestions, ordered by likelihood of success"
         }
       }
     }

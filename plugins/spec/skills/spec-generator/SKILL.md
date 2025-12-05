@@ -82,6 +82,9 @@ You are complete when:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
+Return results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
 
 Output structured messages:
 
@@ -103,7 +106,7 @@ Template: feature (auto-detected) [or "override: feature"]
 - ✓ Spec generated
 - ✓ GitHub comment added (if applicable)
 
-**End (with work_id)**:
+**End**:
 ```
 ✅ COMPLETED: Spec Generator
 Spec created: /specs/WORK-00123-user-auth.md
@@ -114,60 +117,132 @@ GitHub comment: ✓ Added
 Next: Begin implementation using spec as guide
 ```
 
-**End (standalone)**:
-```
-✅ COMPLETED: Spec Generator
-Spec created: /specs/SPEC-20250115143000-user-auth.md
-Template used: feature
-Source: Conversation context
-───────────────────────────────────────
-Next: Begin implementation using spec as guide
-```
-
-Return JSON (with work_id):
+**Success Response (with work_id):**
 ```json
 {
   "status": "success",
-  "spec_path": "/specs/WORK-00123-user-auth.md",
-  "work_id": "123",
-  "issue_url": "https://github.com/org/repo/issues/123",
-  "template": "feature",
-  "source": "conversation+issue",
-  "github_comment_added": true
+  "message": "Specification generated: WORK-00123-user-auth.md",
+  "details": {
+    "spec_path": "/specs/WORK-00123-user-auth.md",
+    "work_id": "123",
+    "issue_url": "https://github.com/org/repo/issues/123",
+    "template": "feature",
+    "source": "conversation+issue",
+    "github_comment_added": true
+  }
 }
 ```
 
-Return JSON (standalone):
+**Success Response (standalone):**
 ```json
 {
   "status": "success",
-  "spec_path": "/specs/SPEC-20250115143000-user-auth.md",
-  "template": "feature",
-  "source": "conversation",
-  "github_comment_added": false
+  "message": "Specification generated: SPEC-20250115143000-user-auth.md",
+  "details": {
+    "spec_path": "/specs/SPEC-20250115143000-user-auth.md",
+    "template": "feature",
+    "source": "conversation",
+    "github_comment_added": false
+  }
+}
+```
+
+**Warning Response (Issue Data Incomplete):**
+```json
+{
+  "status": "warning",
+  "message": "Specification generated with incomplete issue data",
+  "details": {
+    "spec_path": "/specs/WORK-00123-user-auth.md",
+    "work_id": "123",
+    "template": "feature",
+    "completeness_score": 0.75
+  },
+  "warnings": [
+    "Issue description is empty - using conversation context only",
+    "No acceptance criteria defined in issue"
+  ],
+  "warning_analysis": "The spec was generated but may be incomplete because the issue lacks detailed requirements",
+  "suggested_fixes": [
+    "Add description to issue #123",
+    "Add acceptance criteria to issue",
+    "Review generated spec and add missing sections"
+  ]
+}
+```
+
+**Failure Response (Issue Not Found):**
+```json
+{
+  "status": "failure",
+  "message": "Failed to generate spec - issue #999 not found",
+  "details": {
+    "work_id": "999"
+  },
+  "errors": [
+    "Issue #999 does not exist in repository"
+  ],
+  "error_analysis": "The specified work_id does not correspond to an existing issue",
+  "suggested_fixes": [
+    "Verify issue number is correct",
+    "Create the issue first: /work:issue-create",
+    "Generate standalone spec without work_id"
+  ]
+}
+```
+
+**Failure Response (Write Failed):**
+```json
+{
+  "status": "failure",
+  "message": "Failed to write spec file",
+  "details": {
+    "spec_path": "/specs/WORK-00123-user-auth.md"
+  },
+  "errors": [
+    "Permission denied: /specs/WORK-00123-user-auth.md"
+  ],
+  "error_analysis": "Unable to write to the specs directory - permission or path issue",
+  "suggested_fixes": [
+    "Check /specs directory exists",
+    "Verify write permissions",
+    "Run: mkdir -p specs"
+  ]
 }
 ```
 
 </OUTPUTS>
 
 <ERROR_HANDLING>
-Handle errors:
-1. **Repo Plugin Not Found**: Info message, continue with standalone spec
-2. **Issue Not Found** (when work_id provided or auto-detected): Report error, suggest checking issue number
-3. **Template Not Found**: Fall back to spec-basic.md.template
-4. **File Write Failed**: Report error, check permissions
-5. **GitHub Comment Failed**: Log warning, continue (non-critical)
-6. **Insufficient Context**: Warn but continue, use what's available
-7. **Template Auto-Detection Failed**: Fall back to spec-basic.md.template
-8. **Slug Generation Failed**: Fall back to timestamp-only naming
+Handle errors using the standard FABER response format:
 
-Return error:
+1. **Repo Plugin Not Found**: Info message, continue with standalone spec (warning status)
+2. **Issue Not Found** (when work_id provided or auto-detected): Report error, suggest checking issue number (failure status)
+3. **Template Not Found**: Fall back to spec-basic.md.template (warning status)
+4. **File Write Failed**: Report error, check permissions (failure status)
+5. **GitHub Comment Failed**: Log warning, continue (warning status - non-critical)
+6. **Insufficient Context**: Warn but continue, use what's available (warning status)
+7. **Template Auto-Detection Failed**: Fall back to spec-basic.md.template (warning status)
+8. **Slug Generation Failed**: Fall back to timestamp-only naming (warning status)
+
+**Error Response Format:**
 ```json
 {
-  "status": "error",
-  "error": "Description",
-  "suggestion": "What to do",
-  "can_retry": true
+  "status": "failure",
+  "message": "Brief description of failure",
+  "details": {
+    "operation": "generate-spec",
+    "work_id": "123"
+  },
+  "errors": [
+    "Specific error 1",
+    "Specific error 2"
+  ],
+  "error_analysis": "Root cause explanation",
+  "suggested_fixes": [
+    "Actionable fix 1",
+    "Actionable fix 2"
+  ]
 }
 ```
 </ERROR_HANDLING>

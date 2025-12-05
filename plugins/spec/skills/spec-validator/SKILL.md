@@ -60,6 +60,9 @@ You are complete when:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
+Return results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
 
 Output structured messages:
 
@@ -93,38 +96,134 @@ Documentation: ✗ Docs not updated
 Next: Address incomplete items before archiving
 ```
 
-Return JSON:
+**Success Response (Complete Validation):**
 ```json
 {
   "status": "success",
-  "validation_result": "complete|partial|incomplete",
-  "checks": {
-    "requirements": {"completed": 8, "total": 8, "status": "pass"},
-    "acceptance_criteria": {"met": 5, "total": 5, "status": "pass"},
-    "files_modified": {"status": "pass"},
-    "tests_added": {"added": 2, "expected": 3, "status": "warn"},
-    "docs_updated": {"status": "fail"}
+  "message": "Spec validation passed - all criteria met",
+  "details": {
+    "spec_path": "/specs/WORK-00123-feature.md",
+    "validation_result": "complete",
+    "checks": {
+      "requirements": {"completed": 8, "total": 8, "status": "pass"},
+      "acceptance_criteria": {"met": 5, "total": 5, "status": "pass"},
+      "files_modified": {"status": "pass"},
+      "tests_added": {"added": 3, "expected": 3, "status": "pass"},
+      "docs_updated": {"status": "pass"}
+    },
+    "spec_updated": true
+  }
+}
+```
+
+**Warning Response (Partial Validation):**
+```json
+{
+  "status": "warning",
+  "message": "Spec validation partial - 2 items need attention",
+  "details": {
+    "spec_path": "/specs/WORK-00123-feature.md",
+    "validation_result": "partial",
+    "checks": {
+      "requirements": {"completed": 8, "total": 8, "status": "pass"},
+      "acceptance_criteria": {"met": 5, "total": 5, "status": "pass"},
+      "files_modified": {"status": "pass"},
+      "tests_added": {"added": 2, "expected": 3, "status": "warn"},
+      "docs_updated": {"status": "fail"}
+    },
+    "spec_updated": true
   },
-  "issues": ["Tests incomplete", "Docs not updated"],
-  "spec_updated": true
+  "warnings": [
+    "Tests incomplete: 2/3 test cases added",
+    "Documentation not updated"
+  ],
+  "warning_analysis": "Implementation is functional but test coverage and documentation are incomplete",
+  "suggested_fixes": [
+    "Add missing test case for edge case handling",
+    "Update README with new feature documentation",
+    "Re-run validation after fixes: /spec:validate"
+  ]
+}
+```
+
+**Failure Response (Incomplete Validation):**
+```json
+{
+  "status": "failure",
+  "message": "Spec validation failed - critical requirements not met",
+  "details": {
+    "spec_path": "/specs/WORK-00123-feature.md",
+    "validation_result": "incomplete",
+    "checks": {
+      "requirements": {"completed": 5, "total": 8, "status": "fail"},
+      "acceptance_criteria": {"met": 3, "total": 5, "status": "fail"},
+      "files_modified": {"status": "pass"},
+      "tests_added": {"added": 0, "expected": 3, "status": "fail"},
+      "docs_updated": {"status": "fail"}
+    },
+    "spec_updated": true
+  },
+  "errors": [
+    "3 requirements not implemented",
+    "2 acceptance criteria not met",
+    "No tests added"
+  ],
+  "error_analysis": "Implementation is significantly incomplete - 37.5% of requirements and 40% of acceptance criteria are missing",
+  "suggested_fixes": [
+    "Review spec requirements section for missing implementations",
+    "Check acceptance criteria checklist in spec",
+    "Add required test coverage",
+    "Continue implementation before re-validating"
+  ]
+}
+```
+
+**Failure Response (Spec Not Found):**
+```json
+{
+  "status": "failure",
+  "message": "Spec file not found: /specs/WORK-00123-feature.md",
+  "details": {
+    "spec_path": "/specs/WORK-00123-feature.md"
+  },
+  "errors": [
+    "Spec file does not exist at specified path"
+  ],
+  "error_analysis": "The specification file was not found - it may not have been created or the path is incorrect",
+  "suggested_fixes": [
+    "Verify spec path is correct",
+    "Create spec first: /spec:create --work-id 123",
+    "List existing specs: ls specs/"
+  ]
 }
 ```
 
 </OUTPUTS>
 
 <ERROR_HANDLING>
-Handle errors:
-1. **Spec Not Found**: Report error, suggest checking path
-2. **Parse Error**: Report error, check spec format
-3. **Git Error**: Report warning, continue validation
-4. **Update Error**: Report warning, validation still valid
+Handle errors using the standard FABER response format:
 
-Return error:
+1. **Spec Not Found**: Report error, suggest checking path (failure status)
+2. **Parse Error**: Report error, check spec format (failure status)
+3. **Git Error**: Report warning, continue validation (warning status)
+4. **Update Error**: Report warning, validation still valid (warning status)
+
+**Error Response Format:**
 ```json
 {
-  "status": "error",
-  "error": "Description",
-  "suggestion": "What to do"
+  "status": "failure",
+  "message": "Brief description of failure",
+  "details": {
+    "operation": "validate-spec",
+    "spec_path": "/specs/WORK-00123-feature.md"
+  },
+  "errors": [
+    "Specific error 1"
+  ],
+  "error_analysis": "Root cause explanation",
+  "suggested_fixes": [
+    "Actionable fix 1"
+  ]
 }
 ```
 </ERROR_HANDLING>

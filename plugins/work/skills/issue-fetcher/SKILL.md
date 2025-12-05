@@ -141,25 +141,123 @@ Operation is complete when:
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
-You return to work-manager agent:
+Return results using the **standard FABER response format**.
+
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**Success Response:**
 ```json
 {
   "status": "success",
-  "operation": "fetch-issue",
-  "result": {
-    "...": "normalized issue JSON as shown above"
+  "message": "Issue #123 fetched: Fix login page crash on mobile",
+  "details": {
+    "operation": "fetch-issue",
+    "issue": {
+      "id": "123",
+      "identifier": "#123",
+      "title": "Fix login page crash on mobile",
+      "description": "Users report app crashes when...",
+      "state": "open",
+      "labels": ["bug", "mobile", "priority-high"],
+      "assignees": [{"id": "123", "username": "johndoe"}],
+      "author": {"id": "456", "username": "janedoe"},
+      "createdAt": "2025-01-29T10:00:00Z",
+      "updatedAt": "2025-01-29T15:30:00Z",
+      "url": "https://github.com/owner/repo/issues/123",
+      "platform": "github",
+      "comments": [],
+      "metadata": {"priority": "high"}
+    }
   }
 }
 ```
 
-On error:
+**Warning Response (Config Not Found):**
 ```json
 {
-  "status": "error",
-  "operation": "fetch-issue",
-  "code": 10,
-  "message": "Issue #123 not found",
-  "details": "Verify issue exists in repository"
+  "status": "warning",
+  "message": "Issue #123 fetched using auto-detected platform",
+  "details": {
+    "operation": "fetch-issue",
+    "issue": {
+      "id": "123",
+      "title": "Fix login page crash",
+      "state": "open",
+      "platform": "github"
+    },
+    "auto_detected": true
+  },
+  "warnings": [
+    "No work plugin configuration found - using auto-detection"
+  ],
+  "warning_analysis": "Issue was fetched successfully but plugin is not configured for this project",
+  "suggested_fixes": [
+    "Run /work:init to create configuration",
+    "This enables custom label mappings and workflow states"
+  ]
+}
+```
+
+**Failure Response (Issue Not Found):**
+```json
+{
+  "status": "failure",
+  "message": "Issue #999 not found",
+  "details": {
+    "operation": "fetch-issue",
+    "issue_id": "999"
+  },
+  "errors": [
+    "Issue #999 does not exist in repository owner/repo"
+  ],
+  "error_analysis": "The specified issue number does not exist or you may not have access",
+  "suggested_fixes": [
+    "Verify issue number is correct",
+    "Check repository: gh repo view",
+    "List issues: gh issue list"
+  ]
+}
+```
+
+**Failure Response (Authentication Failed):**
+```json
+{
+  "status": "failure",
+  "message": "Authentication failed when fetching issue",
+  "details": {
+    "operation": "fetch-issue",
+    "issue_id": "123"
+  },
+  "errors": [
+    "GitHub API authentication failed"
+  ],
+  "error_analysis": "GITHUB_TOKEN is missing or invalid, or gh CLI is not authenticated",
+  "suggested_fixes": [
+    "Run: gh auth login",
+    "Or set GITHUB_TOKEN environment variable",
+    "Verify token has 'repo' scope"
+  ]
+}
+```
+
+**Failure Response (Network Error):**
+```json
+{
+  "status": "failure",
+  "message": "Network error when fetching issue #123",
+  "details": {
+    "operation": "fetch-issue",
+    "issue_id": "123"
+  },
+  "errors": [
+    "Failed to connect to GitHub API"
+  ],
+  "error_analysis": "Network connectivity issue or GitHub API is unavailable",
+  "suggested_fixes": [
+    "Check internet connection",
+    "Verify GitHub status at https://githubstatus.com",
+    "Retry after a few moments"
+  ]
 }
 ```
 </OUTPUTS>

@@ -732,89 +732,160 @@ Next: {next_action}
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
+Return results using the **standard FABER response format**.
 
-**Analyze PR Response:**
+See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
+
+**Success Response (Create PR):**
 ```json
 {
   "status": "success",
-  "operation": "analyze-pr",
-  "pr_number": 456,
-  "analysis": {
-    "title": "Add CSV export feature",
+  "message": "PR #456 created: feat/123-add-export → main",
+  "details": {
+    "operation": "create-pr",
+    "pr_number": 456,
+    "pr_url": "https://github.com/owner/repo/pull/456",
     "head_branch": "feat/123-add-export",
     "base_branch": "main",
-    "author": "username",
-    "state": "OPEN",
-    "mergeable": "MERGEABLE",
-    "conflicts": {
-      "detected": false,
-      "files": []
+    "work_id": "#123",
+    "draft": false,
+    "platform": "github"
+  }
+}
+```
+
+**Success Response (Analyze PR):**
+```json
+{
+  "status": "success",
+  "message": "PR #456 analyzed: READY_TO_APPROVE",
+  "details": {
+    "operation": "analyze-pr",
+    "pr_number": 456,
+    "analysis": {
+      "title": "Add CSV export feature",
+      "head_branch": "feat/123-add-export",
+      "base_branch": "main",
+      "author": "username",
+      "state": "OPEN",
+      "mergeable": "MERGEABLE",
+      "conflicts": {"detected": false, "files": []},
+      "reviewDecision": "APPROVED",
+      "ci_status": "passing",
+      "outstanding_issues": [],
+      "recommendation": "READY_TO_APPROVE"
     },
-    "reviewDecision": "APPROVED",
-    "ci_status": "passing",
-    "code_review_summary": "All checks passed",
-    "outstanding_issues": [],
-    "recommendation": "READY_TO_APPROVE"
+    "suggested_actions": [
+      {"action": "approve_and_merge", "commands": ["/repo:pr-review 456 approve", "/repo:pr-merge 456"]}
+    ]
+  }
+}
+```
+
+**Success Response (Merge PR):**
+```json
+{
+  "status": "success",
+  "message": "PR #456 merged to main using no-ff strategy",
+  "details": {
+    "operation": "merge-pr",
+    "pr_number": 456,
+    "merge_sha": "abc123def456...",
+    "strategy": "no-ff",
+    "branch_deleted": true,
+    "merged_at": "2025-10-29T12:00:00Z"
+  }
+}
+```
+
+**Warning Response (Merge with Branch Deletion Skipped):**
+```json
+{
+  "status": "warning",
+  "message": "PR #456 merged but branch not deleted",
+  "details": {
+    "operation": "merge-pr",
+    "pr_number": 456,
+    "merge_sha": "abc123def456...",
+    "strategy": "squash",
+    "branch_deleted": false
   },
-  "suggested_actions": [
-    {
-      "action": "approve_and_merge",
-      "description": "Approve and merge this PR",
-      "commands": [
-        "/repo:pr-review 456 approve",
-        "/repo:pr-merge 456"
-      ]
-    }
+  "warnings": [
+    "Branch 'feat/123-add-export' was not deleted due to protection rules"
+  ],
+  "warning_analysis": "The branch has additional protection that prevents automatic deletion",
+  "suggested_fixes": [
+    "Manually delete branch: git push origin --delete feat/123-add-export",
+    "Check branch protection rules in repository settings"
   ]
 }
 ```
 
-**Create PR Response:**
+**Failure Response (Merge Conflicts):**
 ```json
 {
-  "status": "success",
-  "operation": "create-pr",
-  "pr_number": 456,
-  "pr_url": "https://github.com/owner/repo/pull/456",
-  "head_branch": "feat/123-add-export",
-  "base_branch": "main",
-  "work_id": "#123",
-  "draft": false
+  "status": "failure",
+  "message": "PR #456 cannot be merged - merge conflicts detected",
+  "details": {
+    "operation": "merge-pr",
+    "pr_number": 456,
+    "mergeable": "CONFLICTING"
+  },
+  "errors": [
+    "Merge conflict in src/export.js",
+    "Merge conflict in src/utils.js"
+  ],
+  "error_analysis": "The head branch has diverged from base branch and has conflicting changes in 2 files",
+  "suggested_fixes": [
+    "Checkout branch: git checkout feat/123-add-export",
+    "Pull latest base: git merge origin/main",
+    "Resolve conflicts in conflicting files",
+    "Push resolved changes: git push"
+  ]
 }
 ```
 
-**Comment PR Response:**
+**Failure Response (CI Not Passing):**
 ```json
 {
-  "status": "success",
-  "operation": "comment-pr",
-  "pr_number": 456,
-  "comment_id": 789,
-  "comment_url": "https://github.com/owner/repo/pull/456#issuecomment-789"
+  "status": "failure",
+  "message": "PR #456 cannot be merged - CI checks failing",
+  "details": {
+    "operation": "merge-pr",
+    "pr_number": 456,
+    "ci_status": "failing"
+  },
+  "errors": [
+    "Check 'build' failed: Exit code 1",
+    "Check 'test' failed: 3 tests failed"
+  ],
+  "error_analysis": "Required CI checks must pass before merging. Build and test checks are currently failing.",
+  "suggested_fixes": [
+    "View CI details at PR URL",
+    "Fix failing tests and push changes",
+    "Re-run CI checks after fixes"
+  ]
 }
 ```
 
-**Review PR Response:**
+**Failure Response (PR Not Found):**
 ```json
 {
-  "status": "success",
-  "operation": "review-pr",
-  "pr_number": 456,
-  "review_id": 890,
-  "action": "approve"
-}
-```
-
-**Merge PR Response:**
-```json
-{
-  "status": "success",
-  "operation": "merge-pr",
-  "pr_number": 456,
-  "merge_sha": "abc123def456...",
-  "strategy": "no-ff",
-  "branch_deleted": true,
-  "merged_at": "2025-10-29T12:00:00Z"
+  "status": "failure",
+  "message": "PR #999 not found",
+  "details": {
+    "operation": "analyze-pr",
+    "pr_number": 999
+  },
+  "errors": [
+    "Pull request #999 does not exist in this repository"
+  ],
+  "error_analysis": "The specified PR number does not exist or may have been deleted",
+  "suggested_fixes": [
+    "Verify PR number is correct",
+    "Check if PR was closed or deleted",
+    "List open PRs: gh pr list"
+  ]
 }
 ```
 
