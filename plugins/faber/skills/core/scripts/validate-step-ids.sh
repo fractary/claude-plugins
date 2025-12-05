@@ -74,7 +74,6 @@ echo ""
 STEP_IDS=""
 DUPLICATES=""
 WARNINGS=""
-declare -A ID_LOCATIONS
 
 for phase in frame architect build evaluate release; do
     # Get steps for this phase

@@ -128,8 +128,7 @@
         },
         "name": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*$",
-          "description": "DEPRECATED: Use 'id' instead. If 'id' is not present, 'name' is used as the identifier for backward compatibility. When both are present, 'name' serves as optional human-readable display name."
+          "description": "Optional human-readable display name for the step. When 'id' is present, 'name' serves as a display name. For backward compatibility with workflows that don't have 'id', 'name' can also serve as the identifier (deprecated pattern: lowercase, hyphens only)."
         },
         "description": {
           "type": "string",
