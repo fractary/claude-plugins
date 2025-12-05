@@ -313,6 +313,7 @@
     "step_result_handling": {
       "type": "object",
       "description": "Defines behavior for step execution outcomes. on_failure is ALWAYS 'stop' (immutable).",
+      "required": ["on_failure"],
       "additionalProperties": false,
       "properties": {
         "on_success": {
@@ -336,6 +337,7 @@
     "hook_result_handling": {
       "type": "object",
       "description": "Defines behavior for hook execution outcomes. Hooks can optionally continue on failure for informational hooks.",
+      "required": ["on_failure"],
       "additionalProperties": false,
       "properties": {
         "on_success": {
@@ -362,7 +364,7 @@
       "type": "object",
       "description": "Standard result structure that ALL steps and hooks must return",
       "required": ["status"],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "status": {
           "type": "string",

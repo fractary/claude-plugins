@@ -425,11 +425,30 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --message "Starting step: {step_name}"
 ```
 
-**Update state - step starting:**
+**Update state - step starting (with error handling):**
 ```
-Invoke Skill: faber-state
-Operation: update-step
-Parameters: run_id={run_id}, phase, step_name, "in_progress"
+# CRITICAL: State update must succeed before step execution
+state_update_result = Invoke Skill: faber-state
+  Operation: update-step
+  Parameters: run_id={run_id}, phase, step_name, "in_progress"
+
+# Handle state update failure
+IF state_update_result.status == "failure" OR state_update_result is null THEN
+  LOG "ERROR: Failed to update state before step execution"
+
+  # Attempt state recovery
+  recovery_result = Invoke Skill: faber-state
+    Operation: verify-state-integrity
+    Parameters: run_id={run_id}
+
+  IF recovery_result.status == "failure" THEN
+    # State is corrupted - cannot proceed safely
+    ABORT workflow with:
+      status: "failed"
+      failed_at: "{phase}:{step_name}"
+      reason: "State update failed before step execution - state may be corrupted"
+      errors: [state_update_result.message ?? "Unknown state error", "Recovery attempt also failed"]
+      recovery_hint: "Check .fractary/plugins/faber/runs/{run_id}/state.json and restore from backup if needed"
 
 # Log step ID for workflow tracking
 LOG "Executing step: {phase}:{step_name}"
@@ -455,14 +474,46 @@ step_context = {
 IF step.arguments exists THEN
   # Resolve placeholder references from workflow context
   resolved_args = {}
+  validation_errors = []
+
   for key, value in step.arguments:
     IF value starts with "{" and ends with "}" THEN
-      # Placeholder: resolve from context
+      # Placeholder: resolve from context with validation
       placeholder_name = value.slice(1, -1)
-      resolved_args[key] = context[placeholder_name]
+
+      # VALIDATION: Check placeholder exists in context
+      IF placeholder_name not in context THEN
+        validation_errors.push(
+          "Argument '{key}' references undefined placeholder '{placeholder_name}'. " +
+          "Available context keys: " + Object.keys(context).join(", ")
+        )
+        resolved_args[key] = null  # Set to null for visibility
+      ELSE IF context[placeholder_name] is null OR context[placeholder_name] is undefined THEN
+        # Placeholder exists but value is null/undefined
+        LOG "WARNING: Placeholder '{placeholder_name}' for argument '{key}' resolved to null/undefined"
+        resolved_args[key] = null
+      ELSE
+        resolved_args[key] = context[placeholder_name]
     ELSE
       # Literal value
       resolved_args[key] = value
+
+  # Check for validation errors
+  IF validation_errors.length > 0 THEN
+    LOG "ERROR: Argument resolution failed with {validation_errors.length} error(s)"
+    for error in validation_errors:
+      LOG "  - {error}"
+
+    # Fail the step - cannot proceed with unresolved arguments
+    ABORT step with:
+      status: "failure"
+      message: "Failed to resolve step arguments due to undefined placeholders"
+      errors: validation_errors
+      details: {
+        step_name: step.name,
+        defined_arguments: step.arguments,
+        available_context_keys: Object.keys(context)
+      }
 
   # Add to step_context
   step_context.arguments = resolved_args
@@ -484,6 +535,34 @@ Step MUST return a result object with standard structure:
   "errors": ["error1", "error2"],    // Required if status is "failure"
   "warnings": ["warn1", "warn2"]     // Required if status is "warning"
 }
+```
+
+**RESULT VALIDATION (MANDATORY before using result):**
+```
+# Validate result object exists and has required structure
+IF result is null OR result is undefined THEN
+  # Treat missing result as failure
+  result = {
+    status: "failure",
+    message: "Step returned null or undefined result",
+    errors: ["Step '{step_name}' did not return a valid result object"]
+  }
+
+ELSE IF result.status is null OR result.status not in ["success", "warning", "failure"] THEN
+  # Invalid or missing status - treat as failure
+  result = {
+    status: "failure",
+    message: "Step returned invalid result structure",
+    errors: ["Step '{step_name}' returned result without valid status field. Got: " + JSON.stringify(result.status)]
+  }
+
+ELSE IF result.status == "failure" AND (result.errors is null OR result.errors.length == 0) THEN
+  # Failure without error details - add default error
+  result.errors = result.errors ?? ["Step failed without error details"]
+
+ELSE IF result.status == "warning" AND (result.warnings is null OR result.warnings.length == 0) THEN
+  # Warning without warning details - add default warning
+  result.warnings = result.warnings ?? ["Step completed with unspecified warnings"]
 ```
 
 **Evaluate result status (MANDATORY):**
