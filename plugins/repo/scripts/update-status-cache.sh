@@ -165,8 +165,21 @@ fi
 # Check if async PR lookup result is available
 if [ -f "$PR_CACHE_FILE" ]; then
     PR_CACHE_BRANCH=$(grep '"branch"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
-    if [ "$PR_CACHE_BRANCH" = "$BRANCH" ]; then
-        PR_NUMBER=$(grep '"pr_number"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+    PR_CACHE_TIMESTAMP=$(grep '"timestamp"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+
+    # Validate cache freshness (max 5 minutes old)
+    if [ -n "$PR_CACHE_TIMESTAMP" ]; then
+        CACHE_AGE_SECONDS=0
+        if command -v date &> /dev/null; then
+            CACHE_EPOCH=$(date -d "$PR_CACHE_TIMESTAMP" +%s 2>/dev/null || echo "0")
+            NOW_EPOCH=$(date +%s)
+            CACHE_AGE_SECONDS=$((NOW_EPOCH - CACHE_EPOCH))
+        fi
+
+        # Only use cache if fresh (< 300 seconds) and branch matches
+        if [ "$PR_CACHE_BRANCH" = "$BRANCH" ] && [ "$CACHE_AGE_SECONDS" -lt 300 ]; then
+            PR_NUMBER=$(grep '"pr_number"' "$PR_CACHE_FILE" 2>/dev/null | sed -E 's/.*: *"([^"]*).*/\1/' || echo "")
+        fi
     fi
 fi
 

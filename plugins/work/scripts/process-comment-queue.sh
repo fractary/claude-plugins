@@ -58,12 +58,16 @@ process_comment() {
         log_message "WARN" "Failed to post comment to issue #$issue_id (exit code: $exit_code, retry: $retry_count)"
 
         if [ "$retry_count" -lt "$MAX_RETRIES" ]; then
-            # Re-queue for retry
-            echo "{\"issue_id\": \"$issue_id\", \"comment\": $(echo "$comment" | jq -Rs .), \"handler\": \"$handler\", \"retry\": $((retry_count + 1)), \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" >> "$QUEUE_FILE"
+            # Re-queue for retry (atomic write to prevent corruption)
+            local retry_entry="{\"issue_id\": \"$issue_id\", \"comment\": $(echo "$comment" | jq -Rs .), \"handler\": \"$handler\", \"retry\": $((retry_count + 1)), \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}"
+            local retry_temp="${QUEUE_FILE}.retry.$$"
+            echo "$retry_entry" > "$retry_temp" && cat "$retry_temp" >> "$QUEUE_FILE" && rm -f "$retry_temp"
             log_message "INFO" "Re-queued comment for retry (attempt $((retry_count + 1)))"
         else
-            # Move to failed queue
-            echo "{\"issue_id\": \"$issue_id\", \"comment\": $(echo "$comment" | jq -Rs .), \"handler\": \"$handler\", \"failed_at\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" >> "$FAILED_FILE"
+            # Move to failed queue (atomic write to prevent corruption)
+            local failed_entry="{\"issue_id\": \"$issue_id\", \"comment\": $(echo "$comment" | jq -Rs .), \"handler\": \"$handler\", \"failed_at\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}"
+            local failed_temp="${FAILED_FILE}.tmp.$$"
+            echo "$failed_entry" > "$failed_temp" && cat "$failed_temp" >> "$FAILED_FILE" && rm -f "$failed_temp"
             log_message "ERROR" "Comment to issue #$issue_id failed after $MAX_RETRIES retries, moved to failed queue"
         fi
         return 1

@@ -261,9 +261,11 @@ QUEUE_FILE="${CACHE_DIR}/pending_comments.queue"
 if [ "$ASYNC_COMMENTS" = "true" ]; then
     echo -e "${BLUE}💬 Queuing session summary for issue #${ISSUE_ID}...${NC}"
 
-    # Queue the comment for async processing
+    # Queue the comment for async processing (atomic write to prevent corruption)
     if command -v jq &> /dev/null; then
-        echo "{\"issue_id\": \"$ISSUE_ID\", \"comment\": $(echo "$SESSION_SUMMARY" | jq -Rs .), \"handler\": \"$ACTIVE_HANDLER\", \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" >> "$QUEUE_FILE"
+        QUEUE_ENTRY="{\"issue_id\": \"$ISSUE_ID\", \"comment\": $(echo "$SESSION_SUMMARY" | jq -Rs .), \"handler\": \"$ACTIVE_HANDLER\", \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}"
+        QUEUE_TEMP="${QUEUE_FILE}.tmp.$$"
+        echo "$QUEUE_ENTRY" > "$QUEUE_TEMP" && cat "$QUEUE_TEMP" >> "$QUEUE_FILE" && rm -f "$QUEUE_TEMP"
         COMMENT_SUCCESS=true
         echo -e "${GREEN}✅ Session summary queued for issue #${ISSUE_ID}${NC}"
         log_message "INFO" "Comment queued for async posting to issue #$ISSUE_ID"
