@@ -356,8 +356,9 @@ base_filename="WORK-${padded_issue}-${slug}.md"
 
 # Check for collision when force mode
 if [[ "${FORCE:-false}" == "true" && -f "${SPECS_DIR}/${base_filename}" ]]; then
-    # Collision detected - generate unique slug
-    timestamp=$(date +%Y%m%d%H%M%S)
+    # Collision detected - generate unique slug with high-precision timestamp
+    # Using nanoseconds to prevent collision within same second
+    timestamp=$(date +%Y%m%d%H%M%S%N | cut -c1-20)
     filename="WORK-${padded_issue}-${slug}-${timestamp}.md"
     echo "✓ Unique slug generated: ${slug}-${timestamp}"
 else

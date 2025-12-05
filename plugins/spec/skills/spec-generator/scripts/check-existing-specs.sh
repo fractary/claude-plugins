@@ -16,7 +16,6 @@
 # Exit codes:
 #   0 - Success (check completed, specs may or may not exist)
 #   1 - Invalid arguments
-#   2 - Directory does not exist
 
 set -euo pipefail
 
@@ -39,8 +38,14 @@ fi
 # Check if specs directory exists
 if [[ ! -d "$SPECS_DIR" ]]; then
     # Directory doesn't exist - no specs can exist
-    echo '{"exists": false, "count": 0, "specs": [], "work_id": "'"$WORK_ID"'"}'
+    printf '{"exists": false, "count": 0, "specs": [], "work_id": "%s"}\n' "$WORK_ID"
     exit 0
+fi
+
+# Check if specs directory is readable
+if [[ ! -r "$SPECS_DIR" ]]; then
+    echo '{"error": "specs directory is not readable", "exit_code": 1}' >&2
+    exit 1
 fi
 
 # Zero-pad work_id to 5 digits for pattern matching
@@ -59,21 +64,38 @@ done < <(find "$SPECS_DIR" -maxdepth 1 -name "$PATTERN" -type f -print0 2>/dev/n
 # Count specs
 COUNT=${#SPECS[@]}
 
+# Helper function to escape JSON strings
+json_escape() {
+    local str="$1"
+    # Escape backslashes first, then quotes
+    str="${str//\\/\\\\}"
+    str="${str//\"/\\\"}"
+    # Escape control characters
+    str="${str//$'\n'/\\n}"
+    str="${str//$'\r'/\\r}"
+    str="${str//$'\t'/\\t}"
+    printf '%s' "$str"
+}
+
 # Build JSON output
 if [[ $COUNT -eq 0 ]]; then
-    echo '{"exists": false, "count": 0, "specs": [], "work_id": "'"$WORK_ID"'"}'
+    printf '{"exists": false, "count": 0, "specs": [], "work_id": "%s"}\n' "$WORK_ID"
 else
-    # Build specs array as JSON
+    # Build specs array as JSON with proper escaping
     SPECS_JSON="["
     for i in "${!SPECS[@]}"; do
         if [[ $i -gt 0 ]]; then
             SPECS_JSON+=","
         fi
-        SPECS_JSON+="\"${SPECS[$i]}\""
+        ESCAPED_SPEC=$(json_escape "${SPECS[$i]}")
+        SPECS_JSON+="\"${ESCAPED_SPEC}\""
     done
     SPECS_JSON+="]"
 
-    echo '{"exists": true, "count": '"$COUNT"', "specs": '"$SPECS_JSON"', "work_id": "'"$WORK_ID"'", "specs_dir": "'"$SPECS_DIR"'"}'
+    # Escape specs_dir as well (could contain special characters in path)
+    ESCAPED_DIR=$(json_escape "$SPECS_DIR")
+    printf '{"exists": true, "count": %d, "specs": %s, "work_id": "%s", "specs_dir": "%s"}\n' \
+        "$COUNT" "$SPECS_JSON" "$WORK_ID" "$ESCAPED_DIR"
 fi
 
 exit 0
