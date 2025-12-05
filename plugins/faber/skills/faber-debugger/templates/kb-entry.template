@@ -1,0 +1,108 @@
+---
+kb_id: {{kb_id}}
+category: {{category}}
+issue_pattern: "{{issue_pattern}}"
+symptoms:
+{{#symptoms}}
+  - "{{.}}"
+{{/symptoms}}
+keywords:
+{{#keywords}}
+  - {{.}}
+{{/keywords}}
+root_causes:
+{{#root_causes}}
+  - "{{.}}"
+{{/root_causes}}
+solutions:
+{{#solutions}}
+  - title: "{{title}}"
+    steps:
+{{#steps}}
+      - "{{.}}"
+{{/steps}}
+    faber_command: "{{faber_command}}"
+{{/solutions}}
+status: {{status}}
+created: {{created}}
+last_used: {{last_used}}
+usage_count: {{usage_count}}
+references:
+{{#references}}
+  - "{{.}}"
+{{/references}}
+---
+
+# {{issue_pattern}}
+
+## Problem Description
+
+{{problem_description}}
+
+## Symptoms
+
+When this issue occurs, you will typically see:
+
+{{#symptoms}}
+- `{{.}}`
+{{/symptoms}}
+
+## Root Cause Analysis
+
+This issue commonly occurs when:
+
+{{#root_causes}}
+1. {{.}}
+{{/root_causes}}
+
+### Contributing Factors
+
+{{contributing_factors}}
+
+## Solution
+
+{{#solutions}}
+### {{title}}
+
+{{description}}
+
+**Steps:**
+
+{{#steps}}
+1. {{.}}
+{{/steps}}
+
+**FABER Command:**
+```
+{{faber_command}}
+```
+
+{{/solutions}}
+
+## Verification
+
+After applying the fix, verify success by:
+
+{{verification_steps}}
+
+## Prevention
+
+To prevent this issue in the future:
+
+{{prevention_tips}}
+
+## Related Issues
+
+{{#references}}
+- {{.}}
+{{/references}}
+
+## Notes
+
+{{additional_notes}}
+
+---
+
+*Entry created: {{created}}*
+*Last used: {{last_used}}*
+*Status: {{status}}*
