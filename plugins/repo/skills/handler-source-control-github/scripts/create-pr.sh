@@ -72,15 +72,15 @@ if [ $? -ne 0 ]; then
 fi
 
 # Extract PR URL from output (gh pr create outputs the URL)
-PR_URL=$(echo "$pr_url" | grep -E 'https://github.com/.*
-
-/pull/[0-9]+' | head -1)
+# The gh CLI typically outputs the URL on a separate line
+PR_URL=$(echo "$pr_url" | grep -oE 'https://github\.com/[^/]+/[^/]+/pull/[0-9]+' | head -1)
 
 if [ -z "$PR_URL" ]; then
-    # If no URL in output, try to get it from the output text
-    PR_URL="$pr_url"
+    echo "Error: Failed to extract PR URL from gh output" >&2
+    echo "Raw output: $pr_url" >&2
+    exit 1
 fi
 
-# Output PR URL
+# Output PR URL - this MUST always be a valid GitHub PR URL
 echo "$PR_URL"
 exit 0
