@@ -2,7 +2,7 @@
 name: fractary-repo:branch-delete
 description: Delete a Git branch (local, remote, or both)
 model: claude-haiku-4-5
-argument-hint: <branch_name> [--location <where>] [--force] [--worktree-cleanup]
+argument-hint: [branch_name] [--location <where>] [--force] [--worktree-cleanup]
 ---
 
 <CONTEXT>
@@ -13,32 +13,54 @@ Your role is to parse user input and invoke the repo-manager agent to delete a b
 <CRITICAL_RULES>
 **YOU MUST:**
 - Parse the command arguments from user input
+- If no branch_name provided, detect the current branch using `git branch --show-current`
+- Default to `--location both` (local AND remote) unless user specifies otherwise
+- Show confirmation of what will be deleted and ask user to confirm before proceeding
 - Invoke the fractary-repo:repo-manager agent (or @agent-fractary-repo:repo-manager)
 - Pass structured request to the agent
 - Return the agent's response to the user
 
 **YOU MUST NOT:**
-- Perform any operations yourself
+- Perform any operations yourself (except detecting current branch)
 - Invoke skills directly (the repo-manager agent handles skill invocation)
 - Execute platform-specific logic (that's the agent's job)
+- Delete without confirmation
 
 **THIS COMMAND IS ONLY A ROUTER.**
 </CRITICAL_RULES>
 
 <WORKFLOW>
-1. **Parse user input**
-   - Extract branch_name (required)
-   - Parse optional arguments: --location, --force
-   - Validate required arguments are present
+1. **Detect current branch if needed**
+   - If no branch_name argument provided, run `git branch --show-current` to get current branch
+   - If current branch is main/master, warn user and require explicit branch name
 
-2. **Build structured request**
+2. **Parse user input**
+   - Extract branch_name (from argument or detected current branch)
+   - Parse optional arguments: --location (default: both), --force, --worktree-cleanup
+   - Build the complete set of parameters
+
+3. **Show confirmation and ask user to proceed**
+   - Display what will be deleted:
+     ```
+     🗑️ Branch Delete Confirmation
+     ─────────────────────────────
+     Branch: {branch_name}
+     Location: {location} (local and remote / local only / remote only)
+     Force: {yes/no}
+
+     Proceed with deletion? (yes/no)
+     ```
+   - Wait for user confirmation before proceeding
+   - If user says no, abort gracefully
+
+4. **Build structured request**
    - Map to "delete-branch" operation
    - Package parameters
 
-3. **Invoke agent**
+5. **Invoke agent**
    - Invoke fractary-repo:repo-manager agent with the request
 
-4. **Return response**
+6. **Return response**
    - The repo-manager agent will handle the operation and return results
    - Display results to the user
 </WORKFLOW>
@@ -52,6 +74,13 @@ This command follows the **space-separated** argument syntax (consistent with wo
 - **Example**: `--location both` ✅
 - **Boolean flags have no value**: `--force` ✅ (NOT `--force true`)
 
+### No Arguments = Current Branch
+
+```bash
+# Deletes current branch from both local and remote (with confirmation)
+✅ /repo:branch-delete
+```
+
 ### Quote Usage
 
 **Always use quotes for multi-word values:**
@@ -64,7 +93,7 @@ This command follows the **space-separated** argument syntax (consistent with wo
 **Single-word values don't require quotes:**
 ```bash
 ✅ /repo:branch-delete feature/123-old-feature
-✅ /repo:branch-delete feature/123-old-feature --location both
+✅ /repo:branch-delete --location local
 ✅ /repo:branch-delete feature/abandoned --force
 ```
 </ARGUMENT_SYNTAX>
@@ -72,20 +101,28 @@ This command follows the **space-separated** argument syntax (consistent with wo
 <ARGUMENT_PARSING>
 ## Arguments
 
-**Required Arguments**:
-- `branch_name` (string): Full branch name to delete (e.g., "feature/123-add-export", use quotes if contains spaces)
-
 **Optional Arguments**:
-- `--location` (enum): Where to delete the branch. Must be one of: `local`, `remote`, `both` (default: local)
+- `branch_name` (string): Full branch name to delete. If omitted, defaults to **current branch** (detected via `git branch --show-current`). Use quotes if contains spaces.
+- `--location` (enum): Where to delete the branch. Must be one of: `local`, `remote`, `both` (default: **both**)
 - `--force` (boolean flag): Force delete unmerged branch. No value needed, just include the flag
 - `--worktree-cleanup` (boolean flag): Automatically clean up worktree for deleted branch. No value needed, just include the flag. If not provided and worktree exists, user will be prompted
+
+**Default Behavior**:
+- If no arguments provided: deletes **current branch** from **both local and remote**
+- Always shows confirmation before proceeding
 
 **Maps to**: delete-branch
 
 **Example**:
 ```
-/repo:branch-delete feature/123-add-csv-export --location both
+/repo:branch-delete
+→ Detects current branch, shows confirmation, then invokes agent with {"operation": "delete-branch", "parameters": {"branch_name": "<current-branch>", "location": "both"}}
+
+/repo:branch-delete feature/123-add-csv-export
 → Invoke agent with {"operation": "delete-branch", "parameters": {"branch_name": "feature/123-add-csv-export", "location": "both"}}
+
+/repo:branch-delete --location local
+→ Detects current branch, deletes local only
 ```
 </ARGUMENT_PARSING>
 
@@ -93,17 +130,23 @@ This command follows the **space-separated** argument syntax (consistent with wo
 ## Usage Examples
 
 ```bash
-# Delete local branch
+# Delete current branch (local + remote) - will prompt for confirmation
+/repo:branch-delete
+
+# Delete specific branch (local + remote) - will prompt for confirmation
 /repo:branch-delete feature/123-add-csv-export
 
-# Delete from both local and remote
-/repo:branch-delete feature/123-add-csv-export --location both
+# Delete current branch, local only
+/repo:branch-delete --location local
+
+# Delete specific branch, remote only
+/repo:branch-delete feature/old-feature --location remote
 
 # Force delete unmerged branch
 /repo:branch-delete feature/abandoned --force
 
-# Delete remote branch only
-/repo:branch-delete feature/old-feature --location remote
+# Delete with worktree cleanup
+/repo:branch-delete feature/123 --worktree-cleanup
 ```
 </EXAMPLES>
 
@@ -144,10 +187,23 @@ Task(
 <ERROR_HANDLING>
 Common errors to handle:
 
-**Missing branch name**:
+**Cannot delete main/master branch**:
 ```
-Error: branch_name is required
-Usage: /repo:branch-delete <branch_name>
+⚠️ Cannot delete protected branch: main
+You are currently on the main branch. Please switch to a different branch first,
+or specify an explicit branch name to delete.
+```
+
+**Cannot detect current branch (detached HEAD)**:
+```
+⚠️ Cannot detect current branch (detached HEAD state)
+Please specify a branch name explicitly:
+/repo:branch-delete <branch_name>
+```
+
+**User cancels confirmation**:
+```
+❌ Branch deletion cancelled.
 ```
 
 **Branch not found**:
@@ -168,8 +224,10 @@ Use --force to delete anyway, or merge the changes first
 
 - Deleting branches is irreversible (unless commits are still in reflog)
 - Use `--force` carefully - it will delete branches with unmerged changes
-- Default is local-only deletion for safety
-- Use `--location both` to clean up both local and remote
+- **Always shows confirmation before deleting** - user must explicitly confirm
+- Default is **both** (local and remote) deletion for convenience
+- Use `--location local` if you only want to delete the local copy
+- Protected branches (main, master) cannot be deleted when they are the current branch
 
 ## Platform Support
 
