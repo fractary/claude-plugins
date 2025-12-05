@@ -71,10 +71,18 @@ You receive structured operation requests:
 {
   "operation": "analyze-pr",
   "parameters": {
-    "pr_number": 456
+    "pr_number": 456,
+    "wait_for_ci": false,
+    "ci_polling": {
+      "interval": 60,
+      "timeout": 900
+    }
   }
 }
 ```
+
+**Note**: When `wait_for_ci` is true, the skill will poll until CI checks complete before analyzing.
+This is useful when running pr-review immediately after pr-create.
 
 **Create PR:**
 ```json
@@ -164,6 +172,35 @@ Based on operation type:
 **Validate Inputs:**
 - Check pr_number is valid
 - Verify PR exists
+
+**[OPTIONAL] Wait for CI Completion:**
+
+If `wait_for_ci` parameter is `true`, poll for CI completion before analyzing:
+
+1. **Invoke the wait-for-ci operation** on the handler:
+   ```bash
+   # Script: plugins/repo/skills/handler-source-control-github/scripts/poll-ci-workflows.sh
+   ./scripts/poll-ci-workflows.sh "$PR_NUMBER" \
+     --interval "${ci_polling.interval:-60}" \
+     --timeout "${ci_polling.timeout:-900}" \
+     --json
+   ```
+
+2. **Handle polling results**:
+   - Exit code `0` (success): CI passed, proceed to analysis
+   - Exit code `4` (failed): CI failed, report and proceed to analysis (user sees failure in analysis)
+   - Exit code `5` (timeout): CI still pending, report timeout warning and proceed to analysis
+   - Exit code `6` (no CI): No CI configured, proceed to analysis
+
+3. **Report CI polling status**:
+   ```
+   ⏳ CI POLLING STATUS:
+   Status: {success|failed|timeout|no_ci}
+   Elapsed: {elapsed_seconds}s
+   Checks: {passed}/{total} passed
+   {If failed: List failed check names}
+   ───────────────────────────────────────
+   ```
 
 **Invoke Handler to Fetch PR Data:**
 

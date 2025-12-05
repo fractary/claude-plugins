@@ -100,7 +100,18 @@
       "require_work_id": true,
       "$comment_work_id": "Require work item reference in PRs",
       "auto_link_issues": true,
-      "$comment_auto_link": "Automatically add 'closes #issue' references"
+      "$comment_auto_link": "Automatically add 'closes #issue' references",
+
+      "ci_polling": {
+        "enabled": true,
+        "$comment_enabled": "Enable CI polling for pr-review --wait-for-ci flag",
+        "interval_seconds": 60,
+        "$comment_interval": "Seconds between CI status checks (default: 60)",
+        "timeout_seconds": 900,
+        "$comment_timeout": "Maximum seconds to wait for CI (default: 900 = 15 minutes)",
+        "initial_delay_seconds": 10,
+        "$comment_initial_delay": "Initial delay before first check (allows CI to start)"
+      }
     },
 
     "cleanup": {
