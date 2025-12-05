@@ -48,7 +48,11 @@ When a step or hook does not specify `result_handling`, these defaults are appli
 
 ## Result Types
 
-Steps and hooks return a standardized result structure:
+Steps and hooks return a standardized result structure using the **FABER Response Format**.
+
+**Schema Reference**: `plugins/faber/config/schemas/skill-response.schema.json`
+**Full Documentation**: `plugins/faber/docs/RESPONSE-FORMAT.md`
+**Best Practices**: `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md`
 
 ```json
 {
@@ -57,9 +61,9 @@ Steps and hooks return a standardized result structure:
   "details": {},
   "errors": [],
   "warnings": [],
-  "warning_analysis": "Optional analysis of warnings",
-  "error_analysis": "Optional analysis of errors",
-  "suggested_fixes": ["Optional fix suggestions"]
+  "error_analysis": "Root cause explanation (recommended for failures)",
+  "warning_analysis": "Impact assessment (recommended for warnings)",
+  "suggested_fixes": ["Actionable fix suggestions"]
 }
 ```
 

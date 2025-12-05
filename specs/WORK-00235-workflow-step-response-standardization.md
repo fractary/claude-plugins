@@ -117,21 +117,21 @@ Manager expects but doesn't always get:
 
 ### 2. Status Value Semantics
 
-- [ ] **AC2.1**: Define status values precisely:
-  - [ ] **"success"**: Operation completed successfully, no issues, proceed normally
-  - [ ] **"warning"**: Operation completed but with non-blocking issues, proceed with caution
-  - [ ] **"failure"**: Operation failed, goal not achieved, must stop or retry
-  
-- [ ] **AC2.2**: Response guidance for skill developers:
-  - [ ] Return "failure" when: Goal not achieved, action incomplete, critical issue
-  - [ ] Return "warning" when: Goal achieved but with concerns (deprecated API, performance, etc.)
-  - [ ] Return "success" when: Goal achieved cleanly, no concerns
-  - [ ] Document in skill best practices guide
+- [x] **AC2.1**: Define status values precisely:
+  - [x] **"success"**: Operation completed successfully, no issues, proceed normally
+  - [x] **"warning"**: Operation completed but with non-blocking issues, proceed with caution
+  - [x] **"failure"**: Operation failed, goal not achieved, must stop or retry
 
-- [ ] **AC2.3**: Error/warning distinction in response object:
-  - [ ] `errors` array for failure status (list reasons for failure)
-  - [ ] `warnings` array for warning/success status (non-blocking concerns)
-  - [ ] Both can appear in single response (e.g., warning with multiple warnings)
+- [x] **AC2.2**: Response guidance for skill developers:
+  - [x] Return "failure" when: Goal not achieved, action incomplete, critical issue
+  - [x] Return "warning" when: Goal achieved but with concerns (deprecated API, performance, etc.)
+  - [x] Return "success" when: Goal achieved cleanly, no concerns
+  - [x] Document in skill best practices guide
+
+- [x] **AC2.3**: Error/warning distinction in response object:
+  - [x] `errors` array for failure status (list reasons for failure)
+  - [x] `warnings` array for warning/success status (non-blocking concerns)
+  - [x] Both can appear in single response (e.g., warning with multiple warnings)
 
 ### 3. FABER Plugin Skill Updates
 
@@ -146,9 +146,9 @@ Manager expects but doesn't always get:
   - [x] `build-phase` skill (updated OUTPUTS section)
   - [x] `evaluate-phase` skill (updated OUTPUTS section)
   - [x] `release-phase` skill (updated OUTPUTS section)
-  - [ ] `branch-creator` (automatic primitive - in repo plugin)
-  - [ ] `pr-creator` (automatic primitive - in repo plugin)
-  - [ ] `issue-fetcher` (automatic primitive - in work plugin)
+  - [x] `branch-creator` (automatic primitive - in repo plugin: branch-manager SKILL.md updated)
+  - [x] `pr-creator` (automatic primitive - in repo plugin: pr-manager SKILL.md updated)
+  - [x] `issue-fetcher` (automatic primitive - in work plugin: issue-fetcher SKILL.md updated)
 
 - [x] **AC3.3**: Each skill update includes:
   - [x] Return status: "success", "warning", or "failure"
@@ -158,10 +158,10 @@ Manager expects but doesn't always get:
   - [x] Update skill documentation with response format
   - [x] Add examples to skill docs
 
-- [ ] **AC3.4**: Update fractary-spec plugin skill:
-  - [ ] spec-generator skill returns standardized response
-  - [ ] spec-validator skill returns validation status
-  - [ ] spec-archiver skill returns archive status
+- [x] **AC3.4**: Update fractary-spec plugin skill:
+  - [x] spec-generator skill returns standardized response
+  - [x] spec-validator skill returns validation status
+  - [ ] spec-archiver skill returns archive status (pending)
 
 ### 4. Cross-Project Skill Guidance
 
@@ -185,75 +185,75 @@ Manager expects but doesn't always get:
 
 ### 5. Audit and Validation Tooling
 
-- [ ] **AC5.1**: Enhance audit-project command:
-  - [ ] Detect skills that don't return status responses
-  - [ ] Check response format compliance
-  - [ ] Warn about deprecated response formats
-  - [ ] Suggest specific skills that need updating
-  - [ ] Provide step-by-step fix instructions
+- [x] **AC5.1**: Enhance audit-project command:
+  - [x] Detect skills that don't return status responses
+  - [x] Check response format compliance
+  - [x] Warn about deprecated response formats
+  - [x] Suggest specific skills that need updating
+  - [x] Provide step-by-step fix instructions
 
-- [ ] **AC5.2**: Create response format validator script:
-  - [ ] Script: `scripts/validate-skill-responses.sh`
-  - [ ] Can be run on project to check all skills
-  - [ ] Validates against skill-response.schema.json
-  - [ ] Returns detailed report with issues and fixes
+- [x] **AC5.2**: Create response format validator script:
+  - [x] Script: `scripts/validate-skill-responses.sh`
+  - [x] Can be run on project to check all skills
+  - [x] Validates against skill-response.schema.json
+  - [x] Returns detailed report with issues and fixes
 
-- [ ] **AC5.3**: Schema validation in FABER manager:
-  - [ ] Manager validates all skill responses before processing
-  - [ ] Reports schema validation errors clearly
-  - [ ] Suggests fixes in error message
+- [x] **AC5.3**: Schema validation in FABER manager:
+  - [x] Manager validates all skill responses before processing
+  - [x] Reports schema validation errors clearly
+  - [x] Suggests fixes in error message
 
 ### 6. Documentation and Learning
 
-- [ ] **AC6.1**: Create response format documentation:
-  - [ ] `plugins/faber/docs/RESPONSE-FORMAT.md` - Full schema and semantics
-  - [ ] `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md` - Developer guide
-  - [ ] Examples with success/warning/failure cases
-  - [ ] Common patterns and anti-patterns
+- [x] **AC6.1**: Create response format documentation:
+  - [x] `plugins/faber/docs/RESPONSE-FORMAT.md` - Full schema and semantics
+  - [x] `docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md` - Developer guide
+  - [x] Examples with success/warning/failure cases
+  - [x] Common patterns and anti-patterns
 
-- [ ] **AC6.2**: Update existing skill documentation:
-  - [ ] Review all FABER skill docs
-  - [ ] Add response format section to each skill
-  - [ ] Show example responses for that skill
-  - [ ] Document expected error/warning types
+- [x] **AC6.2**: Update existing skill documentation:
+  - [x] Review all FABER skill docs
+  - [x] Add response format section to each skill
+  - [x] Show example responses for that skill
+  - [x] Document expected error/warning types
 
-- [ ] **AC6.3**: Create migration guide:
-  - [ ] Create `docs/guides/MIGRATE-SKILL-RESPONSES.md`
-  - [ ] Step-by-step instructions for updating existing skills
-  - [ ] Before/after examples
-  - [ ] Common migration patterns
-  - [ ] Testing checklist
+- [x] **AC6.3**: Create migration guide:
+  - [x] Create `docs/MIGRATE-SKILL-RESPONSES.md`
+  - [x] Step-by-step instructions for updating existing skills
+  - [x] Before/after examples
+  - [x] Common migration patterns
+  - [x] Testing checklist
 
-- [ ] **AC6.4**: Update FABER agent best practices:
-  - [ ] Update `plugins/faber/docs/FABER-AGENT-BEST-PRACTICES.md`
-  - [ ] Add section on skill response format expectations
-  - [ ] Link to validation tooling
-  - [ ] Include audit-project workflow
+- [x] **AC6.4**: Update FABER agent best practices:
+  - [x] Create `plugins/faber/docs/FABER-AGENT-BEST-PRACTICES.md`
+  - [x] Add section on skill response format expectations
+  - [x] Link to validation tooling
+  - [x] Include migration checklist and audit workflow
 
 ### 7. Integration with Manager
 
-- [ ] **AC7.1**: Manager response handling:
-  - [ ] Validate response format for all step/hook results
-  - [ ] Report validation errors clearly
-  - [ ] Apply response-based behavior:
-    - [ ] Status="success" → check on_success
-    - [ ] Status="warning" → check on_warning, show intelligent prompt
-    - [ ] Status="failure" → stop workflow (IMMUTABLE)
-  - [ ] Parse errors/warnings arrays for intelligent prompts
+- [x] **AC7.1**: Manager response handling:
+  - [x] Validate response format for all step/hook results
+  - [x] Report validation errors clearly
+  - [x] Apply response-based behavior:
+    - [x] Status="success" → check on_success
+    - [x] Status="warning" → check on_warning, show intelligent prompt
+    - [x] Status="failure" → stop workflow (IMMUTABLE)
+  - [x] Parse errors/warnings arrays for intelligent prompts
 
-- [ ] **AC7.2**: Intelligent prompt construction:
-  - [ ] Show all errors from response.errors array
-  - [ ] Show all warnings from response.warnings array
-  - [ ] Show error_analysis if present
-  - [ ] Show warning_analysis if present
-  - [ ] Show suggested_fixes if present (prioritized)
-  - [ ] Present options based on severity and suggestions
+- [x] **AC7.2**: Intelligent prompt construction:
+  - [x] Show all errors from response.errors array
+  - [x] Show all warnings from response.warnings array
+  - [x] Show error_analysis if present
+  - [x] Show warning_analysis if present
+  - [x] Show suggested_fixes if present (prioritized)
+  - [x] Present options based on severity and suggestions
 
-- [ ] **AC7.3**: Logging and audit:
-  - [ ] Log all step responses (including status, errors, warnings)
-  - [ ] Track response format compliance
-  - [ ] Include in workflow state.json
-  - [ ] Include in workflow logs
+- [x] **AC7.3**: Logging and audit:
+  - [x] Log all step responses (including status, errors, warnings)
+  - [x] Track response format compliance
+  - [x] Include in workflow state.json
+  - [x] Include in workflow logs
 
 ---
 
