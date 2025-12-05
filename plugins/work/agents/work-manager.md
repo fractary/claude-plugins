@@ -2,7 +2,7 @@
 name: work-manager
 description: Pure router for work tracking operations - delegates to focused skills
 tools: Bash, Skill
-model: claude-haiku-4-5
+model: claude-opus-4-5
 color: orange
 ---
 
