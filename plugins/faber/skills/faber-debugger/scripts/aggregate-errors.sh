@@ -10,6 +10,10 @@
 #   from step executions. Groups and deduplicates for analysis.
 #
 # Output: JSON object with aggregated errors, warnings, and analysis metadata
+#
+# Security:
+#   - Run ID is validated to prevent path traversal
+#   - All file operations use validated paths
 
 set -euo pipefail
 
@@ -18,6 +22,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FABER_ROOT="$(cd "$SKILL_ROOT/../.." && pwd)"
 CORE_SCRIPTS="$FABER_ROOT/skills/core/scripts"
+
+# =============================================================================
+# Input Validation Functions
+# =============================================================================
+
+# Validate run ID format (prevent path traversal and shell injection)
+# Format: org/repo/runid or just runid
+validate_run_id() {
+    local id="$1"
+
+    # Check for path traversal attempts
+    if [[ "$id" =~ \.\. ]]; then
+        echo '{"status": "error", "message": "Invalid run-id: path traversal not allowed"}' >&2
+        exit 1
+    fi
+
+    # Only allow safe characters: alphanumeric, forward slash, hyphen, underscore
+    if [[ ! "$id" =~ ^[a-zA-Z0-9/_-]+$ ]]; then
+        echo '{"status": "error", "message": "Invalid run-id: contains invalid characters"}' >&2
+        exit 1
+    fi
+
+    # Length limit
+    if [[ ${#id} -gt 256 ]]; then
+        echo '{"status": "error", "message": "Invalid run-id: too long (max 256 chars)"}' >&2
+        exit 1
+    fi
+}
 
 # Parse arguments
 RUN_ID=""
@@ -38,6 +70,9 @@ if [ -z "$RUN_ID" ]; then
     echo "Error: --run-id is required" >&2
     exit 1
 fi
+
+# Validate run ID before using in file paths
+validate_run_id "$RUN_ID"
 
 # Paths
 RUN_DIR=".fractary/plugins/faber/runs/$RUN_ID"

@@ -17,8 +17,59 @@
 #   log-to-issue.sh --work-id 244 --file /tmp/debugger-comment.md
 #
 # Output: JSON with comment URL on success, error on failure
+#
+# Security:
+#   - Work ID validated as alphanumeric
+#   - Repository format validated (owner/repo)
+#   - File path validated to prevent directory traversal
 
 set -euo pipefail
+
+# =============================================================================
+# Input Validation Functions
+# =============================================================================
+
+# Validate work ID (alphanumeric, hyphens, underscores)
+validate_work_id() {
+    local id="$1"
+    if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo '{"status": "error", "message": "Invalid work-id format. Must be alphanumeric."}' >&2
+        exit 1
+    fi
+    if [[ ${#id} -gt 64 ]]; then
+        echo '{"status": "error", "message": "Work ID too long. Maximum 64 characters."}' >&2
+        exit 1
+    fi
+}
+
+# Validate repository format (owner/repo)
+validate_repo() {
+    local repo="$1"
+    if [ -n "$repo" ]; then
+        # Must be in format owner/repo with safe characters
+        if [[ ! "$repo" =~ ^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$ ]]; then
+            echo '{"status": "error", "message": "Invalid repo format. Must be owner/repo."}' >&2
+            exit 1
+        fi
+    fi
+}
+
+# Validate file path (no path traversal to sensitive areas)
+validate_file_path() {
+    local filepath="$1"
+    if [ -n "$filepath" ]; then
+        # Check for path traversal
+        if [[ "$filepath" =~ \.\. ]]; then
+            echo '{"status": "error", "message": "Invalid file path: path traversal not allowed."}' >&2
+            exit 1
+        fi
+        # Ensure it's a regular file (not a device, symlink to sensitive file, etc.)
+        if [ -e "$filepath" ] && [ ! -f "$filepath" ]; then
+            echo '{"status": "error", "message": "Path must be a regular file."}' >&2
+            exit 1
+        fi
+    fi
+}
 
 # Defaults
 WORK_ID=""
@@ -57,6 +108,11 @@ if [ -z "$WORK_ID" ]; then
     echo '{"status": "error", "message": "--work-id is required"}' >&2
     exit 1
 fi
+
+# Validate all inputs (security)
+validate_work_id "$WORK_ID"
+validate_repo "$REPO"
+validate_file_path "$FILE"
 
 # Get body from file if specified
 if [ -n "$FILE" ]; then

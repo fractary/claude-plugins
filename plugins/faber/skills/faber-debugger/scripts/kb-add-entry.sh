@@ -20,6 +20,11 @@
 #     --category build --keywords "type error,annotation" --status unverified
 #
 # Output: JSON confirmation of the operation
+#
+# Security:
+#   - All inputs are validated for format
+#   - Uses flock with retry logic and stale lock detection
+#   - Proper cleanup on exit via trap
 
 set -euo pipefail
 
@@ -30,7 +35,132 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KB_PATH="${KB_PATH:-.fractary/plugins/faber/debugger/knowledge-base}"
 INDEX_FILE="$KB_PATH/index.json"
 LOCK_FILE="$INDEX_FILE.lock"
+
+# Lock configuration
 LOCK_TIMEOUT=10
+LOCK_RETRY_MAX=5
+LOCK_RETRY_DELAY=1
+LOCK_STALE_SECONDS=300  # 5 minutes - locks older than this are considered stale
+
+# =============================================================================
+# Input Validation Functions
+# =============================================================================
+
+# Validate KB ID format (alphanumeric, hyphens, must start with letter)
+validate_kb_id() {
+    local id="$1"
+    if [[ ! "$id" =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ ]]; then
+        echo '{"status": "error", "message": "Invalid KB ID format. Must start with letter and contain only alphanumeric, hyphens, or underscores."}' >&2
+        exit 1
+    fi
+    # Check length limits
+    if [[ ${#id} -gt 64 ]]; then
+        echo '{"status": "error", "message": "KB ID too long. Maximum 64 characters."}' >&2
+        exit 1
+    fi
+}
+
+# Validate path format (no path traversal, reasonable characters)
+validate_path() {
+    local path="$1"
+    # Check for path traversal attempts
+    if [[ "$path" =~ \.\. ]] || [[ "$path" =~ ^/ ]]; then
+        echo '{"status": "error", "message": "Invalid path. No absolute paths or path traversal allowed."}' >&2
+        exit 1
+    fi
+    # Check for valid path characters
+    if [[ ! "$path" =~ ^[a-zA-Z0-9/_.-]+$ ]]; then
+        echo '{"status": "error", "message": "Invalid path characters. Use only alphanumeric, slashes, dots, hyphens, underscores."}' >&2
+        exit 1
+    fi
+}
+
+# Validate comma-separated list (no shell metacharacters)
+validate_list() {
+    local list="$1"
+    local name="$2"
+    # Allow alphanumeric, spaces, commas, hyphens, underscores
+    if [[ -n "$list" ]] && [[ ! "$list" =~ ^[a-zA-Z0-9\ ,_-]+$ ]]; then
+        echo "{\"status\": \"error\", \"message\": \"Invalid characters in $name. Use only alphanumeric, spaces, commas, hyphens, underscores.\"}" >&2
+        exit 1
+    fi
+}
+
+# =============================================================================
+# Lock Management Functions
+# =============================================================================
+
+# File descriptor for lock
+LOCK_FD=200
+
+# Cleanup function - called on exit
+cleanup() {
+    # Release lock if held
+    if [ -n "${LOCK_ACQUIRED:-}" ]; then
+        flock -u "$LOCK_FD" 2>/dev/null || true
+    fi
+}
+
+# Set trap for cleanup
+trap cleanup EXIT
+
+# Check if lock file is stale (older than LOCK_STALE_SECONDS)
+is_lock_stale() {
+    if [ ! -f "$LOCK_FILE" ]; then
+        return 1  # No lock file, not stale
+    fi
+
+    local lock_age
+    local current_time
+    current_time=$(date +%s)
+    lock_mtime=$(stat -c %Y "$LOCK_FILE" 2>/dev/null || echo "$current_time")
+    lock_age=$((current_time - lock_mtime))
+
+    if [ "$lock_age" -gt "$LOCK_STALE_SECONDS" ]; then
+        return 0  # Lock is stale
+    fi
+    return 1  # Lock is fresh
+}
+
+# Acquire lock with retry logic and exponential backoff
+acquire_lock() {
+    local attempt=0
+    local delay=$LOCK_RETRY_DELAY
+
+    while [ $attempt -lt $LOCK_RETRY_MAX ]; do
+        attempt=$((attempt + 1))
+
+        # Check for stale lock before attempting
+        if is_lock_stale; then
+            echo "{\"warning\": \"Removing stale lock file (age > ${LOCK_STALE_SECONDS}s)\"}" >&2
+            rm -f "$LOCK_FILE"
+        fi
+
+        # Open file descriptor for lock
+        exec 200>"$LOCK_FILE"
+
+        # Try to acquire lock
+        if flock -w "$LOCK_TIMEOUT" "$LOCK_FD" 2>/dev/null; then
+            # Update lock file timestamp to indicate it's active
+            touch "$LOCK_FILE"
+            LOCK_ACQUIRED=1
+            return 0
+        fi
+
+        # Lock failed - retry with exponential backoff
+        if [ $attempt -lt $LOCK_RETRY_MAX ]; then
+            echo "{\"warning\": \"Lock attempt $attempt failed, retrying in ${delay}s...\"}" >&2
+            sleep "$delay"
+            delay=$((delay * 2))  # Exponential backoff
+            if [ $delay -gt 30 ]; then
+                delay=30  # Cap at 30 seconds
+            fi
+        fi
+    done
+
+    echo '{"status": "error", "message": "Could not acquire lock after multiple attempts. Another process may be holding it."}' >&2
+    return 1
+}
 
 # Defaults
 KB_ID=""
@@ -95,6 +225,12 @@ if [ -z "$ENTRY_PATH" ]; then
     exit 1
 fi
 
+# Validate input formats (security)
+validate_kb_id "$KB_ID"
+validate_path "$ENTRY_PATH"
+validate_list "$KEYWORDS" "keywords"
+validate_list "$PATTERNS" "patterns"
+
 # Validate category
 case "$CATEGORY" in
     workflow|build|test|deploy|general) ;;
@@ -132,10 +268,8 @@ if [ -n "$PATTERNS" ]; then
     patterns_json=$(echo "$PATTERNS" | tr ',' '\n' | jq -R . | jq -s .)
 fi
 
-# Acquire exclusive lock for write
-exec 200>"$LOCK_FILE"
-if ! flock -w "$LOCK_TIMEOUT" 200; then
-    echo '{"status": "error", "message": "Could not acquire lock on index file"}' >&2
+# Acquire exclusive lock for write (with retry and stale detection)
+if ! acquire_lock; then
     exit 1
 fi
 
@@ -202,8 +336,7 @@ UPDATED_INDEX=$(echo "$INDEX_CONTENT" | jq \
 # Write updated index
 echo "$UPDATED_INDEX" > "$INDEX_FILE"
 
-# Release lock
-flock -u 200
+# Lock is automatically released by cleanup trap on exit
 
 # Success output
 ACTION="created"

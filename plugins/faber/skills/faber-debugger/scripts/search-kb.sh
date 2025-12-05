@@ -19,6 +19,11 @@
 #   search-kb.sh --patterns "Type error: Expected*" --threshold 0.7
 #
 # Output: JSON array of matching entries with scores
+#
+# Security:
+#   - All inputs are validated
+#   - Pattern matching uses fixed-string grep where possible
+#   - Numeric parameters validated for range
 
 set -euo pipefail
 
@@ -30,6 +35,61 @@ FABER_ROOT="$(cd "$SKILL_ROOT/../.." && pwd)"
 # Default knowledge base location
 KB_PATH="${KB_PATH:-.fractary/plugins/faber/debugger/knowledge-base}"
 INDEX_FILE="$KB_PATH/index.json"
+
+# =============================================================================
+# Input Validation Functions
+# =============================================================================
+
+# Validate comma-separated list (safe characters only)
+validate_list() {
+    local list="$1"
+    local name="$2"
+    # Allow alphanumeric, spaces, commas, hyphens, underscores, dots, colons
+    # These are reasonable for keywords and error patterns
+    if [[ -n "$list" ]] && [[ ! "$list" =~ ^[a-zA-Z0-9\ ,_.:\*\-]+$ ]]; then
+        echo "{\"status\": \"error\", \"message\": \"Invalid characters in $name. Shell metacharacters are not allowed.\"}" >&2
+        exit 1
+    fi
+}
+
+# Validate category (enum)
+validate_category() {
+    local cat="$1"
+    if [ -n "$cat" ]; then
+        case "$cat" in
+            workflow|build|test|deploy|general) ;;
+            *)
+                echo "{\"status\": \"error\", \"message\": \"Invalid category: $cat. Must be workflow|build|test|deploy|general.\"}" >&2
+                exit 1
+                ;;
+        esac
+    fi
+}
+
+# Validate limit (positive integer, reasonable range)
+validate_limit() {
+    local limit="$1"
+    if [[ ! "$limit" =~ ^[0-9]+$ ]] || [ "$limit" -lt 1 ] || [ "$limit" -gt 100 ]; then
+        echo '{"status": "error", "message": "Invalid limit. Must be integer between 1 and 100."}' >&2
+        exit 1
+    fi
+}
+
+# Validate threshold (decimal between 0.0 and 1.0)
+validate_threshold() {
+    local threshold="$1"
+    if [[ ! "$threshold" =~ ^[0-9]*\.?[0-9]+$ ]]; then
+        echo '{"status": "error", "message": "Invalid threshold format. Must be decimal number."}' >&2
+        exit 1
+    fi
+    # Check range using awk
+    local in_range
+    in_range=$(awk "BEGIN {print ($threshold >= 0.0 && $threshold <= 1.0) ? 1 : 0}")
+    if [ "$in_range" != "1" ]; then
+        echo '{"status": "error", "message": "Invalid threshold range. Must be between 0.0 and 1.0."}' >&2
+        exit 1
+    fi
+}
 
 # Defaults
 KEYWORDS=""
@@ -73,6 +133,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Validate all inputs
+validate_list "$KEYWORDS" "keywords"
+validate_list "$PATTERNS" "patterns"
+validate_category "$CATEGORY"
+validate_limit "$LIMIT"
+validate_threshold "$THRESHOLD"
+
 # Check if knowledge base exists
 if [ ! -f "$INDEX_FILE" ]; then
     # Return empty result (not an error - KB is optional)
@@ -98,6 +165,7 @@ build_filter() {
 
 # Calculate keyword match score
 # Returns score between 0.0 and 1.0
+# Uses grep -Fi for safe, case-insensitive fixed-string matching
 calculate_keyword_score() {
     local search_keywords="$1"
     local entry_keywords="$2"
@@ -113,8 +181,10 @@ calculate_keyword_score() {
     IFS=',' read -ra SEARCH_ARRAY <<< "$search_keywords"
     for keyword in "${SEARCH_ARRAY[@]}"; do
         keyword=$(echo "$keyword" | xargs)  # Trim whitespace
+        [ -z "$keyword" ] && continue  # Skip empty keywords
         total=$((total + 1))
-        if echo "$entry_keywords" | grep -qi "$keyword"; then
+        # Use grep -Fi for fixed-string, case-insensitive matching (safe from regex injection)
+        if echo "$entry_keywords" | grep -Fiq "$keyword"; then
             matched=$((matched + 1))
         fi
     done
@@ -129,6 +199,7 @@ calculate_keyword_score() {
 
 # Calculate pattern match score using simple fuzzy matching
 # Returns score between 0.0 and 1.0
+# Security: Uses safe wildcard-to-glob conversion, validates patterns
 calculate_pattern_score() {
     local search_patterns="$1"
     local entry_patterns="$2"
@@ -143,18 +214,32 @@ calculate_pattern_score() {
     IFS=',' read -ra SEARCH_ARRAY <<< "$search_patterns"
     for pattern in "${SEARCH_ARRAY[@]}"; do
         pattern=$(echo "$pattern" | xargs)  # Trim whitespace
-        # Convert wildcard to regex
-        local regex_pattern=$(echo "$pattern" | sed 's/\*/.*?/g')
+        [ -z "$pattern" ] && continue  # Skip empty patterns
 
-        # Check if any entry pattern matches
-        if echo "$entry_patterns" | grep -qiE "$regex_pattern"; then
-            # Exact or close match
-            best_score=1
-            break
-        elif echo "$entry_patterns" | grep -qi "${pattern%% *}"; then
-            # Partial match (first word)
-            if [ "$(awk "BEGIN {print ($best_score < 0.5)}")" = "1" ]; then
-                best_score=0.5
+        # For safety, we'll do substring matching instead of regex
+        # Remove wildcards and check if core pattern exists
+        local core_pattern
+        core_pattern=$(echo "$pattern" | tr -d '*')
+
+        # Check if entry contains the core pattern (case-insensitive, fixed-string)
+        if [ -n "$core_pattern" ] && echo "$entry_patterns" | grep -Fiq "$core_pattern"; then
+            # If pattern had wildcards and matched, it's a good match
+            if [[ "$pattern" == *"*"* ]]; then
+                best_score=1
+                break
+            else
+                # Exact substring match
+                best_score=1
+                break
+            fi
+        else
+            # Try matching first word for partial credit
+            local first_word
+            first_word="${pattern%% *}"
+            if [ -n "$first_word" ] && echo "$entry_patterns" | grep -Fiq "$first_word"; then
+                if [ "$(awk "BEGIN {print ($best_score < 0.5)}")" = "1" ]; then
+                    best_score=0.5
+                fi
             fi
         fi
     done

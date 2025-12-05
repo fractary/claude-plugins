@@ -18,8 +18,90 @@
 #   generate-command.sh --work-id 244 --phase build --step implement --prompt "Fix type errors"
 #
 # Output: The formatted /faber:run command
+#
+# Security:
+#   - All inputs are validated for format and suspicious patterns
+#   - Prompt text is safely escaped using printf '%q' to prevent injection
+#   - Shell metacharacters are properly handled
 
 set -euo pipefail
+
+# =============================================================================
+# Input Validation Functions
+# =============================================================================
+
+# Validate work ID format (alphanumeric, hyphens, underscores, or numeric)
+validate_work_id() {
+    local id="$1"
+    if [[ ! "$id" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid work-id format: $id" >&2
+        echo "Work ID must contain only alphanumeric characters, hyphens, or underscores" >&2
+        exit 1
+    fi
+}
+
+# Validate phase name
+validate_phase() {
+    local phase="$1"
+    case "$phase" in
+        frame|architect|build|evaluate|release)
+            return 0
+            ;;
+        *)
+            echo "Error: Invalid phase: $phase" >&2
+            echo "Valid phases: frame, architect, build, evaluate, release" >&2
+            exit 1
+            ;;
+    esac
+}
+
+# Validate step name (alphanumeric, hyphens, underscores)
+validate_step() {
+    local step="$1"
+    if [[ ! "$step" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid step format: $step" >&2
+        echo "Step must contain only alphanumeric characters, hyphens, or underscores" >&2
+        exit 1
+    fi
+}
+
+# Validate workflow ID (alphanumeric, hyphens, underscores)
+validate_workflow() {
+    local workflow="$1"
+    if [[ ! "$workflow" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid workflow format: $workflow" >&2
+        echo "Workflow must contain only alphanumeric characters, hyphens, or underscores" >&2
+        exit 1
+    fi
+}
+
+# Check for suspicious patterns that could indicate injection attempts
+check_suspicious_patterns() {
+    local value="$1"
+    local name="$2"
+
+    # Check for common shell injection patterns
+    if [[ "$value" =~ [\$\`] ]] || \
+       [[ "$value" =~ \$\( ]] || \
+       [[ "$value" =~ \>\> ]] || \
+       [[ "$value" =~ \|\| ]] || \
+       [[ "$value" =~ \&\& ]] || \
+       [[ "$value" =~ \; ]]; then
+        echo "Error: Suspicious pattern detected in $name" >&2
+        echo "Shell metacharacters like \$, \`, ;, |, & are not allowed in identifiers" >&2
+        exit 1
+    fi
+}
+
+# Safely escape a string for shell usage using printf %q
+# This is the most robust method for shell escaping
+safe_escape() {
+    printf '%q' "$1"
+}
+
+# =============================================================================
+# Main Script
+# =============================================================================
 
 # Defaults
 WORK_ID=""
@@ -84,6 +166,24 @@ if [ -z "$STEP" ]; then
     exit 1
 fi
 
+# Validate all inputs for format and suspicious patterns
+validate_work_id "$WORK_ID"
+check_suspicious_patterns "$WORK_ID" "work-id"
+
+validate_phase "$PHASE"
+
+validate_step "$STEP"
+check_suspicious_patterns "$STEP" "step"
+
+validate_workflow "$WORKFLOW"
+check_suspicious_patterns "$WORKFLOW" "workflow"
+
+# Note: PROMPT is allowed to contain special characters but will be safely escaped
+# FLAGS are passed through but validated for suspicious injection patterns
+if [ -n "$FLAGS" ]; then
+    check_suspicious_patterns "$FLAGS" "flags"
+fi
+
 # Map phase to FABER step names
 # The --step argument expects the builder/tester/etc. not the phase name
 map_phase_to_step() {
@@ -146,14 +246,10 @@ fi
 
 # Add prompt if provided
 if [ -n "$PROMPT" ]; then
-    # Escape special characters in prompt for shell safety
-    if [ "$ESCAPE" = true ]; then
-        # Escape single quotes
-        ESCAPED_PROMPT=$(printf '%s' "$PROMPT" | sed "s/'/'\\\\''/g")
-        CMD="$CMD --prompt '$ESCAPED_PROMPT'"
-    else
-        CMD="$CMD --prompt \"$PROMPT\""
-    fi
+    # Use printf '%q' for robust shell escaping - this is the safest method
+    # It handles all shell metacharacters including $, `, ", ', \, etc.
+    ESCAPED_PROMPT=$(safe_escape "$PROMPT")
+    CMD="$CMD --prompt $ESCAPED_PROMPT"
 fi
 
 # Output the command
