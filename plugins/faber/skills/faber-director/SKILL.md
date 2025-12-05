@@ -1,5 +1,5 @@
 ---
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # Universal FABER Director Skill

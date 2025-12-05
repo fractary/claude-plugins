@@ -148,6 +148,16 @@
           "type": "string",
           "enum": ["only_if_failures", "only_if_success", "always"],
           "description": "Conditional execution rule"
+        },
+        "arguments": {
+          "type": "object",
+          "description": "Explicit arguments to pass to the step. Keys are argument names (exact casing), values are literals or {placeholder} references to workflow context.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "result_handling": {
+          "$ref": "#/definitions/step_result_handling"
         }
       },
       "anyOf": [
@@ -235,7 +245,11 @@
         "on_error": {
           "type": "string",
           "enum": ["continue", "abort", "retry"],
-          "description": "Error handling strategy"
+          "description": "DEPRECATED: Use result_handling instead. Kept for backwards compatibility.",
+          "deprecated": true
+        },
+        "result_handling": {
+          "$ref": "#/definitions/hook_result_handling"
         }
       },
       "oneOf": [
@@ -293,6 +307,91 @@
         "overrides": {
           "type": "object",
           "description": "Phase-specific autonomy overrides"
+        }
+      }
+    },
+    "step_result_handling": {
+      "type": "object",
+      "description": "Defines behavior for step execution outcomes. on_failure is ALWAYS 'stop' (immutable).",
+      "required": ["on_failure"],
+      "additionalProperties": false,
+      "properties": {
+        "on_success": {
+          "type": "string",
+          "enum": ["continue", "prompt"],
+          "default": "continue",
+          "description": "Action when step succeeds: 'continue' proceeds automatically, 'prompt' asks user"
+        },
+        "on_warning": {
+          "type": "string",
+          "enum": ["continue", "prompt", "stop"],
+          "default": "continue",
+          "description": "Action when step has warnings: 'continue' proceeds, 'prompt' asks user, 'stop' halts workflow"
+        },
+        "on_failure": {
+          "const": "stop",
+          "description": "IMMUTABLE: Failure ALWAYS stops workflow execution. This cannot be changed."
+        }
+      }
+    },
+    "hook_result_handling": {
+      "type": "object",
+      "description": "Defines behavior for hook execution outcomes. Hooks can optionally continue on failure for informational hooks.",
+      "required": ["on_failure"],
+      "additionalProperties": false,
+      "properties": {
+        "on_success": {
+          "type": "string",
+          "enum": ["continue", "prompt"],
+          "default": "continue",
+          "description": "Action when hook succeeds: 'continue' proceeds automatically, 'prompt' asks user"
+        },
+        "on_warning": {
+          "type": "string",
+          "enum": ["continue", "prompt", "stop"],
+          "default": "continue",
+          "description": "Action when hook has warnings: 'continue' proceeds, 'prompt' asks user, 'stop' halts workflow"
+        },
+        "on_failure": {
+          "type": "string",
+          "enum": ["stop", "continue"],
+          "default": "stop",
+          "description": "Action when hook fails: 'stop' halts workflow (default), 'continue' for informational hooks only"
+        }
+      }
+    },
+    "step_result": {
+      "type": "object",
+      "description": "Standard result structure that ALL steps and hooks must return",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "failure", "warning"],
+          "description": "Execution outcome status"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable summary of what happened"
+        },
+        "details": {
+          "type": "object",
+          "description": "Structured data from execution (artifacts, metrics, etc.)"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of error messages (required when status is 'failure')"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of warning messages (required when status is 'warning')"
         }
       }
     }
