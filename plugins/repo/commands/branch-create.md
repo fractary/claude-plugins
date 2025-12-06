@@ -45,40 +45,38 @@ This command supports:
    - Parse optional arguments: --base, --prefix, --work-id, --worktree, --spec-create
    - Validate required arguments are present
 
-2. **Handle Semantic Mode (if applicable)**
-   - If Mode 3 detected (no first arg, only --work-id):
-     a. Invoke `/fractary-work:issue-fetch {work_id}` using SlashCommand tool
-     b. Extract issue title and type from response
-     c. If --prefix not provided, infer from issue type:
-        - feature/enhancement → feat
-        - bug/defect → fix
-        - documentation → docs
-        - chore/maintenance → chore
-        - default → feat
-     d. Use issue title as description
-     e. Proceed with description-based naming flow
-
-3. **Build structured request**
+2. **Build structured request** (DO NOT fetch issue - agent handles this atomically)
    - Map to "create-branch" operation
    - Package parameters based on mode:
-     - Direct mode: branch_name, base_branch, work_id (optional), create_worktree, spec_create
-     - Description mode: description, prefix, base_branch, work_id (optional), create_worktree, spec_create
-     - Semantic mode: description (from issue), prefix (from issue type), base_branch, work_id, create_worktree, spec_create
+     - **Direct mode** (first arg contains `/`): branch_name, base_branch, work_id (optional), create_worktree, spec_create
+     - **Description mode** (first arg provided, no `/`): description, prefix, base_branch, work_id (optional), create_worktree, spec_create
+     - **Semantic mode** (no first arg, only --work-id): work_id, prefix (optional), base_branch, create_worktree, spec_create
 
-4. **ACTUALLY INVOKE the Task tool**
+   **CRITICAL**: For semantic mode, do NOT fetch the issue yourself. Pass `mode: "semantic"` with just `work_id` to the agent. The agent will:
+   - Fetch the issue details
+   - Extract the title and type
+   - Generate the branch name
+   - Create the branch
+   - Checkout the branch
+   - Update the status cache
+   All atomically in one operation.
+
+3. **ACTUALLY INVOKE the Task tool**
    - Use the Task tool with subagent_type="fractary-repo:repo-manager"
    - Pass the structured JSON request in the prompt parameter
-   - The agent will handle:
-     - Work plugin detection (if work_id not provided)
-     - User prompting (three-option workflow)
-     - Issue creation (if user selects Option 1)
-     - Branch creation
+   - The agent will handle everything atomically:
+     - Issue fetching (for semantic mode)
+     - Branch name generation
+     - Branch creation AND checkout
+     - Status cache update
+     - Work plugin detection (if work_id not provided in description mode)
      - Worktree creation (if create_worktree is true)
-     - URL extraction and display
+     - Spec creation (if spec_create is true)
 
-5. **Return agent response**
+4. **Return agent response**
    - The Task tool returns the agent's output
-   - Display it to the user (prompts, success messages, URLs, errors)
+   - Display it to the user (success messages, URLs, errors)
+   - Verify the response includes: branch_name, checked_out status, cache_updated status
 </WORKFLOW>
 
 <ARGUMENT_SYNTAX>
@@ -293,7 +291,7 @@ For detailed workflow examples, see the Work Tracking Integration section below.
 <AGENT_INVOCATION>
 ## Invoking the Agent
 
-**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done.
+**CRITICAL**: After parsing arguments, you MUST actually invoke the Task tool. Do NOT just describe what should be done. Do NOT fetch issues yourself for semantic mode - the agent handles everything atomically.
 
 **How to invoke**:
 Use the Task tool with these parameters:
@@ -342,6 +340,35 @@ Task(
 )
 ```
 
+### Mode 3: Semantic Mode (work_id only - Agent fetches issue atomically)
+```
+Task(
+  subagent_type="fractary-repo:repo-manager",
+  description="Create branch for work item 195 using semantic mode",
+  prompt='{
+    "operation": "create-branch",
+    "parameters": {
+      "mode": "semantic",
+      "work_id": "195",
+      "prefix": null,
+      "base_branch": "main",
+      "create_worktree": false,
+      "spec_create": false
+    }
+  }'
+)
+```
+
+**IMPORTANT for Mode 3**: Do NOT fetch the issue yourself before invoking. The agent will:
+1. Fetch issue #195 from the work tracking system
+2. Extract the title (e.g., "Fix authentication bug")
+3. Infer prefix from issue type (bug → fix, feature → feat)
+4. Generate branch name (e.g., "fix/195-fix-authentication-bug")
+5. Create the branch
+6. Checkout the branch
+7. Update the status cache
+All in one atomic operation.
+
 ### With Worktree
 ```
 Task(
@@ -380,19 +407,23 @@ Task(
 )
 ```
 
-**What the agent does**:
+**What the agent does** (atomically, without stopping):
 1. Receives the request with mode indicator
-2. Routes to appropriate skill(s) based on mode:
+2. For **semantic mode**: Fetches issue, extracts title/type, generates branch name
+3. Routes to appropriate skill(s) based on mode:
    - **Direct**: branch-manager only
    - **Description**: branch-namer → branch-manager
-3. Executes platform-specific logic (GitHub/GitLab/Bitbucket)
-4. Returns structured response to you
-5. You display the response to the user
+   - **Semantic**: issue-fetch → branch-namer → branch-manager
+4. Executes platform-specific logic (GitHub/GitLab/Bitbucket)
+5. Verifies: branch created, checked out, status cache updated
+6. Returns structured response with ALL status fields
 
 **DO NOT**:
 - ❌ Write text like "Use the @agent-fractary-repo:repo-manager agent to create a branch"
 - ❌ Show the JSON request to the user without actually invoking the Task tool
 - ❌ Invoke skills directly
+- ❌ Fetch issues yourself for semantic mode (let agent handle it)
+- ❌ Stop after showing branch name without creating the branch
 - ✅ ACTUALLY call the Task tool with the parameters shown above
 </AGENT_INVOCATION>
 
