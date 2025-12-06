@@ -308,9 +308,148 @@ project-root/
 │               └── ...
 ```
 
+## HITL Feedback Tracking
+
+FABER supports human-in-the-loop (HITL) feedback through integrated state and event tracking.
+
+### Feedback State Fields
+
+When a workflow is awaiting feedback, `state.json` includes:
+
+```json
+{
+  "status": "awaiting_feedback",
+  "feedback_request": {
+    "request_id": "fr-20251206-a1b2c3",
+    "type": "approval",
+    "prompt": "Please review the design and approve to proceed.",
+    "options": ["approve", "reject", "request_changes"],
+    "context": {
+      "artifact_path": "/specs/WORK-00158-design.md",
+      "summary": "3-layer architecture with handler pattern"
+    },
+    "requested_at": "2025-12-06T18:00:00Z",
+    "notification_sent": {
+      "cli": true,
+      "issue_comment": true,
+      "comment_url": "https://github.com/org/repo/issues/158#issuecomment-xyz"
+    }
+  },
+  "resume_point": {
+    "phase": "architect",
+    "step": "design-review",
+    "step_index": 2
+  },
+  "feedback_history": [
+    {
+      "request_id": "fr-20251206-prev01",
+      "request_type": "confirmation",
+      "response": "confirm",
+      "provided_by": {
+        "user": "jmcwilliam",
+        "email": "jm@example.com",
+        "source": "cli"
+      },
+      "received_at": "2025-12-06T17:30:00Z"
+    }
+  ]
+}
+```
+
+### Feedback Types
+
+| Type | Description | Default Options |
+|------|-------------|-----------------|
+| `approval` | Binary approval decision | `["approve", "reject"]` |
+| `confirmation` | Confirm destructive action | `["confirm", "cancel"]` |
+| `selection` | Choose from options | Custom list |
+| `clarification` | Request information | Free text |
+| `review` | Review with feedback | `["approve", "request_changes", "reject"]` |
+| `error_resolution` | Error recovery | `["retry", "skip", "abort"]` |
+
+### Feedback Events
+
+Two new event types track feedback:
+
+**feedback_request** - Emitted when feedback is needed:
+```json
+{
+  "event_type": "feedback_request",
+  "phase": "architect",
+  "step": "design-review",
+  "metadata": {
+    "request_id": "fr-20251206-a1b2c3",
+    "type": "approval",
+    "options": ["approve", "reject", "request_changes"]
+  }
+}
+```
+
+**feedback_received** - Emitted when user responds:
+```json
+{
+  "event_type": "feedback_received",
+  "phase": "architect",
+  "step": "design-review",
+  "metadata": {
+    "request_id": "fr-20251206-a1b2c3",
+    "response": "approve",
+    "provided_by": {
+      "user": "jmcwilliam",
+      "source": "cli"
+    }
+  }
+}
+```
+
+### Feedback Attribution
+
+User identity is captured via:
+1. **CLI**: Git config (`user.name`, `user.email`) or environment (`$USER`)
+2. **Issue Comment**: GitHub username from API
+
+The `provided_by` object always includes:
+- `user`: Username or display name
+- `source`: Where feedback was provided (`cli`, `issue_comment`, `parallel_coordination`)
+- `timestamp`: When feedback was provided
+
+Optional fields:
+- `email`: User email (from git config)
+- `method`: How identity was determined (`git_config`, `environment`, `issue_comment_author`)
+
+### Querying Feedback History
+
+**Recent feedback for a run**:
+```bash
+# Via state.json
+jq '.feedback_history | .[-5:]' .fractary/plugins/faber/runs/{run_id}/state.json
+
+# Via event log
+ls -la .fractary/plugins/faber/runs/{run_id}/events/ | grep feedback
+```
+
+**All feedback by user**:
+```bash
+# Grep events for specific user
+grep -l '"user": "jmcwilliam"' .fractary/plugins/faber/runs/*/events/*-feedback_received.json
+```
+
+### Notification Tracking
+
+The `notification_sent` object tracks where feedback requests were sent:
+- `cli`: Whether user was prompted in CLI
+- `issue_comment`: Whether request was posted to issue
+- `comment_url`: URL of the issue comment (for reference)
+
+This enables multi-channel feedback collection:
+1. CLI inline prompt for active sessions
+2. Issue comment for async/offline review
+3. Future: Slack, email, etc.
+
 ## See Also
 
 - [CONFIGURATION.md](./CONFIGURATION.md) - Complete configuration guide
 - [HOOKS.md](./HOOKS.md) - Phase-level hooks guide
+- [RUN-ID-SYSTEM.md](./RUN-ID-SYSTEM.md) - Run isolation and event logging
 - `/fractary-faber:status` - Status command using dual-state pattern
 - `plugins/logs/types/workflow.json` - Workflow log type definition
