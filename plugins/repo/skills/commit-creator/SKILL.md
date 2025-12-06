@@ -160,12 +160,33 @@ Phase: build
 Closes #123
 ```
 
-**5. CHECK FOR CHANGES:**
+**5. CHECK FOR CHANGES (Self-Contained Idempotency):**
 
-Before creating commit:
-- Verify there are staged changes
-- If no changes and not allow_empty: ERROR
-- If allow_empty: proceed with note
+Before creating commit, check if there are changes to commit:
+
+```
+1. Run: git status --porcelain
+2. Check for staged or unstaged changes
+
+If NO changes to commit (clean working directory):
+   - Return early with SUCCESS status (not error!)
+   - Message: "No changes to commit - working directory is clean"
+   - This is EXPECTED in resume/retry scenarios
+   - Skip all subsequent steps (self-contained behavior)
+
+If changes exist but none are staged:
+   - Stage all changes: git add .
+   - Continue with commit creation
+```
+
+This self-contained check ensures:
+- The step is idempotent (safe to call multiple times)
+- Workflow orchestrators don't need conditional logic
+- Resume/retry scenarios work correctly (no error when nothing to commit)
+- Clean working directory is a valid success state
+
+**Note:** The `allow_empty` parameter is now only needed for intentional empty commits
+(e.g., marking a point in history). Normal "nothing to commit" returns success.
 
 **6. INVOKE HANDLER:**
 

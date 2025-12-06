@@ -1,5 +1,21 @@
 # WORK-00238: Workflow Inheritance System
 
+**Status**: ✅ Implemented (v2.2)
+
+**Implementation Branch**: `feat/238-create-default-workflow-and-workflow-template-concepts`
+
+**Key Files Modified**:
+- `plugins/faber/config/workflow.schema.json` - Added extends, skip_steps, pre_steps, post_steps
+- `plugins/faber/config/config.schema.json` - Added namespace resolution
+- `plugins/faber/config/workflows/default.json` - New default workflow with all primitives
+- `plugins/faber/skills/faber-config/SKILL.md` - Added resolve-workflow operation
+- `plugins/faber/agents/faber-manager.md` - Updated to use resolved workflows
+- `plugins/faber/skills/faber-director/SKILL.md` - Updated to call resolver
+- `plugins/faber/commands/init.md` - Updated to generate minimal config
+- `plugins/faber/docs/MIGRATION-v2.2.md` - Migration guide created
+
+---
+
 ## Summary
 
 This specification introduces a **workflow inheritance system** for FABER that allows workflows to extend other workflows. A workflow can define pre-steps and post-steps for each phase, with child workflows inheriting and nesting within their parent's structure. This creates a clean, composable system where common patterns are defined once and extended as needed.

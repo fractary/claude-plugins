@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/workflow.schema.json",
   "title": "FABER Workflow Schema",
-  "description": "JSON Schema for individual FABER workflow files",
+  "description": "JSON Schema for FABER workflow files. Workflows can extend other workflows via the 'extends' field, creating an inheritance chain where parent pre_steps run before and post_steps run after child workflow steps.",
   "type": "object",
   "required": ["id", "phases", "autonomy"],
   "additionalProperties": false,
@@ -21,11 +21,25 @@
       "type": "string",
       "description": "Human-readable workflow description"
     },
+    "extends": {
+      "type": "string",
+      "description": "Parent workflow to extend. Use namespaced format: 'fractary-faber:default' for core workflows, or unnamespaced for project workflows. Parent pre_steps execute before child steps, parent post_steps execute after."
+    },
+    "skip_steps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "description": "Step IDs from parent workflows to skip. Allows selective exclusion of inherited steps without abandoning the entire parent workflow."
+    },
     "phases": {
       "$ref": "#/definitions/phases"
     },
     "hooks": {
-      "$ref": "#/definitions/hooks"
+      "$ref": "#/definitions/hooks",
+      "deprecated": true,
+      "description": "DEPRECATED: Use pre_steps and post_steps in phase definitions instead. Hooks will be removed in v3.0."
     },
     "autonomy": {
       "$ref": "#/definitions/autonomy"
@@ -67,12 +81,26 @@
           "type": "string",
           "description": "Phase description"
         },
+        "pre_steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          },
+          "description": "Steps to execute BEFORE child workflow steps. In inheritance, parent pre_steps run before child pre_steps."
+        },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/step"
           },
-          "description": "Array of phase steps"
+          "description": "Main phase steps. These are the core steps for this phase."
+        },
+        "post_steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          },
+          "description": "Steps to execute AFTER child workflow steps. In inheritance, child post_steps run before parent post_steps."
         },
         "validation": {
           "type": "array",
@@ -124,11 +152,11 @@
         "id": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$",
-          "description": "Unique step identifier (lowercase, hyphens allowed). Required for step targeting, logging, and state tracking. Must be unique across all phases in the workflow."
+          "description": "Unique step identifier (lowercase, hyphens allowed). MUST be unique across the entire merged workflow (including inherited steps). Required for step targeting, logging, state tracking, and skip_steps."
         },
         "name": {
           "type": "string",
-          "description": "Optional human-readable display name for the step. When 'id' is present, 'name' serves as a display name. For backward compatibility with workflows that don't have 'id', 'name' can also serve as the identifier (deprecated pattern: lowercase, hyphens only)."
+          "description": "Human-readable display name for the step."
         },
         "description": {
           "type": "string",
@@ -145,12 +173,7 @@
         },
         "config": {
           "type": "object",
-          "description": "Step-specific configuration"
-        },
-        "conditional": {
-          "type": "string",
-          "enum": ["only_if_failures", "only_if_success", "always"],
-          "description": "Conditional execution rule"
+          "description": "Step-specific configuration passed to the skill"
         },
         "arguments": {
           "type": "object",
@@ -165,10 +188,7 @@
       },
       "allOf": [
         {
-          "anyOf": [
-            {"required": ["id"]},
-            {"required": ["name"]}
-          ]
+          "required": ["id"]
         },
         {
           "anyOf": [
@@ -182,6 +202,7 @@
     "hooks": {
       "type": "object",
       "additionalProperties": false,
+      "description": "DEPRECATED: Use pre_steps and post_steps in phase definitions instead.",
       "properties": {
         "pre_frame": {
           "$ref": "#/definitions/hook_array"
@@ -225,6 +246,7 @@
       "type": "object",
       "required": ["type", "name", "description"],
       "additionalProperties": false,
+      "description": "DEPRECATED: Convert to pre_steps or post_steps instead.",
       "properties": {
         "type": {
           "type": "string",
@@ -258,7 +280,7 @@
         "on_error": {
           "type": "string",
           "enum": ["continue", "abort", "retry"],
-          "description": "DEPRECATED: Use result_handling instead. Kept for backwards compatibility.",
+          "description": "DEPRECATED: Use result_handling instead.",
           "deprecated": true
         },
         "result_handling": {
@@ -349,7 +371,7 @@
     },
     "hook_result_handling": {
       "type": "object",
-      "description": "Defines behavior for hook execution outcomes. Optional - if omitted, defaults are: on_success='continue', on_warning='continue', on_failure='stop'. Hooks can optionally set on_failure='continue' for informational hooks.",
+      "description": "DEPRECATED: Defines behavior for hook execution outcomes.",
       "additionalProperties": false,
       "properties": {
         "on_success": {
@@ -374,7 +396,7 @@
     },
     "step_result": {
       "type": "object",
-      "description": "Standard result structure that ALL steps and hooks must return. See plugins/faber/config/schemas/skill-response.schema.json for complete schema.",
+      "description": "Standard result structure that ALL steps must return. See plugins/faber/config/schemas/skill-response.schema.json for complete schema.",
       "required": ["status", "message"],
       "additionalProperties": false,
       "properties": {

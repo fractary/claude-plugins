@@ -1,54 +1,37 @@
 {
   "$schema": "../workflow.schema.json",
   "id": "default",
-  "description": "Standard FABER workflow with plugin integrations (Frame → Architect → Build → Evaluate → Release)",
-  "integrations": {
-    "work_plugin": "fractary-work",
-    "repo_plugin": "fractary-repo",
-    "spec_plugin": "fractary-spec",
-    "logs_plugin": "fractary-logs",
-    "docs_plugin": "fractary-docs"
-  },
-  "logging": {
-    "use_logs_plugin": true,
-    "auto_capture": true,
-    "auto_summarize_on_complete": true,
-    "log_type": "workflow"
-  },
+  "description": "Default FABER workflow providing common primitives for software development",
   "phases": {
     "frame": {
       "enabled": true,
       "description": "Fetch work item, classify, and setup environment",
-      "steps": [
+      "pre_steps": [
         {
-          "id": "fetch-work",
-          "name": "Fetch Work Item",
-          "description": "Fetch work item details from issue tracker",
-          "skill": "fractary-work:issue-fetcher"
+          "id": "fetch-or-create-issue",
+          "name": "Fetch or Create Issue",
+          "description": "Fetch existing issue or create new one. Reads referenced docs and existing commits.",
+          "prompt": "If work_id provided: fetch issue with fractary-work:issue-fetcher, read all referenced documents and existing commits for context. If no work_id: create issue with fractary-work:issue-creator using the target description."
         },
         {
-          "id": "classify",
-          "name": "Classify Work Type",
-          "description": "Classify work type (bug, feature, chore, patch)",
-          "skill": "fractary-work:issue-classifier"
-        },
-        {
-          "id": "setup-env",
-          "name": "Setup Environment",
-          "description": "Create branch and setup environment",
-          "skill": "fractary-repo:branch-manager"
+          "id": "switch-or-create-branch",
+          "name": "Switch or Create Branch",
+          "description": "Checkout existing branch or create new one linked to issue",
+          "prompt": "If issue has associated branch: checkout and fetch it. If new issue or no branch: create branch with fractary-repo:branch-create --work-id. Update git status cache with branch and work ID."
         }
       ],
-      "validation": ["work-item-exists", "branch-created"]
+      "steps": [],
+      "post_steps": []
     },
     "architect": {
       "enabled": true,
       "description": "Generate technical specification",
+      "pre_steps": [],
       "steps": [
         {
           "id": "generate-spec",
           "name": "Generate Specification",
-          "description": "Generate specification from context",
+          "description": "Create technical specification from issue context",
           "skill": "fractary-spec:spec-generator",
           "config": {
             "use_issue_context": true,
@@ -56,119 +39,103 @@
           }
         }
       ],
-      "validation": ["spec-created", "spec-validated"]
+      "post_steps": []
     },
     "build": {
       "enabled": true,
       "description": "Implement solution and commit",
+      "pre_steps": [],
       "steps": [
         {
           "id": "implement",
           "name": "Implement Solution",
-          "description": "Implement solution from specification",
-          "prompt": "Implement based on specification, following project code standards and best practices"
-        },
+          "description": "Implement based on specification following project patterns",
+          "prompt": "Analyze the specification and implement the solution. Follow project code standards, patterns, and best practices. Create tests as appropriate."
+        }
+      ],
+      "post_steps": [
         {
-          "id": "commit",
-          "name": "Create Commit",
-          "description": "Create semantic commit with conventional format",
+          "id": "commit-and-push-build",
+          "name": "Commit and Push Changes",
+          "description": "Ensure all build changes are committed and pushed",
           "skill": "fractary-repo:commit-creator",
-          "prompt": "Create commit using conventional commit format, link to issue, and include co-author attribution",
           "config": {
+            "push_after_commit": true,
             "conventional_commits": true,
             "link_to_issue": true
           }
         }
-      ],
-      "validation": ["implementation-complete", "committed"]
+      ]
     },
     "evaluate": {
       "enabled": true,
       "description": "Test and review implementation",
       "max_retries": 3,
-      "steps": [
+      "pre_steps": [
         {
-          "id": "test",
-          "name": "Run Tests",
-          "description": "Run automated test suite",
-          "prompt": "Run automated tests and report results with coverage metrics"
-        },
-        {
-          "id": "review",
-          "name": "Code Review",
-          "description": "Perform code quality review",
-          "prompt": "Code review focusing on: correctness, maintainability, security, and adherence to spec"
-        },
-        {
-          "id": "fix",
-          "name": "Fix Issues",
-          "description": "Fix issues identified in testing",
-          "prompt": "Address test failures and review issues, then re-run validation",
-          "conditional": "only_if_failures"
+          "id": "issue-review",
+          "name": "Review Issue Implementation",
+          "description": "Verify implementation completeness against issue requirements",
+          "skill": "fractary-faber:issue-reviewer"
         }
       ],
-      "validation": ["all-tests-pass", "no-critical-issues"]
-    },
-    "release": {
-      "enabled": true,
-      "description": "Create PR and prepare for merge",
-      "require_approval": true,
-      "steps": [
+      "steps": [],
+      "post_steps": [
         {
-          "id": "update-project-docs",
-          "name": "Update Documentation",
-          "description": "Update high-level project documentation (CLAUDE.md, README.md, etc.)",
-          "skill": "fractary-docs:docs-manager",
+          "id": "commit-and-push-evaluate",
+          "name": "Commit and Push Fixes",
+          "description": "Ensure evaluation fixes are committed",
+          "skill": "fractary-repo:commit-creator",
           "config": {
-            "targets": ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"],
-            "mode": "confirm",
-            "check_consistency": true
+            "push_after_commit": true
           }
         },
         {
           "id": "create-pr",
           "name": "Create Pull Request",
-          "description": "Create pull request for review",
+          "description": "Create PR for the implementation (skips if PR already exists)",
           "skill": "fractary-repo:pr-manager",
-          "prompt": "Create PR with comprehensive summary, test plan, and FABER attribution",
           "config": {
-            "draft_if_assist": true,
-            "auto_link_issue": true
+            "action": "create",
+            "auto_link_issue": true,
+            "skip_if_exists": true
+          }
+        },
+        {
+          "id": "review-pr-checks",
+          "name": "Review PR CI Checks",
+          "description": "Wait for and review CI/CD pipeline results",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "action": "review",
+            "wait_for_ci": true
           }
         }
-      ],
-      "validation": ["project-docs-updated", "pr-created"]
-    }
-  },
-  "hooks": {
-    "pre_frame": [],
-    "post_frame": [],
-    "pre_architect": [],
-    "post_architect": [],
-    "pre_build": [],
-    "post_build": [],
-    "pre_evaluate": [],
-    "post_evaluate": [],
-    "pre_release": [],
-    "post_release": [
-      {
-        "name": "validate-project-docs",
-        "description": "Validate high-level documentation is up to date after release",
-        "skill": "fractary-docs:doc-validator",
-        "targets": ["CLAUDE.md", "README.md", "docs/README.md", "CONTRIBUTING.md"],
-        "on_failure": "warn",
-        "config": {
-          "checks": ["frontmatter", "structure"],
-          "strict": false
+      ]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Merge PR and complete workflow",
+      "require_approval": true,
+      "pre_steps": [],
+      "steps": [],
+      "post_steps": [
+        {
+          "id": "merge-pr",
+          "name": "Merge Pull Request",
+          "description": "Merge the PR and delete branch",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "action": "merge",
+            "delete_branch": true
+          }
         }
-      }
-    ]
+      ]
+    }
   },
   "autonomy": {
     "level": "guarded",
     "description": "Pauses before release for approval - recommended for production",
-    "pause_before_release": true,
-    "require_approval_for": ["release"],
-    "overrides": {}
+    "require_approval_for": ["release"]
   }
 }

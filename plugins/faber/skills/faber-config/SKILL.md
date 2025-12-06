@@ -1,17 +1,20 @@
 ---
 name: faber-config
-description: Load and validate FABER configuration files
+description: Load, validate, and resolve FABER configuration and workflows with inheritance support
 model: claude-haiku-4-5
 ---
 
 # FABER Config Skill
 
 <CONTEXT>
-You are a focused utility skill for loading and validating FABER configuration files.
-You provide deterministic operations for configuration management.
+You are a focused utility skill for loading, validating, and resolving FABER configuration files.
+You provide deterministic operations for configuration management including workflow inheritance resolution.
 
 Configuration is stored at: `.fractary/plugins/faber/config.json`
 Workflow definitions may be inline or in separate files under `.fractary/plugins/faber/workflows/`
+
+**Workflow Inheritance**: Workflows can extend other workflows via the `extends` field. The resolver
+merges parent and child workflows, handling pre_steps, steps, and post_steps according to inheritance rules.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -93,6 +96,139 @@ Load a specific workflow definition.
 2. Find workflow by ID in `workflows` array
 3. If workflow has `file` property, load from that file
 4. Return merged workflow definition
+
+---
+
+## resolve-workflow
+
+**Primary Operation** - Load and resolve a workflow with full inheritance chain merging.
+
+This is the main operation for getting an executable workflow. It handles:
+- Namespace resolution (e.g., `fractary-faber:default`, `project:my-workflow`)
+- Inheritance chain parsing via `extends` field
+- Merging pre_steps, steps, and post_steps across the inheritance hierarchy
+- Applying skip_steps to exclude specific inherited steps
+- Validating step ID uniqueness across the merged workflow
+
+**Parameters:**
+- `workflow_id`: ID of the workflow to resolve (e.g., `"fractary-faber:default"`, `"my-workflow"`)
+- `config_path` (optional): Path to project config file (default: `.fractary/plugins/faber/config.json`)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "workflow": {
+    "id": "my-workflow",
+    "description": "My custom workflow extending default",
+    "inheritance_chain": ["my-workflow", "fractary-faber:default"],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "steps": [
+          {"id": "fetch-or-create-issue", "source": "fractary-faber:default", "position": "pre_step"},
+          {"id": "switch-or-create-branch", "source": "fractary-faber:default", "position": "pre_step"},
+          {"id": "custom-frame-step", "source": "my-workflow", "position": "step"}
+        ]
+      },
+      ...
+    },
+    "autonomy": {...},
+    "skipped_steps": ["merge-pr"]
+  }
+}
+```
+
+**Namespace Resolution:**
+
+| Namespace | Location | Description |
+|-----------|----------|-------------|
+| `fractary-faber:` | `~/.claude/plugins/marketplaces/fractary/plugins/faber/config/workflows/` | Core FABER workflows |
+| `fractary-faber-cloud:` | `~/.claude/plugins/marketplaces/fractary/plugins/faber-cloud/config/workflows/` | Cloud infrastructure workflows |
+| `project:` | `.fractary/plugins/faber/workflows/` | Project-specific workflows |
+| (no namespace) | `.fractary/plugins/faber/workflows/` | Defaults to `project:` |
+
+**Execution Algorithm:**
+
+```
+1. NAMESPACE RESOLUTION
+   - Parse workflow_id for namespace (split on ":")
+   - If no namespace, assume "project:"
+   - Map namespace to file path:
+     * fractary-faber: → plugin workflows directory
+     * project: → project workflows directory
+   - Load workflow JSON from resolved path
+
+2. PARSE INHERITANCE CHAIN
+   chain = [current_workflow]
+   while current_workflow.extends:
+     parent = resolve_namespace_and_load(current_workflow.extends)
+     chain.append(parent)
+     current_workflow = parent
+   # chain is now [child, parent, grandparent, ...]
+
+3. MERGE WORKFLOWS
+   for each phase in [frame, architect, build, evaluate, release]:
+     merged_steps = []
+
+     # Pre-steps: root ancestor first, then down to child
+     for workflow in reversed(chain):
+       merged_steps.extend(workflow.phases[phase].pre_steps)
+
+     # Main steps: only from the leaf child
+     merged_steps.extend(chain[0].phases[phase].steps)
+
+     # Post-steps: child first, then up to root ancestor
+     for workflow in chain:
+       merged_steps.extend(workflow.phases[phase].post_steps)
+
+     merged.phases[phase].steps = merged_steps
+
+4. APPLY SKIP_STEPS
+   skip_ids = chain[0].skip_steps or []
+   for phase in merged.phases:
+     merged.phases[phase].steps = [
+       s for s in merged.phases[phase].steps if s.id not in skip_ids
+     ]
+
+5. VALIDATE
+   all_step_ids = []
+   for phase in merged.phases:
+     for step in merged.phases[phase].steps:
+       if step.id in all_step_ids:
+         ERROR: "Duplicate step ID: {step.id}"
+       all_step_ids.append(step.id)
+
+   for skip_id in skip_ids:
+     if skip_id not in [all step IDs from ancestors]:
+       WARNING: "skip_steps contains unknown step ID: {skip_id}"
+
+6. RETURN merged workflow with inheritance_chain metadata
+```
+
+**Merge Order Visualization:**
+
+For a workflow `my-workflow extends etl-common extends default`:
+
+```
+Build Phase Execution Order:
+┌─────────────────────────────────────────────────┐
+│ 1. default.build.pre_steps      (root first)   │
+│ 2. etl-common.build.pre_steps                  │
+│ 3. my-workflow.build.pre_steps                 │
+│ 4. my-workflow.build.steps      (child only)   │
+│ 5. my-workflow.build.post_steps                │
+│ 6. etl-common.build.post_steps                 │
+│ 7. default.build.post_steps     (root last)    │
+└─────────────────────────────────────────────────┘
+```
+
+**Error Handling:**
+- `WORKFLOW_NOT_FOUND`: Workflow file doesn't exist at resolved path
+- `INVALID_NAMESPACE`: Unknown namespace prefix
+- `CIRCULAR_INHERITANCE`: Workflow inheritance creates a cycle
+- `DUPLICATE_STEP_ID`: Same step ID appears multiple times in merged workflow
+- `INVALID_SKIP_STEP`: skip_steps references a step that doesn't exist in ancestors
 
 ---
 
@@ -216,6 +352,10 @@ When invoked with an operation:
 | Schema validation failed | CONFIG_SCHEMA_ERROR | Return error with specific validation failures |
 | Workflow not found | WORKFLOW_NOT_FOUND | Return error with available workflow IDs |
 | Workflow file not found | WORKFLOW_FILE_NOT_FOUND | Return error with missing file path |
+| Invalid namespace | INVALID_NAMESPACE | Return error listing valid namespaces |
+| Circular inheritance | CIRCULAR_INHERITANCE | Return error showing the cycle (e.g., "a → b → a") |
+| Duplicate step ID | DUPLICATE_STEP_ID | Return error with step ID and both source workflows |
+| Invalid skip_steps | INVALID_SKIP_STEP | Return warning (not error) with unknown step IDs |
 </ERROR_HANDLING>
 
 <OUTPUT_FORMAT>
@@ -245,6 +385,9 @@ Workflows: 1
 <FILE_LOCATIONS>
 - **Config (v2.0)**: `.fractary/plugins/faber/config.json`
 - **Config (legacy)**: `.faber.config.toml`
-- **Workflows**: `.fractary/plugins/faber/workflows/*.json`
-- **Schema**: `../../config/config.schema.json`
+- **Project Workflows**: `.fractary/plugins/faber/workflows/*.json`
+- **Plugin Workflows (fractary-faber)**: `~/.claude/plugins/marketplaces/fractary/plugins/faber/config/workflows/*.json`
+- **Plugin Workflows (fractary-faber-cloud)**: `~/.claude/plugins/marketplaces/fractary/plugins/faber-cloud/config/workflows/*.json`
+- **Config Schema**: `../../config/config.schema.json`
+- **Workflow Schema**: `../../config/workflow.schema.json`
 </FILE_LOCATIONS>

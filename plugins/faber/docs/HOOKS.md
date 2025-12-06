@@ -1,10 +1,39 @@
 # FABER Hooks Guide
 
+> **⚠️ DEPRECATED in v2.2**: Hooks are deprecated in favor of `pre_steps` and `post_steps` in workflow definitions.
+> See [MIGRATION-v2.2.md](./MIGRATION-v2.2.md) for migration instructions.
+>
+> **Use instead**:
+> - `pre_steps` - Steps that run before phase main steps
+> - `post_steps` - Steps that run after phase main steps
+>
+> The hook system will be removed in FABER v3.0.
+
+---
+
 Complete guide to phase-level hooks in FABER workflow.
 
 ## Overview
 
 FABER v2.0 provides **10 phase-level hooks** (pre/post for each of 5 phases) for workflow customization. Hooks allow you to inject custom behavior at specific points in the workflow without modifying core FABER logic.
+
+**v2.2 Replacement**: Use `pre_steps` and `post_steps` in workflow definitions instead:
+
+```json
+{
+  "phases": {
+    "build": {
+      "pre_steps": [
+        { "id": "load-standards", "prompt": "Read docs/STANDARDS.md for context" }
+      ],
+      "steps": [...],
+      "post_steps": [
+        { "id": "notify", "skill": "my-plugin:slack-notifier" }
+      ]
+    }
+  }
+}
+```
 
 ## Hook Structure
 

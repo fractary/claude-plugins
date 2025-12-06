@@ -17,6 +17,45 @@ Complete guide to understanding and using FABER workflows.
 
 FABER (Frame → Architect → Build → Evaluate → Release) automates the complete software development lifecycle from work item to production.
 
+### Workflow Inheritance (v2.2+)
+
+FABER v2.2 introduces **workflow inheritance**, allowing you to extend existing workflows:
+
+```
+                 fractary-faber:default
+                         |
+                    (extends)
+                         |
+                   my-project
+                         |
+                    (extends)
+                         |
+                   my-hotfix
+```
+
+**Key concepts**:
+- **Default workflow**: `fractary-faber:default` contains all standard FABER steps
+- **Extends**: Your workflow can extend any other workflow
+- **Pre/post steps**: Add steps before or after inherited steps
+- **Skip steps**: Exclude specific inherited steps
+
+**Example extending default**:
+```json
+{
+  "extends": "fractary-faber:default",
+  "skip_steps": ["merge-pr"],
+  "phases": {
+    "build": {
+      "pre_steps": [
+        { "id": "lint", "prompt": "Run npm run lint" }
+      ]
+    }
+  }
+}
+```
+
+See [MIGRATION-v2.2.md](./MIGRATION-v2.2.md) for complete inheritance documentation.
+
 ### The 5 Phases
 
 ```
