@@ -57,11 +57,17 @@ You receive organization sync requests in this format:
   "operation": "sync-all",
   "organization": "<org-name>",
   "codex_repo": "<codex-repo-name>",
+  "environment": "<environment-name>",
+  "target_branch": "<target-branch>",
   "direction": "to-codex|from-codex|bidirectional",
   "exclude": ["pattern1", "pattern2"],
   "parallel": 5,
   "dry_run": true|false,
   "config": {
+    "environments": {
+      "test": { "branch": "test" },
+      "prod": { "branch": "main" }
+    },
     "default_sync_patterns": [...],
     "default_exclude_patterns": [...],
     "handlers": {...}
@@ -73,6 +79,8 @@ You receive organization sync requests in this format:
 - `operation`: Must be "sync-all"
 - `organization`: Organization name
 - `codex_repo`: Codex repository name
+- `environment`: Environment name (dev, test, staging, prod, or custom)
+- `target_branch`: Branch in codex repository to sync with
 - `direction`: Sync direction
 
 **Optional Parameters:**
@@ -80,6 +88,13 @@ You receive organization sync requests in this format:
 - `parallel`: Number of parallel syncs (default: 5)
 - `dry_run`: If true, no commits are made (default: false)
 - `config`: Configuration object
+
+**Environment Parameters:**
+- `environment`: The environment name (e.g., "test", "prod") - used for display and logging
+- `target_branch`: The actual git branch in the codex repository to sync with
+  - For org-wide sync, defaults to "test" environment to be safe
+  - Example: environment="test" → target_branch="test"
+  - Example: environment="prod" → target_branch="main"
 </INPUTS>
 
 <WORKFLOW>
@@ -90,6 +105,7 @@ Output:
 🎯 STARTING: Organization Sync
 Organization: <organization>
 Codex: <codex_repo>
+Environment: <environment> (branch: <target_branch>)
 Direction: <direction>
 Parallel: <parallel> projects at a time
 Dry Run: <yes|no>
@@ -168,6 +184,8 @@ function project_sync_to_codex() {
     "project": "$project",
     "codex_repo": "<codex_repo>",
     "organization": "<organization>",
+    "environment": "<environment>",
+    "target_branch": "<target_branch>",
     "direction": "to-codex",
     "patterns": <from config>,
     "exclude": <from config>,
@@ -176,6 +194,8 @@ function project_sync_to_codex() {
   }
 }
 ```
+
+**Important**: All projects sync to the same environment/branch in codex.
 
 **Progress Tracking**:
 - Show progress bar or counter
@@ -240,6 +260,8 @@ function project_sync_from_codex() {
     "project": "$project",
     "codex_repo": "<codex_repo>",
     "organization": "<organization>",
+    "environment": "<environment>",
+    "target_branch": "<target_branch>",
     "direction": "from-codex",
     "patterns": <from config>,
     "exclude": <from config>,
@@ -248,6 +270,8 @@ function project_sync_from_codex() {
   }
 }
 ```
+
+**Important**: All projects receive docs from the same environment/branch in codex.
 
 **Progress Tracking**:
 - Show progress bar or counter
@@ -306,6 +330,7 @@ Output:
 ```
 ✅ COMPLETED: Organization Sync
 Organization: <organization>
+Environment: <environment> (branch: <target_branch>)
 Direction: <direction>
 
 Summary:
@@ -315,10 +340,12 @@ Succeeded: <succeeded> (<success_rate>%)
 Failed: <failed>
 
 Phase 1 (Projects → Codex):
+  Target Branch: <target_branch>
   Files synced: <count>
   Commits: <count>
 
 Phase 2 (Codex → Projects):
+  Source Branch: <target_branch>
   Files synced: <count>
   Commits: <count>
 
@@ -337,12 +364,15 @@ Return structured JSON:
 {
   "status": "success|partial_success|failure",
   "organization": "<organization>",
+  "environment": "<environment>",
+  "target_branch": "<target_branch>",
   "direction": "<direction>",
   "total_projects": 42,
   "succeeded": 40,
   "failed": 2,
   "phase_1": {
     "direction": "to-codex",
+    "target_branch": "<target_branch>",
     "succeeded": 41,
     "failed": 1,
     "files_synced": 523,
@@ -350,6 +380,7 @@ Return structured JSON:
   },
   "phase_2": {
     "direction": "from-codex",
+    "source_branch": "<target_branch>",
     "succeeded": 40,
     "failed": 2,
     "files_synced": 315,
@@ -410,6 +441,8 @@ This skill is complete when:
 {
   "status": "success",
   "organization": "fractary",
+  "environment": "test",
+  "target_branch": "test",
   "total_projects": 42,
   "succeeded": 42,
   "failed": 0,
@@ -425,6 +458,8 @@ This skill is complete when:
 {
   "status": "partial_success",
   "organization": "fractary",
+  "environment": "prod",
+  "target_branch": "main",
   "total_projects": 42,
   "succeeded": 40,
   "failed": 2,
@@ -446,6 +481,8 @@ This skill is complete when:
 ```json
 {
   "status": "failure",
+  "environment": "test",
+  "target_branch": "test",
   "error": "Failed to discover repositories",
   "context": "Organization sync initialization",
   "resolution": "Check organization name and repo plugin configuration"

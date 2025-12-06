@@ -62,6 +62,97 @@
       "description": "Default sync direction for operations",
       "default": "bidirectional"
     },
+    "environments": {
+      "type": "object",
+      "description": "Environment-to-branch mappings for codex repository. Each environment maps to a branch in the codex repo. Custom environments can be added beyond the defaults.",
+      "properties": {
+        "dev": {
+          "type": "object",
+          "description": "Development environment configuration",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Branch in codex repo for dev environment",
+              "default": "test"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of this environment"
+            }
+          },
+          "required": ["branch"]
+        },
+        "test": {
+          "type": "object",
+          "description": "Test/QA environment configuration",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Branch in codex repo for test environment",
+              "default": "test"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of this environment"
+            }
+          },
+          "required": ["branch"]
+        },
+        "staging": {
+          "type": "object",
+          "description": "Staging environment configuration",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Branch in codex repo for staging environment",
+              "default": "main"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of this environment"
+            }
+          },
+          "required": ["branch"]
+        },
+        "prod": {
+          "type": "object",
+          "description": "Production environment configuration",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Branch in codex repo for production environment",
+              "default": "main"
+            },
+            "description": {
+              "type": "string",
+              "description": "Human-readable description of this environment"
+            }
+          },
+          "required": ["branch"]
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "description": "Custom environment configuration",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Branch in codex repo for this environment"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of this environment"
+          }
+        },
+        "required": ["branch"]
+      },
+      "default": {
+        "dev": { "branch": "test", "description": "Development environment" },
+        "test": { "branch": "test", "description": "Test/QA environment" },
+        "staging": { "branch": "main", "description": "Staging environment (defaults to prod branch)" },
+        "prod": { "branch": "main", "description": "Production environment" }
+      }
+    },
     "handlers": {
       "type": "object",
       "description": "Handler configuration for sync mechanisms",

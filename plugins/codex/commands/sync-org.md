@@ -2,60 +2,7 @@
 name: fractary-codex:sync-org
 description: Sync all projects in organization with codex repository (parallel execution)
 model: claude-haiku-4-5
-argument-hint: [--to-codex|--from-codex|--bidirectional] [--dry-run] [--exclude <pattern>]
----
-
-# ⚠️ DEPRECATION WARNING - Legacy Command
-
-**This command is part of the legacy push-based sync system (SPEC-00012, Codex v2.0) and is deprecated.**
-
-## Migration Required
-
-**New approach (v3.0)**: Pull-based knowledge retrieval with cache-first strategy
-
-```bash
-# Instead of organization-wide sync FROM codex:
-/fractary-codex:sync-org --from-codex
-
-# Use the new prefetch command to scan and cache multiple projects:
-/fractary-codex:cache-prefetch
-/fractary-codex:cache-prefetch --all-sources
-
-# Or fetch specific documents as needed:
-/fractary-codex:fetch @codex/project-1/docs/**
-/fractary-codex:fetch @codex/project-2/docs/**
-
-# View cached documents across all projects:
-/fractary-codex:cache-list
-```
-
-## Deprecation Timeline
-
-- **Stage 1 (Current - Month 3)**: Both systems work, retrieval opt-in
-- **Stage 2 (Month 3-6)**: Push still works, pull deprecated, retrieval recommended
-- **Stage 3 (Month 6-9)**: Sync commands show warnings, retrieval is standard
-- **Stage 4 (Month 9-12)**: Sync commands removed, retrieval only
-
-## Migration Steps
-
-1. **Read migration guide**: `plugins/codex/docs/MIGRATION-PHASE4.md`
-2. **Convert config**: `/fractary-codex:migrate` (or `/fractary-codex:migrate --dry-run` to preview)
-3. **Test retrieval**: `/fractary-codex:cache-prefetch` to scan current project
-4. **Switch workflows**: Replace org-sync with on-demand fetch or prefetch
-
-## Benefits of Migrating
-
-- **10-50x faster** cache hits (< 50ms vs 1-3s)
-- **Multi-source support** (not just codex repository)
-- **On-demand fetching** (no need to sync entire org)
-- **Offline-first** with local cache
-- **MCP integration** for Claude Desktop/Code
-
-## Support
-
-This legacy command will continue to work during the transition period (Stages 1-3, ~6-9 months).
-For help migrating: See [MIGRATION-PHASE4.md](../docs/MIGRATION-PHASE4.md)
-
+argument-hint: [--env <env>] [--to-codex|--from-codex|--bidirectional] [--dry-run] [--exclude <pattern>]
 ---
 
 <CONTEXT>
@@ -63,25 +10,35 @@ You are the **sync-org command router** for the codex plugin.
 
 Your role is to parse command arguments and invoke the codex-manager agent to sync ALL projects in an organization with the codex repository. This is a powerful operation that:
 - Discovers all repositories in the organization
+- **Syncs to a specific environment** (dev, test, staging, prod)
 - Syncs multiple projects in parallel for performance
 - Handles phase sequencing (projects→codex, then codex→projects)
 - Provides aggregate results across all projects
 
-You provide a simple interface for organization-wide documentation synchronization.
+You provide a simple interface for organization-wide documentation synchronization with environment awareness.
+
+**Environment Handling**: Unlike sync-project which auto-detects from the current branch, sync-org requires an explicit `--env` flag because it operates across all projects (each may be on different branches). Default is `test` to be safe.
 </CONTEXT>
 
 <CRITICAL_RULES>
 **IMPORTANT: ROUTING ONLY**
 - Parse command arguments
 - Invoke codex-manager agent with sync-org operation
-- Pass sync direction and options
+- Pass environment, sync direction, and options
 - DO NOT perform sync operations yourself
+
+**IMPORTANT: ENVIRONMENT HANDLING**
+- Default environment is `test` (safe default for org-wide operations)
+- Explicit `--env` flag required for production to prevent accidents
+- If `--env prod` specified: require confirmation before proceeding
+- No auto-detection (unlike sync-project) since multiple repos may be on different branches
 
 **IMPORTANT: SAFETY FIRST**
 - Default to dry-run recommended for first-time use
 - Warn about organization-wide impact
 - Show repository count before proceeding
 - Allow user to cancel before sync starts
+- **Require confirmation for production syncs**
 
 **IMPORTANT: NEVER DO WORK**
 - You are a command router, not an implementer
@@ -96,6 +53,7 @@ Command format:
 ```
 
 **Options:**
+- `--env <environment>`: Target environment (dev, test, staging, prod). Default: `test`
 - `--to-codex`: Only sync projects → codex (pull docs to codex)
 - `--from-codex`: Only sync codex → projects (push docs from codex)
 - `--bidirectional`: Sync both directions (default)
@@ -104,12 +62,21 @@ Command format:
 - `--parallel <n>`: Number of parallel syncs (default: 5, from config)
 
 **Examples:**
-```
+```bash
+# Sync to test environment (default, safe)
 /fractary-codex:sync-org --dry-run
-/fractary-codex:sync-org --to-codex
-/fractary-codex:sync-org --bidirectional
-/fractary-codex:sync-org --exclude "archive-*" --exclude "test-*"
-/fractary-codex:sync-org --parallel 10
+/fractary-codex:sync-org
+
+# Sync to production (requires confirmation)
+/fractary-codex:sync-org --env prod
+
+# Direction-specific with environment
+/fractary-codex:sync-org --to-codex --env test
+/fractary-codex:sync-org --from-codex --env prod
+
+# With exclusions and parallel settings
+/fractary-codex:sync-org --env test --exclude "archive-*" --exclude "test-*"
+/fractary-codex:sync-org --env prod --parallel 10
 ```
 </INPUTS>
 
@@ -117,6 +84,7 @@ Command format:
 ## Step 1: Parse Arguments
 
 Extract from command:
+- Environment: `--env <environment>` (default: `test`)
 - Direction: `--to-codex`, `--from-codex`, `--bidirectional` (default)
 - Dry-run: `--dry-run` flag
 - Exclude patterns: `--exclude <pattern>` (can be multiple)
@@ -140,11 +108,22 @@ Note: Do NOT look for or use global config at `~/.config/...`. Only use project-
 Load from configuration:
 - Organization name
 - Codex repository name
+- **Environments configuration** (for branch mappings)
 - Default sync patterns
 - Parallel execution settings
 - Deletion thresholds
 
-## Step 3: Validate Direction
+## Step 3: Resolve Environment and Target Branch
+
+Determine the target branch from environment:
+```
+environment = args.env OR "test" (default)
+target_branch = config.environments[environment].branch
+```
+
+**Check if target branch exists** - this will be validated by the agent.
+
+## Step 4: Validate Direction
 
 Ensure direction is valid:
 - If `--to-codex`: direction = "to-codex"
@@ -152,15 +131,38 @@ Ensure direction is valid:
 - If `--bidirectional` OR no direction flag: direction = "bidirectional"
 - If multiple direction flags: error (conflicting options)
 
-## Step 4: Warn About Impact
+## Step 5: Production Confirmation (if needed)
 
-This is an organization-wide operation. Show warning:
+**If environment is `prod` or `production`:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ⚠️  PRODUCTION ORG-WIDE SYNC CONFIRMATION                   │
+│                                                             │
+│ This will sync ALL repositories to PRODUCTION.              │
+│                                                             │
+│ Organization: <org-name>                                    │
+│ Target: codex.fractary.com (main branch)                    │
+│ Direction: <direction>                                      │
+│ Projects: Will discover and sync all matching projects      │
+│                                                             │
+│ Are you sure you want to sync to production? [y/N]:         │
+└─────────────────────────────────────────────────────────────┘
+
+IF user responds "n" or empty THEN
+  Output: "Sync cancelled. Use --env test for test environment."
+  EXIT (do not invoke agent)
+END
+```
+
+## Step 6: Warn About Impact
+
+This is an organization-wide operation. Show info:
 
 ```
-⚠️ ORGANIZATION-WIDE SYNC
+🎯 ORGANIZATION-WIDE SYNC
 
-This will sync ALL repositories in organization: <org-name>
-
+Organization: <org-name>
+Environment: <environment> (branch: <target-branch>)
 Direction: <direction>
 Exclusions: <patterns or "none">
 Parallel: <n> projects at a time
@@ -169,7 +171,7 @@ Dry Run: <yes|no>
 Discovering repositories...
 ```
 
-## Step 5: Invoke Codex-Manager Agent
+## Step 7: Invoke Codex-Manager Agent
 
 Use the codex-manager agent with sync-org operation:
 
@@ -180,6 +182,8 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
   "parameters": {
     "organization": "<from-config>",
     "codex_repo": "<from-config>",
+    "environment": "<environment>",
+    "target_branch": "<target-branch>",
     "direction": "<to-codex|from-codex|bidirectional>",
     "exclude": <exclude-patterns>,
     "parallel": <parallel-count>,
@@ -192,9 +196,10 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
 The agent will:
 1. Discover all repositories in organization
 2. Filter by exclude patterns
-3. Invoke org-syncer skill for parallel execution
-4. Aggregate results across all projects
-5. Return summary
+3. **Validate target branch exists**
+4. Invoke org-syncer skill for parallel execution with target branch
+5. Aggregate results across all projects
+6. Return summary
 
 ## Step 6: Display Progress
 

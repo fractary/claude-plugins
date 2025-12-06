@@ -46,11 +46,17 @@ You receive sync requests in this format:
   "project": "<project-name>",
   "codex_repo": "<codex-repo-name>",
   "organization": "<org-name>",
+  "environment": "<environment-name>",
+  "target_branch": "<target-branch>",
   "direction": "to-codex|from-codex|bidirectional",
   "patterns": ["docs/**", "CLAUDE.md", ...],
   "exclude": ["docs/private/**", ...],
   "dry_run": true|false,
   "config": {
+    "environments": {
+      "test": { "branch": "test" },
+      "prod": { "branch": "main" }
+    },
     "handlers": {
       "sync": {
         "active": "github",
@@ -66,6 +72,8 @@ You receive sync requests in this format:
 - `project`: Project repository name
 - `codex_repo`: Codex repository name
 - `organization`: GitHub/GitLab organization
+- `environment`: Environment name (dev, test, staging, prod, or custom)
+- `target_branch`: Branch in codex repository to sync with
 - `direction`: Sync direction
 
 **Optional Parameters:**
@@ -73,6 +81,13 @@ You receive sync requests in this format:
 - `exclude`: Glob patterns to exclude (default: from config)
 - `dry_run`: If true, no commits are made (default: false)
 - `config`: Handler configuration (default: from config files)
+
+**Environment Parameters:**
+- `environment`: The environment name (e.g., "test", "prod") - used for display and logging
+- `target_branch`: The actual git branch in the codex repository to sync with
+  - This is resolved from `config.environments[environment].branch`
+  - Example: environment="test" → target_branch="test"
+  - Example: environment="prod" → target_branch="main"
 </INPUTS>
 
 <WORKFLOW>
@@ -83,6 +98,7 @@ Output:
 🎯 STARTING: Project Sync
 Project: <project>
 Codex: <codex_repo>
+Environment: <environment> (branch: <target_branch>)
 Direction: <direction>
 Dry Run: <yes|no>
 Patterns: <count> patterns
@@ -133,10 +149,14 @@ EXECUTE: Steps from workflow
 
 This workflow:
 1. Clones project repository (via repo plugin)
-2. Clones codex repository (via repo plugin)
+2. Clones codex repository at **target_branch** (via repo plugin)
 3. Invokes handler-sync-github to copy files project → codex
-4. Creates commit in codex (via repo plugin)
-5. Pushes to codex remote (via repo plugin)
+4. Creates commit in codex on **target_branch** (via repo plugin)
+5. Pushes to codex remote **target_branch** (via repo plugin)
+
+**Important**: The target_branch determines which branch in codex receives the documentation.
+- For test environment: codex's "test" branch
+- For prod environment: codex's "main" branch
 
 ### For direction="from-codex":
 
@@ -147,11 +167,13 @@ EXECUTE: Steps from workflow
 ```
 
 This workflow:
-1. Clones codex repository (via repo plugin)
+1. Clones codex repository at **target_branch** (via repo plugin)
 2. Clones project repository (via repo plugin)
 3. Invokes handler-sync-github to copy files codex → project
 4. Creates commit in project (via repo plugin)
 5. Pushes to project remote (via repo plugin)
+
+**Important**: The target_branch determines which codex branch documentation comes from.
 
 ### For direction="bidirectional":
 
@@ -186,6 +208,7 @@ Output:
 ```
 ✅ COMPLETED: Project Sync
 Project: <project>
+Environment: <environment> (branch: <target_branch>)
 Direction: <direction>
 
 Results:
@@ -208,6 +231,8 @@ Return structured JSON with sync results:
 {
   "status": "success",
   "project": "<project>",
+  "environment": "<environment>",
+  "target_branch": "<target_branch>",
   "direction": "<direction>",
   "to_codex": {
     "files_synced": 0,
@@ -261,6 +286,8 @@ Return this JSON structure:
   "status": "success",
   "project": "<project-name>",
   "codex_repo": "<codex-repo>",
+  "environment": "<environment>",
+  "target_branch": "<target-branch>",
   "direction": "<direction>",
   "to_codex": {
     "files_synced": 25,
@@ -286,6 +313,8 @@ Return this JSON structure:
 {
   "status": "failure",
   "project": "<project-name>",
+  "environment": "<environment>",
+  "target_branch": "<target-branch>",
   "error": "Error message",
   "phase": "to-codex|from-codex|validation",
   "partial_results": {
@@ -303,6 +332,8 @@ Return this JSON structure:
 {
   "status": "success",
   "project": "<project-name>",
+  "environment": "<environment>",
+  "target_branch": "<target-branch>",
   "direction": "<direction>",
   "dry_run": true,
   "would_sync": {
@@ -333,6 +364,7 @@ Return this JSON structure:
   Arguments: {
     source_repo: <depends on direction>,
     target_repo: <depends on direction>,
+    target_branch: <target_branch for codex repo>,
     patterns: <from analyze-patterns>,
     exclude: <from analyze-patterns>,
     dry_run: <from input>
@@ -340,10 +372,15 @@ Return this JSON structure:
   ```
 
   **Handler Contract**:
-  - Input: Source repo, target repo, patterns, options
+  - Input: Source repo, target repo, **target_branch**, patterns, options
   - Output: Files synced, files deleted, status
-  - Responsibility: File copying, pattern matching, safety checks
+  - Responsibility: File copying, pattern matching, safety checks, **branch checkout**
   - Does NOT: Create commits, push to remote (that's repo plugin's job)
+
+  **Branch Handling**:
+  - The handler must checkout the specified `target_branch` in the codex repository
+  - If target_branch doesn't exist, the handler should fail with a clear error
+  - The project repository always uses its current/default branch
 
   **Future Handlers**:
   - `handler-sync-vector`: Sync to vector database
@@ -420,6 +457,34 @@ Return this JSON structure:
   3. Proceed with --force flag (use carefully!)
   ```
   </DELETION_THRESHOLD_EXCEEDED>
+
+  <TARGET_BRANCH_NOT_FOUND>
+  If the target branch doesn't exist in codex repository:
+  1. Report the branch that was requested
+  2. Report the environment that resolved to this branch
+  3. Suggest creating the branch or updating config
+  4. Do NOT proceed with sync
+  5. Return failure with clear resolution
+
+  Example:
+  ```
+  ❌ TARGET BRANCH NOT FOUND
+
+  Environment: test
+  Target Branch: test
+  Repository: codex.fractary.com
+
+  The branch 'test' does not exist in the codex repository.
+
+  To fix this, either:
+  1. Create the branch:
+     cd <codex-repo> && git checkout -b test && git push -u origin test
+
+  2. Or update config to use existing branch:
+     Edit .fractary/plugins/codex/config.json
+     Set environments.test.branch = "main"
+  ```
+  </TARGET_BRANCH_NOT_FOUND>
 </ERROR_HANDLING>
 
 <DOCUMENTATION>

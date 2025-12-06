@@ -61,6 +61,7 @@ You receive sync operation requests in this format:
   "operation": "sync-docs",
   "source_repo": "<org>/<codex-repo>",
   "target_path": ".fractary/plugins/codex/cache/<org>/<project>",
+  "target_branch": "test",
   "direction": "to-cache",
   "patterns": {
     "include": ["docs/**", "CLAUDE.md", ...],
@@ -83,6 +84,7 @@ You receive sync operation requests in this format:
   "operation": "sync-docs",
   "source_repo": "<org>/<source-repo>",
   "target_repo": "<org>/<target-repo>",
+  "target_branch": "main",
   "direction": "to-target",
   "patterns": {
     "include": ["docs/**", "CLAUDE.md", ...],
@@ -108,6 +110,7 @@ You receive sync operation requests in this format:
 - `operation`: Must be "sync-docs"
 - `source_repo`: Source (codex) repository full name
 - `target_path` (cache mode) OR `target_repo` (legacy): Target location
+- `target_branch`: Branch to checkout in codex repository (from environment mapping)
 - `patterns`: Include and exclude patterns
 
 **Optional Parameters:**
@@ -116,6 +119,13 @@ You receive sync operation requests in this format:
 - `options.update_cache_index`: true to update cache index after sync
 - `options`: Other configuration options with defaults
 - `repo_plugin`: Repo plugin integration config (legacy mode only)
+
+**Environment/Branch Parameters:**
+- `target_branch`: The git branch in the codex repository to sync with
+  - Example: "test" for test environment
+  - Example: "main" for production environment
+  - The handler MUST checkout this branch before syncing files
+  - If the branch doesn't exist, return a clear error
 </INPUTS>
 
 <WORKFLOW>
@@ -126,6 +136,7 @@ Output:
 🎯 STARTING: GitHub Sync Handler
 Source: <source_repo>
 Target: <target_repo>
+Branch: <target_branch>
 Patterns: <include_count> include, <exclude_count> exclude
 Dry Run: <yes|no>
 ───────────────────────────────────────
@@ -135,6 +146,7 @@ Dry Run: <yes|no>
 
 Execute validation:
 - Check source_repo and target_repo are non-empty
+- Check target_branch is non-empty
 - Check patterns.include is non-empty array
 - Check patterns.exclude is array (can be empty)
 - Validate all patterns are valid glob expressions
@@ -155,11 +167,19 @@ EXECUTE: Steps from workflow
 ```
 
 This workflow will:
-1. Clone source repository (via repo plugin)
-2. Clone target repository (via repo plugin)
-3. Execute sync-docs.sh script to copy files
-4. Validate results (deletion thresholds, file counts)
-5. Return results to this skill
+1. Clone source (codex) repository (via repo plugin)
+2. **Checkout target_branch in codex repository** (via repo plugin)
+   - If branch doesn't exist, fail with clear error
+3. Clone target repository if needed (via repo plugin)
+4. Execute sync-docs.sh script to copy files
+5. Validate results (deletion thresholds, file counts)
+6. Return results to this skill
+
+**Branch Checkout Details:**
+- The codex repository must be checked out to the specified `target_branch`
+- This ensures documentation is synced to/from the correct environment
+- Example: `git checkout test` for test environment
+- Example: `git checkout main` for production environment
 
 ## Step 4: Process Workflow Results
 
@@ -189,6 +209,7 @@ If status is "success":
 Output:
 ```
 ✅ COMPLETED: GitHub Sync Handler
+Branch: <target_branch>
 Files synced: <files_synced>
 Files added: <files_added>
 Files modified: <files_modified>
@@ -205,6 +226,7 @@ Return structured results to caller:
 {
   "status": "success",
   "handler": "github",
+  "target_branch": "<target_branch>",
   "files_synced": 25,
   "files_deleted": 2,
   "files_modified": 15,
@@ -256,6 +278,7 @@ This skill is complete when:
   "status": "success",
   "handler": "github",
   "mode": "cache",
+  "target_branch": "test",
   "files_synced": 25,
   "files_deleted": 2,
   "files_modified": 15,
@@ -279,6 +302,7 @@ This skill is complete when:
   "status": "success",
   "handler": "github",
   "mode": "git",
+  "target_branch": "main",
   "files_synced": 25,
   "files_deleted": 2,
   "files_modified": 15,
@@ -299,8 +323,9 @@ This skill is complete when:
 {
   "status": "failure",
   "handler": "github",
+  "target_branch": "test",
   "error": "Error message",
-  "phase": "clone|sync|cache-index|validate",
+  "phase": "clone|checkout|sync|cache-index|validate",
   "partial_results": null
 }
 ```
@@ -311,6 +336,7 @@ This skill is complete when:
 {
   "status": "success",
   "handler": "github",
+  "target_branch": "test",
   "files_synced": 25,
   "files_deleted": 2,
   "deletion_threshold_exceeded": false,
@@ -365,6 +391,31 @@ This skill is complete when:
   - **Permission denied**: No access to repository
   - **Network error**: Connection timeout or API rate limit
   </REPO_PLUGIN_FAILURE>
+
+  <BRANCH_NOT_FOUND>
+  If the target branch doesn't exist in the codex repository:
+  1. Report the requested branch name
+  2. List available branches if possible
+  3. Return failure with clear error
+  4. Suggest creating the branch or updating config
+
+  Example error:
+  ```json
+  {
+    "status": "failure",
+    "handler": "github",
+    "target_branch": "test",
+    "error": "Branch 'test' not found in repository fractary/codex.fractary.com",
+    "phase": "checkout",
+    "resolution": "Create the branch or update environments config to use an existing branch"
+  }
+  ```
+
+  Common causes:
+  - **Branch doesn't exist**: Need to create the branch first
+  - **Branch name mismatch**: Config has wrong branch name
+  - **Permission denied**: No access to the branch
+  </BRANCH_NOT_FOUND>
 </ERROR_HANDLING>
 
 <DOCUMENTATION>

@@ -51,9 +51,27 @@ Fetch a document from the codex knowledge base using `@codex/` reference syntax.
 
 1. **Cache Check**: First checks local cache (`codex/` directory)
 2. **TTL Validation**: Verifies cached content is still fresh
-3. **Source Fetch**: If cache miss or expired, fetches from codex repository
+3. **Source Fetch**: If cache miss or expired, fetches from codex repository (production branch)
 4. **Cache Update**: Stores fetched content in local cache
 5. **Content Return**: Returns document content with metadata
+
+## Environment Behavior
+
+**Important**: The fetch command always retrieves documents from the **production** branch of the codex repository. This is by design:
+
+- **fetch** = Read-only retrieval for knowledge access (always production)
+- **sync-project** = Bidirectional sync for documentation updates (environment-aware)
+
+This separation ensures:
+- AI agents always have access to stable, production-grade documentation
+- Work-in-progress documentation stays in test environment until promoted
+- No risk of fetching unstable test content during normal operations
+
+**To sync with a specific environment**, use:
+```bash
+/fractary-codex:sync-project --env test   # Sync with test environment
+/fractary-codex:sync-project --env prod   # Sync with production environment
+```
 
 ## Output
 

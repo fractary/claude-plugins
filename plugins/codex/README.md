@@ -671,78 +671,82 @@ See [MCP Integration Guide](./docs/MCP-INTEGRATION.md) for detailed setup and tr
 
 ---
 
-## Legacy: Push-Based Sync & Migration
+## Documentation Sync (Environment-Aware)
 
-> **⚠️ Deprecation Notice:** The push-based sync system (v2.0, SPEC-00012) is being phased out in favor of pull-based retrieval (v3.0, SPEC-00030). Both systems are currently supported during the transition period (6-9 months).
+The codex plugin provides **environment-aware documentation synchronization** for keeping project documentation in sync with the central codex repository.
 
-### Deprecation Timeline
+### Sync Commands (Primary Interface)
 
-The migration from v2.0 to v3.0 follows a **4-stage rollout over 6-12 months**:
+These commands are the **primary interface** for documentation synchronization:
 
-| Stage | Timeline | Status | Description |
-|-------|----------|--------|-------------|
-| **Stage 1** | Months 0-3 | **Current** | Both systems work, retrieval opt-in |
-| **Stage 2** | Months 3-6 | Planned | Push works, pull deprecated, retrieval recommended |
-| **Stage 3** | Months 6-9 | Planned | Sync commands show warnings, retrieval is standard |
-| **Stage 4** | Months 9-12 | Planned | Sync commands removed, retrieval only |
+- `/fractary-codex:sync-project` - Sync single project with codex
+- `/fractary-codex:sync-org` - Sync entire organization with codex
 
-### Migration Path
+### Environment Support
 
-**Automated migration:**
+Sync commands now support environment-aware targeting:
+
+| Environment | Default Branch | Use Case |
+|-------------|----------------|----------|
+| `dev` | test | Development work |
+| `test` | test | QA/testing, FABER evaluate phase |
+| `staging` | main | Pre-production |
+| `prod` | main | Production, FABER release phase |
+
+**Auto-detection:**
+- Feature branches (`feat/*`, `fix/*`, etc.) → `test` environment
+- Main/master branch → `prod` environment (with confirmation)
+
+### Usage Examples
+
 ```bash
-/fractary-codex:migrate              # Convert v2.0 config to v3.0
-/fractary-codex:migrate --dry-run    # Preview changes first
+# Auto-detect environment from current branch
+/fractary-codex:sync-project
+# On feat/123-feature → syncs to test (no prompt)
+# On main → syncs to prod (prompts for confirmation)
+
+# Explicit environment (skips confirmation)
+/fractary-codex:sync-project --env test
+/fractary-codex:sync-project --env prod
+
+# Direction-specific sync
+/fractary-codex:sync-project --to-codex --env prod
+/fractary-codex:sync-project --from-codex --env test
+
+# Dry-run preview
+/fractary-codex:sync-project --dry-run
+
+# Org-wide sync (defaults to test for safety)
+/fractary-codex:sync-org --env test
+/fractary-codex:sync-org --env prod  # Requires confirmation
 ```
 
-**What changes:**
-- **Old (v2.0)**: Bidirectional sync with `sync_patterns`
-  - Project → Codex: Aggregate project docs into codex
-  - Codex → Projects: Distribute shared docs to projects
-- **New (v3.0)**: Pull-based retrieval with `sources` array
-  - On-demand fetching from any source
-  - Cache-first with TTL management
+### FABER Workflow Integration
 
-**See:** [MIGRATION-PHASE4.md](docs/MIGRATION-PHASE4.md) for complete migration guide
+Environment-aware sync integrates with the FABER workflow:
 
-### Legacy Commands
+- **Evaluate Phase**: Sync to `test` environment for review
+- **Release Phase**: Sync to `prod` environment for production
 
-⚠️ **These commands are deprecated and will be removed in Stage 4 (Month 9-12)**
-
-- `/fractary-codex:sync-project [project] [--to-codex|--from-codex|--bidirectional]` - Sync single project
-- `/fractary-codex:sync-org [--to-codex|--from-codex|--bidirectional]` - Sync entire organization
-
-**Migration examples:**
 ```bash
-# Old (v2.0): Sync from codex
-/fractary-codex:sync-project my-project --from-codex
+# During FABER evaluate (on feature branch)
+/fractary-codex:sync-project  # Auto-detects test
 
-# New (v3.0): Fetch on-demand
-/fractary-codex:fetch @codex/my-project/docs/architecture.md
-/fractary-codex:cache-prefetch    # Or prefetch multiple docs
-
-# Old (v2.0): Sync to codex
-/fractary-codex:sync-project my-project --to-codex
-
-# New (v3.0): Publishing workflows separate from retrieval
-# Continue using git push or CI/CD to publish to codex repository
+# During FABER release (explicit prod)
+/fractary-codex:sync-project --env prod
 ```
 
-### Why Migrate?
+### Fetch vs Sync
 
-**Performance improvements:**
-- **10-50x faster** cache hits (< 50ms vs 1-3s)
-- **No manual sync** required - fetch on-demand
-- **Multi-source support** (not just codex repository)
-- **Offline-first** with local cache
-- **MCP integration** for Claude Desktop/Code
+**Important distinction:**
 
-**Architectural benefits:**
-- No single-repository bottleneck
-- Document-level permission control
-- Flexible source configuration
-- Simpler mental model (pull vs bidirectional sync)
+| Command | Purpose | Environment |
+|---------|---------|-------------|
+| `/fractary-codex:fetch` | Read-only knowledge retrieval | Always production |
+| `/fractary-codex:sync-project` | Bidirectional documentation sync | Configurable |
 
-For new implementations, use the pull-based retrieval system which is faster, more scalable, and supports multi-source integration.
+- **fetch** = For AI agents accessing stable, production-grade documentation
+- **sync** = For developers keeping documentation in sync across environments
 
 ---
 
