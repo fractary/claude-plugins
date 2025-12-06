@@ -55,12 +55,30 @@ if [ "$CHECKOUT" = "true" ]; then
         PLUGIN_ROOT="$(dirname "$PLUGIN_ROOT")"
     done
 
+    CACHE_UPDATED=false
     if [ -d "$PLUGIN_ROOT/.claude-plugin" ]; then
         CACHE_UPDATE_SCRIPT="$PLUGIN_ROOT/scripts/update-status-cache.sh"
         if [ -f "$CACHE_UPDATE_SCRIPT" ]; then
-            "$CACHE_UPDATE_SCRIPT" --quiet 2>/dev/null || true
+            if "$CACHE_UPDATE_SCRIPT" --quiet 2>/dev/null; then
+                CACHE_UPDATED=true
+            else
+                echo "Warning: Status cache update failed (non-critical)" >&2
+            fi
+        else
+            echo "Warning: Status cache update script not found at $CACHE_UPDATE_SCRIPT" >&2
         fi
+    else
+        echo "Warning: Plugin root not found, status cache not updated" >&2
     fi
+
+    # Output JSON result for structured parsing by calling skill
+    echo "---JSON_RESULT---"
+    echo "{"
+    echo "  \"branch_name\": \"$BRANCH_NAME\","
+    echo "  \"base_branch\": \"$BASE_BRANCH\","
+    echo "  \"checked_out\": true,"
+    echo "  \"cache_updated\": $CACHE_UPDATED"
+    echo "}"
 else
     echo "Branch '$BRANCH_NAME' created from '$BASE_BRANCH' (not checked out)"
 fi

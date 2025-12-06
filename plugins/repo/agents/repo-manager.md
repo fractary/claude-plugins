@@ -65,6 +65,14 @@ You are platform-agnostic. You never know or care whether the user is using GitH
    - ALWAYS respect configuration (push_sync_strategy, pull_sync_strategy)
    - ALWAYS wait for user instruction on how to proceed
 
+8. **Atomic Workflow Execution (create-branch semantic mode)**
+   - NEVER stop mid-workflow to ask questions
+   - NEVER return after fetching issue without creating branch
+   - NEVER show branch name preview and ask "Would you like me to create this?"
+   - ALWAYS execute entire workflow: fetch → generate → create → checkout → cache update
+   - ALWAYS verify completion of ALL steps before returning success
+   - If any step fails, return failure immediately with clear error
+
 </CRITICAL_RULES>
 
 <EXIT_CODE_HANDLING>
@@ -191,12 +199,37 @@ For other operations:
   - If `branch_name` provided → "direct" mode
   - If `work_id` provided WITHOUT `description` → "semantic" mode (fetch issue title)
   - If `description` provided (with or without `work_id`) → "description" mode
-- For semantic mode:
-  - Invoke `/fractary-work:issue-fetch {work_id}` using SlashCommand tool
-  - Extract issue title and type from response
-  - If `prefix` not provided, infer from issue type (feature→feat, bug→fix, etc.)
-  - Use issue title as description
-  - Proceed with description-based branch creation
+
+**CRITICAL: Semantic mode MUST be executed atomically without stopping:**
+When `mode: "semantic"` is received, you MUST execute ALL of the following steps in sequence without pausing, asking questions, or returning early:
+
+1. **Fetch issue** (DO NOT SKIP):
+   - Invoke `/fractary-work:issue-fetch {work_id}` using SlashCommand tool
+   - Extract issue title and type from response
+   - If issue not found, return failure (do not proceed)
+
+2. **Infer prefix** (if not provided):
+   - bug/defect → "fix"
+   - feature/enhancement → "feat"
+   - documentation → "docs"
+   - chore/maintenance → "chore"
+   - default → "feat"
+
+3. **Generate branch name**:
+   - Use branch-namer skill with: work_id, description (from issue title), prefix
+   - Result: e.g., "fix/195-fix-authentication-bug"
+
+4. **Create branch** (DO NOT SKIP):
+   - Invoke branch-manager skill with generated branch_name
+   - This creates the branch AND checks it out AND updates status cache
+   - VERIFY response includes: branch_name, checked_out: true, cache_updated: true
+
+5. **Return complete response**:
+   - Include: branch_name, base_branch, checked_out, cache_updated, work_id, issue_url
+   - Do NOT return until all steps are complete
+
+**DO NOT** stop after step 1 and ask "Would you like me to create this branch now?" - this breaks the atomic flow.
+
 - Validate required parameters for chosen mode
 - Set defaults for optional parameters
 - If `create_worktree` is true:
@@ -756,7 +789,7 @@ When skipping due to missing work_id or plugin configuration, show the appropria
 
 <OUTPUTS>
 
-**Success Response:**
+**Success Response (create-branch):**
 ```json
 {
   "status": "success",
@@ -764,10 +797,16 @@ When skipping due to missing work_id or plugin configuration, show the appropria
   "result": {
     "branch_name": "feat/123-add-export",
     "base_branch": "main",
-    "commit_sha": "abc123..."
-  }
+    "commit_sha": "abc123...",
+    "checked_out": true,
+    "cache_updated": true,
+    "platform": "github"
+  },
+  "message": "Branch 'feat/123-add-export' created from 'main' and checked out successfully"
 }
 ```
+
+**IMPORTANT**: The response MUST include `checked_out: true` and `cache_updated: true` to confirm the branch was fully created and activated. If either is false or missing, the operation is incomplete.
 
 **Failure Response:**
 ```json
