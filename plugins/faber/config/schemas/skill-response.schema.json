@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/schemas/skill-response.schema.json",
   "title": "FABER Skill Response Schema",
-  "description": "Standard response format for all FABER workflow skills. All steps and hooks must return responses conforming to this schema.",
+  "description": "Standard response format for all FABER workflow skills. All steps and hooks must return responses conforming to this schema. Supports severity and category classification for warnings and errors.",
   "type": "object",
   "required": ["status", "message"],
   "additionalProperties": false,
@@ -26,18 +26,53 @@
     "errors": {
       "type": "array",
       "items": {
-        "type": "string",
-        "minLength": 1
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Simple error message string (backward compatible)"
+          },
+          {
+            "$ref": "#/definitions/error_item",
+            "description": "Structured error with severity and category"
+          }
+        ]
       },
-      "description": "List of error messages. Required when status is 'failure'. Each error should be a clear, specific description of what went wrong."
+      "description": "List of error messages or error objects. Required when status is 'failure'. Each error should be a clear, specific description of what went wrong. Can be simple strings (backward compatible) or structured objects with severity/category."
     },
     "warnings": {
       "type": "array",
       "items": {
-        "type": "string",
-        "minLength": 1
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Simple warning message string (backward compatible)"
+          },
+          {
+            "$ref": "#/definitions/warning_item",
+            "description": "Structured warning with severity and category"
+          }
+        ]
       },
-      "description": "List of warning messages. Used when status is 'warning' or when a successful operation has minor concerns. Each warning should describe a non-blocking issue."
+      "description": "List of warning messages or warning objects. Used when status is 'warning' or when a successful operation has minor concerns. Can be simple strings (backward compatible) or structured objects with severity/category."
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Simple informational message string"
+          },
+          {
+            "$ref": "#/definitions/message_item",
+            "description": "Structured informational message"
+          }
+        ]
+      },
+      "description": "List of informational/success messages. Used for positive feedback that should be included in detailed reports."
     },
     "error_analysis": {
       "type": "string",
@@ -52,8 +87,17 @@
     "suggested_fixes": {
       "type": "array",
       "items": {
-        "type": "string",
-        "minLength": 1
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1,
+            "description": "Simple suggestion string (backward compatible)"
+          },
+          {
+            "$ref": "#/definitions/suggested_fix_item",
+            "description": "Structured suggestion with optional command"
+          }
+        ]
       },
       "description": "List of actionable recovery suggestions. Each suggestion should be specific and actionable. Ordered by likelihood of success. Used by manager to offer recovery options in prompts."
     }
@@ -90,6 +134,97 @@
       }
     }
   ],
+  "definitions": {
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Severity level. 'low' = informational, safe to ignore. 'medium' = should be addressed eventually. 'high' = critical, should be addressed now."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["deprecation", "performance", "security", "style", "compatibility", "validation", "configuration", "other"],
+      "description": "Category for classification. Used for filtering and aggregation in reports."
+    },
+    "warning_item": {
+      "type": "object",
+      "required": ["text", "severity", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Warning message text"
+        },
+        "severity": {
+          "$ref": "#/definitions/severity"
+        },
+        "category": {
+          "$ref": "#/definitions/category"
+        },
+        "suggested_fix": {
+          "type": "string",
+          "description": "Quick suggested fix for this specific warning"
+        }
+      }
+    },
+    "error_item": {
+      "type": "object",
+      "required": ["text", "severity", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Error message text"
+        },
+        "severity": {
+          "$ref": "#/definitions/severity"
+        },
+        "category": {
+          "$ref": "#/definitions/category"
+        },
+        "suggested_fix": {
+          "type": "string",
+          "description": "Quick suggested fix for this specific error"
+        }
+      }
+    },
+    "message_item": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Informational message text"
+        },
+        "category": {
+          "$ref": "#/definitions/category"
+        }
+      }
+    },
+    "suggested_fix_item": {
+      "type": "object",
+      "required": ["description"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Description of the suggested fix"
+        },
+        "command": {
+          "type": "string",
+          "description": "Executable command to apply the fix (if applicable)"
+        },
+        "file": {
+          "type": "string",
+          "description": "File to review or edit (if applicable)"
+        }
+      }
+    }
+  },
   "examples": [
     {
       "status": "success",
@@ -98,7 +233,11 @@
         "spec_path": "/specs/WORK-00123-feature.md",
         "word_count": 2847,
         "sections": 7
-      }
+      },
+      "messages": [
+        "Generated 7 sections covering all requirements",
+        "Linked to issue #123"
+      ]
     },
     {
       "status": "warning",
@@ -108,15 +247,35 @@
         "warnings_found": 3
       },
       "warnings": [
-        "Deprecated API: useCallback (will be removed in v3.0)",
-        "Performance: Large bundle size (2.5MB)",
-        "Missing type annotations in 2 files"
+        {
+          "text": "Deprecated API: useCallback (will be removed in v3.0)",
+          "severity": "medium",
+          "category": "deprecation",
+          "suggested_fix": "Replace useCallback with useMemo"
+        },
+        {
+          "text": "Large bundle size (2.5MB)",
+          "severity": "low",
+          "category": "performance",
+          "suggested_fix": "Code split lazy-loaded components"
+        },
+        {
+          "text": "Missing type annotations in 2 files",
+          "severity": "low",
+          "category": "style",
+          "suggested_fix": "Add type annotations to exported functions"
+        }
       ],
       "warning_analysis": "The deprecated API usage should be addressed before the next major version upgrade.",
       "suggested_fixes": [
-        "Replace useCallback with useMemo for memoization",
-        "Code split lazy-loaded components to reduce bundle",
-        "Add type annotations to exported functions"
+        {
+          "description": "Replace useCallback with useMemo for memoization",
+          "command": "npx codemod deprecate-use-callback"
+        },
+        {
+          "description": "Code split lazy-loaded components to reduce bundle",
+          "file": "src/App.tsx"
+        }
       ]
     },
     {
@@ -129,15 +288,46 @@
         "skipped": 0
       },
       "errors": [
-        "test_auth_login: AssertionError: expected true but got false",
-        "test_auth_logout: TimeoutError: HTTP request timeout",
-        "test_token_refresh: KeyError: 'refresh_token' not in response"
+        {
+          "text": "test_auth_login: AssertionError: expected true but got false",
+          "severity": "high",
+          "category": "validation"
+        },
+        {
+          "text": "test_auth_logout: TimeoutError: HTTP request timeout",
+          "severity": "medium",
+          "category": "performance"
+        },
+        {
+          "text": "test_token_refresh: KeyError: 'refresh_token' not in response",
+          "severity": "high",
+          "category": "validation",
+          "suggested_fix": "Verify token refresh expiry calculation"
+        }
       ],
       "error_analysis": "Authentication tests are failing due to session handling issues. The logout handler is not properly awaiting async cleanup.",
       "suggested_fixes": [
-        "Add await to session.cleanup() in logout handler",
-        "Check token refresh expiry calculation",
-        "Verify session state is cleared before new login"
+        {
+          "description": "Add await to session.cleanup() in logout handler",
+          "file": "src/auth/logout.ts"
+        },
+        {
+          "description": "Check token refresh expiry calculation",
+          "command": "npm test -- --grep 'token_refresh' --verbose"
+        }
+      ]
+    },
+    {
+      "status": "warning",
+      "message": "Build completed with minor issues",
+      "warnings": [
+        "Style: Line too long in utils.ts",
+        "Performance: Consider memoizing expensive calculation"
+      ],
+      "warning_analysis": "Minor style and performance improvements recommended.",
+      "suggested_fixes": [
+        "Run linter: npm run lint:fix",
+        "Add useMemo to calculateTotal function"
       ]
     }
   ]

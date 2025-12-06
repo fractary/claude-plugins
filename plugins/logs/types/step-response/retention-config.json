@@ -1,0 +1,51 @@
+{
+  "log_type": "step-response",
+  "description": "Individual step and hook response logs from FABER workflow execution",
+  "local_retention_days": 14,
+  "cloud_retention_policy": "60_days",
+  "priority": "medium",
+  "auto_archive": true,
+  "archive_triggers": {
+    "age_days": 14,
+    "size_mb": 5,
+    "status": ["success", "warning", "failure"]
+  },
+  "compression": true,
+  "validation_required": true,
+  "metadata": {
+    "category": "execution",
+    "audience": "internal",
+    "compliance": ["audit_trail", "workflow_history", "debugging"]
+  },
+  "archival_rules": {
+    "keep_local_after_archive": false,
+    "archive_format": "json",
+    "index_fields": ["run_id", "step_id", "phase", "status", "timestamp", "severity"],
+    "searchable": true
+  },
+  "retention_exceptions": {
+    "status:failure": {
+      "local_retention_days": 30,
+      "cloud_retention_policy": "90_days",
+      "priority": "high",
+      "note": "Keep failures longer for debugging and root cause analysis"
+    },
+    "severity:high": {
+      "local_retention_days": 30,
+      "cloud_retention_policy": "90_days",
+      "priority": "high",
+      "note": "Keep high-severity issues longer for tracking"
+    }
+  },
+  "cleanup_policy": {
+    "safe_to_delete": true,
+    "requires_approval": false,
+    "auto_cleanup_after_days": 60,
+    "warning_message": "Step response logs older than 60 days will be archived to cloud storage and removed locally."
+  },
+  "query_optimization": {
+    "index_by": ["run_id", "step_id", "status", "timestamp"],
+    "partition_by": "run_id",
+    "enable_full_text_search": false
+  }
+}
