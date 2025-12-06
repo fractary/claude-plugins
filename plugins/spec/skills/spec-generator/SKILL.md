@@ -34,13 +34,16 @@ You receive input in the following format:
 {
   "work_id": "123",        // Optional: link to issue and enrich with issue data (auto-detected from branch if omitted)
   "template": "basic|feature|infrastructure|api|bug",  // Optional: override auto-detection
-  "context": "Explicit additional context"  // Optional: extra context to consider
+  "context": "Explicit additional context",  // Optional: extra context to consider
+  "force": false           // Optional: force creation even if spec already exists (default: false)
 }
 ```
 
 **Auto-Detection**: If `work_id` is not provided, automatically attempt to read from repo plugin's git status cache to detect issue ID from current branch name (e.g., `feat/123-name` → `123`). If repo plugin not found or no issue detected, creates standalone spec.
 
 **Graceful Degradation**: Missing `work_id` + no repo plugin = standalone spec (SPEC-{timestamp}-* naming).
+
+**Idempotency**: If spec(s) already exist for the work_id and `force` is false, skip creation and return existing spec info. Use `force: true` to create additional specs.
 </INPUTS>
 
 <WORKFLOW>
@@ -51,17 +54,22 @@ Follow `workflow/generate-from-context.md` for detailed step-by-step instruction
 1. Auto-detect work_id from branch (if not provided and repo plugin available)
 2. Validate inputs
 3. Load configuration
-4. Extract conversation context (primary source)
-5. Fetch issue data (if work_id detected or provided)
-6. Merge contexts (conversation + issue if available)
-7. Auto-detect template from merged context
-8. Generate spec filename (WORK-* or SPEC-* based on work_id presence)
-9. Parse merged context into template variables
-10. Select and fill template
-11. Add frontmatter with metadata
-12. Save spec to /specs directory
-13. Link to GitHub issue (if work_id present)
-14. Return confirmation
+4. **Check for existing specs** (if work_id present)
+   - If spec(s) exist AND force=false: Read existing spec(s), return "skipped" response
+   - If spec(s) exist AND force=true: Continue with unique slug generation
+   - If no specs exist: Continue normally
+5. Extract conversation context (primary source)
+6. Fetch issue data (if work_id detected or provided)
+7. Merge contexts (conversation + issue if available)
+8. Auto-detect template from merged context
+9. Generate spec filename (WORK-* or SPEC-* based on work_id presence)
+   - If force=true and specs exist: Generate unique slug to avoid collision
+10. Parse merged context into template variables
+11. Select and fill template
+12. Add frontmatter with metadata
+13. Save spec to /specs directory
+14. Link to GitHub issue (if work_id present)
+15. Return confirmation
 
 </WORKFLOW>
 
@@ -147,6 +155,41 @@ Next: Begin implementation using spec as guide
 }
 ```
 
+**Skipped Response (Spec Already Exists):**
+```json
+{
+  "status": "skipped",
+  "message": "Specification already exists for issue #123",
+  "details": {
+    "work_id": "123",
+    "existing_specs": [
+      "/specs/WORK-00123-user-auth.md"
+    ],
+    "existing_spec_count": 1,
+    "action": "read_existing"
+  },
+  "hint": "Use --force to create additional spec"
+}
+```
+
+Output for skipped:
+```
+🎯 STARTING: Spec Generator
+Work ID: #123 (auto-detected from branch)
+───────────────────────────────────────
+
+ℹ Existing spec(s) found for issue #123:
+  1. /specs/WORK-00123-user-auth.md
+
+✓ Reading existing specification(s)...
+✓ Spec context loaded into session
+
+⏭ SKIPPED: Spec already exists
+Existing spec: /specs/WORK-00123-user-auth.md
+───────────────────────────────────────
+Hint: Use --force to create additional spec
+```
+
 **Warning Response (Issue Data Incomplete):**
 ```json
 {
@@ -216,14 +259,16 @@ Next: Begin implementation using spec as guide
 <ERROR_HANDLING>
 Handle errors using the standard FABER response format:
 
-1. **Repo Plugin Not Found**: Info message, continue with standalone spec (warning status)
-2. **Issue Not Found** (when work_id provided or auto-detected): Report error, suggest checking issue number (failure status)
-3. **Template Not Found**: Fall back to spec-basic.md.template (warning status)
-4. **File Write Failed**: Report error, check permissions (failure status)
-5. **GitHub Comment Failed**: Log warning, continue (warning status - non-critical)
-6. **Insufficient Context**: Warn but continue, use what's available (warning status)
-7. **Template Auto-Detection Failed**: Fall back to spec-basic.md.template (warning status)
-8. **Slug Generation Failed**: Fall back to timestamp-only naming (warning status)
+1. **Spec Already Exists** (when force=false): Return "skipped" status with existing spec paths (not an error)
+2. **Repo Plugin Not Found**: Info message, continue with standalone spec (warning status)
+3. **Issue Not Found** (when work_id provided or auto-detected): Report error, suggest checking issue number (failure status)
+4. **Template Not Found**: Fall back to spec-basic.md.template (warning status)
+5. **File Write Failed**: Report error, check permissions (failure status)
+6. **GitHub Comment Failed**: Log warning, continue (warning status - non-critical)
+7. **Insufficient Context**: Warn but continue, use what's available (warning status)
+8. **Template Auto-Detection Failed**: Fall back to spec-basic.md.template (warning status)
+9. **Slug Generation Failed**: Fall back to timestamp-only naming (warning status)
+10. **Slug Collision on Force**: Generate timestamp-based unique suffix (warning status)
 
 **Error Response Format:**
 ```json
