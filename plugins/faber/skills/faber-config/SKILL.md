@@ -143,10 +143,15 @@ This is the main operation for getting an executable workflow. It handles:
 
 | Namespace | Location | Description |
 |-----------|----------|-------------|
-| `fractary-faber:` | `~/.claude/plugins/marketplaces/fractary/plugins/faber/config/workflows/` | Core FABER workflows |
-| `fractary-faber-cloud:` | `~/.claude/plugins/marketplaces/fractary/plugins/faber-cloud/config/workflows/` | Cloud infrastructure workflows |
+| `fractary-faber:` | `${PLUGIN_ROOT}/plugins/faber/config/workflows/` | Core FABER workflows |
+| `fractary-faber-cloud:` | `${PLUGIN_ROOT}/plugins/faber-cloud/config/workflows/` | Cloud infrastructure workflows |
 | `project:` | `.fractary/plugins/faber/workflows/` | Project-specific workflows |
 | (no namespace) | `.fractary/plugins/faber/workflows/` | Defaults to `project:` |
+
+**Plugin Root Resolution:**
+- Check environment variable `CLAUDE_PLUGIN_ROOT` first (set by plugin system)
+- Fall back to installed location: `~/.claude/plugins/marketplaces/fractary/`
+- In development: Use the repository root where plugins are being developed
 
 **Execution Algorithm:**
 
@@ -154,14 +159,22 @@ This is the main operation for getting an executable workflow. It handles:
 1. NAMESPACE RESOLUTION
    - Parse workflow_id for namespace (split on ":")
    - If no namespace, assume "project:"
+   - Resolve plugin root:
+     * If CLAUDE_PLUGIN_ROOT env var set → use that
+     * Else → use ~/.claude/plugins/marketplaces/fractary/
    - Map namespace to file path:
-     * fractary-faber: → plugin workflows directory
-     * project: → project workflows directory
+     * fractary-faber: → ${plugin_root}/plugins/faber/config/workflows/
+     * fractary-faber-cloud: → ${plugin_root}/plugins/faber-cloud/config/workflows/
+     * project: → .fractary/plugins/faber/workflows/ (relative to cwd)
    - Load workflow JSON from resolved path
 
 2. PARSE INHERITANCE CHAIN
    chain = [current_workflow]
+   visited = set()  # Track visited workflows to detect cycles
    while current_workflow.extends:
+     if current_workflow.extends in visited:
+       ERROR: Circular inheritance detected: {cycle_path}
+     visited.add(current_workflow.id)
      parent = resolve_namespace_and_load(current_workflow.extends)
      chain.append(parent)
      current_workflow = parent
