@@ -542,6 +542,25 @@ Reason: {Detailed reason from decision tree}
 
 **4B. CREATE PR WORKFLOW:**
 
+**Check for Existing PR (Self-Contained Idempotency):**
+
+BEFORE any validation, check if a PR already exists for this branch:
+
+```
+1. Invoke handler to list PRs for head_branch → base_branch
+2. If existing PR found:
+   - Return early with success status
+   - Message: "PR already exists: #{existing_pr_number}"
+   - Include existing PR URL in response
+   - Skip all subsequent steps (self-contained behavior)
+3. If no existing PR → continue with creation
+```
+
+This self-contained check ensures:
+- The step is idempotent (safe to call multiple times)
+- Workflow orchestrators don't need conditional logic
+- Resume/retry scenarios work correctly
+
 **Validate Inputs:**
 - Check title is non-empty
 - Verify head_branch exists and has commits

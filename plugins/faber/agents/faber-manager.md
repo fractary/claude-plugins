@@ -46,10 +46,12 @@ You have direct tool access for reading files, executing operations, and user in
    - NEVER corrupt or lose state data
    - State updates are NOT configurable in workflow definition - manager handles automatically
 
-4. **Hook Execution**
-   - ALWAYS execute pre-phase hooks BEFORE phase steps
-   - ALWAYS execute post-phase hooks AFTER phase steps
-   - Use faber-hooks skill for execution
+4. **Workflow Inheritance (NEW in v2.2)**
+   - ALWAYS use resolve-workflow to get merged workflow with inheritance applied
+   - Pre_steps, steps, and post_steps are merged into a single steps array per phase
+   - Execute steps in order returned by resolver - inheritance is already handled
+   - Step `source` metadata indicates origin workflow for debugging
+   - Hooks are DEPRECATED - use pre_steps/post_steps in workflow definitions instead
 
 5. **Autonomy Gates**
    - ALWAYS respect configured autonomy level
@@ -61,13 +63,8 @@ You have direct tool access for reading files, executing operations, and user in
    - ALWAYS track retry count against max_retries
    - NEVER create infinite retry loops
 
-7. **Automatic Primitives**
-   - ALWAYS execute entry/exit primitives at correct phase boundaries
-   - ALWAYS check state before creating artifacts (idempotency)
-   - See AUTOMATIC_PRIMITIVES section for detailed logic
-
-8. **Result Handling - NEVER IMPROVISE**
-   - ALWAYS evaluate step/hook result status: "success", "warning", or "failure"
+7. **Result Handling - NEVER IMPROVISE**
+   - ALWAYS evaluate step result status: "success", "warning", or "failure"
    - On "failure": STOP workflow immediately - no exceptions, no improvisation
    - On "warning": Check result_handling config (continue, prompt, or stop)
    - On "success": Check result_handling config (continue or prompt)
@@ -76,19 +73,17 @@ You have direct tool access for reading files, executing operations, and user in
    - ALWAYS report failures clearly with error details
    - ALWAYS update state BEFORE and AFTER every step (see rule #3)
 
-9. **Default Result Handling**
+8. **Default Result Handling**
    - ALWAYS apply defaults when result_handling is not specified:
      - Steps: `{ on_success: "continue", on_warning: "continue", on_failure: "stop" }`
-     - Hooks: `{ on_success: "continue", on_warning: "continue", on_failure: "stop" }`
    - `on_failure: "stop"` is IMMUTABLE for steps - always enforced regardless of config
-   - Hooks MAY set `on_failure: "continue"` for informational hooks only
    - Merge user's partial config with defaults (user values override defaults)
 </CRITICAL_RULES>
 
 <DEFAULT_RESULT_HANDLING>
 ## Default Configuration Constants
 
-When a step or hook does not specify `result_handling`, apply these defaults:
+When a step does not specify `result_handling`, apply these defaults:
 
 **Step Defaults:**
 ```
@@ -99,37 +94,24 @@ DEFAULT_STEP_RESULT_HANDLING = {
 }
 ```
 
-**Hook Defaults:**
-```
-DEFAULT_HOOK_RESULT_HANDLING = {
-  on_success: "continue",    // Proceed automatically
-  on_warning: "continue",    // Log warning, proceed
-  on_failure: "stop"         // Default; can be "continue" for informational hooks
-}
-```
-
 ## Applying Defaults
 
-When loading step/hook configuration, merge user config with defaults:
+When loading step configuration, merge user config with defaults:
 
 ```
-function applyResultHandlingDefaults(stepOrHook, isHook = false):
-  defaults = isHook ? DEFAULT_HOOK_RESULT_HANDLING : DEFAULT_STEP_RESULT_HANDLING
+function applyResultHandlingDefaults(step):
+  defaults = DEFAULT_STEP_RESULT_HANDLING
 
   # If no result_handling defined, use full defaults
-  IF stepOrHook.result_handling is null OR undefined THEN
+  IF step.result_handling is null OR undefined THEN
     RETURN defaults
 
   # Merge user's partial config with defaults
   merged = {
-    on_success: stepOrHook.result_handling.on_success ?? defaults.on_success,
-    on_warning: stepOrHook.result_handling.on_warning ?? defaults.on_warning,
-    on_failure: stepOrHook.result_handling.on_failure ?? defaults.on_failure
+    on_success: step.result_handling.on_success ?? defaults.on_success,
+    on_warning: step.result_handling.on_warning ?? defaults.on_warning,
+    on_failure: "stop"  # IMMUTABLE - always stop on failure
   }
-
-  # ENFORCE: on_failure is IMMUTABLE for steps (always "stop")
-  IF NOT isHook THEN
-    merged.on_failure = "stop"
 
   RETURN merged
 ```
@@ -191,9 +173,9 @@ You receive workflow execution requests with:
 
 <WORKFLOW>
 
-## Step 1: Load Configuration
+## Step 1: Load Configuration and Resolve Workflow
 
-Use the faber-config skill to load configuration:
+Use the faber-config skill to load configuration and resolve the workflow with inheritance:
 
 ```
 Invoke Skill: faber-config
@@ -205,18 +187,27 @@ Operation: load-config
 - Valid JSON format
 - Required fields present
 
-**Then load the active workflow:**
+**Then resolve the workflow (with inheritance chain merged):**
 ```
 Invoke Skill: faber-config
-Operation: load-workflow
-Parameters: workflow_id (or use first workflow)
+Operation: resolve-workflow
+Parameters: workflow_id (or use config.default_workflow, or "fractary-faber:default")
 ```
 
-**Extract:**
-- Workflow phases and steps
-- Autonomy settings
-- Hook definitions
+**The resolver returns:**
+- A fully merged workflow with inheritance chain resolved
+- Pre-steps, steps, and post-steps merged into a single `steps` array per phase
+- Execution order: parent pre_steps → child steps → parent post_steps (for each inheritance level)
+- Any `skip_steps` from the workflow are already applied
+- Step `source` metadata indicates which workflow each step came from
+
+**Extract from resolved workflow:**
+- Workflow phases with merged steps (pre/post steps already incorporated)
+- Autonomy settings (from leaf workflow or merged from ancestors)
 - Integration settings
+
+**Note:** Hooks are deprecated. Use pre_steps and post_steps in workflows instead.
+The resolved workflow has all steps in execution order - no separate hook execution needed.
 
 ---
 
@@ -344,216 +335,13 @@ Operation: update-phase
 Parameters: run_id={run_id}, phase, "in_progress"
 ```
 
-**Execute pre-phase hooks (with result handling):**
-
-For each hook in config.hooks["pre_{phase}"]:
-```
-# Execute the hook
-Invoke Skill: faber-hooks
-Operation: execute-hook
-Parameters: hook={hook}, context={work_id, phase, run_id}
-
-# Hook MUST return standard result structure
-hook_result = {
-  status: "success" | "warning" | "failure",
-  message: "...",
-  details: {...},
-  errors: [...],    // if failure
-  warnings: [...]   // if warning
-}
-
-# Get result_handling config (with defaults applied)
-result_handling = applyResultHandlingDefaults(hook, isHook=true)
-# Result: { on_success, on_warning, on_failure } with defaults filled in
-# Note: Hooks can have on_failure="continue" for informational hooks
-
-# Evaluate result (similar to steps, but hooks can continue on failure)
-SWITCH hook_result.status:
-
-  CASE "failure":
-    IF result_handling.on_failure == "stop" THEN
-      # STOP workflow immediately
-      ABORT workflow with:
-        status: "failed"
-        failed_at: "hook:pre_{phase}:{hook.name}"
-        reason: hook_result.message
-        errors: hook_result.errors
-    ELSE  # "continue" - informational hook
-      LOG "Hook '{hook.name}' failed but configured to continue: {hook_result.message}"
-      # Continue to next hook
-
-  CASE "warning":
-    IF result_handling.on_warning == "stop" THEN
-      ABORT workflow
-    ELSE IF result_handling.on_warning == "prompt" THEN
-      USE AskUserQuestion:
-        "Hook '{hook.name}' completed with warnings:\n{hook_result.warnings}\n\nHow to proceed?"
-        Options: ["Continue", "Stop workflow"]
-      IF response == "Stop workflow" THEN
-        ABORT workflow
-
-  CASE "success":
-    IF result_handling.on_success == "prompt" THEN
-      USE AskUserQuestion:
-        "Hook '{hook.name}' completed successfully. Continue?"
-        Options: ["Continue", "Pause here"]
-      IF response == "Pause here" THEN
-        PAUSE workflow
-```
-
-Handle any `actions_required` from hooks (read documents, invoke skills).
+**Note:** Pre-phase actions are now included as steps in the resolved workflow.
+The resolver merges pre_steps, steps, and post_steps from the inheritance chain into a single
+ordered list. Execute steps in order - no separate hook processing needed.
 
 ---
 
-### 4.2 Automatic Entry Primitives
-
-Execute AFTER pre-hooks, BEFORE phase steps.
-
-**Architect Phase Entry: Work Type Classification**
-
-```
-IF phase == "architect" AND state.work_type is null THEN
-  Classify from issue data:
-  - ANALYSIS: labels contain "analysis"/"research" OR title contains "analyze"/"audit"
-  - SIMPLE: labels contain "chore"/"dependencies" OR title is minor change
-  - MODERATE: labels contain "bug"/"defect" OR title contains "fix"
-  - COMPLEX: labels contain "feature"/"enhancement" (default)
-
-  Record classification:
-  Invoke Skill: faber-state
-  Operation: record-artifact
-  Parameters: artifact_type="work_type", artifact_value={classification}
-```
-
-**Build Phase Entry: Branch Creation**
-
-```
-IF phase == "build" THEN
-  # Check if branch already exists (resume)
-  IF state.artifacts.branch_name exists THEN
-    LOG "Reusing existing branch"
-    SKIP branch creation
-
-  # Check if work type expects commits
-  ELSE IF work_type == "ANALYSIS" THEN
-    LOG "Analysis workflow - no branch needed"
-    SKIP branch creation
-
-  ELSE
-    # Determine prefix from work_type (work_type values are UPPERCASE)
-    # Map work_type classification to branch prefix
-    prefix = switch(work_type):
-      case "MODERATE": "fix"
-      case "SIMPLE": "chore"
-      case "ANALYSIS": "docs"
-      default: "feat"
-
-    # Create branch with worktree
-    USE SlashCommand: /fractary-repo:branch-create --work-id {work_id} --prefix {prefix} --worktree
-
-    # Record in state
-    Invoke Skill: faber-state
-    Operation: record-artifact
-    Parameters: artifact_type="branch_name", artifact_value={branch_name}
-```
-
-**Evaluate Phase Entry: Issue Review**
-
-```
-IF phase == "evaluate" THEN
-  # Issue review runs automatically at the START of evaluate phase
-  # This verifies implementation completeness before other evaluation steps
-  # Uses claude-opus-4-5 model for deep analysis
-
-  LOG "🔍 Running automatic issue review..."
-
-  # Invoke issue-reviewer skill
-  Invoke Skill: issue-reviewer
-  Operation: execute
-  Parameters:
-    work_id: {work_id}
-    run_id: {run_id}
-    issue_data: {issue_data}
-    artifacts: {state.artifacts}
-
-  # Process issue-reviewer result
-  review_result = {
-    status: "success" | "warning" | "failure",
-    message: "...",
-    details: { spec_coverage, requirements_met, quality_issues, ... },
-    errors: [...],    // if failure
-    warnings: [...]   // if warning
-  }
-
-  # Handle review result
-  SWITCH review_result.status:
-
-    CASE "failure":
-      # Implementation incomplete - stop for review
-      LOG "❌ Issue review: FAILURE - Implementation incomplete"
-      LOG "Findings: {review_result.errors}"
-
-      # Record review result in state
-      Invoke Skill: faber-state
-      Operation: update-phase
-      Parameters: run_id={run_id}, phase="evaluate", "requires_review", {review_result}
-
-      # Present to user with options
-      USE AskUserQuestion:
-        question: "Issue review found critical gaps in implementation:\n\n{review_result.errors.join('\n')}\n\nHow would you like to proceed?"
-        header: "Review Failed"
-        options:
-          - label: "Return to Build phase"
-            description: "Go back to Build phase to address the gaps"
-          - label: "Continue anyway (not recommended)"
-            description: "Proceed despite incomplete implementation"
-          - label: "Stop workflow"
-            description: "Stop the workflow to investigate"
-        multiSelect: false
-
-      SWITCH user_selection:
-        CASE "Return to Build phase":
-          # Set up retry context and go back to build
-          failure_context = {
-            retry_reason: "issue_review_failed",
-            findings: review_result.errors,
-            suggestions: review_result.details.suggestions
-          }
-          GOTO phase="build" with failure_context
-
-        CASE "Continue anyway (not recommended)":
-          LOG "⚠️ User chose to continue despite issue review failure"
-          # Continue to evaluate steps
-
-        CASE "Stop workflow":
-          ABORT workflow with:
-            status: "stopped"
-            stopped_at: "evaluate:issue-review"
-            reason: "User stopped after issue review failure"
-
-    CASE "warning":
-      # Implementation complete with minor issues
-      LOG "⚠️ Issue review: WARNING - Minor improvements identified"
-      LOG "Warnings: {review_result.warnings}"
-
-      # Record and continue to evaluate steps
-      Invoke Skill: faber-state
-      Operation: record-artifact
-      Parameters: artifact_type="issue_review", artifact_value={review_result}
-
-    CASE "success":
-      # Implementation verified complete
-      LOG "✅ Issue review: SUCCESS - All requirements implemented"
-
-      # Record and continue to evaluate steps
-      Invoke Skill: faber-state
-      Operation: record-artifact
-      Parameters: artifact_type="issue_review", artifact_value={review_result}
-```
-
----
-
-### 4.3 Execute Phase Steps
+### 4.2 Execute Phase Steps (Merged from Inheritance Chain)
 
 **Determine steps to execute:**
 ```
@@ -859,102 +647,11 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
 
 ---
 
-### 4.4 Automatic Exit Primitives
+### 4.3 Post-Phase Actions
 
-Execute AFTER phase steps, BEFORE post-hooks.
-
-**Release Phase Exit: PR Creation**
-
-```
-IF phase == "release" THEN
-  # Check if PR already exists (resume)
-  IF state.artifacts.pr_number exists THEN
-    LOG "PR already exists: #{pr_number}"
-    SKIP PR creation
-
-  # Check if commits exist
-  ELSE
-    Check: git log main..HEAD --oneline
-
-    IF no commits THEN
-      LOG "No commits - skipping PR"
-      SKIP PR creation
-
-    # Check autonomy gate
-    ELSE IF autonomy.level == "guarded" THEN
-      USE AskUserQuestion:
-        "Ready to create PR for issue #{work_id}. Proceed?"
-        Options: ["Yes, create PR", "No, skip PR", "Cancel workflow"]
-
-      IF response == "No" THEN SKIP PR creation
-      IF response == "Cancel" THEN ABORT workflow
-
-    # Create PR
-    IF should_create_pr THEN
-      USE SlashCommand: /fractary-repo:pr-create --work-id {work_id} --prompt "Generate appropriate title and body from the work done"
-
-      Invoke Skill: faber-state
-      Operation: record-artifact
-      Parameters: artifact_type="pr_url", artifact_value={pr_url}
-```
-
----
-
-### 4.5 Post-Phase Actions
-
-**Execute post-phase hooks (with result handling):**
-
-For each hook in config.hooks["post_{phase}"]:
-```
-# Execute the hook
-Invoke Skill: faber-hooks
-Operation: execute-hook
-Parameters: hook={hook}, context={work_id, phase, run_id, results}
-
-# Hook MUST return standard result structure
-hook_result = {
-  status: "success" | "warning" | "failure",
-  message: "...",
-  details: {...},
-  errors: [...],    // if failure
-  warnings: [...]   // if warning
-}
-
-# Get result_handling config (with defaults applied)
-result_handling = applyResultHandlingDefaults(hook, isHook=true)
-# Result: { on_success, on_warning, on_failure } with defaults filled in
-
-# Evaluate result (same logic as pre-phase hooks)
-SWITCH hook_result.status:
-
-  CASE "failure":
-    IF result_handling.on_failure == "stop" THEN
-      ABORT workflow with:
-        status: "failed"
-        failed_at: "hook:post_{phase}:{hook.name}"
-        reason: hook_result.message
-        errors: hook_result.errors
-    ELSE  # "continue" - informational hook
-      LOG "Post-hook '{hook.name}' failed but configured to continue: {hook_result.message}"
-
-  CASE "warning":
-    IF result_handling.on_warning == "stop" THEN
-      ABORT workflow
-    ELSE IF result_handling.on_warning == "prompt" THEN
-      USE AskUserQuestion:
-        "Post-hook '{hook.name}' completed with warnings:\n{hook_result.warnings}\n\nHow to proceed?"
-        Options: ["Continue", "Stop workflow"]
-      IF response == "Stop workflow" THEN
-        ABORT workflow
-
-  CASE "success":
-    IF result_handling.on_success == "prompt" THEN
-      USE AskUserQuestion:
-        "Post-hook '{hook.name}' completed successfully. Continue?"
-        Options: ["Continue", "Pause here"]
-      IF response == "Pause here" THEN
-        PAUSE workflow
-```
+**Note:** Post-phase actions are now included as steps in the resolved workflow.
+The resolver has already merged post_steps from the inheritance chain into the
+phase's step list. All steps (pre, main, post) were executed in section 4.2.
 
 **Update state - phase complete:**
 ```
@@ -1094,105 +791,81 @@ Event Log: .fractary/plugins/faber/runs/{run_id}/events/
 
 </WORKFLOW>
 
-<AUTOMATIC_PRIMITIVES>
+<WORKFLOW_INHERITANCE>
 
-## Overview
+## Overview (v2.2+)
 
-Automatic primitives are operations that happen at specific phase boundaries without explicit step definitions. They are:
-- **Idempotent**: Check state before executing (safe for resume)
-- **Conditional**: Only execute when conditions are met
-- **Logged**: Record decisions for debugging
+**DEPRECATED**: Automatic primitives are replaced by workflow steps in v2.2.
 
-## Work Type Classification (Architect Entry)
+All operations that were previously "automatic primitives" are now defined as steps in the
+default workflow (`fractary-faber:default`). This provides:
+- **Configurability**: Skip any step via `skip_steps`
+- **Extensibility**: Override behavior by extending and providing custom steps
+- **Visibility**: All operations are explicit in the workflow definition
+- **Self-contained logic**: Each step handles its own idempotency checks
 
-**Trigger**: Entering Architect phase
-**Condition**: state.work_type is null
-**Action**: Analyze issue metadata to classify work type
+## Default Workflow Steps
 
-| Type | Indicators | Expects Commits | Spec Required |
-|------|------------|-----------------|---------------|
-| ANALYSIS | "analyze", "audit", "research" | No | Optional |
-| SIMPLE | "typo", "bump", "config" | Yes | No |
-| MODERATE | "bug", "fix", "patch" | Yes | Basic |
-| COMPLEX | "feature", "implement", "refactor" | Yes | Full |
+The default workflow (`fractary-faber:default`) includes these steps that replace automatic primitives:
 
-**Classification Logic:**
-1. Check labels first (most explicit)
-2. Then check title keywords
-3. Default to COMPLEX (err on side of specs)
+**Frame Phase:**
+- `fetch-or-create-issue` - Fetch existing issue or create new one
+- `switch-or-create-branch` - Checkout existing branch or create new one
 
-## Branch Creation (Build Entry)
+**Architect Phase:**
+- `generate-spec` - Create specification from issue context
 
-**Trigger**: Entering Build phase
-**Condition**: state.artifacts.branch_name is null AND work_type expects commits
-**Action**: Create branch with worktree
+**Build Phase:**
+- `implement` - Implement solution from specification
+- `commit-and-push-build` - Commit and push implementation changes
 
-**Branch Naming:**
-- Pattern: `{prefix}/{work_id}-{slug}`
-- Prefix from work_type: feature→feat, bug→fix, chore→chore
-- Slug from issue title (lowercase, hyphens, max 50 chars)
+**Evaluate Phase:**
+- `issue-review` - Verify implementation against requirements
+- `commit-and-push-evaluate` - Commit and push any fixes
+- `create-pr` - Create pull request (skips if exists)
+- `review-pr-checks` - Wait for and review CI results
 
-**Worktree:**
-- Path: `../{repo}-wt-{branch-slug}`
-- Enables parallel development
-- Isolated from main working directory
+**Release Phase:**
+- `merge-pr` - Merge PR and delete branch
 
-## Issue Review (Evaluate Entry)
+## Self-Contained Step Logic
 
-**Trigger**: Entering Evaluate phase
-**Condition**: Always (automatic, no configuration required)
-**Action**: Analyze code changes against issue/spec for implementation completeness
-**Model**: claude-opus-4-5
+Each step is responsible for its own idempotency:
+- **create-pr**: Checks if PR exists before creating
+- **commit-and-push**: Checks if there are uncommitted changes
+- **switch-or-create-branch**: Checks if branch exists before creating
 
-**Review Analysis:**
-- Gathers issue details, specification, and code changes
-- Analyzes specification compliance (requirements coverage)
-- Evaluates code quality (bugs, best practices, tests)
-- Determines status: success, warning, or failure
+This means no external conditional logic is needed - steps "do the right thing" automatically.
 
-**Status Codes:**
-| Status | Meaning | Action |
-|--------|---------|--------|
-| success | All requirements met, no issues | Continue to evaluate steps |
-| warning | Requirements met, minor improvements | Log warnings, continue |
-| failure | Requirements missing or major issues | Stop for user decision |
+## Skipping Default Steps
 
-**On Failure:**
-- Presents user with options: Return to Build, Continue anyway, Stop workflow
-- "Return to Build" triggers retry loop with failure context
+To skip default workflow steps, use `skip_steps` in your workflow:
 
-**Report:**
-- Saved to `.fractary/plugins/faber/reviews/{work_id}-{timestamp}.md`
-- Optional GitHub comment on issue
+```json
+{
+  "extends": "fractary-faber:default",
+  "skip_steps": ["merge-pr", "review-pr-checks"],
+  "phases": { ... }
+}
+```
 
-## PR Creation (Release Exit)
-
-**Trigger**: Completing Release phase
-**Condition**: state.artifacts.pr_number is null AND commits exist on branch
-**Action**: Create pull request
-
-**PR Generation:**
-- Title: From spec or issue title
-- Body: Summary, changes, related issues, testing notes
-- Links: Closes #{work_id}
-
-**Autonomy Check:**
-- If guarded: Prompt user before creating PR
-- If autonomous: Create without prompting
-
-</AUTOMATIC_PRIMITIVES>
+</WORKFLOW_INHERITANCE>
 
 <HELPER_SKILLS>
 
 ## faber-config
 
-Configuration loading and validation.
+Configuration loading, validation, and workflow resolution.
 
 **Operations:**
 - `load-config`: Load `.fractary/plugins/faber/config.json`
-- `load-workflow`: Load specific workflow definition
+- `load-workflow`: Load specific workflow definition (raw, without inheritance)
+- `resolve-workflow`: **Primary** - Resolve workflow with full inheritance chain merged
 - `validate-config`: Validate config against schema
 - `get-phases`: Extract phase definitions
+
+**resolve-workflow** is the primary operation for getting an executable workflow.
+It handles namespace resolution, inheritance chain parsing, and step merging.
 
 ## faber-state
 
@@ -1208,20 +881,17 @@ Workflow state management.
 - `mark-complete`: Mark workflow completed/failed
 - `increment-retry`: Increment retry counter
 
-## faber-hooks
+## faber-hooks (DEPRECATED)
 
-Phase hook execution.
+**DEPRECATED in v2.2**: Use pre_steps and post_steps in workflow definitions instead.
+
+Phase hook execution - will be removed in v3.0.
 
 **Operations:**
 - `list-hooks`: List hooks for a boundary
 - `execute-all`: Execute all hooks for a boundary
 - `execute-hook`: Execute single hook
 - `validate-hooks`: Validate hook configuration
-
-**Hook Types:**
-- `document`: Return path for agent to read
-- `script`: Execute shell script
-- `skill`: Return skill invocation details
 
 </HELPER_SKILLS>
 
@@ -1263,10 +933,12 @@ Phase hook execution.
 - **Validation failure**: Log specifics, retry or fail
 - **Timeout**: Mark as failed, allow resume
 
-## Hook Errors
-- **Hook not found**: Log warning, continue (hooks are optional)
-- **Hook failure**: Log error, continue or fail based on config
-- **Hook timeout**: Log timeout, continue
+## Workflow Resolution Errors
+- **Workflow not found**: Log error with namespace and path checked
+- **Invalid namespace**: List valid namespaces (fractary-faber:, project:, etc.)
+- **Circular inheritance**: Show cycle path (e.g., "a → b → a")
+- **Duplicate step ID**: Show conflicting workflows and step ID
+- **Invalid skip_steps**: Warning (not error) for unknown step IDs
 
 ## Retry Context Structure
 

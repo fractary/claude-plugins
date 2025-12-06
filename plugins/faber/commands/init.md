@@ -1,4 +1,6 @@
 ---
+name: fractary-faber:init
+description: Initialize FABER workflow configuration for a project
 model: claude-haiku-4-5
 ---
 
@@ -8,26 +10,27 @@ Initialize FABER workflow configuration for a project.
 
 ## What This Does
 
-Creates the complete FABER runtime environment with run isolation and event logging support.
+Creates a minimal FABER configuration that references the default workflow from the plugin.
+With workflow inheritance (v2.2+), projects no longer need to copy workflow files - they simply
+reference `fractary-faber:default` and optionally extend it with customizations.
 
-**The baseline FABER workflow is issue-centric**:
-- **Frame**: Fetch issue, classify work, create branch
+**The default FABER workflow (`fractary-faber:default`) is issue-centric**:
+- **Frame**: Fetch/create issue, checkout/create branch
 - **Architect**: Generate specification document
-- **Build**: Implement solution, commit changes
-- **Evaluate**: Run tests, perform review
-- **Release**: Create PR, merge, deploy
+- **Build**: Implement solution, commit and push changes
+- **Evaluate**: Issue review, commit fixes, create PR, review CI checks
+- **Release**: Merge PR and cleanup
 
-**Core artifacts**: Issue + Branch + Spec + Run Events
+**Core artifacts**: Issue + Branch + Spec + PR
 
 **Features**:
-- 📝 Creates default "workflows" array with standard workflow
-- ⚙️ Configures all 5 FABER phases with basic steps
-- 🪝 Sets up 10 hook arrays (empty, ready for customization)
+- 📝 Creates minimal config referencing `fractary-faber:default`
 - 🔒 Configures safe defaults (autonomy: guarded)
 - 🔌 Sets up plugin integrations (work, repo, spec, logs)
 - 🆔 Initializes Run ID system for per-run isolation
 - 📊 Configures Event Gateway for workflow logging
 - ✅ Validates configuration after creation
+- 🧬 Optional: Create custom workflow that extends default
 
 ## Usage
 
@@ -47,10 +50,9 @@ Creates the complete FABER runtime environment with run isolation and event logg
 **Directory structure**:
 ```
 .fractary/plugins/faber/
-├── config.json              # Main configuration (references workflows)
+├── config.json              # Main configuration (references default workflow)
 ├── gateway.json             # Event Gateway configuration
-├── workflows/               # Workflow definition files
-│   └── default.json         # Standard FABER workflow
+├── workflows/               # Project-specific workflow extensions (optional)
 └── runs/                    # Per-run storage (created on first run)
     └── {org}/
         └── {project}/
@@ -64,19 +66,31 @@ Creates the complete FABER runtime environment with run isolation and event logg
 
 ```json
 {
-  "schema_version": "2.1",
-  "workflows": [
-    {
-      "id": "default",
-      "file": "./workflows/default.json",
-      "description": "Standard FABER workflow"
-    }
-  ],
-  "integrations": { ... },
-  "logging": { ... },
-  "safety": { ... }
+  "$schema": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/config.schema.json",
+  "schema_version": "2.2",
+  "default_workflow": "fractary-faber:default",
+  "workflows": [],
+  "integrations": {
+    "work_plugin": "fractary-work",
+    "repo_plugin": "fractary-repo",
+    "spec_plugin": "fractary-spec",
+    "logs_plugin": "fractary-logs",
+    "docs_plugin": "fractary-docs"
+  },
+  "logging": {
+    "use_logs_plugin": true,
+    "log_level": "info"
+  },
+  "safety": {
+    "protected_paths": [".env", "credentials.json"],
+    "require_confirm_for": ["delete", "deploy"]
+  }
 }
 ```
+
+**Key change in v2.2**: The `workflows` array is **empty by default**. The config references
+`fractary-faber:default` via `default_workflow`. This eliminates workflow drift - updates to
+the default workflow in the plugin automatically apply to all projects.
 
 **Gateway config** (`.fractary/plugins/faber/gateway.json`):
 
@@ -91,8 +105,6 @@ Creates the complete FABER runtime environment with run isolation and event logg
 }
 ```
 
-**Workflow files** contain the complete phase definitions, hooks, and autonomy settings.
-
 ## Implementation
 
 This command should:
@@ -100,29 +112,79 @@ This command should:
    - If `--force` flag: create backup, proceed with overwrite
    - Otherwise: create backup, then proceed (always upgrades to latest)
 2. Create `.fractary/plugins/faber/` directory if needed
-3. Create `.fractary/plugins/faber/workflows/` directory
+3. Create `.fractary/plugins/faber/workflows/` directory (empty, for project extensions)
 4. Create `.fractary/plugins/faber/runs/` directory (for Run ID system)
-5. Copy workflow template:
-   - `plugins/faber/config/workflows/default.json` → `.fractary/plugins/faber/workflows/default.json`
-6. Copy config template:
-   - `plugins/faber/config/faber.example.json` → `.fractary/plugins/faber/config.json`
-7. Copy gateway template:
+5. Generate config file (NOT copy - generate from template):
+   - Create `.fractary/plugins/faber/config.json` with default_workflow="fractary-faber:default"
+   - Empty workflows array (project doesn't define workflows, uses default)
+6. Copy gateway template:
    - `plugins/faber/gateway/config.template.json` → `.fractary/plugins/faber/gateway.json`
-8. Validate configuration (including workflow file references)
-9. Report success with next steps and file locations
+7. Validate configuration (including resolving default_workflow)
+8. Report success with next steps
+
+**Important**: No workflow files are copied. The project uses `fractary-faber:default` directly
+from the installed plugin. This ensures automatic updates and eliminates drift.
 
 ## After Init
 
-After creating the config, customize it for your project:
+After creating the config, optionally customize it for your project:
 
 1. **Validate**: `/fractary-faber:audit`
-2. **Customize workflows**: Edit `.fractary/plugins/faber/workflows/default.json`
-   - Modify phase steps for your tools (test framework, build system, etc.)
-   - Add hooks for your existing scripts
-   - Adjust autonomy level for your workflow
-3. **Add custom workflows**: Copy and customize templates for specific scenarios
-4. **Reference custom workflows**: Add them to `config.json` workflows array
-5. **Test**: `/fractary-faber:run <work-id> --autonomy dry-run`
+2. **Use as-is**: The default workflow (`fractary-faber:default`) works out of the box
+3. **Test**: `/fractary-faber:run <work-id> --autonomy dry-run`
+
+### Customizing (Optional)
+
+**To extend the default workflow with project-specific steps:**
+
+1. Create a custom workflow file: `.fractary/plugins/faber/workflows/my-project.json`
+```json
+{
+  "$schema": "../../../.claude/plugins/marketplaces/fractary/plugins/faber/config/workflow.schema.json",
+  "id": "my-project",
+  "description": "My project workflow extending FABER defaults",
+  "extends": "fractary-faber:default",
+  "skip_steps": [],
+  "phases": {
+    "frame": { "enabled": true, "pre_steps": [], "steps": [], "post_steps": [] },
+    "architect": { "enabled": true, "pre_steps": [], "steps": [], "post_steps": [] },
+    "build": {
+      "enabled": true,
+      "pre_steps": [],
+      "steps": [
+        {
+          "id": "my-lint-check",
+          "name": "Run Linter",
+          "description": "Run project-specific linter before implementation",
+          "prompt": "Run npm run lint and fix any issues"
+        }
+      ],
+      "post_steps": []
+    },
+    "evaluate": { "enabled": true, "pre_steps": [], "steps": [], "post_steps": [] },
+    "release": { "enabled": true, "pre_steps": [], "steps": [], "post_steps": [] }
+  },
+  "autonomy": { "level": "guarded", "require_approval_for": ["release"] }
+}
+```
+
+2. Reference it in config.json:
+```json
+{
+  "default_workflow": "my-project",
+  "workflows": [
+    { "id": "my-project", "file": "./workflows/my-project.json" }
+  ]
+}
+```
+
+**To skip specific default steps:**
+```json
+{
+  "extends": "fractary-faber:default",
+  "skip_steps": ["merge-pr", "review-pr-checks"]
+}
+```
 
 ## See Also
 

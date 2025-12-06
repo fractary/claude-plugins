@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/config.schema.json",
   "title": "FABER Configuration Schema",
-  "description": "JSON Schema for FABER v2.0 workflow configuration",
+  "description": "JSON Schema for FABER v2.2 workflow configuration with workflow inheritance support",
   "type": "object",
   "required": ["schema_version", "workflows", "integrations"],
   "additionalProperties": false,
@@ -17,10 +17,17 @@
       "pattern": "^2\\.\\d+$",
       "description": "Configuration schema version (2.x)"
     },
+    "default_workflow": {
+      "type": "string",
+      "description": "Default workflow ID to use when none specified. Can be namespaced (e.g., 'fractary-faber:default') or project-local (e.g., 'my-workflow'). If omitted, uses 'fractary-faber:default'."
+    },
+    "workflow_namespaces": {
+      "$ref": "#/definitions/workflow_namespaces"
+    },
     "workflows": {
       "type": "array",
-      "minItems": 1,
-      "description": "Array of workflow configurations",
+      "minItems": 0,
+      "description": "Array of project-specific workflow configurations. These are in addition to namespaced workflows from plugins.",
       "items": {
         "$ref": "#/definitions/workflow"
       }
@@ -36,6 +43,31 @@
     }
   },
   "definitions": {
+    "workflow_namespaces": {
+      "type": "object",
+      "description": "Workflow namespace resolution configuration. Defines where to find workflows for each namespace.",
+      "additionalProperties": false,
+      "properties": {
+        "default_namespace": {
+          "type": "string",
+          "default": "project",
+          "description": "Default namespace for unqualified workflow IDs. Default: 'project'"
+        },
+        "paths": {
+          "type": "object",
+          "description": "Custom namespace path mappings. Key is namespace, value is path pattern.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "examples": [
+            {
+              "project": ".fractary/plugins/faber/workflows",
+              "fractary-faber": "~/.claude/plugins/marketplaces/fractary/plugins/faber/workflows"
+            }
+          ]
+        }
+      }
+    },
     "workflow": {
       "oneOf": [
         {
@@ -60,11 +92,25 @@
           "type": "string",
           "description": "Human-readable workflow description"
         },
+        "extends": {
+          "type": "string",
+          "description": "Parent workflow to extend. Use namespaced format: 'fractary-faber:default' for core workflows."
+        },
+        "skip_steps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "description": "Step IDs from parent workflows to skip"
+        },
         "phases": {
           "$ref": "#/definitions/phases"
         },
         "hooks": {
-          "$ref": "#/definitions/hooks"
+          "$ref": "#/definitions/hooks",
+          "deprecated": true,
+          "description": "DEPRECATED: Use pre_steps and post_steps in phase definitions instead."
         },
         "autonomy": {
           "$ref": "#/definitions/autonomy"
@@ -127,12 +173,26 @@
           "type": "string",
           "description": "Phase description"
         },
+        "pre_steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          },
+          "description": "Steps to execute BEFORE child workflow steps"
+        },
         "steps": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/step"
           },
-          "description": "Array of phase steps"
+          "description": "Main phase steps"
+        },
+        "post_steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          },
+          "description": "Steps to execute AFTER child workflow steps"
         },
         "validation": {
           "type": "array",
@@ -179,13 +239,17 @@
     },
     "step": {
       "type": "object",
-      "required": ["name"],
+      "required": ["id"],
       "additionalProperties": false,
       "properties": {
-        "name": {
+        "id": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$",
-          "description": "Step identifier (lowercase, hyphens allowed)"
+          "description": "Unique step identifier (must be unique across merged workflow)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable display name for the step"
         },
         "description": {
           "type": "string",
@@ -193,7 +257,7 @@
         },
         "prompt": {
           "type": "string",
-          "description": "Execution instruction for Claude when no skill is present, or to customize skill behavior. Takes precedence over description for execution."
+          "description": "Execution instruction for Claude when no skill is present, or to customize skill behavior."
         },
         "skill": {
           "type": "string",
@@ -204,10 +268,15 @@
           "type": "object",
           "description": "Step-specific configuration"
         },
-        "conditional": {
-          "type": "string",
-          "enum": ["only_if_failures", "only_if_success", "always"],
-          "description": "Conditional execution rule"
+        "arguments": {
+          "type": "object",
+          "description": "Explicit arguments to pass to the step",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "result_handling": {
+          "$ref": "#/definitions/step_result_handling"
         }
       },
       "anyOf": [
@@ -216,9 +285,32 @@
         {"required": ["skill"]}
       ]
     },
+    "step_result_handling": {
+      "type": "object",
+      "description": "Defines behavior for step execution outcomes",
+      "additionalProperties": false,
+      "properties": {
+        "on_success": {
+          "type": "string",
+          "enum": ["continue", "prompt"],
+          "default": "continue"
+        },
+        "on_warning": {
+          "type": "string",
+          "enum": ["continue", "prompt", "stop"],
+          "default": "continue"
+        },
+        "on_failure": {
+          "const": "stop",
+          "default": "stop",
+          "description": "IMMUTABLE: Failure always stops"
+        }
+      }
+    },
     "hooks": {
       "type": "object",
       "additionalProperties": false,
+      "description": "DEPRECATED: Use pre_steps and post_steps in phase definitions instead.",
       "properties": {
         "pre_frame": {
           "$ref": "#/definitions/hook_array"
@@ -262,6 +354,7 @@
       "type": "object",
       "required": ["type", "name", "description"],
       "additionalProperties": false,
+      "description": "DEPRECATED: Convert to pre_steps or post_steps instead.",
       "properties": {
         "type": {
           "type": "string",
@@ -295,7 +388,8 @@
         "on_error": {
           "type": "string",
           "enum": ["continue", "abort", "retry"],
-          "description": "Error handling strategy"
+          "description": "DEPRECATED: Use result_handling instead.",
+          "deprecated": true
         }
       },
       "oneOf": [
@@ -380,6 +474,11 @@
           "type": "string",
           "pattern": "^fractary-[a-z][a-z0-9-]*$",
           "description": "Logging plugin name"
+        },
+        "docs_plugin": {
+          "type": "string",
+          "pattern": "^fractary-[a-z][a-z0-9-]*$",
+          "description": "Documentation plugin name"
         }
       }
     },
@@ -407,10 +506,6 @@
         "log_sub_steps": {
           "type": "boolean",
           "description": "Log individual step execution"
-        },
-        "log_hooks": {
-          "type": "boolean",
-          "description": "Log hook execution"
         }
       }
     },

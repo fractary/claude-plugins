@@ -123,30 +123,51 @@ work_id: null
 
 <WORKFLOW>
 
-## Step 0: Load Configuration
+## Step 0: Load Configuration and Resolve Workflow
 
-**CRITICAL**: Load configuration FIRST before any other processing.
+**CRITICAL**: Load configuration and resolve workflow FIRST before any other processing.
 
 **Config Location**: `.fractary/plugins/faber/config.json` (in project working directory)
 
-**Action**: Read and parse the configuration file:
+**Action**: Load configuration and resolve workflow with inheritance:
 ```
 1. Check if `.fractary/plugins/faber/config.json` exists
 2. If not found → use default configuration:
-   - Default workflow: "default"
+   - Default workflow: "fractary-faber:default"
    - Default autonomy: "guarded"
 3. If found → parse JSON and extract:
-   - Available workflows (workflows array)
+   - Default workflow from config.default_workflow (or "fractary-faber:default")
    - Default autonomy level
    - Integration settings
+4. Invoke faber-config skill to resolve the workflow:
+   - Operation: resolve-workflow
+   - Parameters: workflow_id (from CLI override or config default)
+   - This resolves the full inheritance chain and returns a merged workflow
+```
+
+**Workflow Resolution (v2.2+):**
+```
+The resolve-workflow operation:
+1. Parses workflow_id namespace (e.g., "fractary-faber:default" or "my-workflow")
+2. Loads workflow file from appropriate location
+3. If workflow has "extends", recursively loads parent workflows
+4. Merges pre_steps, steps, post_steps for each phase
+5. Applies skip_steps to exclude specific inherited steps
+6. Validates step ID uniqueness across merged workflow
+7. Returns fully resolved workflow ready for execution
 ```
 
 **Store Configuration:**
 ```json
 {
   "workflows": ["default", "hotfix"],
-  "default_workflow": "default",
+  "default_workflow": "fractary-faber:default",
   "default_autonomy": "guarded",
+  "resolved_workflow": {
+    "id": "default",
+    "inheritance_chain": ["fractary-faber:default"],
+    "phases": { /* merged phases with all steps */ }
+  },
   "integrations": {
     "work_plugin": "fractary-work",
     "repo_plugin": "fractary-repo"
@@ -460,6 +481,18 @@ If issue.description contains "```faber-prompt" block:
   "source_type": "github",
   "source_id": "158",
   "workflow_id": "default",
+  "resolved_workflow": {
+    "id": "default",
+    "inheritance_chain": ["fractary-faber:default"],
+    "phases": {
+      "frame": { "enabled": true, "steps": [...] },
+      "architect": { "enabled": true, "steps": [...] },
+      "build": { "enabled": true, "steps": [...] },
+      "evaluate": { "enabled": true, "max_retries": 3, "steps": [...] },
+      "release": { "enabled": true, "require_approval": true, "steps": [...] }
+    },
+    "autonomy": { "level": "guarded", "require_approval_for": ["release"] }
+  },
   "autonomy": "guarded",
   "phases": ["frame", "architect", "build"],
   "step_id": null,
@@ -478,6 +511,7 @@ If issue.description contains "```faber-prompt" block:
 
 **Key Mappings:**
 - `run_id`: Full run identifier (org/project/uuid) - REQUIRED
+- `resolved_workflow`: Fully resolved workflow with inheritance merged (from faber-config resolve-workflow)
 - `phases`: Array from comma-separated string, or null for all phases
 - `step_id`: String in format `phase:step-name`, or null
 - `additional_instructions`: Merged prompt from CLI and/or issue
@@ -747,20 +781,23 @@ This skill now handles:
 | `faber:target=<name>` | `<target>` |
 | `faber:skip-phase=<phase>` | Exclude phase |
 
-## Step ID Reference
+## Step ID Reference (Default Workflow - fractary-faber:default)
 
 | Step ID | Description |
 |---------|-------------|
-| `frame:fetch-work` | Fetch work item details |
-| `frame:classify` | Classify work type |
-| `frame:setup-env` | Setup environment |
-| `architect:generate-spec` | Generate specification |
-| `build:implement` | Implement solution |
-| `build:commit` | Create commit |
-| `evaluate:test` | Run tests |
-| `evaluate:review` | Code review |
-| `evaluate:fix` | Fix issues |
-| `release:update-project-docs` | Update documentation |
-| `release:create-pr` | Create pull request |
+| `frame:fetch-or-create-issue` | Fetch existing issue or create new one |
+| `frame:switch-or-create-branch` | Checkout or create branch for issue |
+| `architect:generate-spec` | Generate specification from issue |
+| `build:implement` | Implement solution from spec |
+| `build:commit-and-push-build` | Commit and push implementation |
+| `evaluate:issue-review` | Verify implementation completeness |
+| `evaluate:commit-and-push-evaluate` | Commit and push fixes |
+| `evaluate:create-pr` | Create pull request (skips if exists) |
+| `evaluate:review-pr-checks` | Wait for and review CI results |
+| `release:merge-pr` | Merge PR and delete branch |
+
+**Note:** Step IDs come from the resolved workflow. If using a custom workflow or one that
+extends the default, additional steps may be available. Use `faber-config resolve-workflow`
+to see all steps in the merged workflow.
 
 </DOCUMENTATION>
