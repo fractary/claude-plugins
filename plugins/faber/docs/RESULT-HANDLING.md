@@ -4,7 +4,14 @@ Complete guide to step and hook result handling in FABER workflow.
 
 ## Overview
 
-FABER v2.1 introduces **default result handling configuration** for steps and hooks. This allows workflow configurations to be more concise by omitting result_handling when using standard defaults.
+FABER v2.1 introduces **default result handling configuration** for steps and hooks, and integrates with the **two-dimensional autonomy model** (see [AUTONOMY.md](./AUTONOMY.md)).
+
+Result handling is now influenced by:
+1. **result_handling config**: Per-step/hook behavior (continue, prompt, stop)
+2. **Tolerance thresholds**: Severity-based filtering from autonomy config
+3. **Global limits**: Maximum warnings/errors allowed
+
+This allows workflow configurations to be more concise by omitting result_handling when using standard defaults.
 
 ## Default Configuration
 
@@ -370,8 +377,81 @@ If your workflow files have explicit result_handling that matches the defaults, 
 
 Existing configurations with explicit result_handling will continue to work unchanged (backward compatibility).
 
+## Tolerance-Based Handling
+
+FABER v2.1 adds tolerance evaluation before result_handling triggers.
+
+### Tolerance Flow
+
+```
+Step/Hook completes with result
+        │
+        ▼
+┌─────────────────────────────────┐
+│   Evaluate against tolerance    │
+│   (warning_tolerance,           │
+│    error_tolerance)             │
+└─────────────────────────────────┘
+        │
+        ├── Issue within tolerance ──▶ Collect for report, CONTINUE
+        │
+        └── Issue exceeds tolerance ──▶ Trigger result_handling
+                                            │
+                                            ├── on_warning: continue/prompt/stop
+                                            └── on_failure: stop (immutable)
+```
+
+### Severity Comparison
+
+| Issue Severity | none | low | medium | high |
+|----------------|------|-----|--------|------|
+| low            | STOP | OK  | OK     | OK   |
+| medium         | STOP | STOP| OK     | OK   |
+| high           | STOP | STOP| STOP   | OK   |
+
+"OK" = within tolerance, collected for report, workflow continues
+"STOP" = exceeds tolerance, triggers result_handling behavior
+
+### Example with Tolerance
+
+```json
+{
+  "autonomy": {
+    "warning_tolerance": "low",
+    "error_tolerance": "none"
+  }
+}
+```
+
+With this configuration:
+- **Low-severity warning**: Collected, continues automatically
+- **Medium-severity warning**: Triggers `on_warning` behavior
+- **Any error**: Triggers `on_failure` behavior (stops)
+
+### Global Limits
+
+Regardless of tolerance, workflows stop when limits are exceeded:
+
+```json
+{
+  "autonomy": {
+    "limits": {
+      "max_total_warnings": 50,
+      "max_total_errors": 20,
+      "on_limit_reached": "stop"
+    }
+  }
+}
+```
+
+When `max_total_warnings` or `max_total_errors` is reached:
+- `stop`: Halt workflow immediately
+- `truncate`: Stop collecting, continue execution
+
 ## See Also
 
+- [AUTONOMY.md](./AUTONOMY.md) - Two-dimensional autonomy model
+- [RESPONSE-FORMAT.md](./RESPONSE-FORMAT.md) - Skill response format with severity/category
 - [configuration.md](./configuration.md) - Complete configuration guide
 - [HOOKS.md](./HOOKS.md) - Phase-level hooks guide
 - [STATE-TRACKING.md](./STATE-TRACKING.md) - Workflow state tracking

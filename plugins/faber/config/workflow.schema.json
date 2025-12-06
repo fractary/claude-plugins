@@ -294,32 +294,111 @@
     },
     "autonomy": {
       "type": "object",
-      "required": ["level"],
       "additionalProperties": false,
+      "description": "Autonomy configuration for workflow execution. Supports both legacy 'level' and new two-dimensional model (check_in_frequency + tolerance).",
       "properties": {
         "level": {
           "type": "string",
           "enum": ["dry-run", "assist", "guarded", "autonomous"],
-          "description": "Workflow autonomy level"
+          "description": "DEPRECATED: Legacy autonomy level. Use check_in_frequency and tolerance settings instead. Kept for backward compatibility - will be auto-migrated to new model.",
+          "deprecated": true
+        },
+        "check_in_frequency": {
+          "type": "string",
+          "enum": ["per-step", "per-phase", "end-only"],
+          "default": "per-phase",
+          "description": "How often to pause for review. 'per-step' = after every step, 'per-phase' = after each phase, 'end-only' = only at workflow end."
+        },
+        "warning_tolerance": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high"],
+          "default": "low",
+          "description": "Maximum warning severity to tolerate without stopping. 'none' = stop on any warning, 'low' = continue past low-severity, 'medium' = continue past low and medium, 'high' = continue past all (dangerous)."
+        },
+        "error_tolerance": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high"],
+          "default": "none",
+          "description": "Maximum error severity to tolerate without stopping. 'none' = stop on any error (recommended), 'low' = continue past low-severity errors only. Higher values are dangerous."
         },
         "description": {
           "type": "string",
-          "description": "Autonomy level description"
+          "description": "Human-readable description of the autonomy configuration"
         },
         "pause_before_release": {
           "type": "boolean",
-          "description": "Pause before release phase for approval"
+          "description": "DEPRECATED: Use check_in_frequency instead. Pause before release phase for approval.",
+          "deprecated": true
         },
         "require_approval_for": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "List of actions requiring explicit approval"
+          "description": "List of phases requiring explicit approval regardless of check_in_frequency"
         },
         "overrides": {
           "type": "object",
-          "description": "Phase-specific autonomy overrides"
+          "description": "Phase-specific autonomy overrides",
+          "additionalProperties": {
+            "$ref": "#/definitions/phase_autonomy_override"
+          }
+        },
+        "limits": {
+          "$ref": "#/definitions/global_limits"
+        }
+      },
+      "anyOf": [
+        {"required": ["level"]},
+        {"required": ["check_in_frequency"]}
+      ]
+    },
+    "phase_autonomy_override": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Phase-specific autonomy settings that override global defaults",
+      "properties": {
+        "check_in_frequency": {
+          "type": "string",
+          "enum": ["per-step", "per-phase", "end-only"],
+          "description": "Override check-in frequency for this phase"
+        },
+        "warning_tolerance": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high"],
+          "description": "Override warning tolerance for this phase"
+        },
+        "error_tolerance": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high"],
+          "description": "Override error tolerance for this phase"
+        }
+      }
+    },
+    "global_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Global limits for workflow execution to prevent runaway issues",
+      "properties": {
+        "max_total_warnings": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50,
+          "description": "Maximum total warnings before workflow stops (default: 50)"
+        },
+        "max_total_errors": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "Maximum total errors before workflow stops (default: 20)"
+        },
+        "on_limit_reached": {
+          "type": "string",
+          "enum": ["stop", "truncate"],
+          "default": "stop",
+          "description": "Behavior when limit is reached. 'stop' = halt workflow, 'truncate' = stop collecting but continue workflow."
         }
       }
     },

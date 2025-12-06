@@ -1,0 +1,51 @@
+{
+  "log_type": "workflow-execution",
+  "description": "Aggregated FABER workflow execution summaries with phase totals and collected warnings/errors",
+  "local_retention_days": 30,
+  "cloud_retention_policy": "90_days",
+  "priority": "high",
+  "auto_archive": true,
+  "archive_triggers": {
+    "age_days": 30,
+    "size_mb": 10,
+    "status": ["completed", "completed_with_warnings", "failed", "cancelled"]
+  },
+  "compression": true,
+  "validation_required": true,
+  "metadata": {
+    "category": "execution",
+    "audience": "internal",
+    "compliance": ["audit_trail", "workflow_history", "lineage_tracking"]
+  },
+  "archival_rules": {
+    "keep_local_after_archive": false,
+    "archive_format": "json",
+    "index_fields": ["run_id", "workflow_id", "work_id", "final_status", "started_at", "completed_at"],
+    "searchable": true
+  },
+  "retention_exceptions": {
+    "final_status:failed": {
+      "local_retention_days": 60,
+      "cloud_retention_policy": "180_days",
+      "priority": "critical",
+      "note": "Keep failures longer for debugging and root cause analysis"
+    },
+    "final_status:completed_with_warnings": {
+      "local_retention_days": 45,
+      "cloud_retention_policy": "120_days",
+      "priority": "high",
+      "note": "Keep workflows with warnings longer for tracking patterns"
+    }
+  },
+  "cleanup_policy": {
+    "safe_to_delete": true,
+    "requires_approval": false,
+    "auto_cleanup_after_days": 90,
+    "warning_message": "Workflow execution logs older than 90 days will be archived to cloud storage and removed locally."
+  },
+  "query_optimization": {
+    "index_by": ["work_id", "final_status", "started_at", "completed_at"],
+    "partition_by": "started_at",
+    "enable_full_text_search": true
+  }
+}

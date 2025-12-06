@@ -26,11 +26,46 @@ FABER workflow manager expects all step and hook executions to return a standard
 | Field | Type | When to Use |
 |-------|------|-------------|
 | `details` | object | Operation-specific structured data (artifacts, metrics, paths) |
-| `errors` | string[] | List of error messages (when status="failure") |
-| `warnings` | string[] | List of warning messages (when status="warning" or success with minor issues) |
+| `errors` | string[] or object[] | List of error messages or structured error objects |
+| `warnings` | string[] or object[] | List of warning messages or structured warning objects |
+| `messages` | string[] or object[] | List of informational success messages (for detailed reports) |
 | `error_analysis` | string | Root cause analysis for failures |
 | `warning_analysis` | string | Impact assessment for warnings |
-| `suggested_fixes` | string[] | Actionable recovery suggestions |
+| `suggested_fixes` | string[] or object[] | Actionable recovery suggestions |
+
+### Structured Warnings/Errors (v2.1)
+
+FABER v2.1 supports structured warnings and errors with severity and category:
+
+```json
+{
+  "warnings": [
+    {
+      "text": "Deprecated API: useCallback (will be removed in v3.0)",
+      "severity": "medium",
+      "category": "deprecation",
+      "suggested_fix": "Replace useCallback with useMemo"
+    }
+  ],
+  "errors": [
+    {
+      "text": "SQL injection vulnerability in user input",
+      "severity": "high",
+      "category": "security",
+      "suggested_fix": "Use parameterized queries"
+    }
+  ]
+}
+```
+
+**Backward Compatibility**: Simple strings are still supported:
+```json
+{
+  "warnings": ["Deprecated API usage", "Large file size"]
+}
+```
+
+When strings are used, severity and category are auto-detected using heuristics.
 
 ### Complete Structure
 
@@ -374,8 +409,49 @@ The response `status` maps to workflow `result_handling` configuration:
 
 See [RESULT-HANDLING.md](./RESULT-HANDLING.md) for complete result handling documentation.
 
+## Severity Levels
+
+| Severity | Description | Examples |
+|----------|-------------|----------|
+| `low` | Informational, safe to ignore | Style issues, minor lint warnings |
+| `medium` | Should be addressed eventually | Deprecated APIs, performance hints |
+| `high` | Critical, address immediately | Security issues, breaking changes |
+
+## Categories
+
+| Category | Description | Examples |
+|----------|-------------|----------|
+| `deprecation` | Deprecated/obsolete features | "API will be removed in v3.0" |
+| `performance` | Performance concerns | "Large bundle size", "Slow query" |
+| `security` | Security vulnerabilities | "SQL injection", "XSS risk" |
+| `style` | Code style/formatting | "Line too long", "Missing semicolon" |
+| `compatibility` | Platform/version issues | "Not supported in Node 14" |
+| `validation` | Data validation failures | "Missing required field" |
+| `configuration` | Configuration problems | "Invalid config value" |
+| `other` | Uncategorized | Default fallback |
+
+## Auto-Detection
+
+When warnings/errors are provided as strings, FABER auto-detects severity and category:
+
+### Severity Detection Keywords
+
+- **high**: `critical`, `fatal`, `security`, `vulnerability`, `breaking`
+- **medium**: `deprecated`, `warning`, `should`, `performance`
+- **low**: `style`, `format`, `minor`, `optional`
+
+### Category Detection Keywords
+
+- **security**: `security`, `vulnerability`, `injection`, `xss`, `auth`
+- **deprecation**: `deprecated`, `obsolete`, `removed in`
+- **performance**: `slow`, `memory`, `cpu`, `timeout`
+- **validation**: `invalid`, `required`, `schema`
+
+See `skills/faber-manager/workflow/severity-detection.md` for complete heuristics.
+
 ## See Also
 
+- [AUTONOMY.md](./AUTONOMY.md) - Two-dimensional autonomy model with tolerance thresholds
 - [RESULT-HANDLING.md](./RESULT-HANDLING.md) - Workflow result handling behavior
 - [Schema](../config/schemas/skill-response.schema.json) - JSON Schema for validation
 - [Best Practices](../../docs/standards/SKILL-RESPONSE-BEST-PRACTICES.md) - Skill development guide

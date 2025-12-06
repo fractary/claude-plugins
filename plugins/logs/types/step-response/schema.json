@@ -1,0 +1,208 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Step Response Log Schema",
+  "description": "Schema for logging individual step and hook responses during FABER workflow execution. Each step/hook execution generates one step-response log entry.",
+  "properties": {
+    "log_type": {
+      "const": "step-response",
+      "description": "Must be 'step-response'"
+    },
+    "response_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this response (UUID v4)"
+    },
+    "workflow_id": {
+      "type": "string",
+      "description": "Parent workflow identifier",
+      "pattern": "^workflow-[a-z0-9-]+$"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique run identifier (format: org/project/uuid)"
+    },
+    "step_id": {
+      "type": "string",
+      "description": "Full step identifier in format 'phase:step-name'",
+      "pattern": "^(frame|architect|build|evaluate|release|hook):[a-z][a-z0-9-]*$"
+    },
+    "step_name": {
+      "type": "string",
+      "description": "Human-readable step name"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["frame", "architect", "build", "evaluate", "release"],
+      "description": "FABER phase this step belongs to"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["step", "hook", "primitive"],
+      "description": "Type of execution unit"
+    },
+    "hook_timing": {
+      "type": "string",
+      "enum": ["pre", "post"],
+      "description": "For hooks: whether it ran before or after the phase"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Attempt number (for retries). First attempt is 1."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "warning", "failure"],
+      "description": "Execution outcome status"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Human-readable summary of what happened (1-2 sentences)"
+    },
+    "details": {
+      "type": "object",
+      "description": "Operation-specific structured data (artifacts, metrics, paths)",
+      "additionalProperties": true
+    },
+    "warnings": {
+      "type": "array",
+      "description": "List of warning objects with severity and category",
+      "items": {
+        "$ref": "#/definitions/warning_item"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "List of error objects with severity and category",
+      "items": {
+        "$ref": "#/definitions/error_item"
+      }
+    },
+    "messages": {
+      "type": "array",
+      "description": "List of informational/success messages",
+      "items": {
+        "$ref": "#/definitions/message_item"
+      }
+    },
+    "warning_analysis": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Impact assessment for warnings"
+    },
+    "error_analysis": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Root cause analysis for errors"
+    },
+    "suggested_fixes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description of the suggested fix"
+          },
+          "command": {
+            "type": "string",
+            "description": "Executable command to apply the fix (if applicable)"
+          },
+          "file": {
+            "type": "string",
+            "description": "File to review or edit (if applicable)"
+          }
+        },
+        "required": ["description"]
+      },
+      "description": "Actionable recovery suggestions with optional commands"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Execution duration in milliseconds"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when step started"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when step completed"
+    }
+  },
+  "required": ["log_type", "response_id", "run_id", "step_id", "phase", "type", "status", "message", "timestamp"],
+  "additionalProperties": true,
+  "definitions": {
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Severity level: low (safe to ignore), medium (address eventually), high (address now)"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["deprecation", "performance", "security", "style", "compatibility", "validation", "configuration", "other"],
+      "description": "Category for classification and filtering"
+    },
+    "warning_item": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Warning message text"
+        },
+        "severity": {
+          "$ref": "#/definitions/severity"
+        },
+        "category": {
+          "$ref": "#/definitions/category"
+        },
+        "suggested_fix": {
+          "type": "string",
+          "description": "Quick suggested fix for this warning"
+        }
+      },
+      "required": ["text", "severity", "category"]
+    },
+    "error_item": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Error message text"
+        },
+        "severity": {
+          "$ref": "#/definitions/severity"
+        },
+        "category": {
+          "$ref": "#/definitions/category"
+        },
+        "suggested_fix": {
+          "type": "string",
+          "description": "Quick suggested fix for this error"
+        }
+      },
+      "required": ["text", "severity", "category"]
+    },
+    "message_item": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Informational message text"
+        },
+        "category": {
+          "$ref": "#/definitions/category"
+        }
+      },
+      "required": ["text"]
+    }
+  }
+}
