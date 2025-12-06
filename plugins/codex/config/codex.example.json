@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "3.0",
   "organization": "fractary",
   "codex_repo": "codex.fractary.com",
   "sync_patterns": [
@@ -27,6 +27,24 @@
   ],
   "auto_sync": false,
   "sync_direction": "bidirectional",
+  "environments": {
+    "dev": {
+      "branch": "test",
+      "description": "Development environment"
+    },
+    "test": {
+      "branch": "test",
+      "description": "Test/QA environment"
+    },
+    "staging": {
+      "branch": "main",
+      "description": "Staging environment (defaults to prod branch)"
+    },
+    "prod": {
+      "branch": "main",
+      "description": "Production environment"
+    }
+  },
   "handlers": {
     "sync": {
       "active": "github",

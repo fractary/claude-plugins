@@ -124,13 +124,23 @@ Parse the operation and delegate to the appropriate skill:
 
 **Parameters**:
 - `project`: Project name (default: current project from git remote)
+- `organization`: Organization name (from config)
+- `codex_repo`: Codex repository name (from config)
+- `environment`: Environment name (dev, test, staging, prod, or custom)
+- `target_branch`: Branch in codex repository to sync with (from environment mapping)
 - `direction`: "to-codex" | "from-codex" | "bidirectional" (default: bidirectional)
 - `dry_run`: Boolean (default: false)
 - `patterns`: Optional array of glob patterns to override config
+- `config`: Full configuration object
 
 **Prerequisites**:
 - Configuration must exist at `.fractary/plugins/codex/config.json`
-- Read configuration to get: organization, codex_repo, sync_patterns
+- Read configuration to get: organization, codex_repo, sync_patterns, environments
+
+**Environment Handling**:
+- The command layer determines the environment (auto-detected or explicit --env)
+- The command layer resolves environment to target_branch using config.environments
+- This operation receives the resolved target_branch
 
 **Delegation**:
 ```
@@ -139,9 +149,14 @@ Operation: sync
 Arguments: {
   project: <project-name>,
   codex_repo: <from-config>,
+  organization: <from-config>,
+  environment: <environment-name>,
+  target_branch: <target-branch-from-environment>,
   direction: <to-codex|from-codex|bidirectional>,
   patterns: <from-config-or-parameter>,
-  dry_run: <true|false>
+  exclude: <from-config>,
+  dry_run: <true|false>,
+  config: <full-config-object>
 }
 ```
 
@@ -156,14 +171,25 @@ Arguments: {
 **Purpose**: Sync all projects in organization with codex repository (parallel execution)
 
 **Parameters**:
+- `organization`: Organization name (from config)
+- `codex_repo`: Codex repository name (from config)
+- `environment`: Environment name (dev, test, staging, prod, or custom)
+- `target_branch`: Branch in codex repository to sync with (from environment mapping)
 - `direction`: "to-codex" | "from-codex" | "bidirectional" (default: bidirectional)
 - `dry_run`: Boolean (default: false)
 - `exclude`: Array of glob patterns for repos to exclude
 - `parallel`: Number of parallel sync operations (default: from config, typically 5)
+- `config`: Full configuration object
 
 **Prerequisites**:
 - Configuration must exist at `.fractary/plugins/codex/config.json`
-- Read configuration to get: organization, codex_repo, default_sync_patterns
+- Read configuration to get: organization, codex_repo, default_sync_patterns, environments
+
+**Environment Handling**:
+- For org-wide sync, environment defaults to "test" (safe default)
+- Explicit --env prod requires confirmation from command layer
+- The command layer resolves environment to target_branch using config.environments
+- This operation receives the resolved target_branch
 
 **Delegation**:
 ```
@@ -172,10 +198,13 @@ Operation: sync-all
 Arguments: {
   organization: <from-config>,
   codex_repo: <from-config>,
+  environment: <environment-name>,
+  target_branch: <target-branch-from-environment>,
   direction: <to-codex|from-codex|bidirectional>,
   exclude: <from-parameter>,
   parallel: <from-config-or-parameter>,
-  dry_run: <true|false>
+  dry_run: <true|false>,
+  config: <full-config-object>
 }
 ```
 

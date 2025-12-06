@@ -4,7 +4,7 @@ work_id: 247
 issue_url: https://github.com/fractary/claude-plugins/issues/247
 title: Make codex-sync environment aware
 type: feature
-status: draft
+status: implemented
 created: 2025-12-06
 updated: 2025-12-06
 author: jmcwilliam
@@ -16,7 +16,7 @@ source: conversation+issue
 
 **Issue**: [#247](https://github.com/fractary/claude-plugins/issues/247)
 **Type**: Feature
-**Status**: Draft
+**Status**: Implemented
 **Created**: 2025-12-06
 **Updated**: 2025-12-06
 

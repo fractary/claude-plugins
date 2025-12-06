@@ -2,59 +2,7 @@
 name: fractary-codex:sync-project
 description: Sync a single project bidirectionally with codex repository
 model: claude-haiku-4-5
-argument-hint: [project-name] [--to-codex|--from-codex|--bidirectional] [--dry-run]
----
-
-# ⚠️ DEPRECATION WARNING - Legacy Command
-
-**This command is part of the legacy push-based sync system (SPEC-00012, Codex v2.0) and is deprecated.**
-
-## Migration Required
-
-**New approach (v3.0)**: Pull-based knowledge retrieval with cache-first strategy
-
-```bash
-# Instead of syncing FROM codex:
-/fractary-codex:sync-project my-project --from-codex
-
-# Use the new fetch command:
-/fractary-codex:fetch @codex/my-project/docs/architecture.md
-/fractary-codex:fetch @codex/my-project/**
-
-# View cached documents:
-/fractary-codex:cache-list
-
-# Clear expired cache:
-/fractary-codex:cache-clear --expired
-```
-
-## Deprecation Timeline
-
-- **Stage 1 (Current - Month 3)**: Both systems work, retrieval opt-in
-- **Stage 2 (Month 3-6)**: Push still works, pull deprecated, retrieval recommended
-- **Stage 3 (Month 6-9)**: Sync commands show warnings, retrieval is standard
-- **Stage 4 (Month 9-12)**: Sync commands removed, retrieval only
-
-## Migration Steps
-
-1. **Read migration guide**: `plugins/codex/docs/MIGRATION-PHASE4.md`
-2. **Convert config**: `/fractary-codex:migrate` (or `/fractary-codex:migrate --dry-run` to preview)
-3. **Test retrieval**: `/fractary-codex:fetch @codex/project/path`
-4. **Switch workflows**: Replace sync commands with fetch commands
-
-## Benefits of Migrating
-
-- **10-50x faster** cache hits (< 50ms vs 1-3s)
-- **Multi-source support** (not just codex repository)
-- **Offline-first** with local cache
-- **No manual sync** required
-- **MCP integration** for Claude Desktop/Code
-
-## Support
-
-This legacy command will continue to work during the transition period (Stages 1-3, ~6-9 months).
-For help migrating: See [MIGRATION-PHASE4.md](../docs/MIGRATION-PHASE4.md)
-
+argument-hint: [project-name] [--env <env>] [--to-codex|--from-codex|--bidirectional] [--dry-run]
 ---
 
 <CONTEXT>
@@ -62,25 +10,43 @@ You are the **sync-project command router** for the codex plugin.
 
 Your role is to parse command arguments and invoke the codex-manager agent to sync a single project with the codex repository. You handle:
 - Project name detection (current project or specified)
+- **Environment detection** (auto-detect from branch or explicit --env flag)
 - Sync direction parsing (to-codex, from-codex, or bidirectional)
+- **Confirmation prompts** for production syncs
 - Dry-run mode
 - Argument validation
 
-You provide a simple, intuitive interface for syncing documentation between a project and the central codex repository.
+You provide a simple, intuitive interface for syncing documentation between a project and the central codex repository with environment awareness.
 </CONTEXT>
 
 <CRITICAL_RULES>
 **IMPORTANT: ROUTING ONLY**
 - Parse command arguments
 - Invoke codex-manager agent with sync-project operation
-- Pass project name and sync options
+- Pass project name, environment, and sync options
 - DO NOT perform sync operations yourself
+
+**IMPORTANT: ENVIRONMENT AUTO-DETECTION**
+- If `--env` explicitly provided: use that environment, skip confirmation
+- If no `--env` provided: auto-detect from current git branch
+  - Feature/fix/etc branches → `test` environment (no confirmation)
+  - Main/master branch → `prod` environment (REQUIRES confirmation)
+- Check if test==prod in config (both map to same branch) → warn user
+
+**IMPORTANT: CONFIRMATION PROMPTS**
+- Prompt for confirmation when:
+  1. Production environment is ASSUMED (on main branch, no explicit --env)
+  2. Test environment maps to same branch as prod (effectively going to prod)
+- SKIP confirmation when:
+  1. `--env` is explicitly provided (user was deliberate)
+  2. Environment is test and test branch differs from prod branch
 
 **IMPORTANT: USER-FRIENDLY DEFAULTS**
 - Default to current project if no project specified
 - Default to bidirectional sync if no direction specified
 - Default to real sync (dry-run=false) unless --dry-run specified
 - Auto-detect project from git remote when possible
+- Auto-detect environment from current branch
 
 **IMPORTANT: NEVER DO WORK**
 - You are a command router, not an implementer
@@ -98,19 +64,38 @@ Command format:
 - `project-name`: Optional project name (default: current project from git remote)
 
 **Options:**
+- `--env <environment>`: Target environment (dev, test, staging, prod, or custom). Default: auto-detected from current branch
 - `--to-codex`: Only sync project → codex (pull docs to codex)
 - `--from-codex`: Only sync codex → project (push docs from codex)
 - `--bidirectional`: Sync both directions (default)
 - `--dry-run`: Preview changes without applying them
 - `--patterns <patterns>`: Override sync patterns (comma-separated)
 
+**Environment Auto-Detection:**
+- On feature/fix/chore/etc branch → `test` environment
+- On main/master branch → `prod` environment (with confirmation prompt)
+- Explicit `--env` flag overrides auto-detection and skips confirmation
+
 **Examples:**
-```
+```bash
+# Auto-detect environment from current branch
 /fractary-codex:sync-project
-/fractary-codex:sync-project my-project
-/fractary-codex:sync-project --to-codex
-/fractary-codex:sync-project my-project --dry-run
-/fractary-codex:sync-project --from-codex --dry-run
+# On feat/123-feature → syncs to test (no prompt)
+# On main → syncs to prod (prompts for confirmation)
+
+# Explicit environment (skips confirmation)
+/fractary-codex:sync-project --env test
+/fractary-codex:sync-project --env prod
+
+# With project name
+/fractary-codex:sync-project my-project --env test
+
+# Dry-run preview
+/fractary-codex:sync-project --dry-run
+
+# Direction-specific
+/fractary-codex:sync-project --to-codex --env prod
+/fractary-codex:sync-project --from-codex --env test
 ```
 </INPUTS>
 
@@ -119,9 +104,12 @@ Command format:
 
 Extract from command:
 - Project name (if provided)
+- Environment: `--env <environment>` (optional, triggers auto-detect if not provided)
 - Direction: `--to-codex`, `--from-codex`, `--bidirectional` (default)
 - Dry-run: `--dry-run` flag
 - Patterns: `--patterns <list>` (optional override)
+
+Track whether `--env` was explicitly provided (affects confirmation logic).
 
 ## Step 2: Determine Project Name
 
@@ -133,25 +121,11 @@ If project name NOT provided:
 3. If successful: use detected project name
 4. If failed: prompt user to specify
 
-Output:
-```
-Detected project: my-project
-Syncing with codex...
-```
-
 If project name provided:
 - Use the specified project name
 - No need to detect
 
-## Step 3: Validate Direction
-
-Ensure direction is valid:
-- If `--to-codex`: direction = "to-codex"
-- If `--from-codex`: direction = "from-codex"
-- If `--bidirectional` OR no direction flag: direction = "bidirectional"
-- If multiple direction flags: error (conflicting options)
-
-## Step 4: Load Configuration
+## Step 3: Load Configuration
 
 Check that configuration exists at `.fractary/plugins/codex/config.json`
 
@@ -174,8 +148,117 @@ If configuration exists:
 - Read codex repository name
 - Read sync patterns (unless overridden)
 - Read sync options
+- **Read environments configuration** (for branch mappings)
 
-## Step 5: Invoke Codex-Manager Agent
+## Step 4: Determine Environment (NEW)
+
+**If `--env` explicitly provided:**
+- Use the specified environment
+- Set `env_explicit = true` (skip confirmation later)
+- Validate environment exists in config (or is a standard env: dev, test, staging, prod)
+
+**If `--env` NOT provided (auto-detect):**
+1. Get current git branch name
+2. Determine environment based on branch:
+   - Branch is `main` or `master` → environment = `prod`
+   - Branch starts with `feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/`, `perf/`, `style/`, `ci/`, `build/` → environment = `test`
+   - Any other branch → environment = `test` (safe default)
+3. Set `env_explicit = false` (may need confirmation)
+
+Output (for auto-detected):
+```
+Detected environment: test (from branch: feat/247-environment-aware)
+```
+
+OR
+
+```
+Detected environment: prod (from branch: main)
+```
+
+## Step 5: Resolve Target Branch
+
+Look up the target branch for the determined environment from config:
+```
+target_branch = config.environments[environment].branch
+```
+
+Example mappings (from config):
+- `test` → `test` branch
+- `prod` → `main` branch
+
+**Check if test==prod (same branch):**
+```
+test_equals_prod = (config.environments.test.branch == config.environments.prod.branch)
+```
+
+## Step 6: Confirmation Prompts (if needed)
+
+**Prompt for confirmation if ANY of these conditions are true:**
+
+**Condition A: Assumed production (on main branch, no explicit --env)**
+```
+IF environment == "prod" AND env_explicit == false THEN
+  Display:
+  ┌─────────────────────────────────────────────────────────────┐
+  │ ⚠️  PRODUCTION SYNC CONFIRMATION                            │
+  │                                                             │
+  │ You are on the main branch. This will sync documentation    │
+  │ to PRODUCTION.                                              │
+  │                                                             │
+  │ Target: codex.fractary.com (main branch)                    │
+  │ Direction: bidirectional                                    │
+  │                                                             │
+  │ Are you sure you want to sync to production? [y/N]:         │
+  └─────────────────────────────────────────────────────────────┘
+
+  IF user responds "n" or empty THEN
+    Output: "Sync cancelled. Use --env test to sync to test environment."
+    EXIT (do not invoke agent)
+  END
+END
+```
+
+**Condition B: Test environment configured to use prod branch**
+```
+IF environment == "test" AND test_equals_prod == true THEN
+  Display:
+  ┌─────────────────────────────────────────────────────────────┐
+  │ ⚠️  ENVIRONMENT CONFIGURATION WARNING                       │
+  │                                                             │
+  │ The test environment is configured to use the production    │
+  │ branch (main).                                              │
+  │ This means your sync will go directly to production.        │
+  │                                                             │
+  │ If you want a separate test environment:                    │
+  │ 1. Create test branch:                                      │
+  │    /fractary-repo:branch-create test --base main            │
+  │ 2. Update config: .fractary/plugins/codex/config.json       │
+  │    Set environments.test.branch = "test"                    │
+  │                                                             │
+  │ Continue syncing to production? [y/N]:                      │
+  └─────────────────────────────────────────────────────────────┘
+
+  IF user responds "n" or empty THEN
+    Output: "Sync cancelled."
+    EXIT (do not invoke agent)
+  END
+END
+```
+
+**Skip confirmation if:**
+- `env_explicit == true` (user provided explicit --env)
+- Environment is test AND test branch differs from prod branch
+
+## Step 7: Validate Direction
+
+Ensure direction is valid:
+- If `--to-codex`: direction = "to-codex"
+- If `--from-codex`: direction = "from-codex"
+- If `--bidirectional` OR no direction flag: direction = "bidirectional"
+- If multiple direction flags: error (conflicting options)
+
+## Step 8: Invoke Codex-Manager Agent
 
 Use the codex-manager agent with sync-project operation:
 
@@ -187,6 +270,8 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
     "project": "<project-name>",
     "organization": "<from-config>",
     "codex_repo": "<from-config>",
+    "environment": "<environment>",
+    "target_branch": "<target-branch>",
     "direction": "<to-codex|from-codex|bidirectional>",
     "patterns": <from-config-or-override>,
     "exclude": <from-config>,
@@ -198,13 +283,15 @@ Use the @agent-fractary-codex:codex-manager agent with the following request:
 
 The agent will:
 1. Validate inputs
-2. Invoke project-syncer skill
-3. Coordinate sync operation
-4. Return results
+2. **Check if target branch exists** (error if not)
+3. Invoke project-syncer skill with target branch
+4. Coordinate sync operation
+5. Return results
 
-## Step 6: Display Results
+## Step 9: Display Results
 
 Show the agent's response, which includes:
+- **Environment and target branch**
 - Sync direction(s) completed
 - Files synced in each direction
 - Commits created
@@ -215,6 +302,7 @@ Example output:
 ```
 ✅ Project Sync Complete: my-project
 
+Environment: test (branch: test)
 Direction: Bidirectional
 
 To Codex:
@@ -232,7 +320,7 @@ From Codex:
 Next: Review commits and verify changes
 ```
 
-## Step 7: Provide Guidance
+## Step 10: Provide Guidance
 
 If first-time sync:
 - Suggest reviewing commits
@@ -243,6 +331,10 @@ If errors occurred:
 - Explain what failed
 - Provide resolution steps
 - Suggest dry-run for debugging
+
+If target branch didn't exist:
+- Display helpful error with branch creation command
+- Suggest config change alternative
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
@@ -340,6 +432,41 @@ Run without --dry-run to apply changes:
   5. Do NOT look for or use global config at `~/.config/...`
   </CONFIGURATION_MISSING>
 
+  <INVALID_ENVIRONMENT>
+  If specified environment doesn't exist in config:
+  1. List valid environments from config
+  2. Show how to add custom environments
+  3. Example: /fractary-codex:sync-project --env test
+  4. Don't invoke agent with invalid environment
+  </INVALID_ENVIRONMENT>
+
+  <TARGET_BRANCH_NOT_FOUND>
+  If the target branch doesn't exist in codex repository:
+  Display:
+  ```
+  ❌ TARGET BRANCH NOT FOUND
+
+  The target branch 'test' does not exist in the codex repository.
+
+  To create the test branch:
+    /fractary-repo:branch-create test --base main
+
+  Or, if you don't need a separate test environment:
+    Edit .fractary/plugins/codex/config.json
+    Set environments.test.branch = "main"
+
+  This will make all test syncs go to the main (production) branch.
+  ```
+  </TARGET_BRANCH_NOT_FOUND>
+
+  <USER_CANCELLED>
+  If user declines confirmation prompt:
+  1. Display cancellation message
+  2. Suggest alternatives (e.g., --env test)
+  3. Don't invoke agent
+  4. Exit cleanly
+  </USER_CANCELLED>
+
   <CONFLICTING_OPTIONS>
   If multiple direction flags provided:
   1. Explain the conflict (e.g., --to-codex AND --from-codex)
@@ -362,6 +489,7 @@ After sync, provide helpful guidance:
 
 1. **What happened**:
    - Which direction(s) synced
+   - Environment and target branch
    - File counts
    - Commit links for verification
 
@@ -374,11 +502,38 @@ After sync, provide helpful guidance:
    - Deletion threshold exceeded → review files
    - Merge conflicts → resolve manually
    - Authentication errors → check repo plugin config
+   - Target branch not found → create branch or update config
 
 4. **Next steps**:
    - Sync other projects if needed
    - Set up automation
    - Customize sync patterns
+
+5. **FABER Workflow Integration**:
+   When using codex sync within the FABER workflow:
+
+   - **Evaluate Phase**: Sync to test environment
+     ```bash
+     # During FABER evaluate, sync docs to test for review
+     /fractary-codex:sync-project --env test
+     # or auto-detected when on feature branch
+     /fractary-codex:sync-project
+     ```
+
+   - **Release Phase**: Sync to production environment
+     ```bash
+     # During FABER release, sync docs to production
+     /fractary-codex:sync-project --env prod
+     ```
+
+   - **Promotion Pattern**: To promote docs from test to prod:
+     1. Complete FABER evaluate phase (docs sync to test)
+     2. In FABER release phase, sync to prod explicitly
+     3. No separate promotion command needed - just re-run with `--env prod`
+
+   - **Auto-Detection in FABER**:
+     - Feature branches (during build/evaluate) → test environment
+     - Main branch (during release) → prod environment (with confirmation)
 
 Keep guidance relevant and actionable.
 </DOCUMENTATION>

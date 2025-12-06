@@ -317,12 +317,36 @@ After successful initialization, guide the user:
      - `sync_patterns`: Glob patterns to include (e.g., "docs/**", "CLAUDE.md")
      - `exclude_patterns`: Glob patterns to exclude (e.g., "**/.git/**", "**/node_modules/**")
      - `sync_direction`: "to-codex" | "from-codex" | "bidirectional"
+     - `environments`: Environment-to-branch mappings for codex repository
+       - `dev.branch`: Branch for dev environment (default: "test")
+       - `test.branch`: Branch for test environment (default: "test")
+       - `staging.branch`: Branch for staging environment (default: "main")
+       - `prod.branch`: Branch for production environment (default: "main")
+       - Custom environments can be added (e.g., "uat": {"branch": "uat"})
      - `cache.default_ttl`: Cache TTL in seconds (default: 604800 = 7 days)
      - `cache.offline_mode`: Enable offline mode (default: false)
      - `cache.fallback_to_stale`: Use stale content when network fails (default: true)
      - `auth.default`: Authentication mode ("inherit" = use git config)
      - `auth.fallback_to_public`: Try unauthenticated if auth fails (default: true)
      - `sources.<org>`: Per-source TTL and authentication overrides
+
+   - **Environment configuration**:
+     By default, sync operations auto-detect the target environment based on your current branch:
+     - Feature/fix branches → `test` environment (syncs to "test" branch in codex)
+     - Main/master branch → `prod` environment (syncs to "main" branch in codex, with confirmation)
+
+     Override with explicit `--env` flag:
+     ```bash
+     /fractary-codex:sync-project --env prod  # Explicit, no confirmation
+     ```
+
+     To disable separate test environment (all syncs go to main):
+     ```json
+     "environments": {
+       "test": { "branch": "main" },
+       "prod": { "branch": "main" }
+     }
+     ```
 
    - **Frontmatter (per-file control)**: Add to markdown/YAML files
      ```yaml
