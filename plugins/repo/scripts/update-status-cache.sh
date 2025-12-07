@@ -186,14 +186,31 @@ fi
 # Detect if we need to refresh PR number:
 # - Branch changed (new branch, need fresh lookup)
 # - Same branch but no cached PR (PR may have been created since last check)
-if [ "$BRANCH" != "$CACHED_BRANCH" ] || [ -z "$CACHED_PR_NUMBER" ]; then
-    # If we don't have a PR number yet, use cached one temporarily and start async lookup
-    if [ -z "$PR_NUMBER" ]; then
-        PR_NUMBER="$CACHED_PR_NUMBER"
-    fi
+NEED_ASYNC_LOOKUP=false
 
-    # Start async PR lookup in background (non-blocking)
-    # This writes results to PR_CACHE_FILE for next cache read
+if [ "$BRANCH" != "$CACHED_BRANCH" ]; then
+    # Branch changed - CLEAR PR number, don't carry over from old branch
+    # Fix for issue #260: Stale PR number persisted after branch switch
+    # Rationale: "No PR" is better UX than "Wrong PR" - showing a PR from
+    # a different branch is confusing and can interfere with PR operations
+    PR_NUMBER=""
+
+    # Also clear the PR cache file since it's for the old branch
+    rm -f "$PR_CACHE_FILE" 2>/dev/null || true
+
+    NEED_ASYNC_LOOKUP=true
+elif [ -z "$CACHED_PR_NUMBER" ]; then
+    # Same branch but no cached PR - PR may have been created since last check
+    # Start async lookup to discover new PR
+    NEED_ASYNC_LOOKUP=true
+else
+    # Same branch with existing PR - reuse cached PR number (fast, no network)
+    PR_NUMBER="$CACHED_PR_NUMBER"
+fi
+
+# Start async PR lookup in background if needed (non-blocking)
+# This writes results to PR_CACHE_FILE for next cache read
+if [ "$NEED_ASYNC_LOOKUP" = true ]; then
     (
         ASYNC_PR=""
         # Try gh CLI first (fastest, most reliable)
@@ -223,9 +240,6 @@ PREOF
     ) &
     # Disown to prevent waiting for background job
     disown 2>/dev/null || true
-else
-    # Same branch - reuse cached PR number (fast, no network)
-    PR_NUMBER="$CACHED_PR_NUMBER"
 fi
 
 # Get current timestamp in ISO 8601 format

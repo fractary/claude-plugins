@@ -198,6 +198,42 @@ if [ "$DELETE_BRANCH" = "true" ]; then
     echo "Branch deleted" >&2
 fi
 
+# =============================================================================
+# Clear PR from status cache since the PR is now merged
+# Fix for issue #260: Stale PR number persisted after merge
+# This proactively clears the cache so users don't see the old PR number
+# even if they stay on the same branch after merging
+# =============================================================================
+CACHE_DIR="${HOME}/.fractary/repo"
+if [ -d "$CACHE_DIR" ]; then
+    REPO_PATH=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    REPO_ID=$(echo "$REPO_PATH" | (md5sum 2>/dev/null || md5 2>/dev/null || shasum 2>/dev/null) | cut -d' ' -f1 | cut -c1-16 || echo "global")
+    CACHE_FILE="${CACHE_DIR}/status-${REPO_ID}.cache"
+    PR_CACHE_FILE="${CACHE_DIR}/pr-${REPO_ID}.cache"
+
+    # Clear PR from main status cache (use temp file for atomic update)
+    if [ -f "$CACHE_FILE" ]; then
+        TEMP_CACHE="${CACHE_FILE}.tmp.$$"
+        if sed 's/"pr_number": "[^"]*"/"pr_number": ""/' "$CACHE_FILE" > "$TEMP_CACHE" 2>/dev/null; then
+            # Validate temp file is non-empty and valid JSON before replacing
+            # This prevents data loss if sed fails or produces empty output
+            if [ -s "$TEMP_CACHE" ] && grep -q '"timestamp"' "$TEMP_CACHE" 2>/dev/null; then
+                mv -f "$TEMP_CACHE" "$CACHE_FILE" 2>/dev/null || rm -f "$TEMP_CACHE" 2>/dev/null
+            else
+                # Temp file invalid - remove it, keep original cache
+                rm -f "$TEMP_CACHE" 2>/dev/null
+            fi
+        else
+            rm -f "$TEMP_CACHE" 2>/dev/null
+        fi
+    fi
+
+    # Clear PR cache file entirely
+    rm -f "$PR_CACHE_FILE" 2>/dev/null || true
+
+    echo "Status cache cleared (PR merged)" >&2
+fi
+
 # Output JSON response for parsing by skill
 # Convert bash string boolean to proper JSON boolean
 BRANCH_DELETED_JSON=$([ "$DELETE_BRANCH" = "true" ] && echo "true" || echo "false")
