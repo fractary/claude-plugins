@@ -63,11 +63,11 @@ done
 # This ensures only one update runs at a time, preventing git lock conflicts
 # Skip lock acquisition if --skip-lock flag is passed (caller already holds lock)
 #
-# File Descriptor 200 is used for locking throughout this script and auto-commit-on-stop.sh
+# File Descriptor 200 is used for locking throughout this script
 # Assumptions:
 #   - FD 200 is not used by calling scripts or processes
 #   - FD 200 is available for exclusive lock coordination
-#   - Same FD number must be used across all scripts sharing this lock
+#   - Lock mechanism retained for future parallel batch worker support
 #
 # Using <> (read-write) instead of > (write/truncate) for atomic lock file access
 if [ "$SKIP_LOCK" = false ]; then

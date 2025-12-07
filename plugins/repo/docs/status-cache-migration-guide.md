@@ -100,8 +100,8 @@ Ensure the fractary-repo plugin hooks are registered:
 cat ~/.claude/plugins/fractary-repo/hooks/hooks.json
 
 # Expected hooks:
-# - Stop: auto-commit-on-stop.sh (which updates cache)
-# - UserPromptSubmit: update-status-cache.sh --quiet
+# - Stop: update-status-cache.sh (final cache update)
+# - UserPromptSubmit: update-status-cache.sh --quiet (ongoing updates)
 ```
 
 If hooks are not active, reload the plugin:
@@ -482,4 +482,4 @@ This stores cache in `.git/fractary/status.cache` for each repo.
 - [Status Cache Status Line Examples](status-cache-statusline-examples.md)
 - [fractary-repo Plugin README](../README.md)
 - [Hook Configuration](../hooks/hooks.json)
-- [Auto-Commit Hook](../scripts/auto-commit-on-stop.sh)
+- [Update Status Cache Script](../scripts/update-status-cache.sh)

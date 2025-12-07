@@ -721,9 +721,9 @@ repo/
 ├── agents/                          # Routing agent (Layer 2)
 │   └── repo-manager.md
 ├── scripts/                         # Utility scripts
-│   ├── auto-commit-on-stop.sh       # Auto-commit hook
 │   ├── update-status-cache.sh       # Update git status cache
-│   └── read-status-cache.sh         # Read git status cache
+│   ├── read-status-cache.sh         # Read git status cache
+│   └── generate-commit-message.sh   # Generate commit messages
 ├── hooks/
 │   └── hooks.json                   # Plugin hook configuration
 └── skills/                          # Workflows & handlers (Layer 3)

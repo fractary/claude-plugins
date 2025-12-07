@@ -2,7 +2,7 @@
 
 # Generate Commit Message
 # This script generates a meaningful commit message based on staged changes
-# Part of fractary-repo plugin - used by auto-commit-on-stop.sh
+# Part of fractary-repo plugin - used by commit-creator skill
 # Analyzes file types and change patterns to determine commit type and summary
 
 set -euo pipefail

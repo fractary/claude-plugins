@@ -367,5 +367,5 @@ MAX_AGE_SECONDS=30  # Increase for less frequent updates
 ## See Also
 
 - [fractary-repo Plugin README](../README.md)
-- [Hook Configuration](hooks/hooks.json)
-- [Auto-Commit Hook](../scripts/auto-commit-on-stop.sh)
+- [Hook Configuration](../hooks/hooks.json)
+- [Update Status Cache Script](../scripts/update-status-cache.sh)

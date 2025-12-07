@@ -1,15 +1,4 @@
 {
-  "description": "Fractary Work Plugin Hooks - Auto-comment work updates to issues. Posts incremental progress summaries to issues when work occurs on issue-linked branches (e.g., feat/123-description). Requires branch naming: <type>/<issue_id>-<description>. Only posts when commits or changes detected. Reads issue_id from repo plugin cache for performance.",
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-comment-on-stop.sh"
-          }
-        ]
-      }
-    ]
-  }
+  "description": "Fractary Work Plugin Hooks - No automatic hooks. Use /work:comment-create for manual comments or let FABER skills handle comments at appropriate points.",
+  "hooks": {}
 }
