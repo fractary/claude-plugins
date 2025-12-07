@@ -65,7 +65,7 @@ This command follows the principle: **commands never do work** - they immediatel
 | `--work-id <id>` | string | - | Work item ID (GitHub issue, Jira ticket, Linear issue). Fetches issue details and checks labels for configuration. |
 | `--resume <run-id>` | string | - | Resume a previous run from where it failed/paused. Format: `org/project/uuid`. |
 | `--rerun <run-id>` | string | - | Re-run a previous run with a new run_id (for different parameters). Inherits metadata from original. |
-| `--workflow <id>` | string | `default` | Workflow to use (e.g., `default`, `hotfix`). Can be detected from issue labels. |
+| `--workflow <id>` | string | (from config) | Workflow to use. See **Workflow Namespacing** below. Can be detected from issue labels. |
 | `--autonomy <level>` | string | `guarded` | Autonomy level: `dry-run`, `assist`, `guarded`, `autonomous`. Can be detected from issue labels. |
 | `--phase <phases>` | string | all | Comma-separated phases to execute (e.g., `frame,architect`). **No spaces**. |
 | `--step <step-id>` | string | - | Specific step to execute. Format: `phase:step-id` (e.g., `build:implement`). Uses the step's `id` field (or `name` for backward compatibility). Mutually exclusive with `--phase`. |
@@ -378,6 +378,43 @@ faber-manager agent (execution layer)
 | `/fractary-faber:build 158` | `/fractary-faber:run --work-id 158 --phase build` |
 | `/fractary-faber:evaluate 158` | `/fractary-faber:run --work-id 158 --phase evaluate` |
 | `/fractary-faber:release 158` | `/fractary-faber:run --work-id 158 --phase release` |
+
+## Workflow Namespacing
+
+Workflows are identified by namespace prefixes that determine where they are loaded from:
+
+| Namespace | Location | Example |
+|-----------|----------|---------|
+| `fractary-faber:` | Plugin workflows (centrally maintained) | `fractary-faber:default`, `fractary-faber:core` |
+| `project:` | Project-specific workflows | `project:my-workflow` |
+| (no prefix) | Defaults to `project:` | `my-workflow` → `project:my-workflow` |
+
+**Key behaviors:**
+
+1. **No `--workflow` specified**: Uses `default_workflow` from config (set by `/fractary-faber:init` to `fractary-faber:default`)
+2. **`--workflow my-workflow`**: Looks in `.fractary/plugins/faber/workflows/my-workflow.json` (project directory)
+3. **`--workflow fractary-faber:default`**: Looks in plugin's `config/workflows/default.json`
+
+**Plugin workflows** (`fractary-faber:*`):
+- `fractary-faber:core` - Base primitives (issue, branch, PR lifecycle)
+- `fractary-faber:default` - Standard software dev (extends core + spec generation + implementation)
+
+**Project workflows** (no prefix):
+- Stored in `.fractary/plugins/faber/workflows/`
+- Can extend plugin workflows: `"extends": "fractary-faber:core"`
+- Don't require namespace prefix when referenced
+
+**Examples:**
+```bash
+# Uses config's default_workflow (typically fractary-faber:default)
+/fractary-faber:run --work-id 123
+
+# Explicitly use plugin's default workflow
+/fractary-faber:run --work-id 123 --workflow fractary-faber:default
+
+# Use project-specific workflow (no prefix needed)
+/fractary-faber:run --work-id 123 --workflow my-custom-workflow
+```
 
 ## Label-Based Configuration
 

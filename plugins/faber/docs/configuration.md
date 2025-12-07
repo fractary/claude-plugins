@@ -66,6 +66,31 @@ The configuration uses JSON format and follows the standard Fractary plugin conf
 - Core workflow: **Frame** → **Architect** → **Build** → **Evaluate** → **Release**
 - Core artifacts: **Issue** + **Branch** + **Spec**
 
+### Plugin-Provided Workflows
+
+The FABER plugin provides two centrally-maintained workflows that most projects will use or extend:
+
+| Workflow | Namespace | Purpose |
+|----------|-----------|---------|
+| `fractary-faber:core` | Plugin | Base primitives: issue management, branching, PR lifecycle |
+| `fractary-faber:default` | Plugin | Standard software dev workflow (extends `core` + spec generation + implementation) |
+
+**`fractary-faber:core`** contains only the essential primitives:
+- **Frame**: Fetch/create issue, create/switch branch
+- **Build** (post): Commit and push
+- **Evaluate**: Issue review, commit fixes, create PR, review CI checks
+- **Release**: Merge PR
+
+**`fractary-faber:default`** extends `core` and adds:
+- **Architect**: Generate specification from issue
+- **Build**: Implement solution based on spec
+
+These workflows are maintained in the plugin source code and update automatically when the plugin is updated. Projects reference them via the `fractary-faber:` namespace prefix.
+
+**For most projects**: Simply run `/fractary-faber:init` and use the default workflow as-is. The config will reference `fractary-faber:default` which provides a complete software development workflow.
+
+**For custom needs**: Create project-specific workflows in `.fractary/plugins/faber/workflows/` that extend either `fractary-faber:core` or `fractary-faber:default`.
+
 ### Main Configuration File (config.json)
 
 The main configuration file references workflows stored in separate files:
