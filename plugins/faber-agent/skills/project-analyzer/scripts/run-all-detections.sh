@@ -100,10 +100,12 @@ DETECTION_SCRIPTS=(
   "detect-workflow-logging.sh:warning"        # AGT-005
   "detect-direct-skill-commands.sh:critical"  # CMD-004
   "detect-director-patterns.sh:info"          # ARC-004
+  "detect-response-format-compliance.sh:warning" # RESP-001 (v2.1 - response format)
 )
 
 # Run each detection and build results
 # v2.0: Added project-specific director/manager detection
+# v2.1: Added response format compliance (RESP-001)
 PROJECT_SPECIFIC_DIRECTOR='{"status": "skipped"}'
 PROJECT_SPECIFIC_MANAGER='{"status": "skipped"}'
 MANAGER_AS_SKILL='{"status": "skipped"}'
@@ -111,6 +113,7 @@ DIRECTOR_AS_AGENT='{"status": "skipped"}'
 WORKFLOW_LOGGING='{"status": "skipped"}'
 DIRECT_SKILL_COMMANDS='{"status": "skipped"}'
 DIRECTOR_PATTERNS='{"status": "skipped"}'
+RESPONSE_FORMAT_COMPLIANCE='{"status": "skipped"}'
 
 for script_spec in "${DETECTION_SCRIPTS[@]}"; do
   script_name="${script_spec%%:*}"
@@ -129,6 +132,7 @@ for script_spec in "${DETECTION_SCRIPTS[@]}"; do
       "detect-workflow-logging.sh") WORKFLOW_LOGGING="$result" ;;
       "detect-direct-skill-commands.sh") DIRECT_SKILL_COMMANDS="$result" ;;
       "detect-director-patterns.sh") DIRECTOR_PATTERNS="$result" ;;
+      "detect-response-format-compliance.sh") RESPONSE_FORMAT_COMPLIANCE="$result" ;;
     esac
   fi
 done
@@ -152,7 +156,7 @@ fi
 # Calculate compliance score
 # Formula: (total_checks - weighted_violations) / total_checks * 100
 # Weights: error=15 (v2.0), critical=10, warning=3, info=1
-TOTAL_CHECKS=30  # Base number of checks across all rules (increased for v2.0)
+TOTAL_CHECKS=31  # Base number of checks across all rules (v2.1: added RESP-001)
 WEIGHTED_VIOLATIONS=$((ERROR_VIOLATIONS * 15 + CRITICAL_VIOLATIONS * 10 + WARNING_VIOLATIONS * 3 + INFO_VIOLATIONS * 1))
 if [[ $WEIGHTED_VIOLATIONS -gt $TOTAL_CHECKS ]]; then
   WEIGHTED_VIOLATIONS=$TOTAL_CHECKS
@@ -188,6 +192,7 @@ jq -n \
   --argjson workflow_logging "$WORKFLOW_LOGGING" \
   --argjson direct_skill_commands "$DIRECT_SKILL_COMMANDS" \
   --argjson director_patterns "$DIRECTOR_PATTERNS" \
+  --argjson response_format_compliance "$RESPONSE_FORMAT_COMPLIANCE" \
   '{
     status: "success",
     project_path: $project_path,
@@ -211,10 +216,11 @@ jq -n \
       director_as_agent: $director_as_agent,
       workflow_logging: $workflow_logging,
       direct_skill_commands: $direct_skill_commands,
-      director_patterns: $director_patterns
+      director_patterns: $director_patterns,
+      response_format_compliance: $response_format_compliance
     },
     execution: {
-      scripts_run: 9,
+      scripts_run: 10,
       errors: $errors
     }
   }'

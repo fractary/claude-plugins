@@ -27,20 +27,31 @@ FIX_MODE=false
 SUMMARY_ONLY=false
 JSON_OUTPUT=false
 
-# Colors (disabled if not terminal or JSON mode)
-if [[ -t 1 ]] && [[ "${JSON_OUTPUT}" != "true" ]]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    NC='\033[0m'
-else
-    RED=''
-    GREEN=''
-    YELLOW=''
-    BLUE=''
-    NC=''
-fi
+# Colors (will be set after argument parsing)
+RED=''
+GREEN=''
+YELLOW=''
+BLUE=''
+NC=''
+
+# Function to initialize colors based on output mode
+init_colors() {
+    if [[ "${JSON_OUTPUT}" == "true" ]]; then
+        # Disable colors for JSON mode
+        RED=''
+        GREEN=''
+        YELLOW=''
+        BLUE=''
+        NC=''
+    elif [[ -t 1 ]]; then
+        # Enable colors for terminal output
+        RED='\033[0;31m'
+        GREEN='\033[0;32m'
+        YELLOW='\033[1;33m'
+        BLUE='\033[0;34m'
+        NC='\033[0m'
+    fi
+}
 
 # Counters
 TOTAL_SKILLS=0
@@ -198,7 +209,7 @@ analyze_skill() {
     local plugin_name
     plugin_name=$(basename "$(dirname "$(dirname "${skill_path}")")")
 
-    ((TOTAL_SKILLS++))
+    ((TOTAL_SKILLS++)) || true
 
     local result
     result=$(check_skill_outputs "${skill_path}")
@@ -212,31 +223,31 @@ analyze_skill() {
             status_icon="${YELLOW}?${NC}"
             status_text="No SKILL.md found"
             compliance="skip"
-            ((TOTAL_SKILLS--))  # Don't count skills without SKILL.md
+            ((TOTAL_SKILLS--)) || true  # Don't count skills without SKILL.md
             ;;
         "no_outputs_section")
             status_icon="${RED}✗${NC}"
             status_text="Missing <OUTPUTS> section"
             compliance="non_compliant"
-            ((NON_COMPLIANT_SKILLS++))
+            ((NON_COMPLIANT_SKILLS++)) || true
             ;;
         "compliant")
             status_icon="${GREEN}✓${NC}"
             status_text="Fully compliant"
             compliance="compliant"
-            ((COMPLIANT_SKILLS++))
+            ((COMPLIANT_SKILLS++)) || true
             ;;
         partial:*)
             status_icon="${YELLOW}⚠${NC}"
             status_text="Partially compliant (${result#partial:})"
             compliance="partial"
-            ((PARTIAL_SKILLS++))
+            ((PARTIAL_SKILLS++)) || true
             ;;
         "non_compliant")
             status_icon="${RED}✗${NC}"
             status_text="Non-compliant (missing standard format)"
             compliance="non_compliant"
-            ((NON_COMPLIANT_SKILLS++))
+            ((NON_COMPLIANT_SKILLS++)) || true
             ;;
     esac
 
@@ -298,19 +309,24 @@ run_analysis() {
 print_summary() {
     if [[ "${JSON_OUTPUT}" == "true" ]]; then
         local results_json
-        results_json=$(printf '%s\n' "${RESULTS[@]}" | jq -s '.')
+        # Handle empty RESULTS array properly
+        if [[ ${#RESULTS[@]} -eq 0 ]]; then
+            results_json="[]"
+        else
+            results_json=$(printf '%s\n' "${RESULTS[@]}" | jq -s '.')
+        fi
         jq -n \
             --argjson results "${results_json}" \
-            --arg total "${TOTAL_SKILLS}" \
-            --arg compliant "${COMPLIANT_SKILLS}" \
-            --arg partial "${PARTIAL_SKILLS}" \
-            --arg non_compliant "${NON_COMPLIANT_SKILLS}" \
+            --argjson total "${TOTAL_SKILLS}" \
+            --argjson compliant "${COMPLIANT_SKILLS}" \
+            --argjson partial "${PARTIAL_SKILLS}" \
+            --argjson non_compliant "${NON_COMPLIANT_SKILLS}" \
             '{
                 summary: {
-                    total: ($total | tonumber),
-                    compliant: ($compliant | tonumber),
-                    partial: ($partial | tonumber),
-                    non_compliant: ($non_compliant | tonumber)
+                    total: $total,
+                    compliant: $compliant,
+                    partial: $partial,
+                    non_compliant: $non_compliant
                 },
                 results: $results
             }'
@@ -367,12 +383,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --json)
             JSON_OUTPUT=true
-            # Disable colors for JSON mode
-            RED=''
-            GREEN=''
-            YELLOW=''
-            BLUE=''
-            NC=''
             shift
             ;;
         *)
@@ -381,6 +391,9 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Initialize colors after argument parsing
+init_colors
 
 # Run analysis
 if [[ "${JSON_OUTPUT}" != "true" ]] && [[ "${SUMMARY_ONLY}" != "true" ]]; then
