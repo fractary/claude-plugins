@@ -37,7 +37,11 @@
           "id": "implement",
           "name": "Implement Solution",
           "description": "Implement based on specification following project patterns",
-          "prompt": "Analyze the specification and implement the solution. Follow project code standards, patterns, and best practices. Create tests as appropriate."
+          "skill": "fractary-faber:build",
+          "config": {
+            "use_spec": true,
+            "post_progress_comments": true
+          }
         }
       ],
       "post_steps": []
