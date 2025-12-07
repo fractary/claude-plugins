@@ -315,13 +315,73 @@ After reconstitution, output a brief summary for visibility:
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| Run directory not found | ABORT with clear error and run ID |
-| State file corrupted | ABORT, suggest manual inspection |
-| Issue fetch failed | WARN and continue (issue may be deleted) |
-| Branch not found | WARN and continue (may need to create) |
-| Events directory empty | INFO (expected for new runs) |
+### Error Severity Levels
+
+| Severity | Action | Recovery |
+|----------|--------|----------|
+| **CRITICAL** | ABORT workflow | Requires manual intervention |
+| **ERROR** | Log and pause | Ask user how to proceed |
+| **WARNING** | Log and continue | Document in event log |
+| **INFO** | Log for visibility | No action needed |
+
+### Specific Error Handling
+
+| Error | Severity | Action | Recovery |
+|-------|----------|--------|----------|
+| Run directory not found | CRITICAL | ABORT | User must provide valid run_id or start new run |
+| State file corrupted/invalid JSON | CRITICAL | ABORT | User must inspect and repair state.json manually |
+| State file missing | CRITICAL | ABORT | Run may have been cleaned up; start new run |
+| Spec file path invalid | WARNING | Continue | Spec may not have been created yet (early phase) |
+| Spec file not readable | ERROR | Pause | Ask user to verify spec exists or regenerate |
+| Issue fetch failed (network) | WARNING | Continue | Log issue ID, workflow can proceed without issue details |
+| Issue fetch failed (not found) | WARNING | Continue | Issue may have been deleted; log warning |
+| Issue fetch failed (auth) | ERROR | Pause | Ask user to check work plugin credentials |
+| Branch not found | WARNING | Continue | Branch may not exist yet (pre-build phase) |
+| Git operations failed | WARNING | Continue | May be outside git repo; log and proceed |
+| Events directory empty | INFO | Continue | Expected for new runs |
+| Events read error | WARNING | Continue | Log partial load; recent events may be missing |
+| Pending feedback mismatch | ERROR | Pause | State claims awaiting_feedback but request_id invalid |
+
+### Error Response Patterns
+
+**For CRITICAL errors:**
+```
+❌ CRITICAL: Cannot reconstitute context
+Error: Run directory not found: .fractary/plugins/faber/runs/org/project/uuid
+Action: Verify run_id is correct or start a new run with /faber run <work_id>
+```
+
+**For ERROR (user decision needed):**
+```
+⚠️ ERROR: Specification file not readable
+Path: /specs/WORK-00258-spec.md
+Error: Permission denied
+
+How would you like to proceed?
+1. Skip spec loading and continue
+2. Regenerate specification
+3. Abort workflow
+```
+
+**For WARNING (continue with note):**
+```
+⚠️ WARNING: Issue fetch failed - continuing without issue details
+Issue: #258
+Error: Network timeout
+Note: Workflow will continue but may lack recent issue comments
+```
+
+### Graceful Degradation
+
+The context reconstitution is designed for graceful degradation:
+
+1. **Core state (REQUIRED)**: state.json and metadata.json must be readable
+2. **Spec (OPTIONAL)**: Workflow can continue without spec if early phase
+3. **Issue (OPTIONAL)**: Workflow can continue without issue (standalone runs)
+4. **Branch (OPTIONAL)**: Expected to be missing in Frame/Architect phases
+5. **Events (OPTIONAL)**: New runs have no events; degraded visibility only
+
+This allows workflows to resume even with partial context, while critical errors prevent data corruption.
 
 ## Why This Matters
 

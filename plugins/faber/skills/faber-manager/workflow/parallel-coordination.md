@@ -2,6 +2,21 @@
 
 This workflow defines how to coordinate multiple FABER runs executing in parallel, aggregating their feedback requests for efficient user interaction.
 
+## Implementation Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Coordinator State Schema | ✅ Implemented | JSON structure defined |
+| Run State Tracking | ✅ Implemented | Via aggregate-runs.sh script |
+| Aggregation Logic | ✅ Implemented | aggregate-runs.sh with JSON/markdown output |
+| Aggregated Prompt Format | ✅ Implemented | Markdown format defined |
+| Response Parsing | 📋 Documented | Pseudocode in protocol, needs real implementation |
+| Response Distribution | 📋 Documented | Uses feedback-handler scripts |
+| Run Resume | 📋 Documented | Uses faber-manager Task invocation |
+| Coordinator Storage | 📋 Documented | Directory structure specified |
+
+**Legend**: ✅ Implemented and tested | 📋 Documented/Designed (follow protocol)
+
 ## Overview
 
 **Purpose**: When multiple workflow runs are active, aggregate feedback requests and distribute responses to enable efficient user interaction.

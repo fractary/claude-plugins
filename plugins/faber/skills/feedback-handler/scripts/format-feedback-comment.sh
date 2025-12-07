@@ -74,6 +74,13 @@ if [[ -z "$RUN_ID" || -z "$REQUEST_ID" || -z "$FEEDBACK_TYPE" || -z "$PHASE" || 
     exit 1
 fi
 
+# Validate run_id format - must match: org/project/uuid (prevents path traversal)
+if [[ ! "$RUN_ID" =~ ^[a-z0-9][a-z0-9_-]*[a-z0-9]/[a-z0-9][a-z0-9_-]*[a-z0-9]/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]] && \
+   [[ ! "$RUN_ID" =~ ^[a-z0-9]/[a-z0-9]/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]]; then
+    echo "Invalid run_id format. Must be: org/project/uuid" >&2
+    exit 1
+fi
+
 # Default timestamp
 if [[ -z "$TIMESTAMP" ]]; then
     TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")

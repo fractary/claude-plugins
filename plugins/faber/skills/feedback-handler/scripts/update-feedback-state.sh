@@ -154,8 +154,40 @@ if [[ -z "$OPERATION" ]]; then
     exit 1
 fi
 
+# Validate run_id format - must match: org/project/uuid (prevents path traversal)
+if [[ ! "$RUN_ID" =~ ^[a-z0-9][a-z0-9_-]*[a-z0-9]/[a-z0-9][a-z0-9_-]*[a-z0-9]/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]] && \
+   [[ ! "$RUN_ID" =~ ^[a-z0-9]/[a-z0-9]/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$ ]]; then
+    echo '{"status": "error", "error": {"code": "INVALID_RUN_ID", "message": "Invalid run_id format. Must be: org/project/uuid"}}' >&2
+    exit 1
+fi
+
+# Path traversal protection - ensure run_id doesn't contain .. or absolute paths
+if [[ "$RUN_ID" == *".."* ]] || [[ "$RUN_ID" == /* ]]; then
+    echo '{"status": "error", "error": {"code": "PATH_TRAVERSAL", "message": "Path traversal attempt detected"}}' >&2
+    exit 1
+fi
+
 # Build paths
 STATE_FILE="${BASE_PATH}/${RUN_ID}/state.json"
+LOCK_FILE="${STATE_FILE}.lock"
+
+# Cleanup function to release lock on exit
+cleanup() {
+    if [[ -n "${LOCK_FD:-}" ]]; then
+        exec {LOCK_FD}>&- 2>/dev/null || true
+    fi
+    rm -f "$LOCK_FILE" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Acquire exclusive lock for state file operations
+acquire_lock() {
+    exec {LOCK_FD}>"$LOCK_FILE"
+    if ! flock -x -w 30 "$LOCK_FD" 2>/dev/null; then
+        echo '{"status": "error", "error": {"code": "LOCK_TIMEOUT", "message": "Could not acquire state file lock within 30 seconds"}}' >&2
+        exit 2
+    fi
+}
 
 # Verify state file exists
 if [[ ! -f "$STATE_FILE" ]]; then
@@ -174,6 +206,9 @@ case "$OPERATION" in
             echo '{"status": "error", "error": {"code": "MISSING_FIELDS", "message": "set-awaiting requires: --request-id, --type, --prompt, --phase, --step"}}' >&2
             exit 1
         fi
+
+        # Acquire exclusive lock before modifying state
+        acquire_lock
 
         # Build feedback request object
         FEEDBACK_REQUEST=$(jq -n \
@@ -255,6 +290,9 @@ case "$OPERATION" in
             exit 1
         fi
 
+        # Acquire exclusive lock before modifying state
+        acquire_lock
+
         # Update state - clear feedback request and set in_progress
         TEMP_STATE="${STATE_FILE}.tmp.$$"
         if ! jq \
@@ -296,6 +334,9 @@ case "$OPERATION" in
             echo '{"status": "error", "error": {"code": "MISSING_FIELDS", "message": "add-history requires: --request-id, --type, --response"}}' >&2
             exit 1
         fi
+
+        # Acquire exclusive lock before modifying state
+        acquire_lock
 
         # Build history entry
         HISTORY_ENTRY=$(jq -n \
