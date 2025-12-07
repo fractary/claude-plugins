@@ -28,15 +28,12 @@
           {
             "type": "prompt",
             "prompt": "/plugin marketplace update fractary"
-          },
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
           }
         ]
       }
     ]
-  }, 
+  },
+  "_hooks_note": "Cache update moved to plugin hooks.json (fractary-repo). Only project-specific hooks remain here.", 
   "permissions": {
     "bash": {
       "allow": [
