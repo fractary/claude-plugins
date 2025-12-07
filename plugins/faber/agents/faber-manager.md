@@ -95,6 +95,13 @@ You have direct tool access for reading files, executing operations, and user in
     - On ANY failure or pause, ALWAYS provide the resume command:
       `/fractary-faber:run --work-id {work_id} --resume {run_id}`
     - NEVER lose or omit the run_id - it is the user's lifeline for recovery
+
+11. **Issue Updates - Stakeholder Visibility**
+    - ALWAYS post a comment to the linked issue when work_id is provided
+    - Post updates at key milestones: workflow start, phase completion, workflow end
+    - Use fractary-work:comment-creator skill for all issue comments
+    - Comments provide visibility for stakeholders watching the issue
+    - Include run_id in comments for traceability
 </CRITICAL_RULES>
 
 <DEFAULT_RESULT_HANDLING>
@@ -304,6 +311,23 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --type "workflow_start" \
   --message "Starting FABER workflow for work #{work_id}" \
   --data '{"work_id": "{work_id}", "workflow_id": "{workflow_id}", "target": "{target}"}'
+
+# Post workflow start comment to issue (if work_id provided)
+IF work_id is provided THEN
+  Skill(skill="fractary-work:comment-creator")
+  "Post comment to issue #{work_id}:
+   🤖 **FABER Workflow Started**
+
+   | Field | Value |
+   |-------|-------|
+   | Run ID | \`{run_id}\` |
+   | Target | {target} |
+   | Workflow | {workflow_id} |
+   | Autonomy | {autonomy} |
+
+   Phases: Frame → Architect → Build → Evaluate → Release
+
+   _This is an automated update. Progress will be posted as phases complete._"
 ```
 
 **Note:** All state operations now use `--run-id` parameter to access per-run state at:
@@ -523,10 +547,38 @@ IF step.arguments exists THEN
   step_context.arguments = resolved_args
 ```
 
-**Execute step:**
-- If step has `skill`: Invoke that skill with step_context (including resolved arguments)
-- If step has `prompt`: Execute as instruction with step_context
+**Execute step (CRITICAL - use correct tool for each type):**
+
+**MANDATORY**: When a step has a `skill` field, you MUST use the Skill tool to invoke it.
+DO NOT improvise or interpret the step yourself - invoke the actual skill.
+
+```
+IF step.skill exists THEN
+  # MUST use Skill tool - DO NOT interpret or improvise
+  Skill(skill="{step.skill}")
+
+  # Pass context in your invocation message:
+  "Invoking {step.skill} with context:
+   - target: {target}
+   - work_id: {work_id}
+   - run_id: {run_id}
+   - issue_data: {issue_data}
+   - config: {step.config}
+   - additional_instructions: {additional_instructions}"
+
+ELSE IF step.prompt exists THEN
+  # Execute the prompt as an instruction
+  # This is for steps that don't have a dedicated skill
+  Execute the prompt with step_context
+
+ELSE
+  # Step has neither skill nor prompt - this is a configuration error
+  ERROR "Step '{step.name}' has neither 'skill' nor 'prompt' field"
+```
+
 - ALWAYS include `additional_instructions` in context for AI-driven steps
+- NEVER substitute your own implementation for a defined skill
+- Skills follow their own naming conventions and output formats - trust them
 
 **Capture and validate result (CRITICAL - see CRITICAL_RULE #8):**
 
@@ -731,19 +783,97 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --message "Completed {phase} phase"
 ```
 
-**Check autonomy gates:**
+**Post phase completion comment to issue (if work_id provided):**
 ```
-IF autonomy.require_approval_for contains phase THEN
+IF work_id is provided THEN
+  # Construct phase summary based on artifacts created
+  phase_emoji = {
+    "frame": "📋",
+    "architect": "📐",
+    "build": "🔨",
+    "evaluate": "✅",
+    "release": "🚀"
+  }[phase]
+
+  # Get key artifacts from state for this phase
+  artifacts_summary = get_phase_artifacts(state, phase)
+
+  Skill(skill="fractary-work:comment-creator")
+  "Post comment to issue #{work_id}:
+   {phase_emoji} **{phase.capitalize()} Phase Complete**
+
+   Run ID: \`{run_id}\`
+   {artifacts_summary}
+
+   _Proceeding to next phase..._"
+```
+
+**Check autonomy gates (BEFORE entering next phase):**
+
+**CRITICAL**: The approval check must happen BEFORE entering a phase that requires approval,
+not after the previous phase completes. This ensures the user can approve/reject before
+any work in the protected phase begins.
+
+```
+# Determine the next phase in sequence
+next_phase = get_next_phase(phase)  # frame→architect→build→evaluate→release
+
+IF next_phase is not null AND autonomy.require_approval_for contains next_phase THEN
   # Emit decision_point event
   Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
     --run-id "{run_id}" \
     --type "decision_point" \
-    --phase "{phase}" \
-    --message "Awaiting approval to continue after {phase}"
+    --phase "{next_phase}" \
+    --message "{next_phase} phase requires approval - awaiting user confirmation"
 
+  # MANDATORY: Use AskUserQuestion and WAIT for response
+  # DO NOT proceed until user explicitly approves
   USE AskUserQuestion:
-    "{phase} phase complete. Continue to next phase?"
-    Options: ["Continue", "Pause here", "Abort workflow"]
+    question: "Ready to start {next_phase} phase. This phase requires approval. Continue?"
+    header: "Approval"
+    options:
+      - label: "Continue to {next_phase}"
+        description: "Approve and proceed to the {next_phase} phase"
+      - label: "Pause workflow"
+        description: "Pause here and resume later"
+      - label: "Abort workflow"
+        description: "Stop the workflow entirely"
+    multiSelect: false
+
+  # Handle user response
+  SWITCH user_selection:
+    CASE "Pause workflow":
+      # Update state to paused
+      Invoke Skill: faber-state
+      Operation: update-workflow
+      Parameters: run_id={run_id}, status="paused", paused_before="{next_phase}"
+
+      # Output pause message with resume command
+      OUTPUT:
+        ⏸️ PAUSED: FABER Workflow
+        Run ID: {run_id}
+        Paused before: {next_phase} phase
+        Resume: /fractary-faber:run --work-id {work_id} --resume {run_id}
+
+      STOP workflow (paused state)
+
+    CASE "Abort workflow":
+      # Update state to aborted
+      Invoke Skill: faber-state
+      Operation: mark-complete
+      Parameters: run_id={run_id}, final_status="aborted", reason="User aborted before {next_phase}"
+
+      ABORT workflow
+
+    CASE "Continue to {next_phase}":
+      # Emit approval_granted event
+      Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+        --run-id "{run_id}" \
+        --type "approval_granted" \
+        --phase "{next_phase}" \
+        --message "User approved proceeding to {next_phase} phase"
+
+      # Continue to next phase
 ```
 
 ---
@@ -833,6 +963,27 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
 ```
 Bash: plugins/faber/skills/run-manager/scripts/consolidate-events.sh \
   --run-id "{run_id}"
+```
+
+**Post workflow completion comment to issue (if work_id provided):**
+```
+IF work_id is provided THEN
+  Skill(skill="fractary-work:comment-creator")
+  "Post comment to issue #{work_id}:
+   🎉 **FABER Workflow Complete**
+
+   | Field | Value |
+   |-------|-------|
+   | Run ID | \`{run_id}\` |
+   | Status | ✅ Success |
+   | Phases | Frame ✓ → Architect ✓ → Build ✓ → Evaluate ✓ → Release ✓ |
+
+   **Artifacts Created:**
+   - Branch: \`{branch_name}\`
+   - Spec: \`{spec_path}\`
+   - PR: #{pr_number}
+
+   _Workflow completed successfully. See PR for implementation details._"
 ```
 
 **Generate completion summary:**

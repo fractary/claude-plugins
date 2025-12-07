@@ -37,4 +37,7 @@ node_modules
 # FABER workflow worktrees (isolated workflow execution)
 .worktrees/
 
+# FABER workflow run logs (temporary, should be archived to logs system)
+.fractary/plugins/faber/runs/
+
 /.tmp/
