@@ -86,6 +86,41 @@ Current workflow state (materialized view of events):
 }
 ```
 
+**Status Values**:
+- `pending` - Run created but not started
+- `in_progress` - Workflow actively executing
+- `awaiting_feedback` - Paused, waiting for user feedback (HITL)
+- `completed` - Workflow finished successfully
+- `failed` - Workflow failed with error
+- `cancelled` - Workflow cancelled by user
+
+**HITL Feedback Request** (present when `status == "awaiting_feedback"`):
+```json
+{
+  "feedback_request": {
+    "request_id": "fr-20251206-a1b2c3",
+    "type": "approval",
+    "prompt": "Please review the design and approve to proceed.",
+    "options": ["approve", "reject", "request_changes"],
+    "context": {
+      "artifact_path": "/specs/SPEC-00158-design.md",
+      "summary": "3-layer architecture with handler pattern"
+    },
+    "requested_at": "2025-12-06T18:00:00Z",
+    "notification_sent": {
+      "cli": true,
+      "issue_comment": true,
+      "comment_url": "https://github.com/org/repo/issues/158#issuecomment-xyz"
+    }
+  },
+  "resume_point": {
+    "phase": "architect",
+    "step": "design-review",
+    "step_index": 2
+  }
+}
+```
+
 ### metadata.json
 
 Immutable run metadata:
@@ -129,6 +164,15 @@ The Run ID system supports 25+ event types:
 - `step_complete` - Step finished successfully
 - `step_error` - Step failed
 - `step_retry` - Step being retried
+- `step_skip` - Step skipped (by user decision or configuration)
+
+### Feedback Events (HITL)
+- `feedback_request` - Feedback requested from user (decision point)
+- `feedback_received` - User provided feedback response
+- `decision_point` - Workflow paused awaiting user decision
+- `approval_request` - Approval requested at autonomy gate
+- `approval_granted` - User approved continuation
+- `approval_denied` - User denied/rejected action
 
 ### Retry Events
 - `retry_loop_enter` - Entering retry loop (evaluate phase)
@@ -152,7 +196,7 @@ The Run ID system supports 25+ event types:
 - `checkpoint` - Manual checkpoint
 - `skill_invoke` - Skill invoked
 - `agent_invoke` - Agent invoked
-- `decision_point` - User decision required
+- `hook_execute` - Hook executed
 
 ## Event Schema
 
