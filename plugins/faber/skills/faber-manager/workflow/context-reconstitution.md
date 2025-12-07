@@ -147,6 +147,87 @@ ELSE
 - What files have been changed
 - Gap between current state and spec requirements
 
+### 0.4.5 Load Session Summaries (Cross-Session Context)
+
+```bash
+SESSION_SUMMARIES_DIR="${RUN_DIR}/session-summaries"
+
+IF directory_exists(SESSION_SUMMARIES_DIR) THEN
+  # Get all session summary files (sorted by timestamp)
+  session_files = list_files(SESSION_SUMMARIES_DIR) | sort
+
+  IF session_files.length > 0 THEN
+    # Load most recent session summary for immediate context
+    latest_session_file = session_files[-1]
+    latest_session = read(latest_session_file)
+
+    LOG "✓ Loaded session context from previous sessions"
+    LOG "  Total sessions: ${session_files.length}"
+    LOG "  Last session:"
+    LOG "    - Phase completed: ${latest_session.phase_completed}"
+    LOG "    - Timestamp: ${latest_session.timestamp}"
+    LOG "    - Accomplished: ${latest_session.summary.accomplished.length} items"
+    LOG "    - Files changed: ${latest_session.summary.files_changed.length}"
+    LOG "    - Remaining phases: ${latest_session.summary.remaining_phases.join(', ')}"
+
+    # Store session context
+    context.session_history = {
+      total_sessions: session_files.length,
+      latest: latest_session,
+      all_summaries: []
+    }
+
+    # Load all summaries for comprehensive context (optional, based on need)
+    for session_file in session_files:
+      summary = read(session_file)
+      context.session_history.all_summaries.append({
+        session_id: summary.session_id,
+        phase_completed: summary.phase_completed,
+        timestamp: summary.timestamp,
+        accomplished: summary.summary.accomplished,
+        decisions: summary.summary.decisions
+      })
+
+    # Build cumulative context for build skill
+    context.session_summary = {
+      phase_completed: latest_session.phase_completed,
+      accomplished: latest_session.summary.accomplished,
+      decisions: latest_session.summary.decisions,
+      files_changed: latest_session.summary.files_changed,
+      remaining_phases: latest_session.summary.remaining_phases,
+      context_notes: latest_session.summary.context_notes
+    }
+
+  ELSE
+    LOG "ℹ Session summaries directory exists but is empty (first session)"
+ELSE
+  LOG "ℹ No session summaries found (first session for this run)"
+```
+
+**What to Understand from Session Summaries:**
+- What was accomplished in previous sessions
+- What technical decisions were made
+- What files were changed
+- What phases remain to be completed
+- Any context notes for continuity
+
+**Passing Session Context to Build Skill:**
+
+When invoking the build skill, include the session summary in context:
+```json
+{
+  "current_phase": "{next_phase_from_session}",
+  "session_summary": {
+    "phase_completed": "phase-1",
+    "accomplished": ["Created SKILL.md", "Added workflow files"],
+    "decisions": ["Used Opus model for thinking support"],
+    "files_changed": ["file1.py", "file2.ts"],
+    "remaining_phases": ["phase-2", "phase-3"],
+    "context_notes": "Auth module needs special handling"
+  }
+}
+```
+
 ### 0.5 Review Recent Events
 
 ```bash
@@ -277,6 +358,10 @@ workflow_context = {
   branch: context.branch,       # May be null
   events: context.events,       # May be empty
 
+  # Session context (NEW - for cross-session continuity)
+  session_history: context.session_history,   # May be null
+  session_summary: context.session_summary,   # May be null (latest session for build skill)
+
   # Feedback state
   resuming_from_feedback: context.resuming_from_feedback,
   feedback_request: context.feedback_request,
@@ -296,6 +381,10 @@ LOG "  Resume Mode:   ${resume_point?.mode ?? 'N/A'}"
 LOG "  Spec:          ${spec_path ?? 'Not created'}"
 LOG "  Branch:        ${branch_name ?? 'Not created'}"
 LOG "  Events:        ${events.length} loaded"
+LOG "  Sessions:      ${context.session_history?.total_sessions ?? 0} previous"
+IF context.session_summary THEN
+  LOG "  Last Phase:    ${context.session_summary.phase_completed}"
+  LOG "  Next Phase:    ${context.session_summary.remaining_phases[0] ?? 'None'}"
 LOG "═══════════════════════════════════════════════════════════"
 LOG ""
 ```
@@ -310,6 +399,8 @@ After reconstitution, output a brief summary for visibility:
   Spec: /specs/WORK-00258-faber-hitl-resume-handling.md
   Branch: feat/258-better-faber-workflow-hitl-resume-handling-via-iss
   Status: awaiting_feedback → Resuming after feedback
+  Sessions: 2 previous (last: phase-1 complete)
+  Next Phase: phase-2
   Last Event: [2025-12-06T18:30:00Z] decision_point: Awaiting design approval
 ```
 
@@ -340,6 +431,9 @@ After reconstitution, output a brief summary for visibility:
 | Git operations failed | WARNING | Continue | May be outside git repo; log and proceed |
 | Events directory empty | INFO | Continue | Expected for new runs |
 | Events read error | WARNING | Continue | Log partial load; recent events may be missing |
+| Session summaries not found | INFO | Continue | Expected for first session of a run |
+| Session summary read error | WARNING | Continue | Log warning; continuity may be degraded |
+| Session summary parse error | WARNING | Continue | Log warning; skip malformed summary file |
 | Pending feedback mismatch | ERROR | Pause | State claims awaiting_feedback but request_id invalid |
 
 ### Error Response Patterns
@@ -380,6 +474,7 @@ The context reconstitution is designed for graceful degradation:
 3. **Issue (OPTIONAL)**: Workflow can continue without issue (standalone runs)
 4. **Branch (OPTIONAL)**: Expected to be missing in Frame/Architect phases
 5. **Events (OPTIONAL)**: New runs have no events; degraded visibility only
+6. **Session summaries (OPTIONAL)**: New runs have no summaries; cross-session continuity degraded but workflow continues
 
 This allows workflows to resume even with partial context, while critical errors prevent data corruption.
 
@@ -402,6 +497,7 @@ This allows workflows to resume even with partial context, while critical errors
 - `.fractary/plugins/faber/runs/{run_id}/state.json`
 - `.fractary/plugins/faber/runs/{run_id}/metadata.json`
 - `.fractary/plugins/faber/runs/{run_id}/events/`
+- `.fractary/plugins/faber/runs/{run_id}/session-summaries/` (cross-session context)
 - Spec file (path from state.artifacts.spec_path)
 - Work plugin (issue fetch)
 - Git (branch inspection)

@@ -162,116 +162,12 @@
       "properties": {
         "autonomy_level": {
           "type": "string",
-          "enum": ["dry-run", "assist", "guarded", "autonomous"],
-          "description": "DEPRECATED: Legacy autonomy level"
-        },
-        "autonomy": {
-          "type": "object",
-          "description": "New two-dimensional autonomy configuration",
-          "properties": {
-            "check_in_frequency": {
-              "type": "string",
-              "enum": ["per-step", "per-phase", "end-only"]
-            },
-            "warning_tolerance": {
-              "type": "string",
-              "enum": ["none", "low", "medium", "high"]
-            },
-            "error_tolerance": {
-              "type": "string",
-              "enum": ["none", "low", "medium", "high"]
-            }
-          }
+          "enum": ["dry-run", "assist", "guarded", "autonomous"]
         },
         "manager_skill": {
           "type": "string"
         },
         "director_skill": {
-          "type": "string"
-        }
-      }
-    },
-    "logs": {
-      "type": "object",
-      "description": "References to log entries for this workflow run",
-      "properties": {
-        "step_responses": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Array of step-response log IDs captured during execution"
-        },
-        "workflow_execution": {
-          "type": "string",
-          "description": "Workflow execution summary log ID (generated at completion)"
-        }
-      }
-    },
-    "response_totals": {
-      "type": "object",
-      "description": "Aggregated response counts for quick access",
-      "properties": {
-        "warnings": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Total warning count across all steps"
-        },
-        "errors": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Total error count across all steps"
-        },
-        "by_severity": {
-          "type": "object",
-          "properties": {
-            "low": { "type": "integer", "minimum": 0 },
-            "medium": { "type": "integer", "minimum": 0 },
-            "high": { "type": "integer", "minimum": 0 }
-          },
-          "description": "Warning/error counts by severity level"
-        },
-        "by_category": {
-          "type": "object",
-          "additionalProperties": { "type": "integer", "minimum": 0 },
-          "description": "Warning/error counts by category"
-        }
-      }
-    },
-    "limits_reached": {
-      "type": "object",
-      "description": "Tracks if any global limits were reached during execution",
-      "properties": {
-        "max_total_warnings": {
-          "type": "object",
-          "properties": {
-            "limit": { "type": "integer" },
-            "actual": { "type": "integer" },
-            "action": { "type": "string", "enum": ["stop", "truncated"] }
-          }
-        },
-        "max_total_errors": {
-          "type": "object",
-          "properties": {
-            "limit": { "type": "integer" },
-            "actual": { "type": "integer" },
-            "action": { "type": "string", "enum": ["stop", "truncated"] }
-          }
-        }
-      }
-    },
-    "last_check_in": {
-      "type": "object",
-      "description": "Tracks the last check-in point for accumulated response display",
-      "properties": {
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "phase": {
-          "type": "string"
-        },
-        "step": {
           "type": "string"
         }
       }

@@ -78,19 +78,6 @@ You have direct tool access for reading files, executing operations, and user in
      - Steps: `{ on_success: "continue", on_warning: "continue", on_failure: "stop" }`
    - `on_failure: "stop"` is IMMUTABLE for steps - always enforced regardless of config
    - Merge user's partial config with defaults (user values override defaults)
-
-9. **Context Reconstitution (HITL Support)**
-   - ALWAYS execute Step 0 (context reconstitution) before any workflow execution
-   - ALWAYS re-read spec, issue, and branch state on every resume
-   - ALWAYS check for pending feedback before continuing workflow
-   - Treat every invocation as a fresh session - never assume prior context
-
-10. **Faber-Manager Re-engagement After Feedback**
-   - After user provides feedback, faber-manager MUST take back control
-   - NEVER diverge into freeform operation after feedback
-   - ALWAYS continue from the exact resume point in the workflow
-   - ALWAYS follow the workflow definition - no improvisation
-   - If unsure about next step, emit a decision_point - do not guess
 </CRITICAL_RULES>
 
 <DEFAULT_RESULT_HANDLING>
@@ -185,49 +172,6 @@ You receive workflow execution requests with:
 </INPUTS>
 
 <WORKFLOW>
-
-## Step 0: Context Reconstitution (ALWAYS FIRST)
-
-**CRITICAL**: Before any workflow execution, ALWAYS execute the context reconstitution protocol.
-This ensures proper continuity regardless of session state.
-
-See: `workflow/context-reconstitution.md` for detailed protocol.
-
-**Summary of what to load:**
-1. **Run State**: Load from `.fractary/plugins/faber/runs/{run_id}/state.json`
-2. **Specification**: Re-read spec file if it exists (path from state.artifacts.spec_path)
-3. **Issue Details**: Re-fetch issue via work plugin if work_id present
-4. **Branch State**: Inspect git log for branch if it exists
-5. **Recent Events**: Load last 20 events from run's events directory
-
-**Check for Pending Feedback:**
-```
-IF state.status == "awaiting_feedback" THEN
-  # Execute feedback resume protocol
-  Follow workflow: workflow/feedback-resume.md
-
-  # This sets:
-  # - context.feedback_action (continue, revise, retry, skip, abort)
-  # - context.resume_point (phase, step, mode)
-  # - context.feedback_additional (any revision notes)
-
-  # Handle abort action immediately
-  IF context.feedback_action == "abort" THEN
-    Mark workflow as aborted
-    EXIT
-```
-
-**Output context summary:**
-```
-✓ Context reconstituted for run: {run_id}
-  Work Item: #{work_id} - {issue_title}
-  Spec: {spec_path}
-  Branch: {branch_name}
-  Status: {state.status}
-  Resume: {resume_mode} at {resume_phase}:{resume_step}
-```
-
----
 
 ## Step 1: Load Configuration and Resolve Workflow
 

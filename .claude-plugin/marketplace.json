@@ -299,11 +299,9 @@
         "category": "development",
         "strict": true,
         "commands": [
-          "./commands/archive.md",
-          "./commands/audit.md",
-          "./commands/debugger.md",
+          "./commands/faber.md",
           "./commands/init.md",
-          "./commands/run.md",
+          "./commands/mention.md",
           "./commands/status.md"
         ],
         "agents": [
