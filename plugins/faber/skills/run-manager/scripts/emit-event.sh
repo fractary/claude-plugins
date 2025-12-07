@@ -56,9 +56,10 @@ Event Types:
   Workflow: workflow_start, workflow_complete, workflow_error, workflow_cancelled,
             workflow_resumed, workflow_rerun
   Phase:    phase_start, phase_skip, phase_complete, phase_error
-  Step:     step_start, step_complete, step_error, step_retry
+  Step:     step_start, step_complete, step_error, step_retry, step_skip
   Artifact: artifact_create, artifact_modify
   Git:      commit_create, branch_create, pr_create, pr_merge
+  Feedback: feedback_request, feedback_received
   Other:    checkpoint, skill_invoke, agent_invoke, decision_point,
             retry_loop_enter, retry_loop_exit, approval_request,
             approval_granted, approval_denied, hook_execute
@@ -186,13 +187,14 @@ VALID_TYPES=(
     "workflow_start" "workflow_complete" "workflow_error" "workflow_cancelled"
     "workflow_resumed" "workflow_rerun"
     "phase_start" "phase_skip" "phase_complete" "phase_error"
-    "step_start" "step_complete" "step_error" "step_retry"
+    "step_start" "step_complete" "step_error" "step_retry" "step_skip"
     "artifact_create" "artifact_modify"
     "commit_create" "branch_create" "pr_create" "pr_merge"
     "spec_generate" "spec_validate" "test_run" "docs_update"
     "checkpoint" "skill_invoke" "agent_invoke" "decision_point"
     "retry_loop_enter" "retry_loop_exit"
     "approval_request" "approval_granted" "approval_denied" "hook_execute"
+    "feedback_request" "feedback_received"
 )
 
 TYPE_VALID=false
