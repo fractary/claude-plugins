@@ -138,11 +138,15 @@ fi
 
 # Extract issue ID from branch name (if present)
 # Supports patterns: feat/123-description, fix/456-bug, hotfix/789-urgent, etc.
+# Bug fix #275: Require non-digit after dash to avoid matching dates like "bug/2022-12-07-description"
+# The patterns require that after the dash, there's a non-digit character (a letter) or nothing.
+# This prevents matching date patterns like "2022-12" where both parts are digits.
 ISSUE_ID=""
-if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
+if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)-([^0-9]|$) ]]; then
     ISSUE_ID="${BASH_REMATCH[2]}"
-elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+) ]]; then
-    # Fallback pattern: any-prefix/123
+elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+)-([^0-9]|$) ]]; then
+    # Fallback pattern: any-prefix/123-description (requires non-digit after dash)
+    # This prevents matching numeric prefixes like dates (e.g., bug/2022-12-07)
     ISSUE_ID="${BASH_REMATCH[1]}"
 fi
 

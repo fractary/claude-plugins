@@ -125,10 +125,12 @@ ISSUE_ID=$(read_git_status issue_id | tr -d '\n')
 if [ -z "$ISSUE_ID" ] || [ "$ISSUE_ID" = "0" ]; then
   # Fallback: extract from branch name using same pattern as cache update
   # Supports: feat/123-description, fix/456-bug, etc.
-  if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)- ]]; then
+  # Bug fix #275: Require non-digit after dash to avoid matching dates like "bug/2022-12-07-description"
+  if [[ "$BRANCH" =~ ^(feat|fix|chore|hotfix|patch)/([0-9]+)-([^0-9]|$) ]]; then
     ISSUE_ID="${BASH_REMATCH[2]}"
-  elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+)- ]]; then
-    # Fallback pattern: any-prefix/123-description (requires dash after number)
+  elif [[ "$BRANCH" =~ ^[a-z]+/([0-9]+)-([^0-9]|$) ]]; then
+    # Fallback pattern: any-prefix/123-description (requires non-digit after dash)
+    # This prevents matching numeric prefixes like dates (e.g., bug/2022-12-07)
     ISSUE_ID="${BASH_REMATCH[1]}"
   else
     ISSUE_ID=""
