@@ -1,12 +1,12 @@
 {
-  "description": "Fractary Repo Plugin Hooks - Auto-commit on session end and update status cache on command submission",
+  "description": "Fractary Repo Plugin Hooks - Update status cache on session stop and command submission for reliable status line",
   "hooks": {
     "Stop": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh"
           }
         ]
       }

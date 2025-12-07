@@ -2,12 +2,9 @@
 
 # Generate Session Summary
 # This script generates a summary of work done since the last stop event
-# Part of fractary-work plugin - used by auto-comment-on-stop.sh
+# Part of fractary-work plugin - used by comment-creator skill and FABER workflows
 # Analyzes commits and changes to determine what was accomplished
 # Enhanced to provide context-aware summaries based on actual work done
-#
-# OPTIMIZATION (Option 3): Detailed analysis is now opt-in via config
-# Set hooks.auto_comment.detailed_analysis: true to enable full code analysis
 
 set -euo pipefail
 
