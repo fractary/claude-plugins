@@ -91,6 +91,22 @@ severity: {{severity}}
 - **{{approach}}**: {{reason_not_chosen}}
 {{/alternatives}}
 
+## Implementation Plan
+
+{{#phases}}
+### Phase {{number}}: {{name}}
+**Status**: ⬜ Not Started
+
+**Objective**: {{objective}}
+
+**Tasks**:
+{{#tasks}}
+- [ ] {{.}}
+{{/tasks}}
+
+**Estimated Scope**: {{scope}}
+{{/phases}}
+
 ## Files to Modify
 
 {{#files}}

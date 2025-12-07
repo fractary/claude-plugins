@@ -67,12 +67,16 @@ validated: false
 
 {{#phases}}
 ### Phase {{number}}: {{name}}
-{{description}}
+**Status**: ⬜ Not Started
+
+**Objective**: {{objective}}
 
 **Tasks**:
 {{#tasks}}
 - [ ] {{.}}
 {{/tasks}}
+
+**Estimated Scope**: {{scope}}
 {{/phases}}
 
 ## Files to Create/Modify
