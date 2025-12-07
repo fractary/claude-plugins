@@ -101,6 +101,59 @@ if [ "$RETRY_COUNT" -gt 0 ]; then
 fi
 ```
 
+### Step 2.5: Validate and Sanitize Inputs
+
+**Before using any workflow parameters, validate and sanitize them:**
+
+```bash
+# Input validation helper function
+sanitize_input() {
+    local input="$1"
+    local max_length="${2:-200}"
+    # Remove control characters, limit length, escape special chars
+    echo "$input" | tr -d '\n\r\0' | cut -c1-"$max_length" | sed 's/[`$"\\]/\\&/g'
+}
+
+validate_phase_name() {
+    local phase="$1"
+    # Phase names should match pattern: phase-N or "Phase N: Name"
+    if [[ ! "$phase" =~ ^(phase-[0-9]+|Phase\ [0-9]+:.*)$ ]]; then
+        echo "WARNING: Unexpected phase format: $phase"
+    fi
+}
+
+# Validate required inputs
+if [ -z "$SPEC_FILE" ] || [ ! -f "$SPEC_FILE" ]; then
+    echo "ERROR: Spec file not found: $SPEC_FILE"
+    exit 1
+fi
+
+if [ -z "$CURRENT_PHASE" ]; then
+    echo "ERROR: Current phase not specified"
+    exit 1
+fi
+
+# Sanitize all user-derived inputs
+SAFE_PHASE_NAME=$(sanitize_input "$PHASE_NAME" 100)
+SAFE_TASK_DESCRIPTION=$(sanitize_input "$TASK_DESCRIPTION" 200)
+SAFE_WORK_ITEM_TITLE=$(sanitize_input "$WORK_ITEM_TITLE" 100)
+
+# Validate phase name format
+validate_phase_name "$CURRENT_PHASE"
+
+# Log sanitized inputs for debugging
+echo "📋 Validated inputs:"
+echo "  - Phase: $SAFE_PHASE_NAME"
+echo "  - Work ID: $WORK_ID"
+echo "  - Spec: $SPEC_FILE"
+```
+
+**Security Notes:**
+- All user-derived inputs are sanitized before use in commands or commits
+- Phase names are validated against expected patterns
+- Input lengths are limited to prevent buffer issues
+- Special characters are escaped to prevent injection
+
 ### Step 3: Execute Implementation Plan
 
 **CRITICAL: Execute the plan created in Step 0 WITHOUT stopping.**

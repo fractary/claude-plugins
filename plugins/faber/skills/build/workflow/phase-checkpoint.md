@@ -179,14 +179,137 @@ Return checkpoint results to the build workflow:
 
 ## Error Handling
 
-| Error | Severity | Action |
-|-------|----------|--------|
-| Spec update failed | WARNING | Log warning, continue with other actions |
-| Commit failed | WARNING | Log warning, continue (changes may be uncommitted) |
-| Comment post failed | WARNING | Log warning, continue (non-critical) |
-| Summary generation failed | WARNING | Log warning, continue |
+### Error Severity Matrix
 
-**Checkpoint should NOT fail the build** - these are persistence actions. If they fail, log warnings but allow build to complete.
+| Error | Severity | Action | Recovery |
+|-------|----------|--------|----------|
+| Spec update failed | WARNING | Log warning, continue | Spec can be updated manually |
+| Spec file not found | WARNING | Log warning, skip update | May indicate path issue |
+| Commit failed | WARNING | Log warning, continue | Changes remain uncommitted |
+| Git not available | WARNING | Skip commit action | Non-git environment |
+| Comment post failed | WARNING | Log warning, continue | Can post manually later |
+| Issue not found | WARNING | Skip comment action | Issue may be closed/deleted |
+| Auth failure (comment) | WARNING | Log warning, continue | Check credentials |
+| Summary generation failed | WARNING | Log warning, continue | Context may be incomplete |
+| Directory creation failed | WARNING | Log warning, continue | Check permissions |
+
+### Error Handling Strategy
+
+**Principle: Checkpoint should NEVER fail the build.**
+
+These are persistence actions that enhance the workflow but are not critical to implementation success. The code has already been written and committed during the build phase.
+
+**Implementation:**
+
+```bash
+checkpoint_action() {
+    local action_name="$1"
+    local action_fn="$2"
+
+    echo "⏳ Executing: $action_name"
+
+    # Execute with error capture
+    local result
+    if result=$($action_fn 2>&1); then
+        echo "✓ $action_name: Success"
+        return 0
+    else
+        echo "⚠ $action_name: Failed (non-blocking)"
+        echo "  Error: $result"
+        # Log to checkpoint results but don't exit
+        CHECKPOINT_WARNINGS+=("$action_name failed: $result")
+        return 0  # Still return success to continue
+    fi
+}
+
+# Execute all actions, collecting warnings
+CHECKPOINT_WARNINGS=()
+
+checkpoint_action "Spec update" update_spec
+checkpoint_action "Final commit" create_commit
+checkpoint_action "Progress comment" post_comment
+checkpoint_action "Session summary" generate_summary
+
+# Report any warnings in final output
+if [ ${#CHECKPOINT_WARNINGS[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠ Checkpoint completed with warnings:"
+    for warning in "${CHECKPOINT_WARNINGS[@]}"; do
+        echo "  - $warning"
+    done
+fi
+```
+
+### Specific Error Scenarios
+
+**1. Spec File Locked or Read-Only:**
+```bash
+if ! update_spec_result=$(update_spec 2>&1); then
+    if [[ "$update_spec_result" == *"permission denied"* ]]; then
+        echo "⚠ Spec file is read-only. Manual update required."
+        echo "  Run: chmod +w '$SPEC_FILE'"
+    fi
+fi
+```
+
+**2. Git Operations Fail:**
+```bash
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "⚠ Not in a git repository. Skipping commit action."
+    COMMIT_SKIPPED=true
+fi
+```
+
+**3. Network/API Failures:**
+```bash
+if ! comment_result=$(post_comment 2>&1); then
+    if [[ "$comment_result" == *"timeout"* ]] || [[ "$comment_result" == *"connection"* ]]; then
+        echo "⚠ Network issue posting comment. Can retry manually:"
+        echo "  /work:comment-create $WORK_ID \"$COMMENT_TEXT\""
+    fi
+fi
+```
+
+**4. Session Summary Directory:**
+```bash
+SUMMARY_DIR=".fractary/plugins/faber/runs/${RUN_ID}/session-summaries"
+
+# Ensure directory exists
+if ! mkdir -p "$SUMMARY_DIR" 2>/dev/null; then
+    echo "⚠ Cannot create summary directory: $SUMMARY_DIR"
+    echo "  Session summary will be included in build results only"
+    SUMMARY_FILE="/dev/null"  # Fallback
+else
+    SUMMARY_FILE="${SUMMARY_DIR}/session-$(date +%Y%m%d-%H%M%S).json"
+fi
+```
+
+### Checkpoint Results with Errors
+
+When errors occur, include them in the checkpoint results:
+
+```json
+{
+  "checkpoint_complete": true,
+  "actions": {
+    "spec_updated": false,
+    "spec_update_error": "Permission denied",
+    "commit_created": true,
+    "comment_posted": false,
+    "comment_error": "Network timeout",
+    "session_summary_created": true
+  },
+  "warnings": [
+    "Spec update failed: Permission denied",
+    "Comment post failed: Network timeout"
+  ],
+  "phase_status": "complete",
+  "next_phase": "{next_phase_id}",
+  "recommend_session_end": true
+}
+```
+
+**Checkpoint should NOT fail the build** - these are persistence actions. If they fail, log warnings but allow build to complete successfully.
 
 ## Example Execution
 

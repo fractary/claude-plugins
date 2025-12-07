@@ -234,4 +234,127 @@ Next: Phase complete. faber-manager will handle session lifecycle.
 ```
 </DOCUMENTATION>
 
+<TESTING>
+## Testing Strategy
+
+### Manual Testing Workflow
+
+The build skill can be manually tested by:
+
+1. **Create a test issue with phases:**
+   ```bash
+   /work:issue-create "Test: Build skill autonomy" --type feature
+   ```
+
+2. **Run FABER workflow to Architect phase:**
+   ```bash
+   /faber run <work_id> --phases frame,architect
+   ```
+
+3. **Verify spec has phase structure:**
+   - Check for `### Phase N:` sections
+   - Verify `**Status**: ⬜ Not Started` indicators
+   - Confirm `- [ ]` task checkboxes
+
+4. **Run Build phase:**
+   ```bash
+   /faber run <work_id> --phases build
+   ```
+
+5. **Verify build behavior:**
+   - Extended thinking plan created before code
+   - Tasks executed autonomously (no pause prompts)
+   - Commits created at logical boundaries
+   - Phase checkpoint triggered at completion
+
+### Checkpoint Verification
+
+After build completes, verify checkpoint actions:
+
+```bash
+# Check spec was updated
+grep "✅ Complete" specs/WORK-*-test.md
+
+# Check session summary was created
+ls -la .fractary/plugins/faber/runs/*/session-summaries/
+
+# Check progress comment was posted
+gh issue view <work_id> --comments
+```
+
+### Error Handling Tests
+
+Test resilience by simulating failures:
+
+1. **Read-only spec file:**
+   ```bash
+   chmod 444 specs/WORK-*-test.md
+   # Run build - should complete with warning
+   ```
+
+2. **No git repository:**
+   ```bash
+   # Run from non-git directory
+   # Commit action should skip gracefully
+   ```
+
+3. **Network offline:**
+   ```bash
+   # Disable network
+   # Comment post should fail with warning, build continues
+   ```
+
+### Session Continuity Test
+
+Test cross-session context:
+
+1. Run build for phase-1, complete checkpoint
+2. Start new Claude session
+3. Run `/faber run <work_id> --resume`
+4. Verify session summary is loaded:
+   - Previous accomplishments displayed
+   - Correct phase identified (phase-2)
+   - Files changed from phase-1 shown
+
+### Input Validation Tests
+
+Verify sanitization works:
+
+```bash
+# Test with special characters in work item title
+# Title: "Test `injection` $(whoami) attempt"
+# Should be sanitized to safe string
+
+# Test with long phase names
+# Should be truncated to max length
+```
+
+### Automated Test Coverage (Future)
+
+Areas for automated testing:
+
+| Component | Test Type | Priority |
+|-----------|-----------|----------|
+| Input sanitization | Unit test | High |
+| Phase name validation | Unit test | High |
+| Checkpoint error handling | Integration test | Medium |
+| Session summary generation | Integration test | Medium |
+| Context reconstitution | Integration test | Medium |
+| Spec-updater operations | Unit test | High |
+
+### Success Criteria
+
+Build skill is working correctly when:
+
+- ✅ Extended thinking plan visible in output
+- ✅ No premature stop prompts during execution
+- ✅ All phase tasks completed autonomously
+- ✅ Commits created with semantic messages
+- ✅ Spec updated with task checkmarks
+- ✅ Phase status shows ✅ Complete
+- ✅ Progress comment posted to issue
+- ✅ Session summary file created
+- ✅ Checkpoint failures don't break build
+</TESTING>
+
 This Build skill implements solutions from specifications with autonomous execution, supporting the one-phase-per-session model for optimal context management.
