@@ -32,6 +32,7 @@ fi
 RESULTS='{}'
 ERRORS=()
 TOTAL_VIOLATIONS=0
+ERROR_VIOLATIONS=0      # v2.0: ERROR severity (ARC-006, ARC-007)
 CRITICAL_VIOLATIONS=0
 WARNING_VIOLATIONS=0
 INFO_VIOLATIONS=0
@@ -78,6 +79,7 @@ count_violations() {
     TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + count))
 
     case "$severity" in
+      error) ERROR_VIOLATIONS=$((ERROR_VIOLATIONS + count)) ;;       # v2.0: ERROR severity
       critical) CRITICAL_VIOLATIONS=$((CRITICAL_VIOLATIONS + count)) ;;
       warning) WARNING_VIOLATIONS=$((WARNING_VIOLATIONS + count)) ;;
       info) INFO_VIOLATIONS=$((INFO_VIOLATIONS + count)) ;;
@@ -89,7 +91,10 @@ echo "Running all detection scripts on: $PROJECT_PATH" >&2
 echo "-------------------------------------------" >&2
 
 # Detection scripts to run (in order)
+# v2.0: Added ARC-006 and ARC-007 as ERROR severity (blocks workflows)
 DETECTION_SCRIPTS=(
+  "detect-project-specific-director.sh:error" # ARC-006 (v2.0 - ERROR severity)
+  "detect-project-specific-manager.sh:error"  # ARC-007 (v2.0 - ERROR severity)
   "detect-manager-as-skill.sh:critical"       # SKL/AGT anti-pattern
   "detect-director-as-agent.sh:critical"      # SKL/AGT anti-pattern
   "detect-workflow-logging.sh:warning"        # AGT-005
@@ -98,6 +103,9 @@ DETECTION_SCRIPTS=(
 )
 
 # Run each detection and build results
+# v2.0: Added project-specific director/manager detection
+PROJECT_SPECIFIC_DIRECTOR='{"status": "skipped"}'
+PROJECT_SPECIFIC_MANAGER='{"status": "skipped"}'
 MANAGER_AS_SKILL='{"status": "skipped"}'
 DIRECTOR_AS_AGENT='{"status": "skipped"}'
 WORKFLOW_LOGGING='{"status": "skipped"}'
@@ -114,6 +122,8 @@ for script_spec in "${DETECTION_SCRIPTS[@]}"; do
     count_violations "$result" "$severity"
 
     case "$script_name" in
+      "detect-project-specific-director.sh") PROJECT_SPECIFIC_DIRECTOR="$result" ;;
+      "detect-project-specific-manager.sh") PROJECT_SPECIFIC_MANAGER="$result" ;;
       "detect-manager-as-skill.sh") MANAGER_AS_SKILL="$result" ;;
       "detect-director-as-agent.sh") DIRECTOR_AS_AGENT="$result" ;;
       "detect-workflow-logging.sh") WORKFLOW_LOGGING="$result" ;;
@@ -141,9 +151,9 @@ fi
 
 # Calculate compliance score
 # Formula: (total_checks - weighted_violations) / total_checks * 100
-# Weights: critical=10, warning=3, info=1
-TOTAL_CHECKS=25  # Base number of checks across all rules
-WEIGHTED_VIOLATIONS=$((CRITICAL_VIOLATIONS * 10 + WARNING_VIOLATIONS * 3 + INFO_VIOLATIONS * 1))
+# Weights: error=15 (v2.0), critical=10, warning=3, info=1
+TOTAL_CHECKS=30  # Base number of checks across all rules (increased for v2.0)
+WEIGHTED_VIOLATIONS=$((ERROR_VIOLATIONS * 15 + CRITICAL_VIOLATIONS * 10 + WARNING_VIOLATIONS * 3 + INFO_VIOLATIONS * 1))
 if [[ $WEIGHTED_VIOLATIONS -gt $TOTAL_CHECKS ]]; then
   WEIGHTED_VIOLATIONS=$TOTAL_CHECKS
 fi
@@ -164,12 +174,15 @@ jq -n \
   --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson compliance_score "$COMPLIANCE_SCORE" \
   --argjson total_violations "$TOTAL_VIOLATIONS" \
+  --argjson error "$ERROR_VIOLATIONS" \
   --argjson critical "$CRITICAL_VIOLATIONS" \
   --argjson warning "$WARNING_VIOLATIONS" \
   --argjson info "$INFO_VIOLATIONS" \
   --argjson errors "$ERRORS_JSON" \
   --argjson structure "$STRUCTURE" \
   --argjson context_load "$CONTEXT_LOAD" \
+  --argjson project_specific_director "$PROJECT_SPECIFIC_DIRECTOR" \
+  --argjson project_specific_manager "$PROJECT_SPECIFIC_MANAGER" \
   --argjson manager_as_skill "$MANAGER_AS_SKILL" \
   --argjson director_as_agent "$DIRECTOR_AS_AGENT" \
   --argjson workflow_logging "$WORKFLOW_LOGGING" \
@@ -183,6 +196,7 @@ jq -n \
       compliance_score: $compliance_score,
       total_violations: $total_violations,
       by_severity: {
+        error: $error,
         critical: $critical,
         warning: $warning,
         info: $info
@@ -191,6 +205,8 @@ jq -n \
     structure: $structure,
     context_load: $context_load,
     detections: {
+      project_specific_director: $project_specific_director,
+      project_specific_manager: $project_specific_manager,
       manager_as_skill: $manager_as_skill,
       director_as_agent: $director_as_agent,
       workflow_logging: $workflow_logging,
@@ -198,10 +214,10 @@ jq -n \
       director_patterns: $director_patterns
     },
     execution: {
-      scripts_run: 7,
+      scripts_run: 9,
       errors: $errors
     }
   }'
 
 echo "" >&2
-echo "Detection complete. Total violations: $TOTAL_VIOLATIONS (Critical: $CRITICAL_VIOLATIONS, Warning: $WARNING_VIOLATIONS, Info: $INFO_VIOLATIONS)" >&2
+echo "Detection complete. Total violations: $TOTAL_VIOLATIONS (Error: $ERROR_VIOLATIONS, Critical: $CRITICAL_VIOLATIONS, Warning: $WARNING_VIOLATIONS, Info: $INFO_VIOLATIONS)" >&2
