@@ -299,10 +299,12 @@
         "category": "development",
         "strict": true,
         "commands": [
-          "./commands/faber.md",
           "./commands/init.md",
-          "./commands/mention.md",
-          "./commands/status.md"
+          "./commands/run.md",
+          "./commands/status.md",
+          "./commands/audit.md",
+          "./commands/archive.md",
+          "./commands/debugger.md"
         ],
         "agents": [
           "./agents/faber-manager.md"
