@@ -6,353 +6,726 @@ title: Default build skill planning and autonomy
 type: feature
 status: draft
 created: 2025-12-06
+updated: 2025-12-06
 author: fractary
 validated: false
 source: conversation+issue
+related_issues:
+  - 178  # Better session history management (merged into this spec)
+  - 258  # HITL resume handling (leverages context-reconstitution.md)
 ---
 
-# Feature Specification: Default Build Skill Planning and Autonomy
+# Feature Specification: Build Skill Autonomy and Session Management
 
 **Issue**: [#262](https://github.com/fractary/claude-plugins/issues/262)
+**Related**: [#178](https://github.com/fractary/claude-plugins/issues/178) (Session Management - merged)
+**Leverages**: [#258](https://github.com/fractary/claude-plugins/issues/258) (Context Reconstitution - completed)
 **Type**: Feature
 **Status**: Draft
 **Created**: 2025-12-06
 
+---
+
 ## Summary
 
-Enhance or create a default build skill in the FABER plugin that implements specs with high autonomy. The skill should encourage Claude to think deeply about implementation planning before executing, run to completion without unnecessary pauses, and provide meaningful progress checkpoints through spec updates, commits, and issue comments. This addresses the current limitations of hook-based progress tracking (auto-commit on stop, auto-comment on stop) which are inefficient for long-running autonomous sessions.
+This specification combines two related needs:
+
+1. **Build Skill Autonomy (#262)**: Enhance the FABER build skill to implement specs with deep planning, autonomous execution, and meaningful progress checkpoints.
+
+2. **Session Lifecycle Management (#178)**: Implement a "one phase per session" model with session checkpoints, summaries, and clean handoffs between sessions.
+
+Together, these enable truly autonomous multi-session workflow execution where Claude can implement complex specs across multiple sessions while maintaining full context continuity.
+
+---
 
 ## Problem Statement
 
-### Current Issues with Hook-Based Progress Tracking
+### Current Issues
 
-1. **Inefficient Hook Execution**: The current `commit-on-stop` and `comment-on-stop` hooks run on every stop event, even when:
-   - No code changes were made
-   - There's nothing meaningful to commit or comment on
-   - This wastes significant time and context
+1. **Inefficient Hook-Based Progress Tracking**
+   - `commit-on-stop` and `comment-on-stop` hooks run on every stop
+   - Many stops have nothing to commit/comment, wasting time and context
+   - In autonomous sessions with no stops, progress goes unreported
 
-2. **Inadequate for Autonomous Sessions**: In long-running autonomous sessions:
-   - There are no natural "stops" to trigger hooks
-   - More work accumulates than is ideal between commits
-   - Progress goes unreported until session ends
+2. **Claude's Premature Stopping**
+   - Claude frequently suggests "pausing for now" when context runs low
+   - Proposes "breaking into phases" or "future work"
+   - Asks for confirmation at each step, breaking autonomy
 
-3. **Claude's Tendency to Stop Prematurely**: Claude frequently:
-   - Stops when context is running low
-   - Suggests "pausing for now and picking it up later"
-   - Proposes "breaking into a future phase"
-   - This undermines autonomous workflow goals
+3. **No Session Lifecycle Management**
+   - Context overflow handled by compaction (unpredictable)
+   - No proactive session boundaries
+   - No session summaries for continuity
+   - Cross-session context loss
+
+### Solution: One Phase Per Session Model
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MULTI-SESSION WORKFLOW                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Session 1 (Phase 1)                                            │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │ [Context Reconstitution] → [Build Phase 1] → [Checkpoint] │   │
+│  │         (#258)                 (#262)         (#262+#178) │   │
+│  └────────────────────────────────────────────────────────┘     │
+│                              ↓                                   │
+│                    Session Summary Saved                         │
+│                              ↓                                   │
+│  Session 2 (Phase 2)                                            │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │ [Context Reconstitution] → [Build Phase 2] → [Checkpoint] │   │
+│  └────────────────────────────────────────────────────────┘     │
+│                              ↓                                   │
+│                           ...                                    │
+│                              ↓                                   │
+│  Session N (Phase N)                                            │
+│  ┌────────────────────────────────────────────────────────┐     │
+│  │ [Context Reconstitution] → [Build Phase N] → [Complete]   │   │
+│  └────────────────────────────────────────────────────────┘     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## User Stories
 
-### US1: Autonomous Spec Implementation
+### US1: Autonomous Phase Implementation
 **As a** developer using FABER workflows
-**I want** the build skill to implement specs completely without stopping
-**So that** I can trust autonomous sessions to run to completion without manual intervention
+**I want** the build skill to implement one spec phase completely without stopping
+**So that** I can trust each session to complete its assigned work
 
 **Acceptance Criteria**:
-- [ ] Build skill reads spec and creates detailed implementation plan before coding
-- [ ] Build skill continues implementation without asking for confirmation at each step
-- [ ] Build skill handles context compaction gracefully and continues
-- [ ] Build skill does not suggest "stopping for now" or "future phases"
+- [ ] Build skill reads spec and identifies current phase
+- [ ] Uses Opus model with thinking mode for deep planning
+- [ ] Creates detailed implementation plan before coding
+- [ ] Executes plan without asking for confirmation
+- [ ] Does not suggest "stopping" or "future phases"
+- [ ] Handles compaction gracefully and continues
 
-### US2: Meaningful Progress Checkpoints
-**As a** developer monitoring autonomous sessions
-**I want** regular progress updates through commits and issue comments
-**So that** I can track what's being done without interrupting the session
-
-**Acceptance Criteria**:
-- [ ] Spec is updated to reflect implementation progress
-- [ ] Commits are made after meaningful work chunks (not on every stop)
-- [ ] Issue comments summarize progress and next steps
-- [ ] Progress tracking doesn't rely on session stop events
-
-### US3: Efficient Resource Usage
-**As a** developer running autonomous workflows
-**I want** progress tracking to be efficient
-**So that** context and time aren't wasted on empty commits/comments
+### US2: Phase-Boundary Checkpoints
+**As a** developer monitoring workflows
+**I want** progress checkpoints at phase boundaries
+**So that** work is persisted and visible
 
 **Acceptance Criteria**:
-- [ ] No empty commits when no code changes exist
-- [ ] No redundant comments when nothing new to report
-- [ ] Progress checkpoints occur at logical implementation boundaries
+- [ ] Spec updated with phase completion status
+- [ ] Commit created with phase work
+- [ ] Issue comment posted with progress summary
+- [ ] Checkpoints triggered by phase completion, not stop events
+
+### US3: Session Lifecycle Management
+**As a** developer running multi-phase specs
+**I want** clean session boundaries between phases
+**So that** context doesn't overflow and continuity is maintained
+
+**Acceptance Criteria**:
+- [ ] faber-manager handles session lifecycle
+- [ ] Session summary created at phase completion
+- [ ] New session loads context via #258's reconstitution
+- [ ] Summary + spec + issue provide full context for continuation
+
+### US4: Phase-Structured Specs
+**As a** developer creating specs
+**I want** specs to be structured into session-sized phases
+**So that** the one-phase-per-session model works effectively
+
+**Acceptance Criteria**:
+- [ ] Spec generator produces phase-structured output
+- [ ] Each phase has clear status indicator
+- [ ] Phases include task checklists
+- [ ] Phase size guidance included
+
+---
 
 ## Functional Requirements
 
-- **FR1**: Build skill MUST read the latest spec before implementation
-- **FR2**: Build skill MUST create a detailed step-by-step implementation plan
-- **FR3**: Build skill MUST execute the plan without stopping for confirmation
-- **FR4**: Build skill MUST NOT suggest "pausing" or "future phases" due to context limits
-- **FR5**: Build skill MUST update spec progress using fractary-spec plugin after meaningful work
-- **FR6**: Build skill MUST commit code using fractary-repo plugin after meaningful implementation chunks
-- **FR7**: Build skill MUST comment on issue using fractary-work plugin with progress summary
-- **FR8**: Progress checkpoints MUST be triggered by implementation milestones, not stop events
+### Build Skill (FR1-FR8)
+
+- **FR1**: Build skill MUST use Opus model with thinking mode enabled
+- **FR2**: Build skill MUST read spec and create detailed implementation plan BEFORE coding
+- **FR3**: Build skill MUST execute current phase without stopping for confirmation
+- **FR4**: Build skill MUST NOT suggest "pausing" or "future phases"
+- **FR5**: Build skill MUST trigger checkpoint at phase completion
+- **FR6**: Build skill MUST update spec progress via spec-updater skill
+- **FR7**: Build skill MUST commit via repo plugin's commit-creator
+- **FR8**: Build skill MUST comment on issue via work plugin's comment-creator
+
+### Session Management (FR9-FR13)
+
+- **FR9**: faber-manager MUST manage session lifecycle (not build skill)
+- **FR10**: Session checkpoint MUST include: spec update, commit, issue comment, summary
+- **FR11**: Session summary MUST be saved to run state for next session
+- **FR12**: New sessions MUST load context via context-reconstitution.md (#258)
+- **FR13**: faber-manager MUST prompt user to end session after phase completion
+
+### Spec Structure (FR14-FR16)
+
+- **FR14**: Spec generator MUST produce phase-structured specs
+- **FR15**: Each phase MUST have status indicator (Not Started / In Progress / Complete)
+- **FR16**: Each phase MUST have task checklist
+
+---
 
 ## Non-Functional Requirements
 
-- **NFR1**: Context efficiency - Progress tracking should minimize context consumption (performance)
-- **NFR2**: Autonomy - Build skill should complete full spec without human intervention (usability)
-- **NFR3**: Resilience - Build skill should handle context compaction and continue (reliability)
-- **NFR4**: Observability - Progress should be visible through git history and issue timeline (observability)
+- **NFR1**: Context efficiency - Checkpoints minimize context consumption
+- **NFR2**: Autonomy - Each phase completes without human intervention
+- **NFR3**: Continuity - Full context available at session start via reconstitution
+- **NFR4**: Observability - Progress visible via git history, issue timeline, spec status
+- **NFR5**: Predictability - One phase per session provides consistent boundaries
+
+---
 
 ## Technical Design
 
-### Architecture Changes
+### 1. Build Skill Enhancement
 
-The build skill will be structured as a SKILL.md file in the FABER plugin that:
-1. Uses a "think hard" prompting pattern to encourage deep planning
-2. Implements progress checkpoints at logical milestones (not on stops)
-3. Integrates with spec, repo, and work plugins for progress reporting
+**Location**: Modify existing `plugins/faber/skills/build/SKILL.md`
 
-```
-plugins/faber/skills/build-implementer/
-├── SKILL.md                    # Main skill definition with autonomy-focused prompts
-├── workflow/
-│   ├── implement-from-spec.md  # Step-by-step implementation workflow
-│   └── progress-checkpoint.md  # Checkpoint workflow (update spec, commit, comment)
-└── templates/
-    └── progress-comment.md.template  # Template for issue progress comments
-```
-
-### Core Prompt Design
-
-The key prompt elements to encourage autonomy:
+**Key Changes**:
 
 ```markdown
+---
+name: build
+description: FABER Phase 3 - Implements solution from specification with autonomous execution
+model: claude-opus-4-5  # CHANGED: Use Opus for deep thinking
+---
+
 <CRITICAL_RULES>
-1. Read the latest spec and think DEEPLY about a detailed step-by-step plan
-2. Document your complete implementation plan BEFORE writing any code
-3. Execute the plan IN ITS ENTIRETY without stopping for confirmation
-4. NEVER suggest "pausing for now" or "breaking into phases" - complete the full spec
-5. If context runs low, let auto-compaction happen and CONTINUE working
-6. After completing meaningful implementation chunks, trigger progress checkpoint
+1. **Use Thinking Mode** - ALWAYS engage extended thinking before implementation
+2. **Plan First** - Read spec and create DETAILED step-by-step plan BEFORE any code
+3. **Complete Current Phase** - Implement the current spec phase IN ITS ENTIRETY
+4. **No Premature Stops** - NEVER suggest "pausing", "future phases", or "picking up later"
+5. **Accept Compaction** - If context compacts, CONTINUE from where you left off
+6. **Phase Boundary Checkpoint** - After phase completion, trigger checkpoint workflow
+7. **Follow Specification** - ALWAYS implement according to the spec
+8. **Commit Regularly** - Create semantic commits for logical work units within phase
 </CRITICAL_RULES>
 ```
 
-### Progress Checkpoint Integration
-
-The build skill will call progress checkpoints at logical boundaries:
+**Workflow Enhancement** (`workflow/basic.md`):
 
 ```markdown
-## Progress Checkpoint Trigger Points
+### 1. Load and Analyze Specification
 
-Trigger a checkpoint after:
-1. Completing a major feature component
-2. Finishing a phase from the implementation plan
-3. Every 3-5 files modified (configurable)
-4. Before starting a significantly different area of work
+Read the spec file and identify:
+- Current phase to implement
+- Phase tasks/checklist
+- Files to create/modify
+- Technical approach
 
-## Checkpoint Actions
+### 2. Create Implementation Plan (THINKING MODE)
 
-1. **Update Spec Progress** (via fractary-spec:spec-updater)
-   - Mark completed items in implementation plan
-   - Add "Implementation Notes" section with decisions made
+Before ANY code changes, create a detailed plan:
 
-2. **Commit Changes** (via fractary-repo:commit-creator)
-   - Stage all changed files
-   - Create semantic commit message summarizing work
-   - Include work_id reference
+<extended_thinking>
+Think deeply about:
+1. What exactly needs to be implemented in this phase
+2. The order of operations
+3. Potential challenges and how to address them
+4. How each task maps to file changes
+5. Testing approach for this phase
 
-3. **Comment on Issue** (via fractary-work:comment-creator)
-   - Summarize what was implemented since last checkpoint
-   - List files created/modified
-   - Describe next steps in plan
+Document your complete plan before proceeding.
+</extended_thinking>
+
+### 3. Execute Implementation Plan
+
+Implement each planned step:
+- Create/modify files as planned
+- Make commits at logical boundaries (not waiting for phase end)
+- Update task checklist in spec as items complete
+
+### 4. Phase Completion Checkpoint
+
+When phase is complete:
+1. Update spec with phase status = Complete
+2. Create final phase commit if uncommitted changes
+3. Post progress comment to issue
+4. Signal faber-manager that phase is complete
 ```
 
-### Data Model
+### 2. Session Checkpoint Workflow
 
-No new data models required. Uses existing:
-- Spec files in `/specs/WORK-{id}-*.md`
-- Git commits via repo plugin
-- Issue comments via work plugin
+**New file**: `plugins/faber/skills/build/workflow/phase-checkpoint.md`
 
-### API Design
+```markdown
+# Phase Checkpoint Workflow
 
-No external API changes. Internal skill invocation:
+Triggered when a spec phase is completed.
 
-- `fractary-spec:spec-updater` - Update spec with progress
-- `fractary-repo:commit-creator` - Create commits
-- `fractary-work:comment-creator` - Post issue comments
+## Actions
 
-### UI/UX Changes
+### 1. Update Spec Progress
 
-No UI changes. Progress visible through:
-- Git commit history
-- GitHub issue timeline
-- Updated spec file
+Invoke spec-updater skill:
+- Mark current phase as "Complete"
+- Check off completed tasks
+- Add implementation notes if relevant
+
+### 2. Create Phase Commit
+
+If uncommitted changes exist:
+- Stage all changes
+- Create semantic commit: `feat({work_id}): Complete {phase_name}`
+
+### 3. Post Progress Comment
+
+Format and post issue comment with:
+- Phase completed
+- Files changed since last checkpoint
+- Tasks completed (checked off)
+- Percentage complete (phases done / total)
+- Next phase description
+
+### 4. Save Session Summary
+
+Create session summary for next session:
+- What was accomplished
+- Key decisions made
+- Files created/modified
+- Remaining phases
+
+### 5. Signal Phase Complete
+
+Return to faber-manager with:
+- Phase status: complete
+- Next phase: {next_phase_name} or null if done
+- Recommend: end_session (for clean handoff)
+```
+
+### 3. Session Summary Format
+
+**Location**: Saved to run state at `.fractary/plugins/faber/runs/{run_id}/session-summaries/`
+
+```json
+{
+  "session_id": "session-20251206-001",
+  "phase_completed": "phase-1",
+  "timestamp": "2025-12-06T18:30:00Z",
+  "summary": {
+    "accomplished": [
+      "Created SKILL.md with autonomy-focused prompts",
+      "Implemented workflow/basic.md with planning steps",
+      "Added checkpoint trigger logic"
+    ],
+    "decisions": [
+      "Used Opus model for thinking mode support",
+      "Checkpoint at phase boundary only (not mid-phase)"
+    ],
+    "files_changed": [
+      "plugins/faber/skills/build/SKILL.md",
+      "plugins/faber/skills/build/workflow/basic.md"
+    ],
+    "commits": ["abc123", "def456"],
+    "remaining_phases": ["phase-2", "phase-3"],
+    "context_notes": "Spec is well-structured, no blockers identified"
+  }
+}
+```
+
+### 4. Spec Phase Structure
+
+**Update spec-generator to produce**:
+
+```markdown
+## Implementation Plan
+
+### Phase 1: Core Infrastructure
+**Status**: ⬜ Not Started | 🔄 In Progress | ✅ Complete
+
+**Objective**: Set up base skill structure
+
+**Tasks**:
+- [ ] Create SKILL.md with autonomy prompts
+- [ ] Create workflow directory structure
+- [ ] Add basic workflow file
+
+**Estimated Scope**: Small (suitable for single session)
+
+---
+
+### Phase 2: Checkpoint Integration
+**Status**: ⬜ Not Started
+
+**Objective**: Implement progress checkpoints
+
+**Tasks**:
+- [ ] Add spec update logic
+- [ ] Add commit integration
+- [ ] Add issue comment integration
+
+**Estimated Scope**: Medium (suitable for single session)
+
+---
+
+### Phase 3: Testing and Documentation
+**Status**: ⬜ Not Started
+
+**Objective**: Validate and document
+
+**Tasks**:
+- [ ] Test with sample specs
+- [ ] Document usage
+- [ ] Update plugin docs
+
+**Estimated Scope**: Small (suitable for single session)
+```
+
+### 5. faber-manager Session Lifecycle
+
+**Update**: `plugins/faber/agents/faber-manager.md`
+
+Add session lifecycle handling after build phase returns:
+
+```markdown
+## Session Lifecycle Management
+
+When build skill reports phase completion:
+
+1. **Check if more phases remain**
+   - Read spec to determine remaining phases
+
+2. **If more phases**:
+   - Prompt user: "Phase {N} complete. End session for clean handoff?"
+   - Options: [End Session] [Continue to Next Phase]
+   - If End Session: Save state, show resume command
+   - If Continue: Proceed (user accepts context risk)
+
+3. **If no more phases**:
+   - Proceed to Evaluate phase
+   - No session boundary needed
+```
+
+### 6. spec-updater Skill
+
+**New skill**: `plugins/spec/skills/spec-updater/SKILL.md`
+
+```markdown
+---
+name: spec-updater
+description: Updates spec files with implementation progress
+model: claude-haiku-4-5
+---
+
+# Spec Updater Skill
+
+<CONTEXT>
+Updates specification files to reflect implementation progress.
+Used by build skill to mark phases complete and check off tasks.
+</CONTEXT>
+
+<OPERATIONS>
+
+## update-phase-status
+
+Mark a phase as complete/in-progress:
+- Read spec file
+- Find phase section
+- Update status indicator
+- Write spec file
+
+## check-task
+
+Check off a completed task:
+- Read spec file
+- Find task in phase
+- Change `- [ ]` to `- [x]`
+- Write spec file
+
+## add-implementation-notes
+
+Add notes to a phase:
+- Read spec file
+- Find phase section
+- Append to Implementation Notes subsection
+- Write spec file
+
+</OPERATIONS>
+```
+
+### 7. Progress Comment Template
+
+**New file**: `plugins/faber/skills/build/templates/progress-comment.md.template`
+
+```markdown
+## Phase Complete: {{phase_name}}
+
+**Run ID**: `{{run_id}}`
+**Work Item**: #{{work_id}}
+**Timestamp**: {{timestamp}}
+
+### Progress Summary
+
+{{summary}}
+
+### Files Changed
+
+{{#files}}
+- `{{path}}` - {{description}}
+{{/files}}
+
+### Tasks Completed
+
+{{#tasks}}
+- [x] {{task}}
+{{/tasks}}
+
+### Overall Progress
+
+**Phases**: {{phases_complete}}/{{phases_total}} ({{percent_complete}}%)
+
+{{#next_phase}}
+### Next Phase: {{next_phase_name}}
+
+{{next_phase_objective}}
+{{/next_phase}}
+
+{{^next_phase}}
+### All Phases Complete
+
+Ready for Evaluate phase.
+{{/next_phase}}
+
+---
+_Session checkpoint by FABER workflow_
+```
+
+---
 
 ## Implementation Plan
 
-### Phase 1: Create Build Skill Structure
-Create the basic skill structure with autonomy-focused prompting.
+### Phase 1: Enhance Build Skill with Autonomy Prompts
+**Status**: ⬜ Not Started
+
+**Objective**: Modify existing build skill for autonomous execution
 
 **Tasks**:
-- [ ] Create `plugins/faber/skills/build-implementer/` directory structure
-- [ ] Write SKILL.md with autonomy-focused CRITICAL_RULES
-- [ ] Include "think hard" planning prompt pattern
-- [ ] Add explicit instructions to never suggest stopping/pausing
+- [ ] Update `plugins/faber/skills/build/SKILL.md` with new CRITICAL_RULES
+- [ ] Change model to `claude-opus-4-5` for thinking mode
+- [ ] Add explicit anti-stopping instructions
+- [ ] Update workflow/basic.md with plan-first approach
 
-### Phase 2: Implement Planning Workflow
-Add workflow for reading spec and creating detailed implementation plan.
+**Estimated Scope**: Small (single session)
 
-**Tasks**:
-- [ ] Create `workflow/implement-from-spec.md` workflow file
-- [ ] Define spec reading and analysis steps
-- [ ] Define plan creation with explicit step documentation
-- [ ] Add plan-before-code enforcement
+---
 
-### Phase 3: Implement Progress Checkpoints
-Add checkpoint logic that doesn't depend on stop events.
+### Phase 2: Create Phase Checkpoint Workflow
+**Status**: ⬜ Not Started
+
+**Objective**: Implement checkpoint logic at phase boundaries
 
 **Tasks**:
-- [ ] Create `workflow/progress-checkpoint.md` workflow file
+- [ ] Create `workflow/phase-checkpoint.md`
 - [ ] Define checkpoint trigger conditions
-- [ ] Implement spec update integration
-- [ ] Implement commit creation integration
-- [ ] Implement issue comment integration
 - [ ] Create `templates/progress-comment.md.template`
+- [ ] Integrate with build workflow
 
-### Phase 4: Integrate with Default Workflow
-Ensure the build skill is used in the FABER default workflow.
+**Estimated Scope**: Small (single session)
+
+---
+
+### Phase 3: Create spec-updater Skill
+**Status**: ⬜ Not Started
+
+**Objective**: Enable spec progress updates
 
 **Tasks**:
-- [ ] Update default workflow to reference build-implementer skill
-- [ ] Verify skill is invoked during build phase
-- [ ] Test full FABER workflow with new skill
+- [ ] Create `plugins/spec/skills/spec-updater/SKILL.md`
+- [ ] Implement update-phase-status operation
+- [ ] Implement check-task operation
+- [ ] Implement add-implementation-notes operation
+- [ ] Add to spec plugin manifest
 
-### Phase 5: Documentation and Testing
-Document the skill and test thoroughly.
+**Estimated Scope**: Medium (single session)
+
+---
+
+### Phase 4: Session Summary and Lifecycle
+**Status**: ⬜ Not Started
+
+**Objective**: Enable session handoffs
 
 **Tasks**:
-- [ ] Document skill usage in plugin docs
-- [ ] Test with various spec types (small, medium, large)
-- [ ] Verify checkpoint frequency is appropriate
-- [ ] Confirm no empty commits/comments
+- [ ] Define session summary format
+- [ ] Update faber-manager with session lifecycle handling
+- [ ] Integrate with context-reconstitution.md (load summaries)
+- [ ] Add session summary to checkpoint workflow
+
+**Estimated Scope**: Medium (single session)
+
+---
+
+### Phase 5: Update Spec Generator for Phases
+**Status**: ⬜ Not Started
+
+**Objective**: Ensure specs are phase-structured
+
+**Tasks**:
+- [ ] Update spec-feature.md.template with phase structure
+- [ ] Add status indicators to phases
+- [ ] Add task checklists to phases
+- [ ] Add scope estimates to phases
+
+**Estimated Scope**: Small (single session)
+
+---
+
+### Phase 6: Integration Testing
+**Status**: ⬜ Not Started
+
+**Objective**: Validate complete workflow
+
+**Tasks**:
+- [ ] Test single-phase spec execution
+- [ ] Test multi-phase spec with session boundaries
+- [ ] Verify context reconstitution between sessions
+- [ ] Verify progress tracking (commits, comments, spec updates)
+- [ ] Document findings and adjust
+
+**Estimated Scope**: Medium (single session)
+
+---
 
 ## Files to Create/Modify
 
 ### New Files
-- `plugins/faber/skills/build-implementer/SKILL.md`: Main skill definition with autonomy prompts
-- `plugins/faber/skills/build-implementer/workflow/implement-from-spec.md`: Implementation workflow
-- `plugins/faber/skills/build-implementer/workflow/progress-checkpoint.md`: Checkpoint workflow
-- `plugins/faber/skills/build-implementer/templates/progress-comment.md.template`: Comment template
+
+| File | Purpose |
+|------|---------|
+| `plugins/spec/skills/spec-updater/SKILL.md` | Spec progress update skill |
+| `plugins/faber/skills/build/workflow/phase-checkpoint.md` | Checkpoint workflow |
+| `plugins/faber/skills/build/templates/progress-comment.md.template` | Issue comment template |
 
 ### Modified Files
-- `plugins/faber/skills/faber-manager/workflow/phase-build.md`: Reference new build-implementer skill
-- `plugins/faber/.claude-plugin/plugin.json`: Add new skill to manifest (if needed)
-- `plugins/faber/config/faber.example.toml`: Document build skill configuration options
 
-## Testing Strategy
+| File | Changes |
+|------|---------|
+| `plugins/faber/skills/build/SKILL.md` | Add autonomy rules, change model |
+| `plugins/faber/skills/build/workflow/basic.md` | Add planning workflow, checkpoint trigger |
+| `plugins/faber/agents/faber-manager.md` | Add session lifecycle handling |
+| `plugins/faber/skills/faber-manager/workflow/context-reconstitution.md` | Load session summaries |
+| `plugins/spec/skills/spec-generator/templates/spec-feature.md.template` | Add phase structure |
 
-### Unit Tests
-- Verify SKILL.md parses correctly
-- Verify workflow files have valid structure
-- Verify template renders correctly
+---
 
-### Integration Tests
-- Test skill invocation from FABER workflow
-- Test spec update integration
-- Test commit creation integration
-- Test issue comment integration
+## Integration with Existing Work
 
-### E2E Tests
-- Run full FABER workflow with small spec
-- Run full FABER workflow with medium spec (multiple checkpoints)
-- Verify commits appear at expected intervals
-- Verify issue comments reflect actual progress
+### #258 Context Reconstitution (LEVERAGES)
 
-### Performance Tests
-- Measure context consumption of checkpoints
-- Compare to hook-based approach
-- Verify no regression in implementation speed
+The context-reconstitution.md workflow already:
+- Loads run state, spec, issue, branch, events
+- Determines resume point
+- Builds consolidated context
+
+**Enhancement needed**: Add session summary loading:
+
+```markdown
+### 0.9 Load Previous Session Summary (if exists)
+
+IF session_summaries directory exists THEN
+  # Load most recent summary
+  latest_summary = get_latest_file(".fractary/plugins/faber/runs/{run_id}/session-summaries/")
+
+  IF latest_summary exists THEN
+    summary = read(latest_summary)
+    LOG "✓ Loaded session summary from: ${latest_summary}"
+    LOG "  Phase completed: ${summary.phase_completed}"
+    LOG "  Accomplishments: ${summary.accomplished.length} items"
+
+    context.session_summary = summary
+```
+
+### Hook Deprecation (FUTURE)
+
+Once this is working, the following hooks can be disabled:
+- `commit-on-stop` (replaced by phase checkpoints)
+- `comment-on-stop` (replaced by phase checkpoints)
+
+This is out of scope for this issue but noted for future.
+
+---
 
 ## Dependencies
 
-- fractary-spec plugin (spec-updater skill) - for updating spec progress
-- fractary-repo plugin (commit-creator skill) - for creating commits
-- fractary-work plugin (comment-creator skill) - for posting issue comments
-- FABER plugin (faber-manager) - for workflow orchestration
+| Dependency | Status | Notes |
+|------------|--------|-------|
+| `fractary-spec:spec-updater` | To Create | Part of this issue (Phase 3) |
+| `fractary-repo:commit-creator` | Exists | No changes needed |
+| `fractary-work:comment-creator` | Exists | No changes needed |
+| `context-reconstitution.md` | Exists (#258) | Minor enhancement for summaries |
+
+---
 
 ## Risks and Mitigations
 
-- **Risk**: Claude may still suggest stopping despite prompts
-  - **Likelihood**: Medium
-  - **Impact**: High - defeats purpose of autonomy
-  - **Mitigation**: Multiple reinforcing prompt elements, explicit NEVER rules, testing and iteration
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Claude still suggests stopping | Medium | High | Multiple reinforcing prompts, testing, iteration |
+| Phase too large for one session | Medium | Medium | Spec generator guidance on phase sizing |
+| Session summary insufficient | Low | Medium | Include key decisions and context notes |
+| Checkpoint context overhead | Low | Low | Use Haiku for spec-updater, efficient templates |
 
-- **Risk**: Checkpoints too frequent, consuming excess context
-  - **Likelihood**: Low
-  - **Impact**: Medium - reduces efficiency
-  - **Mitigation**: Configurable checkpoint frequency, smart trigger logic
-
-- **Risk**: Checkpoints too infrequent, losing work on failure
-  - **Likelihood**: Medium
-  - **Impact**: Medium - work loss on context overflow
-  - **Mitigation**: Default to reasonable frequency, monitor and adjust
-
-- **Risk**: spec-updater/commit-creator/comment-creator skills don't exist yet
-  - **Likelihood**: High - needs verification
-  - **Impact**: High - blocks implementation
-  - **Mitigation**: Verify skill availability first, create stubs if needed
-
-## Documentation Updates
-
-- `plugins/faber/docs/BUILD-SKILL.md`: New documentation for build skill usage
-- `plugins/faber/docs/AUTONOMY.md`: Document autonomy patterns and configuration
-- `plugins/faber/README.md`: Reference new build skill
-
-## Rollout Plan
-
-1. **Alpha**: Create skill with basic functionality, test internally
-2. **Beta**: Enable in development workflows, gather feedback
-3. **GA**: Enable as default build skill in FABER plugin
+---
 
 ## Success Metrics
 
-- Autonomous completion rate: >90% of specs completed without manual intervention
-- Checkpoint efficiency: <5% context overhead per checkpoint
-- Commit frequency: 1 commit per major implementation unit (not per stop)
-- Issue visibility: Clear progress trail in issue timeline
+| Metric | Target |
+|--------|--------|
+| Phase completion rate | >95% phases complete without manual intervention |
+| Context overflow rate | <5% sessions hit compaction |
+| Checkpoint overhead | <3% of session context per checkpoint |
+| Resume success rate | >98% resumes have full context |
+| Progress visibility | 100% phases have commit + issue comment |
+
+---
 
 ## Implementation Notes
 
-### Key Insight: Think-First Pattern
+### Key Design Decisions
 
-The core innovation is the "think hard and plan first" prompt pattern:
+1. **Modify existing build skill** (not create new one) - Avoids duplication
+2. **Checkpoints at phase boundaries** (not mid-phase) - Aligns with spec structure
+3. **faber-manager owns session lifecycle** (not build skill) - Separation of concerns
+4. **User prompted to end session** (not automatic) - User retains control
+5. **Session summaries in run state** (not separate storage) - Context reconstitution finds them
+
+### The "Think Hard" Prompt Pattern
 
 ```
-"Read the latest spec and think hard about a detailed step by step plan
-to implement the spec and then proceed to implement the spec in its
-entirety without stopping."
+Read the latest spec and think hard about a detailed step-by-step plan
+to implement the current phase and then proceed to implement it in its
+entirety without stopping.
 ```
 
-This encourages:
-1. Deep analysis before coding
-2. Complete planning visible in output
-3. Autonomous execution of the plan
-4. No premature stopping
+Combined with:
+- Opus model (supports extended thinking)
+- Explicit NEVER rules against stopping
+- Plan-before-code enforcement
 
-### Anti-Patterns to Avoid
+### Anti-Patterns to Counter
 
-The skill explicitly counters Claude's tendency to:
-- Stop when context is low ("let's pause here")
-- Split work into phases ("we can do this next time")
-- Ask for confirmation at each step ("should I proceed?")
-- Suggest incremental approaches ("let's start with X and see")
+| Claude Tendency | Counter Measure |
+|-----------------|-----------------|
+| "Let's pause here" | CRITICAL_RULE: NEVER suggest pausing |
+| "We can do this next time" | CRITICAL_RULE: Complete current phase |
+| "Should I proceed?" | CRITICAL_RULE: No confirmation needed |
+| "Let's start with X and see" | Workflow: Plan BEFORE code |
 
-### Context Management
+### Context Flow Between Sessions
 
-Rather than fighting context limits, the skill:
-- Accepts that auto-compaction will happen
-- Trusts Claude's compaction to preserve necessary context
-- Explicitly instructs to continue after compaction
-- Uses checkpoints to persist progress externally (git, issues)
+```
+Session N ends:
+  → Phase checkpoint saves work
+  → Session summary captures decisions
+  → Run state updated
 
-### Checkpoint vs Hook Comparison
-
-| Aspect | Hook-based (current) | Checkpoint-based (proposed) |
-|--------|---------------------|----------------------------|
-| Trigger | Every stop event | Implementation milestones |
-| Efficiency | Low (many empty runs) | High (only when meaningful) |
-| Autonomous sessions | Ineffective | Designed for |
-| Context cost | Consistent overhead | Only when triggered |
-| Work visibility | Sporadic | Regular, meaningful |
+Session N+1 starts:
+  → Context reconstitution runs
+  → Loads: state, spec, issue, branch, events, summary
+  → Resume point determined
+  → Full context available
+```
