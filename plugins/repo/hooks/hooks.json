@@ -1,9 +1,13 @@
 {
-  "description": "Fractary Repo Plugin Hooks - Update status cache on session start/prompt submit, auto-commit on session end",
+  "description": "Fractary Repo Plugin Hooks - Update marketplace and status cache on session start, auto-commit on session end",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-marketplace.sh fractary --quiet"
+          },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
