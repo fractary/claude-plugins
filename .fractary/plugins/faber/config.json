@@ -2,6 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/config.schema.json",
   "schema_version": "2.0",
   "_comment": "IMPORTANT: Workflows are now in separate files. See workflows/ directory.",
+  "default_workflow": "fractary-faber:default",
+  "default_autonomy": "guarded",
   "workflows": [
     {
       "id": "default",
