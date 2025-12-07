@@ -10,14 +10,14 @@ Version: 0.5.0 (Best Practices Update)
 
 Before creating agents, skills, or workflows, read the **[Best Practices Guide](docs/BEST-PRACTICES.md)**.
 
-**Key Principles:**
-- **`/{project}-direct` command** - Single entry point with `--action` flag
-- **Director is a Skill** - Enables parallel manager execution
-- **Manager is the only Agent** - One agent per project, delegates to skills
-- **Skills for all steps** - Frame, Architect, Build, Evaluate, Release
-- **Documentation is mandatory** - Builder skill MUST update docs
+**Key Principles (v2.0):**
+- **Projects create Skills, FABER handles orchestration** - Use core `faber-director` and `faber-manager`
+- **No project-specific directors or managers** - These are anti-patterns
+- **FABER workflow configs** - Define custom workflows via `.fractary/plugins/faber/workflows/`
+- **Skills for domain operations** - Validator, processor, reporter, etc.
+- **Documentation is mandatory** - Skills that make changes MUST update docs
 - **Debugger knowledge base** - Maintain troubleshooting log
-- **Plugin integrations** - Use fractary-docs, fractary-specs, fractary-logs, etc.
+- **Plugin integrations** - Use fractary-docs, fractary-spec, fractary-logs, etc.
 
 ---
 
@@ -251,22 +251,27 @@ Iteration Loop (max N):
 
 ### Patterns Detected
 
-**1. Manager-as-Skill Inversion**
-- Orchestration logic in `skills/` directory
-- Skills with `<WORKFLOW>` sections
-- Missing `AskUserQuestion` capability
+**1. Project-Specific Directors** (NEW in v2.0)
+- `{project}-director` skills
+- Custom `/{project}-direct` commands
+- Pattern expansion in project code
 
-**2. Agent Chains**
+**2. Project-Specific Managers** (NEW in v2.0)
+- `{project}-manager` agents
+- Orchestration logic in project files
+- Custom workflow coordination
+
+**3. Agent Chains**
 - Sequential agent invocations (A → B → C)
 - Context accumulation (60K+ tokens)
 - Complex state passing
 
-**3. Hybrid Agents**
+**4. Hybrid Agents**
 - Agents doing execution work directly
 - Bash commands in agent files
 - Mixed orchestration + execution
 
-**4. Inline Scripts**
+**5. Inline Scripts**
 - Bash logic in markdown instead of scripts/
 - Deterministic operations in LLM context
 - Not independently testable
@@ -391,33 +396,31 @@ Structured JSON files describing:
 ### Workflow Templates
 
 Located in `templates/workflow/`:
-- `manager-agent-7-phase.md.template` - 7-phase Manager agent
-- `manager-agent-builder-debugger.md.template` - Iterative Manager
-- `director-skill-pattern-expansion.md.template` - Director for batch ops
 - `specialist-skill-with-scripts.md.template` - General specialist skill
 - `inspector-skill.md.template` - Inspector (Observer role)
 - `debugger-skill.md.template` - Debugger (Analyzer role)
 - `builder-skill.md.template` - Builder (Executor role)
 - `troubleshooting-kb.md.template` - Knowledge base article
+- `faber-workflow-config.json.template` - FABER workflow configuration
 
 ### Component Templates
 
 Located in `templates/`:
-- `agent/manager.md.template` - Manager agent
 - `skill/basic-skill.md.template` - Basic skill
 - `skill/handler-skill.md.template` - Handler skill (multi-provider)
-- `command/command.md.template` - Command router
+- `command/command.md.template` - Command router (routes to FABER)
 - `plugin/plugin.json.template` - Plugin manifest
 - `plugin/README.md.template` - Plugin README
+
+**Note:** Manager and Director templates are deprecated. Projects should use core FABER orchestration with workflow configs.
 
 ---
 
 ## Validators
 
 Located in `skills/workflow-validator/scripts/`:
-- `manager-agent-validator.sh` - Validates Manager is Agent with full tools
-- `director-skill-validator.sh` - Validates Director is Skill with no orchestration
 - `skill-script-validator.sh` - Validates skill has scripts/ directory
+- `anti-pattern-detector.sh` - Detects project-specific directors/managers (ERROR)
 
 Located in `validators/`:
 - `xml-validator.sh` - Validates XML markup completeness
@@ -425,12 +428,14 @@ Located in `validators/`:
 - `naming-validator.sh` - Validates naming conventions
 - `cross-reference-validator.sh` - Validates cross-references exist
 
+**Note:** The `manager-agent-validator.sh` and `director-skill-validator.sh` are deprecated. Projects should not create these components.
+
 ---
 
 ## Documentation
 
 ### Best Practices
-- **[/docs/BEST-PRACTICES.md](docs/BEST-PRACTICES.md)** - **START HERE** - Current best practices guide
+- **[/docs/BEST-PRACTICES.md](docs/BEST-PRACTICES.md)** - **START HERE** - Current best practices guide (v2.0)
 
 ### Specifications
 - `/specs/SPEC-00015-faber-agent-plugin-specification.md` - Original spec
@@ -439,11 +444,13 @@ Located in `validators/`:
 ### Standards
 - `/docs/standards/FRACTARY-PLUGIN-STANDARDS.md` - Plugin development standards
 
+### Patterns
+- `/docs/patterns/builder-debugger.md` - Builder/Debugger iterative pattern
+
 ### Migration Guides
-- `/docs/migration/agent-chain-to-skills.md` - Converting agent chains to Manager + Skills
+- `/docs/migration/agent-chain-to-skills.md` - Converting agent chains to Skills
 - `/docs/migration/hybrid-agent-splitting.md` - Splitting hybrid agents
 - `/docs/migration/script-extraction.md` - Moving bash to scripts
-- `/docs/migration/manager-inversion-fix.md` - Fixing Manager-as-Skill inversions
 
 ### Usage Guides
 - `/docs/guides/workflow-creation-guide.md` - Complete workflow creation guide
@@ -453,7 +460,7 @@ Located in `validators/`:
 ### Examples
 - `/docs/examples/csv-processor-example.md` - Complete CSV processing workflow
 - `/docs/examples/typescript-builder-example.md` - Iterative TypeScript build with error fixing
-- `/docs/examples/conversion-example.md` - Manager-as-Skill conversion walkthrough
+- `/docs/examples/conversion-example.md` - Conversion walkthrough
 
 ---
 

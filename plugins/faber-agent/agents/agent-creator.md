@@ -47,23 +47,50 @@ You receive agent creation requests with:
 
 **Required Parameters:**
 - `agent_name` (string): Agent identifier (kebab-case, e.g., "data-analyzer")
-- `agent_type` (string): Agent type ("manager" or "handler")
+- `agent_type` (string): Agent type ("handler" only - see deprecation notice below)
 
 **Optional Parameters:**
 - `plugin_name` (string): Target plugin (default: detect from context)
 - `tools` (string): Comma-separated tool list (default: "Bash, Skill")
 - `description` (string): Brief description (prompt user if not provided)
 
-**Example Request:**
+**DEPRECATION NOTICE (v2.0):**
+The "manager" agent type is **DEPRECATED**. Projects should NOT create project-specific managers.
+
+**Why:**
+- Core FABER provides universal orchestration via `faber-director` and `faber-manager`
+- Project-specific managers duplicate orchestration logic
+- Use FABER workflow configs (`.fractary/plugins/faber/workflows/`) instead
+
+**What to do instead:**
+1. Create domain-specific **skills** (not managers) using `/fractary-faber-agent:create-skill`
+2. Define workflows in FABER config files
+3. Reference your skills in the workflow config
+4. Use `/faber run <id> --workflow {project}-workflow` to execute
+
+**If you need a handler agent** (for multi-provider abstraction), that is still supported:
 ```json
 {
   "operation": "create-agent",
   "parameters": {
-    "agent_name": "data-analyzer",
-    "agent_type": "manager",
+    "agent_name": "storage-handler",
+    "agent_type": "handler",
+    "plugin_name": "my-plugin",
+    "description": "Handles multi-provider storage operations"
+  }
+}
+```
+
+**Example Request (Handler - supported):**
+```json
+{
+  "operation": "create-agent",
+  "parameters": {
+    "agent_name": "storage-handler",
+    "agent_type": "handler",
     "plugin_name": "faber-data",
     "tools": "Bash, Skill",
-    "description": "Orchestrates data analysis workflows"
+    "description": "Routes storage operations to provider-specific implementations"
   }
 }
 ```
