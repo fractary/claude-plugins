@@ -1,0 +1,123 @@
+{
+  "$schema": "../workflow.schema.json",
+  "id": "core",
+  "description": "Core FABER workflow primitives - issue management, branching, PR lifecycle. Meant to be extended by other workflows.",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Fetch work item and setup branch",
+      "pre_steps": [
+        {
+          "id": "fetch-or-create-issue",
+          "name": "Fetch or Create Issue",
+          "description": "Fetch existing issue or create new one. Reads referenced docs and existing commits.",
+          "prompt": "If work_id provided: fetch issue with fractary-work:issue-fetcher, read all referenced documents and existing commits for context. If no work_id: create issue with fractary-work:issue-creator using the target description."
+        },
+        {
+          "id": "switch-or-create-branch",
+          "name": "Switch or Create Branch",
+          "description": "Checkout existing branch or create new one linked to issue",
+          "prompt": "If issue has associated branch: checkout and fetch it. If new issue or no branch: create branch with fractary-repo:branch-create --work-id. Update git status cache with branch and work ID."
+        }
+      ],
+      "steps": [],
+      "post_steps": []
+    },
+    "architect": {
+      "enabled": true,
+      "description": "Design and plan - extend this phase in child workflows",
+      "pre_steps": [],
+      "steps": [],
+      "post_steps": []
+    },
+    "build": {
+      "enabled": true,
+      "description": "Implementation - extend this phase in child workflows",
+      "pre_steps": [],
+      "steps": [],
+      "post_steps": [
+        {
+          "id": "commit-and-push-build",
+          "name": "Commit and Push Changes",
+          "description": "Ensure all build changes are committed and pushed",
+          "skill": "fractary-repo:commit-creator",
+          "config": {
+            "push_after_commit": true,
+            "conventional_commits": true,
+            "link_to_issue": true
+          }
+        }
+      ]
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Review implementation and create PR",
+      "max_retries": 3,
+      "pre_steps": [
+        {
+          "id": "issue-review",
+          "name": "Review Issue Implementation",
+          "description": "Verify implementation completeness against issue requirements",
+          "skill": "fractary-faber:issue-reviewer"
+        }
+      ],
+      "steps": [],
+      "post_steps": [
+        {
+          "id": "commit-and-push-evaluate",
+          "name": "Commit and Push Fixes",
+          "description": "Ensure evaluation fixes are committed",
+          "skill": "fractary-repo:commit-creator",
+          "config": {
+            "push_after_commit": true
+          }
+        },
+        {
+          "id": "create-pr",
+          "name": "Create Pull Request",
+          "description": "Create PR for the implementation (skips if PR already exists)",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "action": "create",
+            "auto_link_issue": true,
+            "skip_if_exists": true
+          }
+        },
+        {
+          "id": "review-pr-checks",
+          "name": "Review PR CI Checks",
+          "description": "Wait for and review CI/CD pipeline results",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "action": "review",
+            "wait_for_ci": true
+          }
+        }
+      ]
+    },
+    "release": {
+      "enabled": true,
+      "description": "Merge PR and complete workflow",
+      "require_approval": true,
+      "pre_steps": [],
+      "steps": [],
+      "post_steps": [
+        {
+          "id": "merge-pr",
+          "name": "Merge Pull Request",
+          "description": "Merge the PR and delete branch",
+          "skill": "fractary-repo:pr-manager",
+          "config": {
+            "action": "merge",
+            "delete_branch": true
+          }
+        }
+      ]
+    }
+  },
+  "autonomy": {
+    "level": "guarded",
+    "description": "Pauses before release for approval - recommended for production",
+    "require_approval_for": ["release"]
+  }
+}
