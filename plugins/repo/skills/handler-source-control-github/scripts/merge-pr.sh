@@ -215,7 +215,14 @@ if [ -d "$CACHE_DIR" ]; then
     if [ -f "$CACHE_FILE" ]; then
         TEMP_CACHE="${CACHE_FILE}.tmp.$$"
         if sed 's/"pr_number": "[^"]*"/"pr_number": ""/' "$CACHE_FILE" > "$TEMP_CACHE" 2>/dev/null; then
-            mv -f "$TEMP_CACHE" "$CACHE_FILE" 2>/dev/null || rm -f "$TEMP_CACHE" 2>/dev/null
+            # Validate temp file is non-empty and valid JSON before replacing
+            # This prevents data loss if sed fails or produces empty output
+            if [ -s "$TEMP_CACHE" ] && grep -q '"timestamp"' "$TEMP_CACHE" 2>/dev/null; then
+                mv -f "$TEMP_CACHE" "$CACHE_FILE" 2>/dev/null || rm -f "$TEMP_CACHE" 2>/dev/null
+            else
+                # Temp file invalid - remove it, keep original cache
+                rm -f "$TEMP_CACHE" 2>/dev/null
+            fi
         else
             rm -f "$TEMP_CACHE" 2>/dev/null
         fi
