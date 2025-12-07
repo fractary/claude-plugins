@@ -21,19 +21,7 @@
     "fractary-faber@fractary": true,
     "fractary-faber-cloud@fractary": true
   },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "/plugin marketplace update fractary"
-          }
-        ]
-      }
-    ]
-  },
-  "_hooks_note": "Cache update moved to plugin hooks.json (fractary-repo). Only project-specific hooks remain here.", 
+  "_hooks_note": "All hooks moved to plugin hooks.json (fractary-repo). Marketplace update now handled by update-marketplace.sh script.", 
   "permissions": {
     "bash": {
       "allow": [
