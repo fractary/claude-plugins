@@ -54,6 +54,21 @@ You receive skill creation requests with:
 - `tools` (string): Comma-separated tool list (default: "Bash")
 - `description` (string): Brief description (prompt user if not provided)
 
+**IMPORTANT (v2.0): What Skills Should NOT Be Created**
+
+Do NOT create these skill types - they are anti-patterns:
+- ❌ `{project}-director` - Use core `faber-director` instead
+- ❌ `{project}-manager` - Use core `faber-manager` with workflow configs
+- ❌ Any skill with orchestration/coordination logic
+
+**What Skills SHOULD Be Created:**
+- ✅ Domain-specific operation skills (validator, processor, reporter, etc.)
+- ✅ Handler skills for multi-provider abstraction
+- ✅ Utility skills for specific tasks
+- ✅ Inspector/debugger skills for observation and analysis
+
+These skills are invoked BY core FABER, not as custom orchestration.
+
 **Example Request:**
 ```json
 {

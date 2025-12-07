@@ -37,9 +37,97 @@ bash plugins/faber-agent/skills/project-analyzer/scripts/run-all-detections.sh {
 **Output:** JSON from script containing:
 - `summary.compliance_score`: Overall compliance percentage
 - `summary.total_violations`: Count of all violations
-- `summary.by_severity`: Breakdown by critical/warning/info
+- `summary.by_severity`: Breakdown by error/warning/info
 - `detections.*`: Results from each detection script
 - `structure`: Project structure info
+
+---
+
+## detect-project-specific-director (NEW v2.0 - ERROR SEVERITY)
+
+Detect project-specific director skills - these are anti-patterns and BLOCK workflows.
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+
+**Execute:**
+```
+bash plugins/faber-agent/skills/project-analyzer/scripts/detect-project-specific-director.sh {project_path}
+```
+
+**Detection Logic:**
+1. Search for skill files matching `*-director/SKILL.md` pattern
+2. Exclude core FABER director (`faber-director`)
+3. Search for commands with `-direct` suffix
+4. Check for pattern expansion logic in skills
+
+**Output:** JSON with:
+```json
+{
+  "status": "error|clean",
+  "rule_id": "ARC-006",
+  "severity": "error",
+  "message": "Project-specific director detected - use core faber-director instead",
+  "violations": [
+    {
+      "file": "skills/{project}-director/SKILL.md",
+      "line": null,
+      "description": "Project-specific director skill",
+      "migration_proposal": {
+        "action": "delete",
+        "replacement": "Use core faber-director with workflow config",
+        "workflow_config_example": "..."
+      }
+    }
+  ]
+}
+```
+
+---
+
+## detect-project-specific-manager (NEW v2.0 - ERROR SEVERITY)
+
+Detect project-specific manager agents - these are anti-patterns and BLOCK workflows.
+
+**Input:**
+- `project_path`: Path to Claude Code project root
+
+**Execute:**
+```
+bash plugins/faber-agent/skills/project-analyzer/scripts/detect-project-specific-manager.sh {project_path}
+```
+
+**Detection Logic:**
+1. Search for agent files matching `*-manager.md` pattern
+2. Exclude core FABER manager (`faber-manager`)
+3. Check for orchestration/workflow logic in agents
+4. Identify manager agents by content patterns
+
+**Output:** JSON with:
+```json
+{
+  "status": "error|clean",
+  "rule_id": "ARC-007",
+  "severity": "error",
+  "message": "Project-specific manager detected - use core faber-manager with workflow config",
+  "violations": [
+    {
+      "file": "agents/{project}-manager.md",
+      "line": null,
+      "description": "Project-specific manager agent",
+      "migration_proposal": {
+        "action": "delete",
+        "replacement": "Use core faber-manager with workflow config",
+        "workflow_config": {
+          "id": "{project}-workflow",
+          "phases": "..."
+        },
+        "invocation": "/faber run <id> --workflow {project}-workflow"
+      }
+    }
+  ]
+}
+```
 
 ---
 

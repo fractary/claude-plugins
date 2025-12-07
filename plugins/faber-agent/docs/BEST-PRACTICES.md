@@ -1,285 +1,79 @@
 # FABER Agent Best Practices
 
-**Authoritative guide to creating project-specific agents, skills, and workflows**
+**Authoritative guide to creating project-specific skills and FABER workflow configurations**
 
-Version: 1.0.0
-Last Updated: 2025-12-02
+Version: 2.0.0
+Last Updated: 2025-12-07
 
 ---
 
 ## Overview
 
-This document codifies the current best practices for creating agentic workflows using the faber-agent plugin. These patterns have evolved from real-world experience building production Claude Code plugins and represent the most context-efficient, maintainable architecture.
+This document codifies the current best practices for creating agentic workflows using the faber-agent plugin. These patterns leverage the core FABER orchestration system for workflow management, allowing projects to focus on domain-specific skills.
 
 ---
 
-## Core Architecture Principles
+## Core Architecture Principle
 
-### The Golden Rule
+> **Projects create Skills. FABER handles orchestration.**
 
-> **Directors are Skills. Managers are Agents. Everything else is Skills.**
+This simple rule eliminates architectural complexity and ensures consistency across all projects.
 
-This simple rule eliminates most architectural anti-patterns.
+### What This Means
 
----
-
-## 1. Primary Entry Point: `/{project}-direct` Command
-
-### Pattern
-
-Every project should have a **single primary entry point** command:
-
-```
-/{project}-direct
-```
-
-Or for projects managing multiple entity types:
-
-```
-/{project}-{entity}-direct
-```
-
-### Characteristics
-
-| Aspect | Description |
-|--------|-------------|
-| **First Argument** | The "thing" being worked on (entity ID, file path, etc.) |
-| **--action Flag** | Specifies which workflow step(s) to execute |
-| **Implementation** | Lightweight wrapper that immediately invokes director skill |
-| **No Logic** | Command does NO work - only parses args and routes |
-
-### Example
-
-```bash
-# Process a single dataset
-/myproject-direct dataset-123 --action validate,build
-
-# Process all datasets (batch)
-/myproject-direct "*" --action refresh
-
-# Run entire workflow (no --action = all steps)
-/myproject-direct dataset-123
-```
-
-### Command Template
-
-```markdown
-# /{project}-direct Command
-
-<CONTEXT>
-Entry point for {project} operations. Parses arguments and invokes director skill.
-</CONTEXT>
-
-<CRITICAL_RULES>
-1. NEVER do work directly - immediately invoke director skill
-2. Parse --action as comma-separated list (no spaces)
-3. If no --action provided, pass empty to trigger full workflow
-</CRITICAL_RULES>
-
-<WORKFLOW>
-1. Parse first argument as target entity
-2. Parse --action flag (comma-separated, no spaces)
-3. Invoke {project}-director skill with parsed parameters
-4. Return director's output to user
-</WORKFLOW>
-```
+| Component | Who Creates It | Where It Lives |
+|-----------|---------------|----------------|
+| **Director** | Core FABER plugin | `plugins/faber/skills/faber-director/` |
+| **Manager** | Core FABER plugin | `plugins/faber/skills/faber-manager/` |
+| **Workflow orchestration** | Core FABER plugin | Via workflow configuration |
+| **Domain skills** | Your project | `plugins/{project}/skills/` |
+| **Scripts** | Your project | `plugins/{project}/skills/*/scripts/` |
+| **Workflow definitions** | Your project | `.fractary/plugins/faber/workflows/` |
 
 ---
 
-## 2. Actions Argument Behavior
+## 1. What Projects SHOULD Create
 
-### Format
+### Domain-Specific Skills
 
-Actions are specified as a **comma-separated list with no spaces**:
-
-```bash
---action step1,step2,step3
-```
-
-### Behavior Matrix
-
-| Input | Behavior |
-|-------|----------|
-| `--action frame` | Run only frame step |
-| `--action frame,architect,build` | Run three steps in order |
-| `--action build,evaluate` | Run subset of workflow |
-| *(no --action)* | Run **entire workflow** from start to finish |
-
-### Director Behavior When No Action Specified
-
-When `--action` is omitted, the director skill MUST:
-
-1. **State what will happen**: Announce the full workflow that will execute
-2. **List all steps**: Show the complete sequence (e.g., "Running: frame → architect → build → evaluate → release")
-3. **Identify the target**: State which entity/entities will be processed
-4. **Proceed with execution**: Run all steps in sequence
-
-### Example Director Output
+Projects create **skills** that perform domain-specific operations. These skills are invoked BY the core faber-manager, not by project-specific orchestration.
 
 ```
-Starting full workflow for dataset-123:
-  1. frame     - Fetch work item, classify, setup
-  2. architect - Design solution, create specification
-  3. build     - Implement from spec
-  4. evaluate  - Test and review
-  5. release   - Create PR, document
-
-Proceeding with step 1 of 5: frame...
+plugins/{project}/skills/
+├── {project}-validator/      # Validation logic
+│   ├── SKILL.md
+│   └── scripts/
+│       └── validate.sh
+├── {project}-processor/      # Processing logic
+│   ├── SKILL.md
+│   └── scripts/
+│       └── process.sh
+├── {project}-reporter/       # Reporting logic
+│   ├── SKILL.md
+│   └── scripts/
+│       └── generate-report.sh
+└── {project}-inspector/      # Observation logic
+    ├── SKILL.md
+    └── scripts/
+        └── inspect.sh
 ```
-
----
-
-## 3. Director is a Skill (Not an Agent)
-
-### Why This Matters
-
-Making the director a **skill** (not an agent) enables:
-
-1. **Parallel Manager Invocations**: Director skill can spawn multiple manager agents concurrently
-2. **No Nested Agents**: Avoids agent-calling-agent anti-pattern
-3. **Context Efficiency**: Skills use less context than agents
-4. **Flexible Orchestration**: Director can batch items and parallelize
-
-### Director Skill Responsibilities
-
-| Do | Don't |
-|----|-------|
-| Parse and validate input | Do actual work |
-| Determine which workflow steps to run | Make business decisions |
-| Construct parallel manager invocations | Aggregate complex results |
-| Coordinate batch operations | Maintain long-term state |
-
-### Parallel Execution Pattern
-
-```markdown
-<WORKFLOW>
-1. Parse input from command (entity, actions)
-2. If batch pattern (*, comma-separated):
-   - Expand pattern to entity list
-   - For each entity (parallel, max 5):
-     - Invoke {project}-manager agent
-   - Collect results
-3. If single entity:
-   - Invoke {project}-manager agent directly
-4. Return aggregated results
-</WORKFLOW>
-```
-
-### Parallel Limit
-
-Default parallel limit: **5 concurrent manager instances**
-
-This balances:
-- Speed (5x faster than sequential)
-- Resource usage (reasonable context load)
-- Rate limits (API considerations)
-
----
-
-## 4. Manager Agent: The Only Agent You Need
-
-### Pattern
-
-Each project typically needs **only one agent**: the Manager.
-
-```
-{project}-manager (Agent)
-  └── {project}-manager-skill (Skill with orchestration logic)
-        ├── step-1-skill
-        ├── step-2-skill
-        └── step-n-skill
-```
-
-### Manager Agent Characteristics
-
-| Aspect | Description |
-|--------|-------------|
-| **Type** | Agent (full tool access) |
-| **Scope** | Single entity at a time |
-| **Role** | Lightweight wrapper for manager skill |
-| **Workflow** | Delegates to skills for each step |
-
-### Manager Agent Template
-
-```markdown
----
-name: {project}-manager
-description: Orchestrates {project} workflow for single entity
-allowed_tools: [Read, Write, Skill, AskUserQuestion, Bash, Edit, Grep, Glob]
----
-
-# {Project} Manager
-
-<CONTEXT>
-Orchestrates workflow for a single {entity}. Invoked by director skill
-(possibly in parallel with other manager instances).
-</CONTEXT>
-
-<CRITICAL_RULES>
-1. Operate on exactly ONE entity per invocation
-2. Delegate ALL work to skills - never do work directly
-3. Follow the workflow phases in order
-4. Handle errors gracefully with user notification
-</CRITICAL_RULES>
-
-<WORKFLOW>
-Invoke {project}-manager-skill with entity and requested actions.
-The manager skill contains the detailed orchestration logic.
-</WORKFLOW>
-```
-
-### Why Manager is Agent (Not Skill)
-
-Managers need agent capabilities:
-- **AskUserQuestion**: For approval gates
-- **Full Tool Access**: For investigation and recovery
-- **Persistent Context**: For multi-phase state management
-- **Natural Interaction**: For user communication
-
----
-
-## 5. Skills for All Workflow Steps
-
-### Pattern
-
-Every workflow step is implemented as a **skill**, not an agent.
-
-```
-skills/
-├── {project}-framer/          # Frame phase
-├── {project}-architect/       # Architect phase
-├── {project}-builder/         # Build phase
-├── {project}-evaluator/       # Evaluate phase
-├── {project}-releaser/        # Release phase
-├── {project}-inspector/       # Read-only observation
-├── {project}-debugger/        # Analysis and troubleshooting
-└── {project}-director/        # Batch orchestration
-```
-
-### Why Skills (Not Agents) for Steps
-
-1. **Context Efficiency**: Skills load only when needed
-2. **Composability**: Skills can be combined in different workflows
-3. **Testability**: Skills with scripts are independently testable
-4. **Reusability**: Skills can be shared across workflows
-5. **Parallelism**: Skills don't block other agent invocations
 
 ### Skill Anatomy
 
 ```markdown
 ---
-skill: {project}-{step}
-purpose: {What this step accomplishes}
+skill: {project}-{operation}
+purpose: {What this skill accomplishes}
 ---
 
-# {Step Name}
+# {Skill Name}
 
 <CONTEXT>
-{Role in the workflow}
+{Role in the workflow - invoked by faber-manager}
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. {Step-specific rules}
+1. {Skill-specific rules}
 </CRITICAL_RULES>
 
 <WORKFLOW>
@@ -294,13 +88,281 @@ purpose: {What this step accomplishes}
 </OUTPUTS>
 ```
 
+### Scripts for Deterministic Operations
+
+All deterministic operations should be in shell scripts, not inline in skill files:
+
+```
+plugins/{project}/skills/{skill-name}/scripts/
+├── validate.sh
+├── process.sh
+├── fetch-data.sh
+└── generate-output.sh
+```
+
+**Benefits:**
+- Independently testable
+- No LLM context usage for deterministic logic
+- Reusable across skills
+- Version controllable
+
+### Commands Routing to FABER
+
+Projects can create convenience commands that **route to FABER**, not to project-specific orchestration:
+
+```markdown
+# /{project}-run Command
+
+<CONTEXT>
+Convenience command that routes to FABER workflow execution.
+</CONTEXT>
+
+<WORKFLOW>
+1. Parse arguments
+2. Invoke: /faber run {work_id} --workflow {project}-workflow
+</WORKFLOW>
+```
+
+**Important:** These commands are thin wrappers. They MUST NOT contain orchestration logic.
+
+### FABER Workflow Configurations
+
+Define project-specific workflows as JSON configuration files:
+
+```
+.fractary/plugins/faber/workflows/
+├── {project}-full.json        # Complete workflow
+├── {project}-validate.json    # Validation-only workflow
+└── {project}-deploy.json      # Deployment workflow
+```
+
+See [Section 4: FABER Workflow Configuration](#4-faber-workflow-configuration) for details.
+
 ---
 
-## 6. Builder Skill: Documentation Requirement
+## 2. What Projects MUST NOT Create (Anti-Patterns)
+
+### Anti-Pattern: Project-Specific Directors
+
+**DO NOT** create director skills for your project:
+
+```
+# WRONG - Creates project-specific orchestration
+plugins/{project}/skills/{project}-director/SKILL.md
+```
+
+**Why this is wrong:**
+- Duplicates core FABER functionality
+- Prevents consistent workflow management
+- Adds maintenance burden
+- Wastes context on orchestration logic
+
+**Instead:** Use the core `faber-director` via `/faber run`.
+
+### Anti-Pattern: Project-Specific Managers
+
+**DO NOT** create manager agents for your project:
+
+```
+# WRONG - Creates project-specific orchestration
+plugins/{project}/agents/{project}-manager.md
+```
+
+**Why this is wrong:**
+- FABER's universal manager already handles all workflows
+- Project managers duplicate orchestration logic
+- Creates inconsistency across projects
+- Complicates maintenance and updates
+
+**Instead:** Use the core `faber-manager` with workflow configuration.
+
+### Anti-Pattern: `/{project}-direct` Commands
+
+**DO NOT** create direct-style commands:
+
+```bash
+# WRONG - Bypasses FABER orchestration
+/{project}-direct item-123 --action validate,build
+```
+
+**Why this is wrong:**
+- Requires project-specific director skill
+- Bypasses centralized workflow management
+- Loses FABER benefits (hooks, logging, state tracking)
+
+**Instead:**
+```bash
+# CORRECT - Uses FABER orchestration
+/faber run 123 --workflow {project}-workflow --phases build
+```
+
+### Anti-Pattern: Custom Orchestration Logic
+
+**DO NOT** put workflow orchestration logic in project files:
+
+```markdown
+# WRONG - Orchestration logic in project skill
+<WORKFLOW>
+1. If batch pattern (* or ,):
+   - For each entity (parallel, max 5):
+     - Invoke {project}-manager
+2. Aggregate results
+</WORKFLOW>
+```
+
+**Why this is wrong:**
+- Orchestration belongs in FABER, not projects
+- Parallel execution is handled by FABER
+- State management is handled by FABER
+
+**Instead:** Define workflow steps in FABER configuration, let FABER orchestrate.
+
+---
+
+## 3. The Transformation: Old vs New
+
+### Before (Project-Specific Orchestration)
+
+```
+/{project}-direct (Command)
+  └─► {project}-director (Skill) ← ANTI-PATTERN
+        └─► {project}-manager (Agent) ← ANTI-PATTERN
+              ├─► {project}-validator (Skill)
+              ├─► {project}-processor (Skill)
+              └─► {project}-reporter (Skill)
+```
+
+### After (FABER Orchestration)
+
+```
+/faber run (Command)
+  └─► faber-director (Core FABER)
+        └─► faber-manager (Core FABER)
+              ├─► {project}-validator (Skill) ← Your project
+              ├─► {project}-processor (Skill) ← Your project
+              └─► {project}-reporter (Skill) ← Your project
+```
+
+### What Changes
+
+| Old Approach | New Approach |
+|--------------|--------------|
+| `/{project}-direct item-123` | `/faber run 123 --workflow {project}` |
+| `{project}-director` skill | Core `faber-director` |
+| `{project}-manager` agent | Core `faber-manager` |
+| Orchestration in project | Workflow config in `.fractary/` |
+
+### What Stays the Same
+
+- Domain skills (validator, processor, reporter, etc.)
+- Scripts in `scripts/` directories
+- Plugin integrations (fractary-docs, fractary-specs, etc.)
+- Documentation requirements
+
+---
+
+## 4. FABER Workflow Configuration
+
+Define project-specific workflows as JSON configuration files.
+
+### Location
+
+```
+.fractary/plugins/faber/workflows/{project}-{workflow-name}.json
+```
+
+### Structure
+
+```json
+{
+  "id": "{project}-workflow",
+  "description": "Description of this workflow",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "steps": []
+    },
+    "architect": {
+      "enabled": false
+    },
+    "build": {
+      "enabled": true,
+      "steps": [
+        {"id": "validate", "skill": "{project}:{project}-validator"},
+        {"id": "process", "skill": "{project}:{project}-processor"},
+        {"id": "report", "skill": "{project}:{project}-reporter"}
+      ]
+    },
+    "evaluate": {
+      "enabled": true,
+      "steps": [
+        {"id": "test", "skill": "{project}:{project}-tester"}
+      ]
+    },
+    "release": {
+      "enabled": false
+    }
+  },
+  "autonomy": {
+    "level": "guarded",
+    "require_approval_for": ["release"]
+  }
+}
+```
+
+### Multiple Workflows
+
+Define multiple workflows for different operations:
+
+```json
+// {project}-validate-only.json
+{
+  "id": "{project}-validate-only",
+  "description": "Run validation without processing",
+  "phases": {
+    "build": {
+      "enabled": true,
+      "steps": [
+        {"id": "validate", "skill": "{project}:{project}-validator"}
+      ]
+    }
+  }
+}
+```
+
+### Invocation
+
+```bash
+# Full workflow
+/faber run 123 --workflow {project}-workflow
+
+# Validation only
+/faber run 123 --workflow {project}-validate-only
+
+# Specific phases
+/faber run 123 --workflow {project}-workflow --phases build,evaluate
+```
+
+### Convenience Aliases
+
+If you want short command aliases, create thin wrappers:
+
+```markdown
+# /{project} Command (Thin Wrapper)
+
+<WORKFLOW>
+1. Parse work_id from first argument
+2. Invoke: /faber run {work_id} --workflow {project}-workflow
+</WORKFLOW>
+```
+
+---
+
+## 5. Skills: Documentation Requirement
 
 ### Critical Rule
 
-> **The builder/engineer skill MUST update architecture and technical documentation as part of its execution.**
+> **Skills that make changes MUST update documentation as part of their execution.**
 
 This is non-negotiable. Every implementation step must include documentation updates.
 
@@ -314,12 +376,12 @@ This is non-negotiable. Every implementation step must include documentation upd
 | API documentation | When endpoints change |
 | README files | When usage changes |
 
-### Builder Skill Template (with docs requirement)
+### Skill Template with Documentation Requirement
 
 ```markdown
 <WORKFLOW>
-## Phase 1: Implement
-Execute the build/implementation work.
+## Phase 1: Execute
+Perform the main work.
 
 ## Phase 2: Update Documentation (REQUIRED)
 Update technical documentation to reflect changes:
@@ -336,14 +398,14 @@ Confirm implementation and docs are complete.
 
 <CRITICAL_RULES>
 1. NEVER complete without updating documentation
-2. Documentation updates are part of the build, not optional
+2. Documentation updates are part of the work, not optional
 3. Use fractary-docs plugin for all documentation changes
 </CRITICAL_RULES>
 ```
 
 ---
 
-## 7. Debugger Skill Pattern
+## 6. Debugger Skill Pattern
 
 ### Purpose
 
@@ -381,92 +443,56 @@ Maintain a **troubleshooting knowledge base** of past issues and solutions.
 ### Debugger Skill Structure
 
 ```
-skills/{project}-debugger/
-├── SKILL.md                    # Skill definition
+plugins/{project}/skills/{project}-debugger/
+├── SKILL.md
 ├── scripts/
-│   ├── search-kb.sh           # Search knowledge base
-│   ├── add-solution.sh        # Add new solution
-│   └── update-solution.sh     # Update existing solution
+│   ├── search-kb.sh
+│   ├── add-solution.sh
+│   └── update-solution.sh
 └── knowledge-base/
-    ├── index.json             # Issue index
-    └── solutions/             # Solution documents
+    ├── index.json
+    └── solutions/
         ├── KB-0001-*.md
         └── KB-0002-*.md
 ```
 
-### Knowledge Base Entry Template
-
-```markdown
----
-kb_id: KB-{number}
-title: {Issue title}
-symptoms: [{symptom1}, {symptom2}]
-root_cause: {Why it happens}
-solution: {How to fix}
-created: {date}
-last_used: {date}
-use_count: {number}
 ---
 
-# {Issue Title}
-
-## Symptoms
-- {How to recognize this issue}
-
-## Root Cause
-{Why this happens}
-
-## Solution
-{Step-by-step fix}
-
-## Prevention
-{How to avoid in future}
-```
-
----
-
-## 8. Required Plugin Integrations
+## 7. Required Plugin Integrations
 
 ### Mandatory Integrations
 
-All faber-agent based projects SHOULD integrate with these plugins:
+All projects SHOULD integrate with these plugins:
 
 | Plugin | Purpose | When to Use |
 |--------|---------|-------------|
 | `fractary-docs` | Documentation management | All doc updates |
-| `fractary-specs` | Specification writing | Architect phase |
+| `fractary-spec` | Specification writing | Architect phase |
 | `fractary-logs` | Log writing and maintenance | All phases |
 | `fractary-file` | Cloud storage operations | Artifact storage |
 | `faber-cloud` | IaC/infrastructure/AWS | Deployments |
 
-### Integration Pattern
+### Integration in Skills
 
 ```markdown
-<AVAILABLE_SKILLS>
-## Core Workflow Skills
-- {project}-framer
-- {project}-architect
-- {project}-builder
-- {project}-evaluator
-- {project}-releaser
-
+<AVAILABLE_INTEGRATIONS>
 ## Fractary Plugin Skills (Required Integrations)
 - fractary-docs:docs-manager    # Documentation updates
-- fractary-specs:spec-generator # Specification creation
+- fractary-spec:spec-generator  # Specification creation
 - fractary-logs:log-manager     # Logging operations
 - fractary-file:file-manager    # Cloud storage
 - faber-cloud:infra-manager     # Infrastructure (if applicable)
-</AVAILABLE_SKILLS>
+</AVAILABLE_INTEGRATIONS>
 ```
 
 ### When to Use Each
 
 **fractary-docs**:
-- Builder skill updating technical docs
-- Release skill updating user docs
+- Skills updating technical docs
+- Release phase updating user docs
 - Any documentation changes
 
-**fractary-specs**:
+**fractary-spec**:
 - Architect phase creating specifications
 - Design documents
 - Technical specifications
@@ -476,63 +502,6 @@ All faber-agent based projects SHOULD integrate with these plugins:
 - Audit trails
 - Error logs
 - Phase completion records
-- **Workflow event emission** (see below)
-
-### Workflow Event Logging (Required)
-
-All manager skills MUST emit structured workflow events for cross-project visibility and downstream consumption.
-
-**Integration via Manager**:
-The manager skill emits events at orchestration points - individual workflow step skills do NOT emit events.
-
-```markdown
-# In manager skill's workflow orchestration:
-
-## At workflow start:
-Skill("fractary-logs:workflow-event-emitter", {
-  "operation": "emit",
-  "event_type": "workflow_start",
-  "workflow_id": WORKFLOW_ID,
-  "payload": { "context": {...} }
-})
-
-## After each step:
-Skill("fractary-logs:workflow-event-emitter", {
-  "operation": "emit",
-  "event_type": "step_complete",
-  "workflow_id": WORKFLOW_ID,
-  "payload": { "step": {"name": "validate", "status": "success"} }
-})
-
-## When artifacts created:
-Skill("fractary-logs:workflow-event-emitter", {
-  "operation": "emit",
-  "event_type": "artifact_create",
-  "workflow_id": WORKFLOW_ID,
-  "payload": { "artifact": {"type": "dataset", "table": "ipeds_hd", ...} }
-})
-
-## At workflow end:
-Skill("fractary-logs:workflow-event-emitter", {
-  "operation": "emit",
-  "event_type": "workflow_complete",
-  "workflow_id": WORKFLOW_ID,
-  "payload": { "status": "success", "summary": {...} }
-})
-```
-
-**Minimum Events** (for 80% of value):
-1. `workflow_start` - At initialization
-2. `artifact_create` - When important outputs created (most valuable for downstream)
-3. `workflow_complete` - At end with summary
-
-**Why Centralized in Manager**:
-- Single integration point (not every skill)
-- Consistent regardless of which steps execute
-- Works with `--action` subsets
-- Enables cross-project polling via S3
-
-**Reference**: See [WORK-00199 spec](/specs/WORK-00199-automatic-manager-workflow-logging.md) for full integration guide.
 
 **fractary-file**:
 - Storing artifacts to cloud
@@ -546,253 +515,120 @@ Skill("fractary-logs:workflow-event-emitter", {
 
 ---
 
-## Complete Architecture Example
+## 8. Complete Architecture Example
+
+### Project Structure
 
 ```
-/{project}-direct (Command)
-  │
-  └─► {project}-director (Skill)
-        │
-        ├─► Single entity: Invoke manager directly
-        │
-        └─► Batch (*,a,b,c): Invoke managers in parallel (max 5)
-              │
-              └─► {project}-manager (Agent) × N
-                    │
-                    └─► {project}-manager-skill (Skill)
-                          │
-                          ├─► {project}-framer (Skill)
-                          │     └─► fractary-work:issue-fetcher
-                          │
-                          ├─► {project}-architect (Skill)
-                          │     └─► fractary-specs:spec-generator
-                          │
-                          ├─► {project}-builder (Skill)
-                          │     ├─► [implementation work]
-                          │     └─► fractary-docs:docs-manager
-                          │
-                          ├─► {project}-evaluator (Skill)
-                          │     └─► [testing/review]
-                          │
-                          └─► {project}-releaser (Skill)
-                                ├─► fractary-repo:pr-manager
-                                └─► fractary-logs:log-manager
+plugins/{project}/
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   ├── {project}-validator/
+│   │   ├── SKILL.md
+│   │   └── scripts/validate.sh
+│   ├── {project}-processor/
+│   │   ├── SKILL.md
+│   │   └── scripts/process.sh
+│   ├── {project}-reporter/
+│   │   ├── SKILL.md
+│   │   └── scripts/generate-report.sh
+│   └── {project}-debugger/
+│       ├── SKILL.md
+│       ├── scripts/
+│       └── knowledge-base/
+├── commands/
+│   └── {project}.md           # Thin wrapper to FABER
+└── README.md
 ```
-
----
-
-## 9. Multiple Workflows for Action Combinations
-
-Instead of creating direct skill commands for common operations, define **multiple workflows** that the manager can execute.
-
-### The Problem with Direct Commands
-
-Projects often want convenience commands for common operations:
-```bash
-# These seem convenient but bypass the manager
-/myproject-validate dataset-123     # ❌ Direct to skill
-/myproject-load dataset-123         # ❌ Direct to skill
-/myproject-create-loader ipeds      # ❌ Direct to skill
-```
-
-This breaks centralized logging and orchestration.
-
-### The Solution: Named Workflows
-
-Define multiple workflows in your project configuration:
-
-```json
-// .fractary/plugins/{project}/config.json
-{
-  "workflows": {
-    "full": {
-      "description": "Complete pipeline: validate → load → test → document",
-      "steps": ["validate", "load", "test", "document"]
-    },
-    "validate-only": {
-      "description": "Validation check without loading",
-      "steps": ["validate"]
-    },
-    "load": {
-      "description": "Load data (includes validation)",
-      "steps": ["validate", "load"]
-    },
-    "create-loader": {
-      "description": "Scaffold a new loader",
-      "steps": ["scaffold-loader", "generate-schema", "create-tests"]
-    },
-    "refresh": {
-      "description": "Re-run load and downstream steps",
-      "steps": ["load", "test", "document"]
-    }
-  }
-}
-```
-
-### Usage Pattern
-
-All operations go through the same director command:
-
-```bash
-# Full pipeline (default)
-/myproject-direct dataset-123
-
-# Specific workflow
-/myproject-direct dataset-123 --workflow validate-only
-
-# Or use --action for ad-hoc step combinations
-/myproject-direct dataset-123 --action validate,load
-```
-
-### How the Manager Handles It
-
-```markdown
-<WORKFLOW>
-
-## Step 1: Determine Steps to Execute
-
-1. If `--workflow` specified:
-   - Load workflow definition from config
-   - Set steps = workflow.steps
-
-2. If `--action` specified:
-   - Parse comma-separated actions
-   - Set steps = parsed actions
-
-3. If neither specified:
-   - Use "full" workflow (or first defined)
-
-## Step 2: Execute Steps with Logging
-
-For each step in steps:
-  1. Emit step_start event
-  2. Invoke step skill
-  3. Emit step_complete event (with artifacts if any)
-
-## Step 3: Complete Workflow
-
-Emit workflow_complete with summary of all steps executed
-
-</WORKFLOW>
-```
-
-### Benefits
-
-| Benefit | Description |
-|---------|-------------|
-| **Single Entry Point** | One director command handles all operations |
-| **Centralized Logging** | All workflows emit consistent events |
-| **Configurable** | Workflows defined in config, not code |
-| **Discoverable** | Users can list available workflows |
-| **Composable** | `--action` allows ad-hoc combinations |
-
-### Creating "Convenience" Commands (If Needed)
-
-If you want short command aliases, create thin wrappers that route to the director:
-
-```markdown
-# /myproject-validate Command
-
-<WORKFLOW>
-1. Invoke: /myproject-direct {entity} --workflow validate-only
-</WORKFLOW>
-```
-
-This preserves the convenience while maintaining centralized orchestration.
-
----
-
-## Anti-Patterns to Avoid
-
-### 1. Director as Agent
-**Wrong**: Making director an agent prevents parallel manager execution.
-**Right**: Director is always a skill.
-
-### 2. Multiple Agents per Project
-**Wrong**: Having frame-agent, build-agent, evaluate-agent.
-**Right**: One manager agent, multiple skills.
-
-### 3. Agent Calling Agent
-**Wrong**: Manager agent invoking another agent directly.
-**Right**: Manager invokes skills; only director spawns managers.
-
-### 4. Inline Scripts in Skills
-**Wrong**: Bash code directly in SKILL.md.
-**Right**: Scripts in `scripts/` directory, invoked by skill.
-
-### 5. Skipping Documentation Updates
-**Wrong**: Builder skill that only implements without updating docs.
-**Right**: Documentation updates are mandatory part of build phase.
-
-### 6. Not Using Plugin Integrations
-**Wrong**: Custom logging, custom spec format, direct git commands.
-**Right**: Use fractary-logs, fractary-specs, fractary-repo plugins.
-
-### 7. Direct Skill Commands (Bypassing Manager)
-**Wrong**: Creating commands that invoke skills directly, bypassing the manager.
-```bash
-# ❌ BAD - bypasses manager, no centralized logging or orchestration
-/myproject-validate dataset-123
-/myproject-load dataset-123
-```
-
-**Right**: Always route through the director command with `--action` flag.
-```bash
-# ✅ GOOD - routes through manager, gets workflow logging
-/myproject-direct dataset-123 --action validate
-/myproject-direct dataset-123 --action load
-```
-
-**Why This Matters**:
-- Direct skill commands bypass the manager's centralized logging
-- No workflow events emitted (breaks cross-project visibility)
-- Inconsistent error handling and state management
-- Would require adding logging to EVERY individual skill (duplicative)
-
-**Exception**: The director command itself is the only entry point. All other "convenience" commands should internally route through the manager.
-
-**For common action combinations**, define multiple workflows (see Section 9).
-
----
-
-## Migration Checklist
-
-If updating an existing project to follow these best practices:
-
-### Command Structure
-- [ ] Rename primary command to `/{project}-direct`
-- [ ] Add `--action` argument support (comma-separated)
-- [ ] Add `--workflow` argument support for named workflows
-- [ ] **Deprecate direct skill commands** (e.g., `/{project}-validate`)
-- [ ] If convenience commands needed, make them thin wrappers to director
-
-### Architecture
-- [ ] Convert director from agent to skill
-- [ ] Ensure only one manager agent exists
-- [ ] Convert workflow step agents to skills
-- [ ] Add documentation update requirement to builder
-- [ ] Create debugger skill with knowledge base
-
-### Plugin Integrations
-- [ ] Add fractary plugin integrations
-- [ ] **Add workflow event logging to manager skill**
-- [ ] Configure S3 push for workflow logs (if cross-project needed)
-- [ ] Update all templates to follow patterns
 
 ### Workflow Configuration
-- [ ] Define named workflows in config for common action combinations
-- [ ] Document available workflows for users
+
+```
+.fractary/plugins/faber/workflows/
+└── {project}-workflow.json    # Defines step sequence
+```
+
+### Invocation Flow
+
+```
+User: /faber run 123 --workflow {project}-workflow
+
+faber-director (Core)
+  │
+  └─► faber-manager (Core)
+        │
+        ├─► Step: validate
+        │   └─► {project}:{project}-validator (Your Skill)
+        │
+        ├─► Step: process
+        │   └─► {project}:{project}-processor (Your Skill)
+        │
+        ├─► Step: report
+        │   └─► {project}:{project}-reporter (Your Skill)
+        │         └─► fractary-docs:docs-manager (Integration)
+        │
+        └─► Step: test
+            └─► {project}:{project}-tester (Your Skill)
+```
+
+---
+
+## 9. Migration Checklist
+
+If updating an existing project from old patterns:
+
+### Remove Anti-Patterns
+
+- [ ] Delete `{project}-director` skill (if exists)
+- [ ] Delete `{project}-manager` agent (if exists)
+- [ ] Delete `/{project}-direct` command (if exists)
+- [ ] Remove any orchestration logic from skills
+
+### Create FABER Configuration
+
+- [ ] Create `.fractary/plugins/faber/workflows/{project}.json`
+- [ ] Define phases and steps referencing your skills
+- [ ] Test with `/faber run <id> --workflow {project}`
+
+### Update Commands (if needed)
+
+- [ ] Convert direct commands to thin wrappers
+- [ ] Ensure commands route to `/faber run`
+
+### Verify Skills
+
+- [ ] Skills contain only domain logic (no orchestration)
+- [ ] Scripts are in `scripts/` directories
+- [ ] Documentation updates are required in relevant skills
+
+### Run Audit
+
+- [ ] Run `/fractary-faber-agent:audit` on your project
+- [ ] Fix any detected anti-patterns
+- [ ] Verify compliance with new standards
+
+---
+
+## Anti-Patterns to Avoid (Summary)
+
+| Anti-Pattern | Why It's Wrong | Correct Approach |
+|--------------|----------------|------------------|
+| Project-specific director | Duplicates FABER, adds maintenance | Use core `faber-director` |
+| Project-specific manager | Duplicates FABER, inconsistent | Use core `faber-manager` |
+| `/{project}-direct` command | Requires project orchestration | Use `/faber run --workflow` |
+| Orchestration in skills | Wrong layer, duplicates FABER | Workflow config + domain skills |
+| Inline scripts in skills | Untestable, wastes context | Scripts in `scripts/` directory |
+| Skipping documentation | Incomplete work | Always update docs |
+| Not using plugin integrations | Inconsistent, duplicates effort | Use fractary-* plugins |
 
 ---
 
 ## Related Documentation
 
-- **Pattern: Director Skill** - `/docs/patterns/director-skill.md`
-- **Pattern: Manager-as-Agent** - `/docs/patterns/manager-as-agent.md`
-- **Pattern: Builder/Debugger** - `/docs/patterns/builder-debugger.md`
-- **Migration Guides** - `/docs/migration/`
+- **FABER Configuration** - `/plugins/faber/docs/CONFIGURATION.md`
+- **FABER Workflow Format** - `/plugins/faber/docs/WORKFLOW-FORMAT.md`
 - **Plugin Standards** - `/docs/standards/FRACTARY-PLUGIN-STANDARDS.md`
-- **Workflow Event Logging Spec** - `/specs/WORK-00199-automatic-manager-workflow-logging.md`
 
 ---
 
@@ -800,5 +636,6 @@ If updating an existing project to follow these best practices:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.1.0 | 2025-12-02 | Added workflow event logging (Section 8), multiple workflows (Section 9), deprecate direct skill commands (Anti-pattern #7) |
+| 2.0.0 | 2025-12-07 | **Major rewrite**: Removed project-specific director/manager patterns. All orchestration now via core FABER with workflow configs. |
+| 1.1.0 | 2025-12-02 | Added workflow event logging, multiple workflows, deprecated direct skill commands |
 | 1.0.0 | 2025-12-02 | Initial best practices document |

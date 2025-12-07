@@ -59,6 +59,32 @@ The skill executes all detection scripts and returns comprehensive JSON.
 Use its output as the authoritative audit result.
 </SKILL_INVOCATION>
 
+<ANTI_PATTERNS_DETECTED>
+The audit detects these anti-patterns (v2.0 additions marked):
+
+**ERROR Severity (Blocks Workflows):**
+- **ARC-006: Project-Specific Director** (NEW v2.0)
+  - Pattern: `skills/{project}-director/SKILL.md`
+  - Also: Commands with `-direct` suffix
+  - Migration: Use core `faber-director` with workflow config
+
+- **ARC-007: Project-Specific Manager** (NEW v2.0)
+  - Pattern: `agents/{project}-manager.md`
+  - Also: Orchestration logic in project agents
+  - Migration: Use core `faber-manager` with workflow config
+
+**WARNING Severity:**
+- **ARC-001: Manager-as-Skill** - Orchestration in skills directory
+- **ARC-002: Agent Chains** - Sequential agent invocations
+- **ARC-003: Hybrid Agents** - Agents doing execution work
+- **ARC-004: Missing Director Patterns** - No `--action` flag support
+- **ARC-005: Inline Scripts** - Bash in markdown files
+
+**INFO Severity:**
+- **AGT-005: Missing Workflow Logging** - No event emission
+- **CMD-004: Direct Skill Commands** - Bypassing manager
+</ANTI_PATTERNS_DETECTED>
+
 <OUTPUT>
 Format the skill's results:
 
@@ -69,9 +95,28 @@ Format the skill's results:
 Project: {project_path}
 Compliance Score: {score}%
 
-Violations: {total} (Critical: {c}, Warning: {w}, Info: {i})
+Violations: {total} (Error: {e}, Warning: {w}, Info: {i})
 
-{violation details from skill output}
+## ❌ ERRORS (Must Fix)
+
+### ARC-006: Project-Specific Director
+File: skills/{project}-director/SKILL.md
+Action: Delete this skill, use core faber-director
+
+Migration Proposal:
+1. Create workflow config: .fractary/plugins/faber/workflows/{project}.json
+2. Delete: skills/{project}-director/
+3. Update commands to use: /faber run <id> --workflow {project}
+
+### ARC-007: Project-Specific Manager
+File: agents/{project}-manager.md
+Action: Delete this agent, use core faber-manager
+
+Migration Proposal:
+{generated FABER workflow config}
+
+## ⚠️ WARNINGS
+{other violations}
 
 Report: {output_path}
 ```
