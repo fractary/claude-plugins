@@ -144,6 +144,38 @@ You have direct tool access for reading files, executing operations, and user in
 
 The following guards prevent the agent from bypassing workflow execution and "hallucinating" completion:
 
+### Execution Model
+
+**How guards are enforced**: These guards are agent-level logic, not standalone shell scripts.
+The faber-manager agent (you) is responsible for executing these checks as part of the workflow.
+
+**Enforcement mechanism**:
+1. **Agent reads guard definitions** from this document
+2. **Agent executes checks** using appropriate tools:
+   - Use `Bash` tool to run shell commands (e.g., `git rev-parse`, `ls`, `jq`)
+   - Use `Read` tool to check file contents
+   - Use internal logic for comparisons and decisions
+3. **Agent enforces outcomes** based on check results:
+   - If check PASSES: Proceed to next step
+   - If check FAILS (FATAL): Display error message, ABORT workflow
+   - If check WARNS: Display warning, may continue based on severity
+
+**Code block convention**:
+- Code blocks labeled `# Agent Logic` describe the steps the agent should follow
+- Code blocks with valid bash syntax can be executed via the `Bash` tool
+- Variable placeholders like `{run_id}` should be substituted with actual values
+
+**Guard execution timing**:
+| Guard | When Executed | Tool Used |
+|-------|---------------|-----------|
+| Guard 1 (Execution Evidence) | Before workflow_complete | Bash (ls events/) |
+| Guard 2 (State Validation) | Before workflow_complete | Bash (jq on state.json) |
+| Guard 3 (Branch Safety) | Before Build phase | Bash (git rev-parse) |
+| Guard 4 (Skill Invocation) | After each skill call | Bash (emit-event.sh) |
+| Guard 5 (Issue Comments) | Before workflow_complete | Bash (ls events/) |
+
+---
+
 ### Guard 1: Pre-Completion Execution Evidence Check
 
 **When**: Before emitting any `workflow_complete` event
@@ -567,32 +599,36 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
 
 If this is the Build phase and it includes commit steps, check current branch:
 
-```bash
-IF phase == "build" THEN
-  # Check if any build steps require commits
-  HAS_COMMIT_STEPS=$(echo "{steps_to_execute}" | grep -i "commit\|push" | wc -l)
-
-  IF HAS_COMMIT_STEPS > 0 THEN
-    # Check current git branch
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-    PROTECTED_BRANCHES="main|master|production|staging"
-
-    IF [[ "$CURRENT_BRANCH" =~ ^($PROTECTED_BRANCHES)$ ]]; then
-      echo "❌ ERROR: Cannot execute build on protected branch '$CURRENT_BRANCH'"
-      echo ""
-      echo "Build phase includes commit steps, but you are on a protected branch."
-      echo "Protected branches: main, master, production, staging"
-      echo ""
-      echo "Solution: Create a feature branch with:"
-      echo "  /fractary-repo:branch-create --work-id {work_id}"
-      echo ""
-      echo "Resume after creating branch:"
-      echo "  /fractary-faber:run --resume {run_id}"
-      exit 1
-    fi
-  fi
-fi
 ```
+# Agent Logic (execute via Bash tool when phase == "build"):
+
+1. Check if current phase is "build"
+2. Check if any steps in this phase involve commits (step names containing "commit" or "push")
+3. If commits expected, verify current branch is safe:
+
+   Bash: CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+4. Compare against protected branches: main, master, production, staging
+5. If on protected branch, ABORT with error:
+
+   ❌ ERROR: Cannot execute build on protected branch '{CURRENT_BRANCH}'
+
+   Build phase includes commit steps, but you are on a protected branch.
+   Protected branches: main, master, production, staging
+
+   Solution: Create a feature branch with:
+     /fractary-repo:branch-create --work-id {work_id}
+
+   Resume after creating branch:
+     /fractary-faber:run --resume {run_id}
+
+   [ABORT WORKFLOW - Do not proceed]
+```
+
+**Implementation Note**: This is agent logic, not a standalone script. The agent should:
+- Use the Bash tool to check the current branch
+- Compare the result against the protected branch list
+- If on a protected branch, display the error message and STOP the workflow
 
 **Update state - phase starting:**
 ```
@@ -1172,36 +1208,60 @@ fi
 ```
 
 **Verify Issue Comments (Guard 5, only if work_id provided):**
-```bash
-IF work_id is provided THEN
-  COMMENT_COUNT=$(ls .fractary/plugins/faber/runs/{run_id}/events/*-comment_posted* 2>/dev/null | wc -l)
 
-  if [ "$COMMENT_COUNT" -eq 0 ]; then
-    echo "⚠️  WARNING: No issue comments were posted during workflow"
-    echo "   Expected: At least one comment to issue #{work_id}"
-    echo ""
-    echo "Without comments, stakeholders have no visibility into workflow progress."
-    echo "This is not necessarily fatal, but indicates incomplete execution."
-  fi
-fi
 ```
+# Agent Logic (only when work_id is provided):
+
+1. Check if work_id was provided for this workflow run
+2. If work_id provided, count comment events in events/ directory:
+   - Look for files matching pattern: *-comment_posted*
+   - Or check for workflow_start comment (posted in Step 2)
+
+3. If COMMENT_COUNT == 0:
+
+   ❌ ERROR: No issue comments were posted during workflow
+
+   Expected: At least one comment to issue #{work_id}
+   Found: 0 comments posted
+
+   FABER workflows MUST post status updates to linked issues.
+   This provides stakeholder visibility and audit trail.
+
+   Possible causes:
+   - fractary-work:comment-creator skill was not invoked
+   - Comment posting failed silently
+   - Workflow steps were skipped
+
+   Check: .fractary/plugins/faber/runs/{run_id}/events/
+
+   [ABORT WORKFLOW - Cannot mark as complete without stakeholder visibility]
+
+4. If COMMENT_COUNT > 0: Proceed to workflow_complete
+```
+
+**Implementation Note**: This is a FATAL check when work_id is provided. The workflow
+cannot be marked complete without at least one issue comment, as this violates
+CRITICAL_RULE #11 (Issue Updates - Stakeholder Visibility).
 
 **Execution Checklist Summary:**
 ```
-✓ Execution Evidence:
+✓ Execution Evidence (Guard 1):
   - At least one phase_start OR step_start event exists
+  - FATAL if missing
 
-✓ State Progression:
+✓ State Progression (Guard 2):
   - At least one phase shows status != "pending"
+  - FATAL if all phases still pending
 
-✓ Issue Comments (if applicable):
-  - At least one comment posted to issue (recommended)
+✓ Issue Comments (Guard 5, if work_id provided):
+  - At least one comment posted to issue
+  - FATAL if missing (when work_id provided)
 
 IF ANY CHECK FAILS:
   - DO NOT PROCEED with workflow_complete
   - Show error message with details
   - Suggest debug steps
-  - Provide resume command
+  - Provide resume command: /fractary-faber:run --resume {run_id}
 ```
 
 ---
