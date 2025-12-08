@@ -2,9 +2,9 @@
 
 **Issue:** [#309](https://github.com/fractary/claude-plugins/issues/309)
 **Type:** Bug Fix
-**Status:** In Progress
+**Status:** In Progress (v2 - Aggressive Restructure)
 **Created:** 2025-12-08
-**Branch:** `fix/309-faber-director-skill-fails-to-complete-workflow-ex`
+**Branch:** `main` (v1 merged via PR #311, v2 direct to main)
 
 ## Problem Statement
 
@@ -241,16 +241,48 @@ Note: Full checkpoint (saving state to `.fractary/plugins/faber/director-state.j
 - **#304**: Workflow inheritance resolution fix (this builds on that fix)
 - This issue addresses the execution enforcement that was missing even after #304
 
-## Implementation Checklist
+## Implementation Checklist (v1 - FAILED)
 
 - [x] Add `<MANDATORY_FIRST_ACTION>` section with TodoWrite template
 - [x] Add step transition markers after each workflow step (0a, 0b, 0.5, 1-9)
 - [x] Add `<TERMINATION_RULES>` section
 - [x] Update `<COMPLETION_VERIFICATION>` section with TodoWrite checks
+- [x] Test with `/fractary-faber:run --work-id 309`
+- [x] ~~Verify all 12 steps execute~~ **FAILED - LLM skipped to WORKFLOW section**
+- [x] ~~Verify faber-manager is invoked~~ **FAILED - Stopped after faber-config**
+- [x] Create PR for review - **Merged as PR #311**
+
+## v2 Implementation (Aggressive Restructure)
+
+**Root Cause of v1 Failure**: The `<MANDATORY_FIRST_ACTION>` section was placed BEFORE `<WORKFLOW>`. The LLM subagent jumps straight to `<WORKFLOW>` to start execution, completely skipping the TodoWrite initialization.
+
+**v2 Solution**: Move TodoWrite initialization INTO the `<WORKFLOW>` section itself.
+
+### v2 Changes Made:
+
+1. **Removed `<MANDATORY_FIRST_ACTION>` section** - It was being skipped
+2. **Added "Step 0: Initialize Execution Tracker" INSIDE `<WORKFLOW>`** - First step, cannot be skipped
+3. **Added aggressive "DO NOT OUTPUT" warnings after Step 0b** - Explicit prohibition on returning workflow JSON
+4. **Added remaining steps countdown at Step 0b transition** - Shows 10 steps remaining
+5. **Added "THE MAIN EVENT" header to Step 8** - Emphasizes this is where actual execution happens
+6. **Added "CHECK YOURSELF" verification at Step 8** - Self-check questions
+7. **Added final checkpoint at end of `<WORKFLOW>`** - Full checkbox verification before returning
+
+### v2 Implementation Checklist:
+
+- [x] Remove `<MANDATORY_FIRST_ACTION>` section
+- [x] Add Step 0 (Initialize Execution Tracker) as first step in `<WORKFLOW>`
+- [x] Add "DO NOT OUTPUT" warnings after Step 0b
+- [x] Add remaining steps countdown at Step 0b transition
+- [x] Strengthen Step 8 with "THE MAIN EVENT" header and self-check
+- [x] Add final checkpoint at end of `<WORKFLOW>`
+- [x] Update `<COMPLETION_CRITERIA>` to reference 13 steps
+- [x] Update `<TERMINATION_RULES>` to reference 13 steps
+- [x] Update documentation section with v2 fix details
+- [ ] Commit and push changes
 - [ ] Test with `/fractary-faber:run --work-id 309`
-- [ ] Verify all 12 steps execute
-- [ ] Verify faber-manager is invoked
-- [ ] Create PR for review
+- [ ] Verify Step 0 initializes TodoWrite tracker
+- [ ] Verify faber-manager is actually invoked
 
 ## Notes
 
@@ -261,6 +293,29 @@ Note: Full checkpoint (saving state to `.fractary/plugins/faber/director-state.j
 ---
 
 ## Changelog
+
+### 2025-12-08 - v2 Aggressive Restructure
+
+**Problem Discovered:**
+User tested v1 fix and reported: "I just tested it and got the same result as before, no improvement. the faber-director skill just spit out some json showing the combined full workflow to execute and then stopped"
+
+**Root Cause Analysis:**
+The `<MANDATORY_FIRST_ACTION>` section was placed BEFORE `<WORKFLOW>`. When the LLM subagent reads the skill file, it jumps straight to the `<WORKFLOW>` section to find what to execute. The TodoWrite initialization in `<MANDATORY_FIRST_ACTION>` was never executed because it was in a "preamble" section that the LLM skipped.
+
+**v2 Solution:**
+Move the TodoWrite initialization INTO the `<WORKFLOW>` section as "Step 0" - the very first executable step. This makes it impossible to skip because:
+1. It's inside `<WORKFLOW>` where the LLM looks for steps
+2. It's numbered "Step 0" and comes before "Step 0a"
+3. It explicitly states not to proceed to Step 0a until Step 0 is done
+
+**Additional Reinforcements:**
+- Added aggressive "DO NOT OUTPUT" warnings after Step 0b
+- Added remaining steps countdown at critical transitions
+- Added "THE MAIN EVENT" header to Step 8
+- Added final checkpoint at end of `<WORKFLOW>` section
+- Updated step counts from 12 to 13 (now includes Step 0)
+
+---
 
 ### 2025-12-08 - Refinement Round 1
 

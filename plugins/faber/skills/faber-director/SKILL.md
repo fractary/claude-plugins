@@ -59,42 +59,6 @@ Your key capability is **parallelization**: you can spawn multiple faber-manager
    - This is the critical fix for issue #304
 </CRITICAL_RULES>
 
-<MANDATORY_FIRST_ACTION>
-**BEFORE ANY OTHER ACTION**, you MUST initialize the execution tracker.
-
-This is the FIX FOR ISSUE #309 - prevents premature termination after sub-skill returns.
-
-**Step 1: Clear and initialize TodoWrite**
-
-Use TodoWrite tool with this EXACT todo list (this REPLACES any existing todos):
-```json
-[
-  {"content": "Step 0a: Load project configuration", "status": "pending", "activeForm": "Loading project configuration"},
-  {"content": "Step 0b: Resolve workflow inheritance via faber-config", "status": "pending", "activeForm": "Resolving workflow inheritance"},
-  {"content": "Step 0.5: Handle resume/rerun (if applicable)", "status": "pending", "activeForm": "Handling resume/rerun"},
-  {"content": "Step 1: Fetch issue data (if work_id provided)", "status": "pending", "activeForm": "Fetching issue data"},
-  {"content": "Step 2: Detect configuration from labels", "status": "pending", "activeForm": "Detecting label configuration"},
-  {"content": "Step 3: Apply configuration priority", "status": "pending", "activeForm": "Applying configuration priority"},
-  {"content": "Step 4: Resolve target", "status": "pending", "activeForm": "Resolving target"},
-  {"content": "Step 5: Validate phases/steps", "status": "pending", "activeForm": "Validating phases/steps"},
-  {"content": "Step 6: Check for prompt sources", "status": "pending", "activeForm": "Checking prompt sources"},
-  {"content": "Step 7: Build manager parameters", "status": "pending", "activeForm": "Building manager parameters"},
-  {"content": "Step 8: Route to faber-manager execution", "status": "pending", "activeForm": "Routing to faber-manager"},
-  {"content": "Step 9: Aggregate and return results", "status": "pending", "activeForm": "Aggregating results"}
-]
-```
-
-**DO NOT proceed to Step 0a until TodoWrite confirms todos are created.**
-
-This tracker is your execution contract. You MUST:
-- Mark each step "in_progress" when starting it
-- Mark each step "completed" when finishing it
-- NEVER skip steps (mark N/A steps as completed with note)
-- NEVER return until Step 9 is marked completed
-
-**Why this matters**: Without this tracker, sub-skill returns (like faber-config) are misinterpreted as "done" signals, causing premature termination. The TodoWrite tracker forces you to continue through all 12 steps.
-</MANDATORY_FIRST_ACTION>
-
 <INPUTS>
 You receive input from the `/fractary-faber:run` command:
 
@@ -168,15 +132,56 @@ work_id: null
 
 <WORKFLOW>
 
-## Step 0: Load Configuration and Resolve Workflow
+## ⚠️ EXECUTION CONTRACT - READ THIS FIRST ⚠️
+
+**YOU MUST EXECUTE ALL STEPS BELOW IN ORDER. RETURNING EARLY IS A BUG.**
+
+This workflow has 12 steps (0 through 9, with 0a, 0b, and 0.5 as substeps).
+You are NOT complete until Step 9 outputs results to the user.
+
+**COMMON BUG TO AVOID**: Outputting the workflow resolution JSON from faber-config and stopping.
+That is Step 0b output - you still have Steps 1-9 remaining!
+
+---
+
+## Step 0: Initialize Execution Tracker (MANDATORY FIRST ACTION)
+
+**THIS STEP IS MANDATORY. DO NOT SKIP. DO NOT PROCEED TO STEP 0a UNTIL THIS IS DONE.**
+
+Use the TodoWrite tool NOW with this EXACT todo list:
+
+```json
+[
+  {"content": "Step 0: Initialize execution tracker", "status": "in_progress", "activeForm": "Initializing execution tracker"},
+  {"content": "Step 0a: Load project configuration", "status": "pending", "activeForm": "Loading project configuration"},
+  {"content": "Step 0b: Resolve workflow inheritance via faber-config", "status": "pending", "activeForm": "Resolving workflow inheritance"},
+  {"content": "Step 0.5: Handle resume/rerun (if applicable)", "status": "pending", "activeForm": "Handling resume/rerun"},
+  {"content": "Step 1: Fetch issue data (if work_id provided)", "status": "pending", "activeForm": "Fetching issue data"},
+  {"content": "Step 2: Detect configuration from labels", "status": "pending", "activeForm": "Detecting label configuration"},
+  {"content": "Step 3: Apply configuration priority", "status": "pending", "activeForm": "Applying configuration priority"},
+  {"content": "Step 4: Resolve target", "status": "pending", "activeForm": "Resolving target"},
+  {"content": "Step 5: Validate phases/steps", "status": "pending", "activeForm": "Validating phases/steps"},
+  {"content": "Step 6: Check for prompt sources", "status": "pending", "activeForm": "Checking prompt sources"},
+  {"content": "Step 7: Build manager parameters", "status": "pending", "activeForm": "Building manager parameters"},
+  {"content": "Step 8: Route to faber-manager execution", "status": "pending", "activeForm": "Routing to faber-manager"},
+  {"content": "Step 9: Aggregate and return results", "status": "pending", "activeForm": "Aggregating results"}
+]
+```
+
+**AFTER TodoWrite confirms todos are created:**
+1. Mark "Step 0: Initialize execution tracker" as "completed"
+2. Mark "Step 0a: Load project configuration" as "in_progress"
+3. Proceed to Step 0a below
+
+**This tracker enforces execution completion. You MUST NOT return until Step 9 is marked completed.**
+
+---
+
+## Step 0a: Load Project Configuration
 
 **CRITICAL**: Load configuration and resolve workflow FIRST before any other processing.
 
 **Config Location**: `.fractary/plugins/faber/config.json` (in project working directory)
-
-**Action**: Load configuration and resolve workflow with inheritance:
-
-### Step 0a: Check for project config
 
 **TodoWrite**: Mark "Step 0a: Load project configuration" as "in_progress"
 
@@ -252,12 +257,16 @@ This invocation is the CRITICAL FIX for issue #304. Without this:
 - All those critical steps are skipped in execution
 ```
 
-**Step 0b3: Store resolved workflow**
+**Step 0b3: Store resolved workflow (DO NOT OUTPUT THIS)**
 
 Once faber-config returns the merged workflow:
 ```
 Store resolved_workflow = faber-config result for later use
 This will be passed to faber-manager in Step 7
+
+⚠️ DO NOT OUTPUT THE RESOLVED WORKFLOW TO THE USER ⚠️
+⚠️ DO NOT RETURN HERE - YOU ARE ONLY AT STEP 0b OF 9 ⚠️
+⚠️ OUTPUTTING WORKFLOW RESOLUTION AS FINAL OUTPUT IS THE #309 BUG ⚠️
 ```
 
 **Why This Matters (Issue #304 Root Cause)**:
@@ -280,11 +289,30 @@ With workflow resolution in Step 0b:
 - Complete workflow with all steps is returned
 - Manager receives full merged workflow and executes everything
 
-**Step 0b Transition**:
-1. Store resolved_workflow result from faber-config
+**Step 0b Transition - CRITICAL CONTINUATION POINT**:
+
+⛔ **STOP AND CHECK**: Did you just receive output from faber-config?
+⛔ **DO NOT OUTPUT THAT RESULT TO THE USER**
+⛔ **DO NOT RETURN - YOU ARE ONLY AT STEP 0b OF 9**
+
+1. Store resolved_workflow result INTERNALLY (do not output to user)
 2. Use TodoWrite to mark "Step 0b: Resolve workflow inheritance via faber-config" as "completed"
 3. Use TodoWrite to mark "Step 0.5: Handle resume/rerun (if applicable)" as "in_progress"
-4. **IMMEDIATELY proceed to Step 0.5 below - DO NOT RETURN HERE**
+4. **IMMEDIATELY proceed to Step 0.5 below**
+
+**REMAINING STEPS AFTER 0b:**
+- Step 0.5: Handle resume/rerun
+- Step 1: Fetch issue data
+- Step 2: Detect labels
+- Step 3: Apply config priority
+- Step 4: Resolve target
+- Step 5: Validate phases
+- Step 6: Check prompts
+- Step 7: Build params
+- Step 8: INVOKE FABER-MANAGER (the actual execution!)
+- Step 9: Return results
+
+**YOU HAVE 10 MORE STEPS TO GO. CONTINUE NOW.**
 
 ---
 
@@ -673,13 +701,22 @@ For resume, the `run_id` IS passed because we're continuing an existing run.
 
 ---
 
-## Step 8: Route to Execution
+## Step 8: Route to Execution (THE MAIN EVENT)
 
-**⚠️ CRITICAL RULE:**
-- You MUST actually invoke the Task tool with the faber-manager agent
-- You MUST NOT just describe what should happen
-- You MUST wait for the faber-manager result before returning
-- Returning intermediate outputs (like workflow resolution) is NOT completion
+**🚨 THIS IS THE MOST IMPORTANT STEP - ACTUALLY INVOKE FABER-MANAGER 🚨**
+
+**⚠️ CRITICAL RULES FOR STEP 8:**
+1. You MUST actually invoke the Task tool with the faber-manager agent
+2. You MUST NOT just describe what should happen - ACTUALLY DO IT
+3. You MUST wait for the faber-manager result before proceeding
+4. Returning intermediate outputs (like workflow resolution) is NOT completion
+5. If you haven't called Task(subagent_type="fractary-faber:faber-manager"...), you haven't done Step 8
+
+**CHECK YOURSELF:**
+- Did you just invoke faber-config? That was Step 0b. You're not done.
+- Did you just fetch the issue? That was Step 1. You're not done.
+- Did you just build manager params? That was Step 7. You're not done.
+- **Only invoking faber-manager completes Step 8.**
 
 ### Single Work Item
 
@@ -808,8 +845,44 @@ Summary: 2/3 successful
 **Step 9 Transition (FINAL)**:
 1. Format results for user display
 2. Use TodoWrite to mark "Step 9: Aggregate and return results" as "completed"
-3. Verify ALL 12 steps are marked "completed" in TodoWrite
+3. Verify ALL 13 steps are marked "completed" in TodoWrite (Step 0 through 9)
 4. **NOW you may return the final results to the user**
+
+---
+
+## ⚠️ FINAL CHECKPOINT BEFORE RETURNING ⚠️
+
+**BEFORE YOU RETURN ANY RESPONSE, VERIFY:**
+
+```
+TodoWrite Check:
+[ ] Step 0: Initialize execution tracker - COMPLETED?
+[ ] Step 0a: Load project configuration - COMPLETED?
+[ ] Step 0b: Resolve workflow inheritance via faber-config - COMPLETED?
+[ ] Step 0.5: Handle resume/rerun - COMPLETED?
+[ ] Step 1: Fetch issue data - COMPLETED?
+[ ] Step 2: Detect configuration from labels - COMPLETED?
+[ ] Step 3: Apply configuration priority - COMPLETED?
+[ ] Step 4: Resolve target - COMPLETED?
+[ ] Step 5: Validate phases/steps - COMPLETED?
+[ ] Step 6: Check for prompt sources - COMPLETED?
+[ ] Step 7: Build manager parameters - COMPLETED?
+[ ] Step 8: Route to faber-manager execution - COMPLETED? (Did you ACTUALLY invoke Task tool?)
+[ ] Step 9: Aggregate and return results - COMPLETED?
+
+Execution Check:
+[ ] faber-config was ACTUALLY invoked (not just documented)?
+[ ] faber-manager was ACTUALLY invoked via Task tool (not just planned)?
+[ ] faber-manager result is present in your response?
+```
+
+**IF ANY BOX IS UNCHECKED:**
+1. STOP - DO NOT RETURN
+2. Find the first unchecked step
+3. Execute that step
+4. Continue until all boxes are checked
+
+**ONLY RETURN WHEN ALL BOXES ARE CHECKED.**
 
 </WORKFLOW>
 
@@ -854,14 +927,15 @@ When an error occurs at ANY step:
 
 **RETURNING WORKFLOW RESOLUTION AS FINAL OUTPUT IS A BUG.**
 **THE FIX FOR #304 REQUIRES FABER-MANAGER INVOCATION.**
-**THE FIX FOR #309 REQUIRES ALL 12 STEPS COMPLETING.**
+**THE FIX FOR #309 REQUIRES ALL 13 STEPS COMPLETING (Step 0 through Step 9).**
 </TERMINATION_RULES>
 
 <COMPLETION_CRITERIA>
 This skill is complete when ALL of the following are true:
 
 **TodoWrite Verification (FIX FOR #309):**
-All 12 steps must be marked "completed" in your TodoWrite tracker:
+All 13 steps must be marked "completed" in your TodoWrite tracker:
+- [ ] Step 0: Initialize execution tracker - completed
 - [ ] Step 0a: Load project configuration - completed
 - [ ] Step 0b: Resolve workflow inheritance via faber-config - completed
 - [ ] Step 0.5: Handle resume/rerun (if applicable) - completed
@@ -890,8 +964,9 @@ All 12 steps must be marked "completed" in your TodoWrite tracker:
 
 **COMMON FAILURE MODES TO AVOID:**
 - Returning after faber-config without invoking faber-manager (THE #304 BUG)
-- Returning workflow resolution as final output (THE #309 BUG)
-- Skipping to Step 8 without completing Steps 1-7
+- Returning workflow resolution JSON as final output (THE #309 BUG)
+- Skipping TodoWrite initialization (Step 0)
+- Not actually invoking Task tool in Step 8 (just describing it)
 - Not marking todos as completed after each step
 </COMPLETION_CRITERIA>
 
@@ -1101,32 +1176,34 @@ to see all steps in the merged workflow.
 
 **Verification**: Ensure that workflow execution now includes all inherited steps like branch creation, PR creation, and PR merge.
 
-## Issue #309 Fix Summary
+## Issue #309 Fix Summary (v2 - Aggressive Restructure)
 
-**Problem**: FABER Director stops prematurely after sub-skill invocations instead of continuing through all 9+ workflow steps.
+**Problem**: FABER Director stops prematurely after sub-skill invocations (faber-config) instead of continuing through all workflow steps. The skill outputs workflow resolution JSON and terminates.
 
-**Root Cause**: The LLM interprets sub-skill completion (faber-config returning) as a natural stopping point rather than a checkpoint in a longer sequence. The workflow steps read like documentation, not executable commands with enforcement.
+**Root Cause (v1 fix failed)**: The original fix placed `<MANDATORY_FIRST_ACTION>` section BEFORE `<WORKFLOW>`. The LLM subagent jumps straight to `<WORKFLOW>` to start execution, completely skipping the TodoWrite initialization. Without the tracker, the LLM interprets faber-config's return as a natural stopping point.
 
-**Solution**: TodoWrite-enforced execution tracking:
-1. Added `<MANDATORY_FIRST_ACTION>` section that initializes 12-step TodoWrite tracker
-2. Added step transition markers after each workflow step
-3. Added `<TERMINATION_RULES>` section defining when return is allowed
-4. Updated `<COMPLETION_CRITERIA>` with TodoWrite verification checklist
+**Solution (v2)**: Move TodoWrite initialization INTO the `<WORKFLOW>` section:
+1. Added "Step 0: Initialize Execution Tracker" as FIRST step inside `<WORKFLOW>` section
+2. Added aggressive "DO NOT OUTPUT" warnings after Step 0b (faber-config returns)
+3. Added remaining steps countdown at critical transition points
+4. Added final checkpoint verification at end of `<WORKFLOW>` section
+5. Strengthened Step 8 to emphasize ACTUAL Task tool invocation
 
-**Critical Change**: faber-director now MUST:
-1. Initialize TodoWrite tracker BEFORE any other action
-2. Mark each step "in_progress" when starting it
-3. Mark each step "completed" when finishing it
-4. NEVER return until Step 9 is marked completed (or error handled)
+**Critical Changes**:
+- Step 0 (new): Initialize TodoWrite tracker - INSIDE `<WORKFLOW>` so it cannot be skipped
+- Step 0b transition: Explicit "DO NOT OUTPUT THIS RESULT" warnings
+- Step 8: "THE MAIN EVENT" header with "CHECK YOURSELF" verification
+- End of WORKFLOW: Full checkbox verification before returning
 
 **Files Changed**:
-- `plugins/faber/skills/faber-director/SKILL.md` - Added TodoWrite enforcement
+- `plugins/faber/skills/faber-director/SKILL.md` - Aggressive restructure of TodoWrite enforcement
 
 **Verification**: Run `/fractary-faber:run --work-id <id>` and verify:
-- All 12 TodoWrite steps progress from pending → in_progress → completed
-- faber-config is invoked (Step 0b)
+- All 13 TodoWrite steps progress from pending → in_progress → completed
+- Step 0 initializes tracker FIRST
+- faber-config is invoked (Step 0b) but result is NOT output to user
 - Issue is fetched (Step 1)
-- faber-manager is invoked (Step 8)
+- faber-manager is ACTUALLY invoked via Task tool (Step 8)
 - Final result includes manager output (Step 9)
 
 </DOCUMENTATION>
