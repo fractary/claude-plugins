@@ -1,6 +1,10 @@
 ---
 name: faber-director
-description: Director skill for routing FABER workflow execution - parses input, validates parameters, fetches issue data, and routes to faber-manager agent(s)
+description: |
+  13-STEP WORKFLOW ORCHESTRATOR - MUST execute ALL steps through Step 9.
+  CRITICAL: Returning after faber-config (Step 0b) is a BUG.
+  Step 8 MUST invoke faber-manager via Task tool.
+  DO NOT output workflow resolution JSON as final result.
 model: claude-opus-4-5
 ---
 
