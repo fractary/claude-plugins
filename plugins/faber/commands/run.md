@@ -175,44 +175,23 @@ Skill(skill="fractary-faber:faber-director")
 
 **Pass context in your message:**
 ```
-I am invoking you to execute a FABER workflow with the following parameters:
+Execute FABER workflow with these parameters:
 
-Target: {target or "not specified - infer from issue"}
-Work ID: {work_id or "not specified"}
-Resume Run ID: {resume or "not specified - new run"}
-Rerun Run ID: {rerun or "not specified - new run"}
-Workflow Override: {workflow_override or "not specified"}
-Autonomy Override: {autonomy_override or "not specified"}
-Phases: {phases or "all phases"}
-Step ID: {step_id or "not specified - full phases"}
-Prompt: {prompt or "no additional instructions"}
-Working Directory: {pwd}
+target: {target or null}
+work_id: {work_id or null}
+resume: {resume or null}
+rerun: {rerun or null}
+workflow_override: {workflow_override or null}
+autonomy_override: {autonomy_override or null}
+phases: {phases or null}
+step_id: {step_id or null}
+prompt: {prompt or null}
+working_directory: {pwd}
 
-Please:
-1. Load configuration from .fractary/plugins/faber/config.json
-2. If resume provided:
-   - Load run state and metadata from run directory
-   - Determine next step to execute
-   - Skip generating new run_id
-3. Else if rerun provided:
-   - Load original run metadata
-   - Generate new run_id with rerun_of relationship
-   - Apply any parameter overrides
-4. Else (new run):
-   - If work_id provided: fetch issue, check labels for configuration
-   - Generate new run_id
-   - Initialize run directory
-5. Parse target (artifact name, natural language, or infer from issue)
-6. Detect workflow from labels or override or default
-7. Apply label-detected values (workflow, autonomy, phases) with CLI overrides taking precedence
-8. Validate phases (check prerequisites if needed)
-9. Spawn faber-manager agent(s) to execute the workflow with:
-   - run_id
-   - is_resume (true if resume, false otherwise)
-   - resume_context (if resume)
-   - phases list (if specified)
-   - step_id (if specified)
-   - additional_instructions (prompt)
+IMPORTANT: Follow your SKILL.md <WORKFLOW> section exactly.
+Your SKILL.md contains a 13-step workflow (Step 0 through Step 9) that you MUST execute completely.
+Step 0 initializes TodoWrite, Step 8 invokes faber-manager, Step 9 returns results.
+DO NOT stop after any intermediate step. DO NOT output intermediate results as final output.
 ```
 
 ## Step 3: Return Response
