@@ -1,5 +1,5 @@
 {
-  "description": "Fractary Repo Plugin Hooks - Update marketplace and status cache on session start, auto-commit on session end",
+  "description": "Fractary Repo Plugin Hooks - Update marketplace and status cache on session start and stop",
   "hooks": {
     "SessionStart": [
       {
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/auto-commit-on-stop.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/update-status-cache.sh --quiet"
           }
         ]
       }

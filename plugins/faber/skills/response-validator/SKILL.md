@@ -1,7 +1,7 @@
 ---
 name: response-validator
 description: Validates skill responses against the standard FABER response format schema
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # Response Validator Skill

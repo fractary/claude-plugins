@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # status-line.sh - Generates custom status line for Claude Code
-# Shows: branch, file changes, issue number, PR number, sync status, last prompt
+# Shows: branch, file changes, issue number, PR number, sync status, last prompt, context metrics
 # Called by StatusLine hook
 # Usage: Called automatically by Claude Code hooks system
 
@@ -169,6 +169,34 @@ if [ -f "$PROMPT_CACHE" ]; then
   fi
 fi
 
+# Get context free percentage and token cost (from environment or FABER state)
+CONTEXT_FREE=""
+TOKEN_COST=""
+
+# Cache the latest FABER state file path (single find call for both metrics)
+LATEST_FABER_STATE=""
+if [ -d ".fractary/plugins/faber/runs" ]; then
+  # Use -printf with cut to safely handle paths with spaces/special chars
+  LATEST_FABER_STATE=$(find .fractary/plugins/faber/runs -name "state.json" -type f \
+    -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+fi
+
+# Read context free percentage (from environment or FABER state)
+if [ -n "${CLAUDE_CONTEXT_FREE:-}" ]; then
+  CONTEXT_FREE="$CLAUDE_CONTEXT_FREE"
+elif [ -n "$LATEST_FABER_STATE" ] && [ -f "$LATEST_FABER_STATE" ]; then
+  # Read from cached FABER state path (safely quoted)
+  CONTEXT_FREE=$(jq -r '.metrics.context_free_percent // empty' "$LATEST_FABER_STATE" 2>/dev/null)
+fi
+
+# Read token cost (from environment or FABER state)
+if [ -n "${CLAUDE_SESSION_COST:-}" ]; then
+  TOKEN_COST="$CLAUDE_SESSION_COST"
+elif [ -n "$LATEST_FABER_STATE" ] && [ -f "$LATEST_FABER_STATE" ]; then
+  # Read from cached FABER state path (safely quoted)
+  TOKEN_COST=$(jq -r '.metrics.token_cost // empty' "$LATEST_FABER_STATE" 2>/dev/null)
+fi
+
 # Build status line
 STATUS_LINE=""
 
@@ -215,6 +243,38 @@ if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
     # Fallback: non-clickable
     STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
   fi
+fi
+
+# Build metrics display (right-aligned, dim color)
+# Order: cost first, then context free percentage (per user preference)
+METRICS_LINE=""
+
+# Validate and display token cost (must be numeric, round to 2 decimals)
+if [ -n "$TOKEN_COST" ] && [ "$TOKEN_COST" != "0" ]; then
+  # Validate: only display if numeric (integer or decimal)
+  if [[ "$TOKEN_COST" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    # Round to 2 decimal places per spec
+    TOKEN_COST_FMT=$(printf "%.2f" "$TOKEN_COST" 2>/dev/null || echo "$TOKEN_COST")
+    METRICS_LINE="${DIM}\$${TOKEN_COST_FMT}${NC}"
+  fi
+fi
+
+# Validate and display context free percentage (must be numeric)
+if [ -n "$CONTEXT_FREE" ] && [ "$CONTEXT_FREE" != "0" ]; then
+  # Validate: only display if numeric (integer or decimal)
+  if [[ "$CONTEXT_FREE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    # Round to integer for cleaner display
+    CONTEXT_FREE_INT=$(printf "%.0f" "$CONTEXT_FREE" 2>/dev/null || echo "$CONTEXT_FREE")
+    if [ -n "$METRICS_LINE" ]; then
+      METRICS_LINE="${METRICS_LINE} ${DIM}|${NC}"
+    fi
+    METRICS_LINE="${METRICS_LINE} ${DIM}${CONTEXT_FREE_INT}%FREE${NC}"
+  fi
+fi
+
+# Append metrics to status line (right-aligned with spacing)
+if [ -n "$METRICS_LINE" ]; then
+  STATUS_LINE="${STATUS_LINE}  ${METRICS_LINE}"
 fi
 
 # Output first line (strip color codes if NO_COLOR is set)
