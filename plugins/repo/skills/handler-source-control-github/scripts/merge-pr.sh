@@ -63,7 +63,7 @@ case "$STRATEGY" in
 esac
 
 # Check if PR exists and is mergeable
-if ! PR_STATE=$(gh pr view "$PR_NUMBER" --json state,mergeable,isDraft,autoMergeRequest --jq '{state: .state, mergeable: .mergeable, isDraft: .isDraft, autoMerge: .autoMergeRequest}' 2>&1); then
+if ! PR_STATE=$(gh pr view "$PR_NUMBER" --json state,mergeable,isDraft,autoMergeRequest,baseRefName --jq '{state: .state, mergeable: .mergeable, isDraft: .isDraft, autoMerge: .autoMergeRequest, baseRefName: .baseRefName}' 2>&1); then
     echo "Error: Pull request #$PR_NUMBER not found" >&2
     echo "$PR_STATE" >&2
     exit 1
@@ -74,6 +74,29 @@ STATE=$(echo "$PR_STATE" | jq -r '.state')
 MERGEABLE=$(echo "$PR_STATE" | jq -r '.mergeable')
 IS_DRAFT=$(echo "$PR_STATE" | jq -r '.isDraft')
 AUTO_MERGE=$(echo "$PR_STATE" | jq -r '.autoMerge')
+BASE_BRANCH=$(echo "$PR_STATE" | jq -r '.baseRefName')
+
+# CRITICAL SAFETY CHECK: Protected branch approval enforcement (Issue #297)
+# Prevent merges to protected branches without explicit approval
+PROTECTED_BRANCHES="main master production staging"
+if echo "$PROTECTED_BRANCHES" | grep -qw "$BASE_BRANCH"; then
+    # This is a protected branch - check for approval
+    if [ "${FABER_RELEASE_APPROVED:-}" != "true" ]; then
+        echo "Error: Cannot merge PR #$PR_NUMBER to protected branch '$BASE_BRANCH' without approval" >&2
+        echo "" >&2
+        echo "Protected branches require explicit user confirmation before merging:" >&2
+        echo "  - main" >&2
+        echo "  - master" >&2
+        echo "  - production" >&2
+        echo "  - staging" >&2
+        echo "" >&2
+        echo "To authorize this merge, set the environment variable:" >&2
+        echo "  export FABER_RELEASE_APPROVED=true" >&2
+        echo "" >&2
+        echo "This should only be done after receiving explicit user approval through AskUserQuestion" >&2
+        exit 16  # New exit code: approval required
+    fi
+fi
 
 # Validate PR state
 if [ "$STATE" != "OPEN" ]; then

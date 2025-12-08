@@ -23,11 +23,13 @@ You delegate to the active source control handler to perform platform-specific P
 <CRITICAL_RULES>
 **NEVER VIOLATE THESE RULES:**
 
-1. **Protected Branch Safety**
+1. **Protected Branch Safety (ISSUE #297)**
    - ALWAYS warn when creating PRs to protected branches (main, master, production)
    - ALWAYS check merge requirements (reviews, CI status) before merging
    - ALWAYS validate merge strategy for protected branches
    - NEVER auto-merge to protected branches without explicit approval
+   - MANDATORY: For merge to protected branches, MUST invoke AskUserQuestion before merge
+   - Handler script enforces FABER_RELEASE_APPROVED=true environment variable as second-line defense
 
 2. **Work Item Linking**
    - ALWAYS include work item references in PR body
@@ -658,17 +660,66 @@ Pass parameters: {pr_number, action, comment}
 - Verify no merge conflicts
 - Validate target branch protection rules
 
-**Protected Branch Warning:**
-If merging to protected branch:
-- Show clear warning
-- Require explicit confirmation (unless autonomous mode)
-- Double-check all requirements met
+**MANDATORY APPROVAL GATE FOR PROTECTED BRANCHES (Issue #297):**
+
+**CRITICAL: This is the enforcement point for approval gates.**
+
+If merging to a protected branch (main, master, production, staging):
+
+1. **STOP and emit decision_point event** (if in workflow context):
+   ```
+   Emit event: decision_point
+   Phase: release
+   Message: "Release to {base_branch} requires approval"
+   ```
+
+2. **MANDATORY: Invoke AskUserQuestion** (do NOT proceed without explicit approval):
+   ```
+   question: "Release PR #{pr_number} to protected branch '{base_branch}'?"
+   header: "Protected Branch Release Approval"
+   options:
+     - label: "Approve release"
+       description: "Authorize merge to {base_branch}"
+     - label: "Cancel"
+       description: "Do not merge at this time"
+   multiSelect: false
+   ```
+
+3. **Handle user response**:
+   - If user selects "Cancel": STOP workflow, do not merge
+   - If user selects "Approve release": Continue to step 4 with approval granted
+
+   **CRITICAL**: Do NOT proceed without explicit user selection "Approve release"
+
+4. **Set environment variable for script-level enforcement**:
+   After user approves, export:
+   ```bash
+   export FABER_RELEASE_APPROVED=true
+   ```
+   This variable MUST be set before invoking the merge script.
+   The script will reject the merge if this variable is not set to "true".
+
+5. **Emit approval_granted event** (for audit trail):
+   ```
+   Emit event: approval_granted
+   Phase: release
+   Message: "User approved release to {base_branch}"
+   ```
+
+**Non-Protected Branches:**
+For non-protected branches (feature, staging, dev, etc.):
+- Proceed directly to handler invocation (no approval gate required)
+- Handler will still enforce requirements via script validation
 
 **Invoke Handler:**
 
 Use the Skill tool with command `fractary-repo:handler-source-control-<platform>` where <platform> is from config.
 
 Pass parameters: {pr_number, strategy, delete_branch}
+
+**CRITICAL**: The handler script now enforces approval via FABER_RELEASE_APPROVED environment variable.
+If merging to a protected branch without this variable set, the script will exit with code 16 (approval required).
+This provides defense-in-depth protection against bypass attempts.
 
 **Note**: The handler script automatically maps strategy names:
 - `no-ff` or `merge` → GitHub's `--merge` flag
@@ -747,6 +798,8 @@ Next: {next_action}
 ✅ PR merged successfully
 ✅ Branch deleted if requested
 ✅ Merge SHA captured
+✅ **For protected branches: User approval explicitly obtained via AskUserQuestion**
+✅ **Approval environment variable set before handler invocation**
 
 </COMPLETION_CRITERIA>
 
@@ -956,6 +1009,9 @@ The active handler is determined by configuration: `config.handlers.source_contr
 - Protected target: "Warning: Creating PR to protected branch: {base_branch}. Confirm requirements."
 - Force merge blocked: "Error: Cannot force merge to protected branch: {base_branch}"
 
+**Approval Required** (Exit Code 16):
+- Protected branch without approval: "Error: Cannot merge PR #{pr_number} to protected branch '{base_branch}' without approval. Set FABER_RELEASE_APPROVED=true after obtaining explicit user confirmation."
+
 **Authentication Error** (Exit Code 11):
 - No credentials: "Error: Platform API credentials not found"
 - Permission denied: "Error: Insufficient permissions to create/merge PR"
@@ -1135,7 +1191,7 @@ OUTPUT:
 }
 ```
 
-**Example 5: Merge PR with No-FF Strategy**
+**Example 5: Merge PR with No-FF Strategy (Protected Branch with Approval)**
 ```
 INPUT:
 {
@@ -1146,6 +1202,15 @@ INPUT:
     "delete_branch": true
   }
 }
+
+FLOW (if base_branch is 'main'):
+1. Skill detects protected branch 'main'
+2. Skill invokes AskUserQuestion for approval
+3. User selects "Approve release"
+4. Skill exports FABER_RELEASE_APPROVED=true
+5. Skill invokes handler with approval environment variable set
+6. Handler script checks variable and proceeds with merge
+7. PR merged successfully
 
 OUTPUT:
 {
@@ -1273,3 +1338,4 @@ By centralizing PR management:
 - Unified error handling
 - Single source for PR rules
 - Clear merge safety checks
+
