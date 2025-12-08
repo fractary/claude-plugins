@@ -173,37 +173,20 @@ Examples:
 Skill(skill="fractary-faber:faber-director")
 ```
 
-**Pass context in your message:**
-```
-Execute FABER workflow with these parameters:
-
-target: {target or null}
-work_id: {work_id or null}
-resume: {resume or null}
-rerun: {rerun or null}
-workflow_override: {workflow_override or null}
-autonomy_override: {autonomy_override or null}
-phases: {phases or null}
-step_id: {step_id or null}
-prompt: {prompt or null}
-working_directory: {pwd}
-
-YOU MUST COMPLETE ALL OF THESE STEPS - DO NOT STOP EARLY:
-
-1. Load configuration from .fractary/plugins/faber/config.json (or use defaults)
-2. Invoke faber-config skill to resolve workflow inheritance - STORE RESULT INTERNALLY, DO NOT OUTPUT IT
-3. If work_id provided: fetch issue using /fractary-work:issue-fetch {work_id}
-4. Detect configuration from issue labels (faber:workflow=, faber:autonomy=, etc.)
-5. Apply configuration priority: CLI args > Labels > Config defaults
-6. Resolve target (from parameter, or infer from issue title)
-7. Validate phases/steps against resolved workflow
-8. Build manager parameters object with all context
-9. **CRITICAL: INVOKE faber-manager agent using Task tool** with subagent_type="fractary-faber:faber-manager"
-10. Return faber-manager's execution results to user
-
-⚠️ RETURNING AFTER STEP 2 (faber-config) IS A BUG - you still have 8 steps remaining
-⚠️ DO NOT output the workflow resolution JSON - that's intermediate data
-⚠️ Your final output MUST include faber-manager's results from Step 9
+**Pass ONLY the parameters in your message (skill handles all logic):**
+```json
+{
+  "target": "{target or null}",
+  "work_id": "{work_id or null}",
+  "resume": "{resume or null}",
+  "rerun": "{rerun or null}",
+  "workflow_override": "{workflow_override or null}",
+  "autonomy_override": "{autonomy_override or null}",
+  "phases": "{phases or null}",
+  "step_id": "{step_id or null}",
+  "prompt": "{prompt or null}",
+  "working_directory": "{pwd}"
+}
 ```
 
 ## Step 3: Return Response
