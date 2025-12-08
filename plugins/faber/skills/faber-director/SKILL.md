@@ -160,15 +160,26 @@ work_id: null
 
 <WORKFLOW>
 
-## ⚠️ EXECUTION CONTRACT - READ THIS FIRST ⚠️
+## YOUR FINAL OUTPUT MUST BE:
 
-**YOU MUST EXECUTE ALL STEPS BELOW IN ORDER. RETURNING EARLY IS A BUG.**
+```
+🎯 FABER Workflow Complete
 
-This workflow has 12 steps (0 through 9, with 0a, 0b, and 0.5 as substeps).
-You are NOT complete until Step 9 outputs results to the user.
+Target: {target}
+Work ID: #{work_id}
+Workflow: {workflow_id}
 
-**COMMON BUG TO AVOID**: Outputting the workflow resolution JSON from faber-config and stopping.
-That is Step 0b output - you still have Steps 1-9 remaining!
+[faber-manager execution results here]
+
+Phases Completed: frame, architect, build, evaluate, release
+```
+
+**If your output is a JSON object with "status", "workflow", "phases" - YOU HAVE A BUG.**
+**That's intermediate data from faber-config (Step 0b), not the final result.**
+
+---
+
+## WORKFLOW STEPS (execute all in order)
 
 ---
 
