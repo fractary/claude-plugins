@@ -382,11 +382,15 @@ Config Path: .fractary/plugins/faber/config.json
 
 [... execution ...]
 
-✅ COMPLETED: FABER Config
+✅ READY: FABER Config
 Schema Version: 2.0
 Workflows: 1
 ───────────────────────────────────────
+→ Workflow resolved and ready for execution by faber-manager
 ```
+
+**Note:** Use "READY" instead of "COMPLETED" to indicate this is a handoff to the next step,
+not termination of the overall workflow. The director skill will continue to invoke faber-manager.
 </OUTPUT_FORMAT>
 
 <DEPENDENCIES>

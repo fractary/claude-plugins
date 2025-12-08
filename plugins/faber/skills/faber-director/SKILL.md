@@ -505,6 +505,12 @@ For resume, the `run_id` IS passed because we're continuing an existing run.
 
 ## Step 8: Route to Execution
 
+**⚠️ CRITICAL RULE:**
+- You MUST actually invoke the Task tool with the faber-manager agent
+- You MUST NOT just describe what should happen
+- You MUST wait for the faber-manager result before returning
+- Returning intermediate outputs (like workflow resolution) is NOT completion
+
 ### Single Work Item
 
 **Invoke faber-manager agent using Task tool:**
@@ -530,6 +536,12 @@ Task(
   }'
 )
 ```
+
+**AFTER invocation:**
+1. Wait for faber-manager result
+2. Include the result in your response
+3. Only then return control to user
+4. Do NOT return intermediate skill outputs as final results
 
 ### Multiple Work Items (Parallel)
 
@@ -589,6 +601,14 @@ This skill is complete when:
 6. ✅ Prompt sources merged
 7. ✅ faber-manager agent(s) invoked with complete context
 8. ✅ Results aggregated and returned
+
+**CRITICAL: Before returning control to user, verify completion checklist:**
+- [ ] Did I actually invoke the faber-manager agent via Task tool? (Not just plan it)
+- [ ] Is the faber-manager result present in this response?
+- [ ] If multiple work items, are all manager results present?
+- [ ] If error, was it handled appropriately (not premature termination)?
+
+If ANY checkbox is unchecked, you are NOT complete. Continue to Step 8 (Route to Execution).
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
