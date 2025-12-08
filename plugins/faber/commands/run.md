@@ -2,7 +2,7 @@
 name: fractary-faber:run
 description: Execute FABER workflow with target-first design, flexible phase control, resume/rerun capability, and label-based configuration
 argument-hint: '[<target>] [--work-id <id>] [--resume <run-id>] [--rerun <run-id>] [--phase <phases>] [--step <step-id>] [--workflow <id>] [--autonomy <level>] [--prompt "<text>"]'
-tools: Skill
+tools: Task
 model: claude-haiku-4-5
 ---
 
@@ -165,29 +165,33 @@ Examples:
   /fractary-faber:run --rerun fractary/project/uuid --autonomy autonomous
 ```
 
-## Step 2: Invoke faber-director Skill
+## Step 2: Invoke faber-director via Task Tool
 
-**IMMEDIATELY** invoke the faber-director skill using the Skill tool:
+**IMMEDIATELY** invoke faber-director using the **Task tool** (not Skill tool):
 
 ```
-Skill(skill="fractary-faber:faber-director")
+Task(
+  subagent_type="fractary-faber:faber-director",
+  description="Execute FABER workflow for work item {work_id or target}",
+  prompt='{
+    "target": "{target or null}",
+    "work_id": "{work_id or null}",
+    "resume": "{resume or null}",
+    "rerun": "{rerun or null}",
+    "workflow_override": "{workflow_override or null}",
+    "autonomy_override": "{autonomy_override or null}",
+    "phases": "{phases or null}",
+    "step_id": "{step_id or null}",
+    "prompt": "{prompt or null}",
+    "working_directory": "{pwd}"
+  }'
+)
 ```
 
-**Pass ONLY the parameters in your message (skill handles all logic):**
-```json
-{
-  "target": "{target or null}",
-  "work_id": "{work_id or null}",
-  "resume": "{resume or null}",
-  "rerun": "{rerun or null}",
-  "workflow_override": "{workflow_override or null}",
-  "autonomy_override": "{autonomy_override or null}",
-  "phases": "{phases or null}",
-  "step_id": "{step_id or null}",
-  "prompt": "{prompt or null}",
-  "working_directory": "{pwd}"
-}
-```
+**Why Task tool instead of Skill tool:**
+- Task tool gives the agent its own execution context
+- The agent completes its full workflow before returning
+- Prevents premature termination when sub-skills return output
 
 ## Step 3: Return Response
 
