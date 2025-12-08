@@ -246,17 +246,8 @@ if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
 fi
 
 # Build metrics display (right-aligned, dim color)
+# Order: cost first, then context free percentage (per user preference)
 METRICS_LINE=""
-
-# Validate and display context free percentage (must be numeric)
-if [ -n "$CONTEXT_FREE" ] && [ "$CONTEXT_FREE" != "0" ]; then
-  # Validate: only display if numeric (integer or decimal)
-  if [[ "$CONTEXT_FREE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-    # Round to integer for cleaner display
-    CONTEXT_FREE_INT=$(printf "%.0f" "$CONTEXT_FREE" 2>/dev/null || echo "$CONTEXT_FREE")
-    METRICS_LINE="${DIM}${CONTEXT_FREE_INT}%FREE${NC}"
-  fi
-fi
 
 # Validate and display token cost (must be numeric, round to 2 decimals)
 if [ -n "$TOKEN_COST" ] && [ "$TOKEN_COST" != "0" ]; then
@@ -264,10 +255,20 @@ if [ -n "$TOKEN_COST" ] && [ "$TOKEN_COST" != "0" ]; then
   if [[ "$TOKEN_COST" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
     # Round to 2 decimal places per spec
     TOKEN_COST_FMT=$(printf "%.2f" "$TOKEN_COST" 2>/dev/null || echo "$TOKEN_COST")
+    METRICS_LINE="${DIM}\$${TOKEN_COST_FMT}${NC}"
+  fi
+fi
+
+# Validate and display context free percentage (must be numeric)
+if [ -n "$CONTEXT_FREE" ] && [ "$CONTEXT_FREE" != "0" ]; then
+  # Validate: only display if numeric (integer or decimal)
+  if [[ "$CONTEXT_FREE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    # Round to integer for cleaner display
+    CONTEXT_FREE_INT=$(printf "%.0f" "$CONTEXT_FREE" 2>/dev/null || echo "$CONTEXT_FREE")
     if [ -n "$METRICS_LINE" ]; then
       METRICS_LINE="${METRICS_LINE} ${DIM}|${NC}"
     fi
-    METRICS_LINE="${METRICS_LINE} ${DIM}\$${TOKEN_COST_FMT}${NC}"
+    METRICS_LINE="${METRICS_LINE} ${DIM}${CONTEXT_FREE_INT}%FREE${NC}"
   fi
 fi
 
