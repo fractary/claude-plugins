@@ -32,7 +32,7 @@ if [ -n "$WORK_ID" ] && [ -n "$AUTHOR" ]; then
     FORMATTED_COMMENT="$MESSAGE
 
 ---
-_FABER Work ID: \`$WORK_ID\` | Author: $AUTHOR_"
+_FABER Work ID: \`$WORK_ID\` | Author: ${AUTHOR}_"
 else
     # Standalone comment - no metadata footer
     FORMATTED_COMMENT="$MESSAGE"

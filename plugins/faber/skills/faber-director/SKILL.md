@@ -1,4 +1,6 @@
 ---
+name: faber-director
+description: Director skill for routing FABER workflow execution - parses input, validates parameters, fetches issue data, and routes to faber-manager agent(s)
 model: claude-opus-4-5
 ---
 

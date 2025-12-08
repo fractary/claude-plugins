@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: FABER Phase 4 - Tests and reviews implementation, looping back to build phase if issues found
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # Evaluate Skill

@@ -1,7 +1,7 @@
 ---
 name: run-manager
 description: Manage FABER workflow run lifecycle - create, query, resume, rerun runs
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # FABER Run Manager Skill

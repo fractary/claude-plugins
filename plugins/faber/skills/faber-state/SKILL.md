@@ -1,7 +1,7 @@
 ---
 name: faber-state
 description: Manage FABER workflow state (CRUD operations)
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # FABER State Skill
