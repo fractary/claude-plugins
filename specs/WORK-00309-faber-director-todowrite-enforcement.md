@@ -279,10 +279,49 @@ Note: Full checkpoint (saving state to `.fractary/plugins/faber/director-state.j
 - [x] Update `<COMPLETION_CRITERIA>` to reference 13 steps
 - [x] Update `<TERMINATION_RULES>` to reference 13 steps
 - [x] Update documentation section with v2 fix details
-- [ ] Commit and push changes
-- [ ] Test with `/fractary-faber:run --work-id 309`
-- [ ] Verify Step 0 initializes TodoWrite tracker
-- [ ] Verify faber-manager is actually invoked
+- [x] Commit and push changes
+- [x] Test with `/fractary-faber:run --work-id 303` - **FAILED AGAIN**
+
+## v3 Implementation (Command Override Fix)
+
+**Root Cause of v2 Failure**: The `/fractary-faber:run` command was passing a detailed 9-step instruction list to faber-director:
+```
+Please:
+1. Load configuration from .fractary/plugins/faber/config.json
+2. If resume provided: ...
+3. Else if rerun provided: ...
+4. Else (new run): ...
+5. Parse target ...
+6. Detect workflow ...
+7. Apply label-detected values ...
+8. Validate phases ...
+9. Spawn faber-manager agent(s) ...
+```
+
+The faber-director skill was following these COMMAND instructions instead of reading its own SKILL.md workflow! The command's 9-step list:
+- Didn't mention TodoWrite initialization
+- Didn't mention reading SKILL.md
+- Stopped at "spawn faber-manager" without any follow-through or result aggregation
+
+**v3 Solution**: Remove the step-by-step instructions from the run command. Replace with simple parameter passing and explicit reminder to follow SKILL.md.
+
+### v3 Changes Made:
+
+1. **Removed 9-step instruction list from run command**
+2. **Added explicit reminder**: "Follow your SKILL.md <WORKFLOW> section exactly"
+3. **Added explicit step references**: "Step 0 initializes TodoWrite, Step 8 invokes faber-manager, Step 9 returns results"
+4. **Added continuation warning**: "DO NOT stop after any intermediate step"
+
+### v3 Implementation Checklist:
+
+- [x] Remove step-by-step instructions from `/fractary-faber:run` command
+- [x] Add SKILL.md workflow reminder to command prompt
+- [x] Commit and push changes
+- [ ] Test with `/fractary-faber:run --work-id 303`
+- [ ] Verify TodoWrite tracker is initialized (Step 0)
+- [ ] Verify faber-config is invoked but result not output (Step 0b)
+- [ ] Verify faber-manager is invoked (Step 8)
+- [ ] Verify final results are returned (Step 9)
 
 ## Notes
 
@@ -293,6 +332,22 @@ Note: Full checkpoint (saving state to `.fractary/plugins/faber/director-state.j
 ---
 
 ## Changelog
+
+### 2025-12-08 - v3 Command Override Fix
+
+**Problem Discovered:**
+User tested v2 fix and got the same result again. Analysis of the output revealed that the `/fractary-faber:run` command was passing a 9-step instruction list to faber-director. The skill was following the COMMAND's instructions instead of its own SKILL.md workflow.
+
+**Root Cause Analysis:**
+The run command's "Please: 1. Load configuration... 9. Spawn faber-manager..." was overriding the skill's internal 13-step workflow. Even with Step 0 (TodoWrite init) inside `<WORKFLOW>`, the command's explicit instructions took precedence.
+
+**v3 Solution:**
+Remove the step-by-step instructions from the run command entirely. Replace with simple parameter passing and an explicit reminder: "Follow your SKILL.md <WORKFLOW> section exactly."
+
+**Files Changed:**
+- `plugins/faber/commands/run.md` - Removed 9-step instruction list, added SKILL.md reminder
+
+---
 
 ### 2025-12-08 - v2 Aggressive Restructure
 
