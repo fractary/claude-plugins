@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # status-line.sh - Generates custom status line for Claude Code
-# Shows: branch, file changes, issue number, PR number, sync status, last prompt
+# Shows: branch, file changes, issue number, PR number, sync status, last prompt, context metrics
 # Called by StatusLine hook
 # Usage: Called automatically by Claude Code hooks system
 
@@ -169,6 +169,30 @@ if [ -f "$PROMPT_CACHE" ]; then
   fi
 fi
 
+# Get context free percentage and token cost (from environment or FABER state)
+CONTEXT_FREE=""
+TOKEN_COST=""
+
+# Read context free percentage (from environment or FABER state)
+if [ -n "${CLAUDE_CONTEXT_FREE:-}" ]; then
+  CONTEXT_FREE="$CLAUDE_CONTEXT_FREE"
+elif [ -d ".fractary/plugins/faber/runs" ]; then
+  # Try to read from FABER state (newest run)
+  CONTEXT_FREE=$(find .fractary/plugins/faber/runs -name "state.json" -type f \
+    -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- | \
+    xargs jq -r '.metrics.context_free_percent // empty' 2>/dev/null)
+fi
+
+# Read token cost (from environment or FABER state)
+if [ -n "${CLAUDE_SESSION_COST:-}" ]; then
+  TOKEN_COST="$CLAUDE_SESSION_COST"
+elif [ -d ".fractary/plugins/faber/runs" ]; then
+  # Try to read from FABER state (newest run)
+  TOKEN_COST=$(find .fractary/plugins/faber/runs -name "state.json" -type f \
+    -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- | \
+    xargs jq -r '.metrics.token_cost // empty' 2>/dev/null)
+fi
+
 # Build status line
 STATUS_LINE=""
 
@@ -215,6 +239,24 @@ if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
     # Fallback: non-clickable
     STATUS_LINE="${STATUS_LINE} ${BLUE}PR#${PR_NUMBER}${NC}"
   fi
+fi
+
+# Build metrics display (right-aligned, dim color)
+METRICS_LINE=""
+if [ -n "$CONTEXT_FREE" ] && [ "$CONTEXT_FREE" != "0" ]; then
+  METRICS_LINE="${DIM}${CONTEXT_FREE}%FREE${NC}"
+fi
+
+if [ -n "$TOKEN_COST" ] && [ "$TOKEN_COST" != "0" ]; then
+  if [ -n "$METRICS_LINE" ]; then
+    METRICS_LINE="${METRICS_LINE} ${DIM}|${NC}"
+  fi
+  METRICS_LINE="${METRICS_LINE} ${DIM}\$${TOKEN_COST}${NC}"
+fi
+
+# Append metrics to status line (right-aligned with spacing)
+if [ -n "$METRICS_LINE" ]; then
+  STATUS_LINE="${STATUS_LINE}  ${METRICS_LINE}"
 fi
 
 # Output first line (strip color codes if NO_COLOR is set)
