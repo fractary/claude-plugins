@@ -50,6 +50,13 @@ Your key capability is **parallelization**: you can spawn multiple faber-manager
    - ALWAYS include: target, work_id, phases, step_id, additional_instructions
    - ALWAYS pass resolved configuration (labels + CLI merged)
    - NEVER lose information during routing
+
+6. **Workflow Resolution (NEW in v2.2)**
+   - **MANDATORY**: ALWAYS invoke faber-config skill to resolve workflows BEFORE routing to manager
+   - Resolution must happen in Step 0b BEFORE any other processing
+   - The faber-config skill resolves the complete inheritance chain
+   - Without resolution, inherited steps from parent workflows are lost
+   - This is the critical fix for issue #304
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -145,55 +152,88 @@ work_id: null
    - Integration settings
 ```
 
-### Step 0b: Resolve workflow with inheritance (MANDATORY)
+### Step 0b: Resolve workflow with inheritance (MANDATORY - FIX FOR #304)
 
-**ALWAYS invoke the faber-config skill to resolve the workflow:**
+**CRITICAL EXECUTION REQUIREMENT**: This step MUST actually invoke the faber-config skill.
+
+**Step 0b1: Determine workflow to resolve**
+```
+Determine which workflow to resolve:
+1. If workflow_override provided (from labels or CLI) → use that
+2. Else if config.default_workflow exists → use that
+3. Else → use "fractary-faber:default"
+
+Store this as selected_workflow_id for next step
+```
+
+**Step 0b2: Invoke faber-config skill to resolve workflow (MANDATORY)**
 
 ```
+IMMEDIATELY INVOKE: faber-config skill
+
 Invoke Skill: faber-config
 Operation: resolve-workflow
-Parameters: workflow_id = {CLI override OR config.default_workflow OR "fractary-faber:default"}
-```
+Parameters:
+  workflow_id: {selected_workflow_id}
+  (working_directory can be passed to specify project path)
 
-This is MANDATORY because:
-- `fractary-faber:default` extends `fractary-faber:core`
-- The core workflow contains essential primitives (branch creation, PR creation, etc.)
-- Without resolution, you miss the inherited pre_steps and post_steps
+WAIT FOR RESULT before proceeding to Step 0b3
 
-**The resolver returns a FULLY MERGED workflow:**
-- All inheritance chains resolved
-- Pre_steps, steps, post_steps merged per phase
-- Ready for execution
-
-**Workflow Resolution (v2.2+):**
-```
-The resolve-workflow operation:
-1. Parses workflow_id namespace (e.g., "fractary-faber:default" or "my-workflow")
-2. Loads workflow file from appropriate location
-3. If workflow has "extends", recursively loads parent workflows
-4. Merges pre_steps, steps, post_steps for each phase
-5. Applies skip_steps to exclude specific inherited steps
-6. Validates step ID uniqueness across merged workflow
-7. Returns fully resolved workflow ready for execution
-```
-
-**Store Configuration:**
-```json
+Expected Result Structure:
 {
-  "workflows": ["default", "hotfix"],
-  "default_workflow": "fractary-faber:default",
-  "default_autonomy": "guarded",
-  "resolved_workflow": {
+  "status": "success",
+  "workflow": {
     "id": "default",
-    "inheritance_chain": ["fractary-faber:default"],
-    "phases": { /* merged phases with all steps */ }
-  },
-  "integrations": {
-    "work_plugin": "fractary-work",
-    "repo_plugin": "fractary-repo"
+    "inheritance_chain": ["fractary-faber:default", "fractary-faber:core"],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "steps": [
+          {"id": "core-fetch-or-create-issue", "source": "fractary-faber:core", "position": "pre_step"},
+          {"id": "core-switch-or-create-branch", "source": "fractary-faber:core", "position": "pre_step"}
+        ]
+      },
+      // ... other phases with merged steps
+    },
+    "autonomy": {...}
   }
 }
 ```
+
+This invocation is the CRITICAL FIX for issue #304. Without this:
+- `fractary-faber:default` extends `fractary-faber:core`
+- The core workflow contains essential primitives (branch creation, PR creation, merge, etc.)
+- Without resolution, you miss the inherited pre_steps and post_steps from core
+- All those critical steps are skipped in execution
+```
+
+**Step 0b3: Store resolved workflow**
+
+Once faber-config returns the merged workflow:
+```
+Store resolved_workflow = faber-config result for later use
+This will be passed to faber-manager in Step 7
+```
+
+**Why This Matters (Issue #304 Root Cause)**:
+
+The default workflow (`default.json`) extends core (`core.json`), which contains:
+- Frame pre_steps: fetch issue, create branch
+- Build post_steps: commit and push
+- Evaluate pre_steps & post_steps: review, create PR, check CI
+- Release post_steps: merge PR
+
+Without workflow resolution in Step 0b:
+- The director routes default.json (with empty pre/post_steps) directly to manager
+- Manager executes only default's own steps
+- All inherited steps from core are lost
+- Critical operations like PR creation, merge, and branch management are skipped
+
+With workflow resolution in Step 0b:
+- Director calls faber-config resolve-workflow
+- Resolver merges default + core inheritance chain
+- Complete workflow with all steps is returned
+- Manager receives full merged workflow and executes everything
 
 ---
 
@@ -534,7 +574,8 @@ Task(
     "additional_instructions": "Focus on performance",
     "worktree": true,
     "is_resume": false,
-    "issue_data": {...}
+    "issue_data": {...},
+    "resolved_workflow": {...}  # IMPORTANT: Include the resolved workflow from Step 0b2
   }'
 )
 ```
@@ -596,15 +637,18 @@ Summary: 2/3 successful
 <COMPLETION_CRITERIA>
 This skill is complete when:
 1. ✅ Configuration loaded
-2. ✅ Issue fetched (if work_id provided)
-3. ✅ Labels parsed for configuration
-4. ✅ Target resolved (explicit, parsed, or inferred)
-5. ✅ Phases/step validated
-6. ✅ Prompt sources merged
-7. ✅ faber-manager agent(s) invoked with complete context
-8. ✅ Results aggregated and returned
+2. ✅ Workflow resolved via faber-config (Step 0b - THE FIX FOR #304)
+3. ✅ Issue fetched (if work_id provided)
+4. ✅ Labels parsed for configuration
+5. ✅ Target resolved (explicit, parsed, or inferred)
+6. ✅ Phases/step validated
+7. ✅ Prompt sources merged
+8. ✅ faber-manager agent(s) invoked with complete resolved_workflow context
+9. ✅ Results aggregated and returned
 
 **CRITICAL: Before returning control to user, verify completion checklist:**
+- [ ] Did I actually invoke faber-config to resolve the workflow in Step 0b2? (FIX FOR #304)
+- [ ] Is the resolved_workflow included in manager parameters?
 - [ ] Did I actually invoke the faber-manager agent via Task tool? (Not just plan it)
 - [ ] Is the faber-manager result present in this response?
 - [ ] If multiple work items, are all manager results present?
@@ -627,6 +671,11 @@ Autonomy: guarded
 Phases: frame, architect, build
 Additional Instructions: Focus on performance...
 ───────────────────────────────────────
+
+Resolving workflow inheritance (Step 0b)...
+Invoking faber-config: resolve-workflow for fractary-faber:default
+Resolved inheritance chain: fractary-faber:default → fractary-faber:core
+Merged steps: 9 total (2 pre_steps + 1 steps + 6 post_steps)
 
 Invoking faber-manager...
 
@@ -705,6 +754,7 @@ Available steps in build:
 ## Configuration Errors
 - **Config not found**: Log warning, use defaults, continue
 - **Invalid JSON**: Log error, use defaults, continue
+- **Workflow resolution failed**: Report error with details from faber-config, do not proceed
 
 ## Issue Fetch Errors
 - **Issue not found**: Return clear error, don't proceed
@@ -722,6 +772,7 @@ Available steps in build:
 ## Routing Errors
 - **faber-manager invocation failed**: Report error, suggest retry
 - **Parallel limit exceeded**: Batch into groups
+- **Workflow resolution failed**: Log faber-config error and do not proceed with manager invocation
 
 </ERROR_HANDLING>
 
@@ -734,6 +785,7 @@ Available steps in build:
 /fractary-faber:run (lightweight command)
     ↓ immediately invokes
 faber-director skill (THIS SKILL - intelligence layer)
+    ↓ invokes faber-config skill (Step 0b - CRITICAL FIX FOR #304)
     ↓ spawns 1 or N
 faber-manager agent (execution layer)
 ```
@@ -744,6 +796,7 @@ faber-manager agent (execution layer)
 - Other skills (programmatic)
 
 **Invokes:**
+- `faber-config` skill - To resolve workflows with inheritance (Step 0b - FIX FOR #304)
 - `/fractary-work:issue-fetch` - To fetch issue data
 - `faber-manager` agent - For workflow execution (via Task tool)
 
@@ -790,5 +843,24 @@ This skill now handles:
 **Note:** Step IDs come from the resolved workflow. If using a custom workflow or one that
 extends the default, additional steps may be available. Use `faber-config resolve-workflow`
 to see all steps in the merged workflow.
+
+## Issue #304 Fix Summary
+
+**Problem**: FABER Director skips workflow inheritance resolution, causing all inherited steps from core.json to be lost when executing default.json.
+
+**Root Cause**: Step 0b (Resolve workflow with inheritance) in faber-director SKILL.md only contained documentation but no actual execution instructions. The LLM never invoked faber-config resolve-workflow.
+
+**Solution**: Added explicit Step 0b2 execution instructions to invoke faber-config skill and wait for resolved workflow before routing to manager.
+
+**Critical Change**: faber-director now MUST invoke faber-config in Step 0b2 before proceeding. This ensures:
+1. All inherited steps from parent workflows are merged
+2. Complete workflow with all pre_steps, steps, and post_steps is resolved
+3. Resolved workflow is passed to faber-manager in Step 8
+4. Manager executes all steps including critical primitives from core
+
+**Files Changed**:
+- `plugins/faber/skills/faber-director/SKILL.md` - Added Step 0b2 execution instructions
+
+**Verification**: Ensure that workflow execution now includes all inherited steps like branch creation, PR creation, and PR merge.
 
 </DOCUMENTATION>
