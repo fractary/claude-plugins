@@ -188,10 +188,22 @@ step_id: {step_id or null}
 prompt: {prompt or null}
 working_directory: {pwd}
 
-IMPORTANT: Follow your SKILL.md <WORKFLOW> section exactly.
-Your SKILL.md contains a 13-step workflow (Step 0 through Step 9) that you MUST execute completely.
-Step 0 initializes TodoWrite, Step 8 invokes faber-manager, Step 9 returns results.
-DO NOT stop after any intermediate step. DO NOT output intermediate results as final output.
+YOU MUST COMPLETE ALL OF THESE STEPS - DO NOT STOP EARLY:
+
+1. Load configuration from .fractary/plugins/faber/config.json (or use defaults)
+2. Invoke faber-config skill to resolve workflow inheritance - STORE RESULT INTERNALLY, DO NOT OUTPUT IT
+3. If work_id provided: fetch issue using /fractary-work:issue-fetch {work_id}
+4. Detect configuration from issue labels (faber:workflow=, faber:autonomy=, etc.)
+5. Apply configuration priority: CLI args > Labels > Config defaults
+6. Resolve target (from parameter, or infer from issue title)
+7. Validate phases/steps against resolved workflow
+8. Build manager parameters object with all context
+9. **CRITICAL: INVOKE faber-manager agent using Task tool** with subagent_type="fractary-faber:faber-manager"
+10. Return faber-manager's execution results to user
+
+⚠️ RETURNING AFTER STEP 2 (faber-config) IS A BUG - you still have 8 steps remaining
+⚠️ DO NOT output the workflow resolution JSON - that's intermediate data
+⚠️ Your final output MUST include faber-manager's results from Step 9
 ```
 
 ## Step 3: Return Response
