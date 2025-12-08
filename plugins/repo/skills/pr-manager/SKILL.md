@@ -2,7 +2,7 @@
 name: pr-manager
 description: Create, comment, review, approve, and merge pull requests with FABER metadata
 tools: Bash, SlashCommand
-model: claude-haiku-4-5
+model: claude-opus-4-5
 ---
 
 # PR Manager Skill
