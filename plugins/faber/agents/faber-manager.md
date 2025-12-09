@@ -782,6 +782,50 @@ if phase_only:
 
 ---
 
+## Step 3b: Optional - Initialize TodoWrite Progress Tracking
+
+**Visual Progress Indicator** (Optional Enhancement):
+
+TodoWrite can be used to provide visual progress tracking throughout the workflow. This is OPTIONAL and does not affect workflow execution.
+
+```
+# At workflow start, create initial todos (optional)
+IF enable_progress_tracking THEN
+  # Create a todo item for each phase
+  for phase in phases_to_execute:
+    phase_steps = resolved_workflow.phases[phase].steps
+    step_count = phase_steps.length
+
+    TodoWrite(todos=[
+      {
+        "content": f"Execute {phase} phase ({step_count} steps)",
+        "activeForm": f"Executing {phase} phase",
+        "status": "pending"
+      }
+      // Repeat for other phases...
+    ])
+```
+
+**Why optional?**
+- Core execution doesn't depend on TodoWrite
+- Provides user visibility into progress
+- Helps with long-running workflows
+- Can be enabled/disabled via configuration
+
+**When to use:**
+- Multi-step workflows (more than 3 phases)
+- Long-running tasks (estimate > 5 minutes)
+- When user wants visual progress indicator
+
+**When to skip:**
+- Single-phase workflows
+- Quick operations
+- Minimizing output verbosity
+
+**Note**: If used, update TodoWrite at phase start and completion milestones.
+
+---
+
 ## Step 4: Phase Orchestration Loop
 
 For each phase in phases_to_execute:
@@ -1125,11 +1169,48 @@ IF step.arguments exists THEN
 
 **Execute step (CRITICAL - use correct tool for each type):**
 
-**MANDATORY**: When a step has a `skill` field, you MUST use the Skill tool to invoke it.
-DO NOT improvise or interpret the step yourself - invoke the actual skill.
+**MANDATORY**: Steps can be executed in two ways (in priority order):
+1. **Command-based (NEW - preferred)**: Uses Task tool for deterministic execution
+2. **Skill-based (legacy)**: Uses Skill tool for backward compatibility
+
+**Priority logic**: If step has `command` field, use it. Otherwise fall back to `skill` or `prompt`.
 
 ```
-IF step.skill exists THEN
+# DETERMINISTIC EXECUTION: Command-based (NEW)
+IF step.command exists THEN
+  # Map command to agent for Task invocation
+  agent_name = map_command_to_agent(step.command)
+
+  # Invoke via Task tool for HARD EXECUTION BOUNDARY
+  # Task tool returns only when agent completes - LLM cannot skip this
+  task_result = Task(
+    subagent_type=agent_name,
+    description="Execute step: {step.name}",
+    prompt="Execute command: {step.command}
+
+    Context:
+    - target: {target}
+    - work_id: {work_id}
+    - run_id: {run_id}
+    - issue_data: {issue_data}
+    - config: {step.config}
+    - additional_instructions: {additional_instructions}"
+  )
+
+  # Extract result from task_result.agentId or task response
+  result = extract_task_result(task_result)
+
+  # Log command invocation for audit trail
+  Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+    --run-id "{run_id}" \
+    --type "command_invoked" \
+    --phase "{phase}" \
+    --step "{step_id}" \
+    --command_name "{step.command}" \
+    --message "Invoked command: {step.command} via Task tool"
+
+# BACKWARD COMPATIBILITY: Legacy skill-based execution
+ELSE IF step.skill exists THEN
   # MUST use Skill tool - DO NOT interpret or improvise
   Skill(skill="{step.skill}")
 
@@ -1143,7 +1224,6 @@ IF step.skill exists THEN
    - additional_instructions: {additional_instructions}"
 
   # AFTER skill completes: Log skill invocation for audit trail (Guard 4)
-  # This creates an immutable record that the skill was invoked
   Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
     --run-id "{run_id}" \
     --type "skill_invoked" \
@@ -1159,14 +1239,50 @@ ELSE IF step.prompt exists THEN
   Execute the prompt with step_context
 
 ELSE
-  # Step has neither skill nor prompt - this is a configuration error
-  ERROR "Step '{step.name}' has neither 'skill' nor 'prompt' field"
+  # Step has neither command, skill, nor prompt - this is a configuration error
+  ERROR "Step '{step.name}' has no 'command', 'skill', or 'prompt' field"
 ```
 
+**Command-to-Agent Mapping Function:**
+```
+function map_command_to_agent(command: string) -> string:
+  # Parse command to extract plugin and operation
+  # Examples:
+  #   /fractary-spec:generate → fractary-spec:spec-manager
+  #   /fractary-repo:commit → fractary-repo:repo-manager
+  #   /fractary-work:issue-fetch → fractary-work:work-manager
+
+  IF command starts with "/" THEN
+    command = command.slice(1)  # Remove leading slash
+
+  # Split on first colon
+  [plugin, operation] = command.split(":", 1)
+
+  # Standard mapping: plugin → plugin:*-manager
+  # Extract manager name from plugin (e.g., "fractary-repo" → "repo-manager")
+  plugin_parts = plugin.split("-")
+  manager_suffix = plugin_parts.slice(1).join("-") + "-manager"
+
+  RETURN "{plugin}:{manager_suffix}"
+```
+
+**Example Mappings:**
+- `/fractary-spec:generate` → `fractary-spec:spec-manager`
+- `/fractary-spec:refine` → `fractary-spec:spec-manager`
+- `/fractary-repo:commit` → `fractary-repo:repo-manager`
+- `/fractary-work:issue-fetch` → `fractary-work:work-manager`
+
+**Why Command-based Execution is Deterministic:**
+1. Task tool spawns a separate agent context
+2. Parent (faber-manager) is blocked until child agent completes
+3. When Task returns, parent receives explicit result object
+4. Parent cannot "accidentally skip" the next step - Task return is a hard boundary
+5. Small context overhead per step is worth the guarantee of deterministic execution
+
 - ALWAYS include `additional_instructions` in context for AI-driven steps
-- NEVER substitute your own implementation for a defined skill
-- Skills follow their own naming conventions and output formats - trust them
-- ALWAYS log skill invocations to events/ directory for audit trail
+- NEVER substitute your own implementation for a defined step
+- Commands have well-defined agent handlers - trust them
+- ALWAYS log command/skill invocations to events/ directory for audit trail
 - NEVER skip logging - this is how we verify execution actually happened
 
 **Capture and validate result (CRITICAL - see CRITICAL_RULE #8):**
