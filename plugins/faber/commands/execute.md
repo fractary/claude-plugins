@@ -76,7 +76,7 @@ Extract from user input:
 ## Step 2: Invoke faber-executor Skill
 
 ```
-Skill: faber-executor
+Skill: fractary-faber:faber-executor
 Parameters:
   plan_id: {plan_id}
   serial: {serial or false}

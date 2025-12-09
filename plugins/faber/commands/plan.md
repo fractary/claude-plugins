@@ -81,7 +81,7 @@ Extract from user input:
 ## Step 2: Invoke faber-planner Skill
 
 ```
-Skill: faber-planner
+Skill: fractary-faber:faber-planner
 Parameters:
   target: {target or null}
   work_id: {work_id or null}
