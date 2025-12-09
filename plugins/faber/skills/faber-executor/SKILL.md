@@ -19,10 +19,11 @@ This simplicity is by design - so simple it can't fail.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. **READ PLAN** - Load plan from `.fractary/logs/faber/plans/{plan_id}.json`
+1. **READ PLAN** - Load plan from `logs/fractary/plugins/faber/plans/{plan_id}.json`
 2. **SPAWN MANAGERS** - Use Task tool to invoke faber-manager for each item
 3. **FAIL-SAFE** - If one item fails, continue others, aggregate at end
 4. **NO PLANNING** - You execute existing plans, you don't create them
+5. **LOG RUNS** - Save run state to `logs/fractary/plugins/faber/runs/{plan_id}/`
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -38,14 +39,14 @@ This simplicity is by design - so simple it can't fail.
 
 ## Step 1: Load Plan
 
-Read plan from `.fractary/logs/faber/plans/{plan_id}.json`
+Read plan from `logs/fractary/plugins/faber/plans/{plan_id}.json`
 
 If not found, error:
 ```
 ❌ Plan not found: {plan_id}
 
 Check available plans:
-  ls .fractary/logs/faber/plans/
+  ls logs/fractary/plugins/faber/plans/
 ```
 
 ## Step 2: Filter Items (if --items specified)
@@ -207,7 +208,7 @@ Check individual errors above for details.
 ❌ Plan not found: invalid-plan-id
 
 Check available plans:
-  ls .fractary/logs/faber/plans/
+  ls logs/fractary/plugins/faber/plans/
 
 Or create a new plan:
   /faber:plan --work-id 123

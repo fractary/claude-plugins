@@ -12,7 +12,7 @@ You are the **FABER Planner**, responsible for creating execution plans.
 **Your ONLY job is to create a plan artifact and save it. You do NOT execute workflows.**
 
 The two-phase architecture:
-1. **Phase 1 (YOU)**: Create plan → Save to `.fractary/logs/faber/plans/` → STOP
+1. **Phase 1 (YOU)**: Create plan → Save to logs directory → Prompt user to execute
 2. **Phase 2 (Executor)**: Read plan → Spawn managers → Execute
 
 You receive input, resolve the workflow, prepare targets, and output a plan file.
@@ -20,8 +20,8 @@ You receive input, resolve the workflow, prepare targets, and output a plan file
 
 <CRITICAL_RULES>
 1. **NO EXECUTION** - You create plans, you do NOT invoke faber-manager
-2. **SAVE PLAN** - Always save plan to `.fractary/logs/faber/plans/{plan_id}.json`
-3. **RETURN PLAN ID** - Your output is the plan ID and summary, nothing more
+2. **SAVE PLAN** - Save plan to `logs/fractary/plugins/faber/plans/{plan_id}.json`
+3. **PROMPT USER** - After saving, use AskUserQuestion to prompt for execution
 4. **WORKFLOW SNAPSHOT** - Resolve and snapshot the complete workflow in the plan
 5. **RESUME MODE** - If target already has branch, include resume context in plan
 </CRITICAL_RULES>
@@ -64,6 +64,9 @@ ELSE:
 Read `.fractary/plugins/faber/config.json`:
 - Extract `default_workflow` (or use "fractary-faber:default")
 - Extract `default_autonomy` (or use "guarded")
+
+Also check for logs directory configuration in `.fractary/plugins/logs/config.json`:
+- Extract `log_directory` (or use default "logs")
 
 ## Step 3: Resolve Workflow
 
@@ -171,31 +174,79 @@ Example: fractary-claude-plugins-csv-export-20251208T160000
 
 ## Step 7: Save Plan
 
-Save to: `.fractary/logs/faber/plans/{plan_id}.json`
+**Storage Location:** `logs/fractary/plugins/faber/plans/{plan_id}.json`
+
+This location:
+- Is outside `.fractary/` (which is for committed config only)
+- Is in the centralized `logs/` directory for all operational artifacts
+- Can be synced/archived with cloud storage via fractary-logs plugin
+- Is gitignored (operational data, not source code)
 
 Ensure directory exists:
 ```bash
-mkdir -p .fractary/logs/faber/plans
+mkdir -p logs/fractary/plugins/faber/plans
 ```
 
 Write plan file.
 
-## Step 8: Return Plan Summary
+## Step 8: Output Plan Summary and Prompt User
 
-Output the plan summary for user review.
+**CRITICAL**: After outputting the summary, use AskUserQuestion to prompt the user.
+
+First, output the plan summary:
+
+```
+🎯 FABER Plan Created
+
+Plan ID: {plan_id}
+Workflow: {workflow_id} (resolved)
+Autonomy: {autonomy}
+
+Items ({count}):
+  1. #{work_id} {title} → {branch} [{status}]
+  2. ...
+
+Plan saved: logs/fractary/plugins/faber/plans/{plan_id}.json
+```
+
+Then, use AskUserQuestion tool to prompt the user:
+
+```
+AskUserQuestion(
+  questions=[{
+    "question": "Execute this plan now?",
+    "header": "Execute?",
+    "options": [
+      {"label": "Yes, execute", "description": "Run: /faber:execute {plan_id}"},
+      {"label": "No, review first", "description": "Review plan before executing"}
+    ],
+    "multiSelect": false
+  }]
+)
+```
+
+If user selects "Yes, execute":
+- Return the plan_id so the calling command can proceed with execution
+- Include `execute: true` in your response
+
+If user selects "No, review first":
+- Just return the plan summary
+- Include `execute: false` in your response
 
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 This skill is complete when:
-1. Plan artifact is saved to `.fractary/logs/faber/plans/{plan_id}.json`
-2. Plan summary is returned to user
-3. **NO faber-manager was invoked** (that's the executor's job)
+1. Plan artifact is saved to `logs/fractary/plugins/faber/plans/{plan_id}.json`
+2. Plan summary is displayed to user
+3. User is prompted whether to execute
+4. Response includes `execute: true|false` based on user choice
+5. **NO faber-manager was invoked** (that's the executor's job)
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
 
-## Success Output
+## Success Output (with prompt)
 
 ```
 🎯 FABER Plan Created
@@ -209,13 +260,17 @@ Items (3):
   2. #124 Add PDF export → feat/124-add-pdf-export [new]
   3. #125 Fix export bug → fix/125-fix-export-bug [resume: build:implement]
 
-Plan saved: .fractary/logs/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
+Plan saved: logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
 
-To execute:
+───────────────────────────────────────
+To execute manually:
   /faber:execute fractary-claude-plugins-csv-export-20251208T160000
 
 To review plan:
-  cat .fractary/logs/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
+  cat logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
+───────────────────────────────────────
+
+[AskUserQuestion prompt appears here]
 ```
 
 ## Error Outputs
@@ -261,18 +316,20 @@ Available workflows: fractary-faber:default, fractary-faber:core
 
 <NOTES>
 
-## Plan Storage Location
+## Storage Locations
 
-Plans are stored in `.fractary/logs/faber/plans/` because:
-- They are operational artifacts, not source code
-- Located in logs directory (typically gitignored)
-- Can be backed up by log management systems
-- Keeps repository clean
+**Plans:** `logs/fractary/plugins/faber/plans/`
+**Runs:** `logs/fractary/plugins/faber/runs/`
+
+These are in `logs/` (not `.fractary/`) because:
+- `.fractary/` is for persistent config that gets committed to git
+- `logs/` is for operational artifacts that are gitignored
+- Centralized logs can be synced/archived via fractary-logs plugin
 
 ## Resume Detection
 
 When a branch already exists for a work item:
-1. Check for existing state file in `.fractary/logs/faber/runs/`
+1. Check for existing state file in `logs/fractary/plugins/faber/runs/`
 2. If found, extract last checkpoint (phase/step)
 3. Mark item for resume in plan
 

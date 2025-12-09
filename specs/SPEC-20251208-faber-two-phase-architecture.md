@@ -54,7 +54,7 @@ Phase 1: /faber:plan (Director creates artifact)
 │   ├── Create GitHub issue (if needed)
 │   ├── Create branch
 │   └── Create worktree
-├── Save plan artifact to .faber/plans/
+├── Save plan artifact to logs/fractary/plugins/faber/plans/
 └── STOP (do not execute)
 
 Phase 2: /faber:execute <plan-id> (Manager executes)
@@ -286,10 +286,10 @@ Worktrees created during plan execution are automatically cleaned up:
 
 ### Plan Storage
 
-Plans are stored in the logs directory (not source control) for backup and archival:
+Plans and run state are stored in the centralized `logs/` directory (not `.fractary/`):
 
 ```
-.fractary/logs/faber/
+logs/fractary/plugins/faber/
 ├── plans/
 │   ├── fractary-project-feature-20251208T153000.json
 │   ├── fractary-project-data-20251209T091500.json
@@ -308,10 +308,13 @@ Plans are stored in the logs directory (not source control) for backup and archi
 ```
 
 **Storage Rationale:**
-- Plans are operational artifacts, not source code
-- Located in `.fractary/logs/` which is typically gitignored
-- Can be backed up and archived by log management systems
-- Keeps repository clean while preserving audit trail
+- `.fractary/` is for **persistent config** that gets committed to git
+- `logs/` is for **operational artifacts** that are gitignored
+- Centralized logs directory enables:
+  - Easy backup/archival via fractary-logs plugin
+  - Cloud sync to a central location
+  - Consistent log management across all plugins
+- The log directory path is configurable in `.fractary/plugins/logs/config.json`
 
 ### Audit Trail
 
@@ -388,7 +391,7 @@ For simple single-target runs, keep the current pattern as a convenience wrapper
 ```
 
 **Behavior:**
-- Creates a plan and saves it to `.fractary/logs/faber/plans/`
+- Creates a plan and saves it to `logs/fractary/plugins/faber/plans/`
 - Immediately executes the plan
 - Plan is persisted for debugging and audit purposes
 - Not ephemeral (can be referenced later if needed)
@@ -402,7 +405,7 @@ For simple single-target runs, keep the current pattern as a convenience wrapper
 Each plan item has its own state file:
 
 ```json
-// .faber/runs/abc123/items/401/state.json
+// logs/fractary/plugins/faber/runs/abc123/items/401/state.json
 {
   "item_index": 0,
   "target": "ipeds/admissions",
@@ -427,7 +430,7 @@ Each plan item has its own state file:
 
 1. Find issue by number
 2. Read `faber:run-id` label
-3. Load state from `.faber/runs/{run_id}/items/{issue}/state.json`
+3. Load state from `logs/fractary/plugins/faber/runs/{run_id}/items/{issue}/state.json`
 4. Resume from last checkpoint
 
 ---
@@ -479,7 +482,7 @@ Each plan item has its own state file:
 
 ### Resolved
 
-1. ~~**Ephemeral vs Persistent Plans**~~: **RESOLVED** - All plans are persisted to `.fractary/logs/faber/plans/`. Even `/faber:run` creates a visible plan for debugging and audit purposes.
+1. ~~**Ephemeral vs Persistent Plans**~~: **RESOLVED** - All plans are persisted to `logs/fractary/plugins/faber/plans/`. Even `/faber:run` creates a visible plan for debugging and audit purposes.
 
 2. ~~**Failure Handling**~~: **RESOLVED** - Fail-safe mode. Items continue independently; failures aggregated at end.
 
@@ -526,7 +529,7 @@ Each plan item has its own state file:
 | Question | Decision |
 |----------|----------|
 | Plan ID format | Hierarchical: `{org}-{project}-{subproject}-{timestamp}` for analytics readiness |
-| Plan persistence | Saved to `.fractary/logs/faber/plans/` (not ephemeral) |
+| Plan persistence | Saved to `logs/fractary/plugins/faber/plans/` (not ephemeral) |
 | Failure mode | Fail-safe: continue other items, aggregate failures |
 | Existing branches | Resume mode: detect state and continue from checkpoint |
 | Pre-validation | None: trust plan, fail fast per item |
@@ -540,3 +543,12 @@ Each plan item has its own state file:
 - Storage rationale for log-based plan persistence
 
 **Open Questions Resolved:** 5 of 8
+
+### 2025-12-09: Path Correction and User Prompt
+
+**Changes:**
+- Changed storage location from `.fractary/logs/` to `logs/fractary/plugins/faber/`
+- `.fractary/` is now reserved for committed config only
+- `logs/` is for operational artifacts (gitignored)
+- Added user prompt after plan creation asking whether to execute
+- Clarified model selection: haiku (commands), sonnet (skills), opus (agents)
