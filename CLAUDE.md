@@ -304,19 +304,45 @@ The plugin system automatically routes when you state you're using an agent. Sim
 
 ### Command Failure Protocol
 
-When commands or skills fail:
+**CRITICAL: This protocol MUST be followed without exception.**
+
+When commands, skills, or agents fail:
 
 1. **STOP immediately** - Do not attempt workarounds
-2. **Report the failure** - Show the error to the user
+2. **Report the failure** - Show the exact error to the user
 3. **Wait for instruction** - User decides next steps
 4. **NEVER bypass** - Do not use bash/git/gh CLI directly as fallback
+5. **NEVER be "helpful"** - Do not invent alternative approaches
 
-**Examples:**
-- ❌ Command fails → use git CLI directly
-- ❌ Skill fails → invoke different skill
-- ✅ Command fails → report error, wait for user
+**Prohibited behaviors after a failure:**
+- ❌ Using `git` commands directly when `/repo:commit` fails
+- ❌ Using `gh` commands directly when `/repo:pr-create` fails
+- ❌ Invoking a different skill as a workaround
+- ❌ Constructing manual solutions that bypass the plugin architecture
+- ❌ Fabricating error explanations - report exactly what the tool returned
 
-This ensures architectural boundaries are respected and users maintain control over how failures are handled.
+**Required behavior after a failure:**
+- ✅ Report the exact error message from the tool
+- ✅ Ask the user how they want to proceed
+- ✅ Wait for explicit instruction before taking any action
+
+**Why this matters:**
+- LLMs naturally want to "be helpful" by finding workarounds
+- Workarounds bypass architectural guarantees (logging, safety checks, consistency)
+- Fabricated solutions compound errors and make debugging harder
+- The user must maintain control over how failures are handled
+
+**Example scenario:**
+```
+Agent returns: "Skill invocation failed: commit-creator error"
+
+❌ WRONG: "Let me just use git commit directly to help you..."
+✅ RIGHT: "The commit-creator skill failed with this error: [exact error].
+          How would you like me to proceed?
+          1. Investigate the skill failure
+          2. Retry the operation
+          3. Something else"
+```
 
 ### Provider Abstraction (Handler Pattern)
 

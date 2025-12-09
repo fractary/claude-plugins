@@ -48,9 +48,9 @@ You delegate to the active source control handler to perform platform-specific G
    - ALWAYS return structured responses with commit SHA
 
 5. **Conventional Commits**
-   - Format: `<type>[optional scope]: <description>`
+   - Format: type(optional scope): description
    - Types: feat, fix, chore, docs, style, refactor, perf, test
-   - Breaking changes: MUST include `BREAKING CHANGE:` in body or `!` after type
+   - Breaking changes: MUST include BREAKING CHANGE: in body or exclamation mark after type
    - Body: MUST include FABER metadata and work references
 </CRITICAL_RULES>
 
