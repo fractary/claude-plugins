@@ -31,11 +31,15 @@ You delegate to the active source control handler to perform platform-specific P
    - MANDATORY: For merge to protected branches, MUST invoke AskUserQuestion before merge
    - Handler script enforces FABER_RELEASE_APPROVED=true environment variable as second-line defense
 
-2. **Work Item Linking**
+2. **Work Item Linking (ISSUE #303)**
    - ALWAYS include work item references in PR body
    - ALWAYS use "closes #{work_id}" format for automatic issue closing
    - ALWAYS include FABER metadata when from workflow
    - NEVER lose traceability to originating work item
+   - If work_id not provided explicitly, ALWAYS attempt fallback extraction from branch name
+   - Branch name pattern: `prefix/ID-description` extracts `ID` as work_id (e.g., `fix/303-issue-linking` -> `303`)
+   - If fallback used, log warning: "work_id extracted from branch name (not explicit)"
+   - If work_id cannot be determined, show clear error before PR creation
 
 3. **PR Body Format**
    - ALWAYS use structured PR body template
@@ -143,10 +147,10 @@ This is useful when running pr-review immediately after pr-create.
 **1. OUTPUT START MESSAGE:**
 
 ```
-🎯 STARTING: PR Manager
+STARTING: PR Manager
 Operation: {operation}
 PR: #{pr_number or "new"}
-───────────────────────────────────────
+---
 ```
 
 **2. LOAD CONFIGURATION:**
@@ -163,11 +167,11 @@ Use repo-common skill to load configuration.
 **3. ROUTE BY OPERATION:**
 
 Based on operation type:
-- `analyze-pr` → ANALYZE PR WORKFLOW
-- `create-pr` → CREATE PR WORKFLOW
-- `comment-pr` → COMMENT WORKFLOW
-- `review-pr` → REVIEW WORKFLOW
-- `merge-pr` → MERGE WORKFLOW
+- `analyze-pr` -> ANALYZE PR WORKFLOW
+- `create-pr` -> CREATE PR WORKFLOW
+- `comment-pr` -> COMMENT WORKFLOW
+- `review-pr` -> REVIEW WORKFLOW
+- `merge-pr` -> MERGE WORKFLOW
 
 **4A. ANALYZE PR WORKFLOW:**
 
@@ -196,12 +200,12 @@ If `wait_for_ci` parameter is `true`, poll for CI completion before analyzing:
 
 3. **Report CI polling status**:
    ```
-   ⏳ CI POLLING STATUS:
+   CI POLLING STATUS:
    Status: {success|failed|timeout|no_ci}
    Elapsed: {elapsed_seconds}s
    Checks: {passed}/{total} passed
    {If failed: List failed check names}
-   ───────────────────────────────────────
+   ---
    ```
 
 **Invoke Handler to Fetch PR Data:**
@@ -297,7 +301,7 @@ Check `reviews` array (sorted by `submitted_at` timestamp, most recent first):
 
 2. **Identify the most recent substantial comment** (typically the last comment from a reviewer):
    - Skip automated bot comments (unless from code review tools)
-   - Skip trivial comments like "👍", "LGTM", etc.
+   - Skip trivial comments like "thumbs up", "LGTM", etc.
    - Focus on comments with actual feedback content (>50 characters)
 
 3. **Analyze the most recent comment content for critical issue indicators**:
@@ -321,15 +325,15 @@ Check `reviews` array (sorted by `submitted_at` timestamp, most recent first):
    - Mentions of missing tests, error handling, or validation
 
    **IMPORTANT CONTEXT CLUES**:
-   - If comment says "before approving" or "before this can be merged" → Issues are blocking
-   - If comment says "nice to have" or "optional" or "future improvement" → Issues are NOT blocking
-   - If comment is from PR author → Usually addressing feedback, not raising new issues
-   - If comment is a reply in a thread → Check if it's resolving or raising an issue
+   - If comment says "before approving" or "before this can be merged" -> Issues are blocking
+   - If comment says "nice to have" or "optional" or "future improvement" -> Issues are NOT blocking
+   - If comment is from PR author -> Usually addressing feedback, not raising new issues
+   - If comment is a reply in a thread -> Check if it's resolving or raising an issue
 
 4. **Extract outstanding issues from most recent code review**:
-   - If the most recent comment from a reviewer lists specific issues/tasks → Extract them
-   - If the comment explicitly says issues must be fixed → Mark as blocking
-   - If the comment is asking questions without demanding changes → Mark as non-blocking
+   - If the most recent comment from a reviewer lists specific issues/tasks -> Extract them
+   - If the comment explicitly says issues must be fixed -> Mark as blocking
+   - If the comment is asking questions without demanding changes -> Mark as non-blocking
 
 **STEP 6: Check Overall Review Decision**
 
@@ -389,26 +393,26 @@ GitHub computes an overall `pr.reviewDecision` field:
 Show structured analysis with **all relevant details** from the analysis steps above:
 
 ```
-📋 PR ANALYSIS: #{pr_number}
+PR ANALYSIS: #{pr_number}
 Title: {title}
-Branch: {head_branch} → {base_branch}
+Branch: {head_branch} -> {base_branch}
 Author: {author}
 Status: {state} {isDraft ? "(DRAFT)" : ""}
 URL: {url}
-───────────────────────────────────────
+---
 
-🔀 MERGE STATUS:
+MERGE STATUS:
 {Mergeable status - MERGEABLE, CONFLICTING, or UNKNOWN}
 {If conflicts detected:}
-  ❌ Merge conflicts detected
+  Merge conflicts detected
   {If conflicting files available:}
   Conflicting files:
   {List each conflicting file}
   {conflict_details if available}
 
-🔍 CI STATUS:
+CI STATUS:
 {If no CI checks configured:}
-  ℹ️  No CI checks configured
+  No CI checks configured
 
 {If CI checks exist:}
   {For each check in statusCheckRollup:}
@@ -416,7 +420,7 @@ URL: {url}
 
   Summary: {X passing, Y failing, Z pending}
 
-📝 REVIEW STATUS:
+REVIEW STATUS:
 Overall Decision: {reviewDecision or "No review requirements"}
 
 {If reviews exist:}
@@ -427,14 +431,14 @@ Reviews by user (most recent state):
   Comment: "{truncated comment preview}"
 
 Summary:
-- ✅ Approved: {approved_count}
-- ⚠️  Changes Requested: {changes_requested_count}
-- 💬 Commented: {commented_count}
+- Approved: {approved_count}
+- Changes Requested: {changes_requested_count}
+- Commented: {commented_count}
 
 {If no reviews:}
-  ℹ️  No reviews submitted yet
+  No reviews submitted yet
 
-💬 COMMENT ANALYSIS:
+COMMENT ANALYSIS:
 {If substantial comments exist:}
 Total comments: {total comment count}
 
@@ -442,7 +446,7 @@ Most Recent Substantial Comment:
   From: {author}
   Date: {timestamp}
   {If blocking keywords found:}
-  ⚠️  BLOCKING INDICATORS DETECTED: {list keywords found}
+  BLOCKING INDICATORS DETECTED: {list keywords found}
 
   Content Preview:
   {Show first 200-300 chars or key excerpts}
@@ -452,9 +456,9 @@ Most Recent Substantial Comment:
   {List each extracted issue/task}
 
 {If no substantial comments:}
-  ℹ️  No substantial code review comments
+  No substantial code review comments
 
-⚠️  CRITICAL ISSUES SUMMARY:
+CRITICAL ISSUES SUMMARY:
 {Compile all blocking issues from above analysis:}
 {If conflicts:}
 - Merge conflicts must be resolved
@@ -470,15 +474,15 @@ Most Recent Substantial Comment:
   {List outstanding issues from comment analysis}
 
 {If no critical issues:}
-✅ No critical issues identified
+No critical issues identified
 
-───────────────────────────────────────
-🎯 RECOMMENDATION: {RECOMMENDATION}
+---
+RECOMMENDATION: {RECOMMENDATION}
 Priority: {P0/P1/P2/P3}
 Reason: {Detailed reason from decision tree}
 
-───────────────────────────────────────
-📍 SUGGESTED NEXT STEPS:
+---
+SUGGESTED NEXT STEPS:
 
 {If merge conflicts exist:}
 1. [RESOLVE CONFLICTS] Fix merge conflicts on branch {head_branch}
@@ -549,13 +553,13 @@ Reason: {Detailed reason from decision tree}
 BEFORE any validation, check if a PR already exists for this branch:
 
 ```
-1. Invoke handler to list PRs for head_branch → base_branch
+1. Invoke handler to list PRs for head_branch -> base_branch
 2. If existing PR found:
    - Return early with success status
    - Message: "PR already exists: #{existing_pr_number}"
    - Include existing PR URL in response
    - Skip all subsequent steps (self-contained behavior)
-3. If no existing PR → continue with creation
+3. If no existing PR -> continue with creation
 ```
 
 This self-contained check ensures:
@@ -563,11 +567,46 @@ This self-contained check ensures:
 - Workflow orchestrators don't need conditional logic
 - Resume/retry scenarios work correctly
 
+**Resolve work_id (CRITICAL for issue auto-close - Issue #303):**
+
+The work_id is essential for automatic issue closing when the PR is merged.
+Follow this resolution order:
+
+```
+1. Check if work_id is explicitly provided in parameters
+   - If present and non-empty: use it directly
+   - Log: "work_id: {work_id} (explicit)"
+
+2. If work_id NOT provided, check step arguments from workflow context
+   - Workflow steps can pass arguments: {"work_id": "{work_id}"}
+   - If present in arguments: use it
+   - Log: "work_id: {work_id} (from workflow arguments)"
+
+3. If still no work_id, attempt fallback extraction from branch name
+   - Pattern: prefix/ID-description (e.g., "fix/303-issue-linking", "feat/123-add-export")
+   - Extract numeric ID after the first "/" and before the first "-"
+   - Regex: /^[a-z]+\/(\d+)-/i captures the ID
+   - If match found: use extracted ID as work_id
+   - Log WARNING: "work_id: {work_id} (extracted from branch name - not explicit)"
+
+4. If work_id still cannot be determined:
+   - Log ERROR: "work_id could not be determined"
+   - Show clear message: "Cannot create PR without work_id for issue linking.
+     Provide work_id explicitly or use branch naming convention: prefix/ID-description"
+   - Return failure response with suggested fixes
+```
+
+**Example branch name extraction:**
+- `fix/303-issue-branch-linking` -> work_id = "303"
+- `feat/123-add-csv-export` -> work_id = "123"
+- `chore/456-update-deps` -> work_id = "456"
+- `main` -> no match, work_id = null
+
 **Validate Inputs:**
 - Check title is non-empty
 - Verify head_branch exists and has commits
 - Verify base_branch exists
-- Check work_id is present
+- Check work_id is present (after resolution above)
 
 **Check Protected Base Branch:**
 If base_branch is protected:
@@ -576,7 +615,7 @@ If base_branch is protected:
 - Validate review requirements configured
 
 **Format PR Body:**
-Use PR body template:
+Use PR body template with resolved work_id:
 
 ```markdown
 ## Summary
@@ -601,6 +640,9 @@ Closes #{work_id}
 ---
 Generated by FABER workflow
 ```
+
+**CRITICAL**: The "Closes #{work_id}" line enables GitHub's automatic issue closing feature.
+When the PR is merged, GitHub will automatically close issue #{work_id}.
 
 **Invoke Handler:**
 
@@ -651,7 +693,7 @@ Pass parameters: {pr_number, action, comment}
 **Validate Inputs:**
 - Check pr_number is valid
 - Verify merge strategy is valid (merge|squash|rebase or no-ff|squash|ff-only)
-- Note: Map no-ff→merge, ff-only→rebase if needed for handler compatibility
+- Note: Map no-ff->merge, ff-only->rebase if needed for handler compatibility
 - Check PR exists and is mergeable
 
 **Check Merge Requirements:**
@@ -722,9 +764,9 @@ If merging to a protected branch without this variable set, the script will exit
 This provides defense-in-depth protection against bypass attempts.
 
 **Note**: The handler script automatically maps strategy names:
-- `no-ff` or `merge` → GitHub's `--merge` flag
-- `squash` → GitHub's `--squash` flag
-- `ff-only` or `rebase` → GitHub's `--rebase` flag
+- `no-ff` or `merge` -> GitHub's `--merge` flag
+- `squash` -> GitHub's `--squash` flag
+- `ff-only` or `rebase` -> GitHub's `--rebase` flag
 
 No manual mapping is needed - the script handles this internally.
 
@@ -756,12 +798,12 @@ This proactively updates:
 **6. OUTPUT COMPLETION MESSAGE:**
 
 ```
-✅ COMPLETED: PR Manager
+COMPLETED: PR Manager
 Operation: {operation}
 PR: #{pr_number}
 URL: {pr_url}
 Status: {status}
-───────────────────────────────────────
+---
 Next: {next_action}
 ```
 
@@ -770,36 +812,36 @@ Next: {next_action}
 <COMPLETION_CRITERIA>
 
 **For Analyze PR:**
-✅ PR details fetched successfully
-✅ Comments and reviews retrieved
-✅ Merge conflict status checked
-✅ CI status analyzed
-✅ Code review findings summarized
-✅ Recommendation generated (with conflict resolution if needed)
-✅ Next steps presented to user
+- PR details fetched successfully
+- Comments and reviews retrieved
+- Merge conflict status checked
+- CI status analyzed
+- Code review findings summarized
+- Recommendation generated (with conflict resolution if needed)
+- Next steps presented to user
 
 **For Create PR:**
-✅ PR created successfully
-✅ Work item linked
-✅ PR body formatted correctly
-✅ PR URL captured
+- PR created successfully
+- Work item linked (with "Closes #{work_id}" in body)
+- PR body formatted correctly
+- PR URL captured
 
 **For Comment PR:**
-✅ Comment added successfully
-✅ Comment URL captured
+- Comment added successfully
+- Comment URL captured
 
 **For Review PR:**
-✅ Review submitted successfully
-✅ Review status recorded
+- Review submitted successfully
+- Review status recorded
 
 **For Merge PR:**
-✅ CI status verified passing
-✅ Reviews approved
-✅ PR merged successfully
-✅ Branch deleted if requested
-✅ Merge SHA captured
-✅ **For protected branches: User approval explicitly obtained via AskUserQuestion**
-✅ **Approval environment variable set before handler invocation**
+- CI status verified passing
+- Reviews approved
+- PR merged successfully
+- Branch deleted if requested
+- Merge SHA captured
+- **For protected branches: User approval explicitly obtained via AskUserQuestion**
+- **Approval environment variable set before handler invocation**
 
 </COMPLETION_CRITERIA>
 
@@ -812,7 +854,7 @@ See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
 ```json
 {
   "status": "success",
-  "message": "PR #456 created: feat/123-add-export → main",
+  "message": "PR #456 created: feat/123-add-export -> main",
   "details": {
     "operation": "create-pr",
     "pr_number": 456,
@@ -820,9 +862,37 @@ See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
     "head_branch": "feat/123-add-export",
     "base_branch": "main",
     "work_id": "#123",
+    "work_id_source": "explicit",
     "draft": false,
     "platform": "github"
   }
+}
+```
+
+**Success Response (Create PR with Fallback work_id):**
+```json
+{
+  "status": "warning",
+  "message": "PR #456 created: feat/123-add-export -> main (work_id extracted from branch)",
+  "details": {
+    "operation": "create-pr",
+    "pr_number": 456,
+    "pr_url": "https://github.com/owner/repo/pull/456",
+    "head_branch": "feat/123-add-export",
+    "base_branch": "main",
+    "work_id": "#123",
+    "work_id_source": "branch_name_fallback",
+    "draft": false,
+    "platform": "github"
+  },
+  "warnings": [
+    "work_id was extracted from branch name, not provided explicitly"
+  ],
+  "warning_analysis": "PR created successfully, but work_id was inferred from branch naming convention rather than explicit parameter",
+  "suggested_fixes": [
+    "For future PRs, pass work_id explicitly in workflow config",
+    "Verify issue #123 is correctly linked in PR body"
+  ]
 }
 ```
 
@@ -889,6 +959,29 @@ See: `plugins/faber/docs/RESPONSE-FORMAT.md` for complete specification.
   "suggested_fixes": [
     "Manually delete branch: git push origin --delete feat/123-add-export",
     "Check branch protection rules in repository settings"
+  ]
+}
+```
+
+**Failure Response (Missing work_id):**
+```json
+{
+  "status": "failure",
+  "message": "Cannot create PR - work_id could not be determined",
+  "details": {
+    "operation": "create-pr",
+    "head_branch": "main",
+    "base_branch": "develop"
+  },
+  "errors": [
+    "work_id is required for PR creation to enable automatic issue closing",
+    "Branch name 'main' does not follow pattern: prefix/ID-description"
+  ],
+  "error_analysis": "PR creation requires work_id to link to an issue. It was not provided explicitly and could not be extracted from branch name.",
+  "suggested_fixes": [
+    "Provide work_id explicitly: --work-id 123",
+    "Use branch naming convention: fix/123-description or feat/456-feature-name",
+    "Create PR from a feature branch, not main"
   ]
 }
 ```
@@ -979,6 +1072,7 @@ The active handler is determined by configuration: `config.handlers.source_contr
 - Missing title: "Error: PR title is required"
 - Missing head_branch: "Error: head_branch is required"
 - Missing base_branch: "Error: base_branch is required"
+- Missing work_id: "Error: work_id is required for issue linking. Provide explicitly or use branch pattern: prefix/ID-description"
 - Invalid pr_number: "Error: PR number must be a positive integer"
 - Invalid action: "Error: Invalid review action. Valid: approve|request_changes|comment"
 - Invalid strategy: "Error: Invalid merge strategy. Valid: no-ff|squash|ff-only"
@@ -1091,7 +1185,7 @@ SKILL ANALYSIS (Step 5 - Comment Analysis):
 - Timestamp: 2025-11-19T10:30:00Z
 - BLOCKING KEYWORDS FOUND: "critical issues", "must be fixed", "before this can be approved"
 - STRUCTURED ISSUES FOUND: Numbered list with 4 specific issues
-- Context clues: "before we proceed with approval" → BLOCKING
+- Context clues: "before we proceed with approval" -> BLOCKING
 
 RECOMMENDATION (from decision tree step 5):
 "DO NOT APPROVE - ADDRESS CRITICAL ISSUES FIRST"
@@ -1338,4 +1432,3 @@ By centralizing PR management:
 - Unified error handling
 - Single source for PR rules
 - Clear merge safety checks
-
