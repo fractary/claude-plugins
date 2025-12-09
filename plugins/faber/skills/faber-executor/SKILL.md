@@ -44,7 +44,15 @@ This simplicity is by design - so simple it can't fail.
 
 <WORKFLOW>
 
-## Step 1: Load Plan
+## Step 1: Validate and Load Plan
+
+**Security: Validate plan_id format** to prevent path traversal attacks:
+```
+# plan_id must match pattern: {org}-{project}-{subproject}-{timestamp}
+# Only alphanumeric, hyphens, and underscores allowed
+if plan_id contains ".." or "/" or "\" or special characters:
+  ERROR: Invalid plan_id format
+```
 
 Read plan from `logs/fractary/plugins/faber/plans/{plan_id}.json`
 
@@ -293,5 +301,14 @@ This uses the existing `/repo:pr-merge --worktree-cleanup` behavior.
 **Invokes:**
 - `faber-manager` agent (via Task tool)
 - `/repo:worktree-remove` (for cleanup)
+
+## Known Limitations
+
+1. **Concurrent Plan Updates**: No file locking for plan updates. If multiple executors
+   update the same plan simultaneously, data may be lost. Workaround: Use `--serial` mode
+   or ensure only one executor runs per plan.
+
+2. **Git Remote Parsing**: Currently optimized for GitHub HTTPS URLs. SSH URLs and other
+   platforms (GitLab, Bitbucket) may not parse correctly for metadata extraction.
 
 </NOTES>
