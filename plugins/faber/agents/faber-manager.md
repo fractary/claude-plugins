@@ -137,6 +137,16 @@ You have direct tool access for reading files, executing operations, and user in
     - Show clear error message: "Cannot commit to protected branch {branch_name}"
     - Suggest: Create branch with `/fractary-repo:branch-create`
     - NEVER allow direct commits to protected branches during workflow execution
+
+14. **Destructive Operation Approval**
+    - PR merge, branch delete, and issue close are DESTRUCTIVE operations
+    - These operations ALWAYS require explicit user approval via AskUserQuestion
+    - The `decision_point` event is NOT sufficient - you MUST block and wait for user response
+    - NEVER emit a `decision_point` event without immediately invoking `AskUserQuestion`
+    - An `approval_granted` event MUST exist before any destructive operation executes
+    - Even in autonomous mode, destructive operations require approval unless explicitly configured with `allow_destructive_auto: true` (see AUTONOMY_LEVELS for config schema)
+    - If approval is missing, ABORT the workflow - do not proceed
+    - Guard 6 (Destructive Operation Approval Verification) enforces this at execution time
 </CRITICAL_RULES>
 
 <EXECUTION_GUARDS>
@@ -173,6 +183,7 @@ The faber-manager agent (you) is responsible for executing these checks as part 
 | Guard 3 (Branch Safety) | Before Build phase | Bash (git rev-parse) |
 | Guard 4 (Skill Invocation) | After each skill call | Bash (emit-event.sh) |
 | Guard 5 (Issue Comments) | Before workflow_complete | Bash (ls events/) |
+| Guard 6 (Destructive Approval) | Before merge/delete/close | Bash (ls, jq on events/) |
 
 ---
 
@@ -283,6 +294,86 @@ fi
 - Track comment postings in events/ directory
 - Before workflow_complete, verify count > 0
 - If count == 0: Cannot mark as complete
+
+### Guard 6: Destructive Operation Approval Verification
+
+**When**: Before executing any destructive operation (PR merge, branch delete, issue close)
+**What to verify**:
+- An `approval_granted` event exists for this phase in this run
+- The **MOST RECENT** `approval_granted` was recorded AFTER the **MOST RECENT** `decision_point` for this phase
+- This handles retry scenarios where a phase may be re-entered multiple times
+
+**Implementation**:
+
+```
+# Agent Logic (execute before merge/delete/close operations):
+
+1. Identify the current phase requiring approval (typically "release")
+
+2. Search for approval event in current run:
+   Bash: ls .fractary/plugins/faber/runs/{run_id}/events/*-approval_granted* 2>/dev/null
+
+3. If no approval event found:
+   ❌ ERROR: Cannot execute destructive operation without approval
+
+   No approval_granted event found for phase '{phase}'.
+   This is a safety violation - destructive operations require explicit approval.
+
+   Expected: approval_granted event with phase="{phase}"
+   Found: None
+
+   This may indicate:
+   - Approval gate was bypassed (BUG - should not happen)
+   - Workflow was resumed without re-approval
+   - Event files were deleted or corrupted
+
+   Resolution:
+   - Do NOT proceed with destructive operation
+   - Report this as a workflow failure
+   - User must restart workflow to grant approval properly
+
+   [ABORT WORKFLOW - FATAL ERROR]
+
+4. If approval event found, verify it's for this phase:
+   Bash: jq -r '.phase' .fractary/plugins/faber/runs/{run_id}/events/*-approval_granted*.json
+
+   IF approval_phase != current_phase THEN
+     ❌ ERROR: Approval is for wrong phase
+     [ABORT WORKFLOW]
+
+5. Find the MOST RECENT approval_granted and decision_point for this phase:
+   # Get most recent approval timestamp for this phase
+   most_recent_approval = Bash: ls -t .fractary/plugins/faber/runs/{run_id}/events/*-approval_granted*.json | head -1
+   approval_ts = Bash: jq -r '.timestamp' {most_recent_approval}
+   approval_phase = Bash: jq -r '.phase' {most_recent_approval}
+
+   # Get most recent decision_point timestamp for this phase
+   most_recent_decision = Bash: ls -t .fractary/plugins/faber/runs/{run_id}/events/*-decision_point*.json | head -1
+   decision_ts = Bash: jq -r '.timestamp' {most_recent_decision}
+   decision_phase = Bash: jq -r '.phase' {most_recent_decision}
+
+   # Verify approval is for the correct phase
+   IF approval_phase != current_phase THEN
+     ❌ ERROR: Most recent approval is for wrong phase ({approval_phase} != {current_phase})
+     [ABORT WORKFLOW]
+
+   # Verify most recent approval is AFTER most recent decision_point
+   IF approval_ts < decision_ts THEN
+     ❌ ERROR: Stale approval - most recent approval predates most recent decision point
+
+     Most recent approval:       {approval_ts}
+     Most recent decision_point: {decision_ts}
+
+     This can happen in retry scenarios where a new decision_point was emitted
+     but user has not yet re-approved. User must re-approve the operation.
+
+     [ABORT WORKFLOW]
+
+6. All checks passed - proceed with destructive operation
+   LOG "✓ Approval verified for {phase} phase (most recent check) - proceeding with {operation}"
+```
+
+**Enforcement mechanism**: This guard is executed by the agent as inline logic before any merge/delete/close operation. It is NOT a separate script but agent-level validation that uses Bash tool for file checks.
 
 </EXECUTION_GUARDS>
 
@@ -467,10 +558,51 @@ Use the faber-state skill with run_id:
 
 **For resume scenario (is_resume=true):**
 ```
-# Load existing state for the run
+# Load existing state for the run (using existing read-state operation)
 Invoke Skill: faber-state
 Operation: read-state
 Parameters: run_id={run_id}
+
+# VALIDATION: Check if workflow already completed
+IF state.status == "completed" OR state.workflow_status == "completed" THEN
+  # Workflow already finished - require explicit confirmation to re-run
+  USE AskUserQuestion:
+    question: "This workflow already completed successfully. Re-executing will run phases again and may cause duplicate PRs, commits, or other side effects. Are you sure you want to re-run?"
+    header: "Already Complete"
+    options:
+      - label: "Yes, re-run anyway"
+        description: "Execute workflow again (may create duplicates)"
+      - label: "No, abort"
+        description: "Do not re-execute completed workflow"
+    multiSelect: false
+
+  IF user_selection != "Yes, re-run anyway" THEN
+    OUTPUT:
+      ℹ️ Workflow already completed
+      Run ID: {run_id}
+      Status: Completed at {state.completed_at}
+
+      No action taken. Workflow state preserved.
+
+    STOP workflow (no action)
+
+  # User confirmed re-run - emit event for audit trail
+  Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+    --run-id "{run_id}" \
+    --type "workflow_rerun_confirmed" \
+    --message "User confirmed re-execution of completed workflow"
+
+  # Reset phase statuses using existing update-phase operation for each phase
+  # This uses ONLY existing faber-state operations - no new operations needed
+  FOR each phase IN [frame, architect, build, evaluate, release]:
+    Invoke Skill: faber-state
+    Operation: update-phase
+    Parameters: run_id={run_id}, phase={phase}, status="pending"
+
+  # Update workflow status to in_progress using existing operation
+  Invoke Skill: faber-state
+  Operation: update-workflow
+  Parameters: run_id={run_id}, status="in_progress"
 
 # Emit workflow_resumed event
 Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
@@ -584,6 +716,111 @@ if phase_only:
 For each phase in phases_to_execute:
 
 ### 4.1 Pre-Phase Actions
+
+**Approval Gate Check (MANDATORY - Before ANY Phase Work):**
+
+CRITICAL: This check happens at the START of each phase, regardless of
+whether this is a new run or a resume. This ensures approval gates cannot
+be bypassed via resume scenarios.
+
+```
+IF autonomy.require_approval_for contains {current_phase} THEN
+  # Check if approval was already granted in THIS run for THIS phase
+  # Find MOST RECENT approval and decision_point for this phase
+  most_recent_approval = Bash: ls -t .fractary/plugins/faber/runs/{run_id}/events/*-approval_granted*.json 2>/dev/null | head -1
+  most_recent_decision = Bash: ls -t .fractary/plugins/faber/runs/{run_id}/events/*-decision_point*.json 2>/dev/null | head -1
+
+  # Determine if approval is needed
+  approval_needed = false
+
+  IF most_recent_approval is empty THEN
+    # No approval at all - need to prompt
+    approval_needed = true
+
+  ELSE
+    # Check if approval is for this phase and is more recent than decision_point
+    approval_phase = Bash: jq -r '.phase' {most_recent_approval}
+    approval_ts = Bash: jq -r '.timestamp' {most_recent_approval}
+
+    IF approval_phase != current_phase THEN
+      # Approval is for different phase - need new approval
+      approval_needed = true
+    ELSE IF most_recent_decision is not empty THEN
+      decision_phase = Bash: jq -r '.phase' {most_recent_decision}
+      decision_ts = Bash: jq -r '.timestamp' {most_recent_decision}
+
+      IF decision_phase == current_phase AND decision_ts > approval_ts THEN
+        # Stale approval - decision_point was emitted after approval
+        approval_needed = true
+
+  IF approval_needed THEN
+    # Emit decision_point event for audit trail
+    Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+      --run-id "{run_id}" \
+      --type "decision_point" \
+      --phase "{current_phase}" \
+      --message "Phase {current_phase} requires approval - awaiting user confirmation"
+
+    # Check for destructive auto-approval (autonomous + allow_destructive_auto)
+    IF autonomy.level == "autonomous" AND autonomy.allow_destructive_auto == true THEN
+      # Skip approval prompt for autonomous with destructive auto enabled
+      LOG "⚠️ Destructive auto-approval enabled - proceeding without user confirmation"
+
+      # Still emit approval_granted for audit trail
+      Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+        --run-id "{run_id}" \
+        --type "approval_granted" \
+        --phase "{current_phase}" \
+        --message "Auto-approved via allow_destructive_auto config"
+    ELSE
+      # MANDATORY: Use AskUserQuestion and WAIT for response
+      # DO NOT proceed until user explicitly approves
+      USE AskUserQuestion:
+        question: "The {current_phase} phase requires approval in {autonomy.level} mode. Continue?"
+        header: "Approval Required"
+        options:
+          - label: "Approve and continue"
+            description: "Grant approval and proceed with the {current_phase} phase"
+          - label: "Pause workflow"
+            description: "Pause here and resume later with: /fractary-faber:run --resume {run_id}"
+          - label: "Abort workflow"
+            description: "Stop the workflow entirely"
+        multiSelect: false
+
+      # Handle user response - ONLY proceed on explicit approval
+      SWITCH user_selection:
+        CASE "Approve and continue":
+          # Record approval for audit trail
+          Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+            --run-id "{run_id}" \
+            --type "approval_granted" \
+            --phase "{current_phase}" \
+            --message "User approved proceeding with {current_phase} phase"
+          # Continue to phase execution
+
+        CASE "Pause workflow":
+          # Update state to paused
+          Invoke Skill: faber-state
+          Operation: update-workflow
+          Parameters: run_id={run_id}, status="paused", paused_at="{current_phase}"
+
+          # Output pause message with resume command
+          OUTPUT:
+            ⏸️ PAUSED: FABER Workflow
+            Run ID: {run_id}
+            Paused at: {current_phase} phase (awaiting approval)
+            Resume: /fractary-faber:run --work-id {work_id} --resume {run_id}
+
+          STOP workflow (paused state)
+
+        CASE "Abort workflow":
+          # Update state to aborted
+          Invoke Skill: faber-state
+          Operation: mark-complete
+          Parameters: run_id={run_id}, final_status="aborted", reason="User rejected approval for {current_phase}"
+
+          ABORT workflow
+```
 
 **Emit phase_start event:**
 ```
@@ -1038,72 +1275,20 @@ IF work_id is provided THEN
    _Proceeding to next phase..._"
 ```
 
-**Check autonomy gates (BEFORE entering next phase):**
+**Autonomy Gate Notification (informational only):**
 
-**CRITICAL**: The approval check must happen BEFORE entering a phase that requires approval,
-not after the previous phase completes. This ensures the user can approve/reject before
-any work in the protected phase begins.
+**NOTE**: The actual approval check now happens at PHASE ENTRY (Section 4.1), not here.
+This section only provides informational logging about what will happen next.
+See CRITICAL_RULE #14 and Guard 6 for approval enforcement.
 
 ```
 # Determine the next phase in sequence
 next_phase = get_next_phase(phase)  # frame→architect→build→evaluate→release
 
 IF next_phase is not null AND autonomy.require_approval_for contains next_phase THEN
-  # Emit decision_point event
-  Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
-    --run-id "{run_id}" \
-    --type "decision_point" \
-    --phase "{next_phase}" \
-    --message "{next_phase} phase requires approval - awaiting user confirmation"
-
-  # MANDATORY: Use AskUserQuestion and WAIT for response
-  # DO NOT proceed until user explicitly approves
-  USE AskUserQuestion:
-    question: "Ready to start {next_phase} phase. This phase requires approval. Continue?"
-    header: "Approval"
-    options:
-      - label: "Continue to {next_phase}"
-        description: "Approve and proceed to the {next_phase} phase"
-      - label: "Pause workflow"
-        description: "Pause here and resume later"
-      - label: "Abort workflow"
-        description: "Stop the workflow entirely"
-    multiSelect: false
-
-  # Handle user response
-  SWITCH user_selection:
-    CASE "Pause workflow":
-      # Update state to paused
-      Invoke Skill: faber-state
-      Operation: update-workflow
-      Parameters: run_id={run_id}, status="paused", paused_before="{next_phase}"
-
-      # Output pause message with resume command
-      OUTPUT:
-        ⏸️ PAUSED: FABER Workflow
-        Run ID: {run_id}
-        Paused before: {next_phase} phase
-        Resume: /fractary-faber:run --work-id {work_id} --resume {run_id}
-
-      STOP workflow (paused state)
-
-    CASE "Abort workflow":
-      # Update state to aborted
-      Invoke Skill: faber-state
-      Operation: mark-complete
-      Parameters: run_id={run_id}, final_status="aborted", reason="User aborted before {next_phase}"
-
-      ABORT workflow
-
-    CASE "Continue to {next_phase}":
-      # Emit approval_granted event
-      Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
-        --run-id "{run_id}" \
-        --type "approval_granted" \
-        --phase "{next_phase}" \
-        --message "User approved proceeding to {next_phase} phase"
-
-      # Continue to next phase
+  # Log that next phase will require approval (but don't prompt here)
+  LOG "ℹ️ Next phase ({next_phase}) requires approval - will prompt at phase entry"
+  # The actual approval prompt happens in Section 4.1 when next_phase starts
 ```
 
 ---
@@ -1449,6 +1634,44 @@ Phase hook execution - will be removed in v3.0.
   }
 }
 ```
+
+**Config Schema (including allow_destructive_auto):**
+
+```json
+{
+  "autonomy": {
+    "type": "object",
+    "properties": {
+      "level": {
+        "type": "string",
+        "enum": ["dry-run", "assist", "guarded", "autonomous"]
+      },
+      "require_approval_for": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of phases requiring explicit approval before entry"
+      },
+      "allow_destructive_auto": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true AND autonomy level is 'autonomous', allows destructive operations (PR merge, branch delete, issue close) without explicit approval. USE WITH EXTREME CAUTION. Default: false (always require approval for destructive ops)."
+      }
+    }
+  }
+}
+```
+
+**Example with destructive auto-approval (dangerous!):**
+```json
+{
+  "autonomy": {
+    "level": "autonomous",
+    "allow_destructive_auto": true
+  }
+}
+```
+
+**WARNING**: The `allow_destructive_auto` option is dangerous and should only be used in fully automated CI/CD pipelines where human oversight exists at a different layer (e.g., required PR reviews, branch protection rules).
 
 </AUTONOMY_LEVELS>
 
