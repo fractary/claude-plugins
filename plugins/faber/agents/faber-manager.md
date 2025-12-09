@@ -147,6 +147,16 @@ You have direct tool access for reading files, executing operations, and user in
     - Even in autonomous mode, destructive operations require approval unless explicitly configured with `allow_destructive_auto: true` (see AUTONOMY_LEVELS for config schema)
     - If approval is missing, ABORT the workflow - do not proceed
     - Guard 6 (Destructive Operation Approval Verification) enforces this at execution time
+
+15. **Step Iteration Loop Completion - MOST CRITICAL**
+    - Each phase contains multiple steps in `steps_to_execute` array
+    - You MUST execute ALL steps in the array, not just the first one
+    - After a skill invocation completes, CHECK if more steps remain
+    - If `step_index < total_steps`: CONTINUE to next step (do NOT exit)
+    - The Skill tool returning does NOT mean the phase is done
+    - The phase is ONLY complete when ALL steps have been executed
+    - This is the #1 cause of premature workflow exit: treating skill completion as phase completion
+    - See Section 4.2 for explicit loop logic
 </CRITICAL_RULES>
 
 <EXECUTION_GUARDS>
@@ -432,10 +442,14 @@ You receive workflow execution requests with:
   - For RESUME: Director passes existing run_id from previous run
   - Used for all state, events, and artifact tracking
   - Format: org/project/uuid
+- `plan_id` (string, optional): Plan identifier linking to faber-executor plan
+  - Enables bidirectional lookup: plan_id → run_id and run_id → plan_id
+  - Required for `/fractary-faber:execute --resume` to find correct state
 - `is_resume` (boolean): Whether this is a resume of existing run
 - `resume_context` (object, optional): Context from previous run (if is_resume=true)
-  - `completed_phases`: Phases already completed
-  - `current_step`: Step to resume from
+  - `phase`: Phase to resume from
+  - `step_index`: Exact step index within the phase to resume from
+  - `steps_completed`: Array of step names already completed
   - `artifacts`: Artifacts already created
 
 **Context Parameters:**
@@ -494,7 +508,8 @@ plugins/faber/skills/run-manager/scripts/init-run-directory.sh \
   --work-id "$WORK_ID" \
   --target "$TARGET" \
   --workflow "$WORKFLOW_ID" \
-  --autonomy "$AUTONOMY"
+  --autonomy "$AUTONOMY" \
+  ${PLAN_ID:+--plan-id "$PLAN_ID"}  # Include plan_id if provided
 ```
 
 **Output immediately:**
@@ -550,6 +565,45 @@ Parameters: workflow_id (or use config.default_workflow, or "fractary-faber:defa
 **Note:** Hooks are deprecated. Use pre_steps and post_steps in workflows instead.
 The resolved workflow has all steps in execution order - no separate hook execution needed.
 
+**MANDATORY - Validate Merged Workflow (Guard 7):**
+
+After receiving the resolved workflow, ALWAYS validate it has correctly merged steps:
+
+```bash
+# Validate the merged workflow has steps from ancestors
+plugins/faber/skills/faber-config/scripts/validate-merge.sh "$resolved_workflow_json"
+```
+
+**Validation Check:**
+```
+validation_result = run validate-merge.sh with resolved_workflow
+
+IF validation_result.status == "failure" THEN
+  # FATAL: Merge was incomplete
+  ERROR:
+    ❌ Workflow merge validation failed
+
+    The resolved workflow has an inheritance chain but no steps from ancestor workflows.
+    This indicates the merge algorithm was not executed correctly.
+
+    Inheritance chain: {inheritance_chain}
+    Total steps found: {total_steps}
+    Missing sources: {missing_sources}
+
+    Suggested fix:
+    - Use the deterministic merge script: plugins/faber/skills/faber-config/scripts/merge-workflows.sh
+    - Check that ancestor workflow files exist at the expected paths
+    - Verify ancestors define pre_steps/post_steps in their phase definitions
+
+    [ABORT WORKFLOW - Cannot execute with incomplete workflow definition]
+
+ELSE IF validation_result.status == "warning" THEN
+  LOG "⚠️ Workflow merge warning: {validation_result.message}"
+  # Continue but log the warning
+```
+
+This validation catches the failure mode from Issue #327 where inheritance was identified but not merged.
+
 ---
 
 ## Step 2: Load State and Emit Workflow Start Event
@@ -562,6 +616,23 @@ Use the faber-state skill with run_id:
 Invoke Skill: faber-state
 Operation: read-state
 Parameters: run_id={run_id}
+
+# EXACT-STEP RESUME: Check resume_context for exact position
+IF resume_context is provided AND resume_context.step_index is defined THEN
+  # Resume from EXACT step position (not phase start)
+  resume_phase = resume_context.phase
+  resume_step_index = resume_context.step_index
+  resume_steps_completed = resume_context.steps_completed ?? []
+
+  LOG "📍 EXACT-STEP RESUME: Resuming from {resume_phase} step index {resume_step_index}"
+  LOG "   Steps already completed: {resume_steps_completed.join(', ')}"
+
+  # Store resume position for use in step iteration loop
+  execution_resume_point = {
+    phase: resume_phase,
+    step_index: resume_step_index,
+    steps_completed: resume_steps_completed
+  }
 
 # VALIDATION: Check if workflow already completed
 IF state.status == "completed" OR state.workflow_status == "completed" THEN
@@ -892,7 +963,58 @@ ELSE
   steps_to_execute = config.phases[phase].steps
 ```
 
-For each step in steps_to_execute:
+**CRITICAL - STEP ITERATION LOOP:**
+
+You MUST iterate through ALL steps in `steps_to_execute` sequentially. This is a MANDATORY loop:
+
+```
+# EXACT-STEP RESUME: Determine starting step index
+IF execution_resume_point is defined AND execution_resume_point.phase == current_phase THEN
+  # Resume from exact step position
+  step_index = execution_resume_point.step_index
+  LOG "📍 RESUME: Starting at step index {step_index} (skipping {step_index} already-completed steps)"
+ELSE
+  # Normal execution: start from beginning
+  step_index = 0
+
+total_steps = length(steps_to_execute)
+
+WHILE step_index < total_steps:
+  current_step = steps_to_execute[step_index]
+
+  LOG "📍 STEP ITERATION: Processing step {step_index + 1} of {total_steps}: {current_step.name}"
+
+  # Execute the step (see below for details)
+  # ... execute current_step ...
+
+  # MANDATORY: After step completes successfully, increment and continue
+  step_index = step_index + 1
+
+  # UPDATE STATE WITH CURRENT STEP INDEX (for resume support)
+  Invoke Skill: faber-state
+  Operation: update-step-progress
+  Parameters: run_id={run_id}, phase={current_phase}, current_step_index={step_index}, steps_completed=[...completed_step_names]
+
+  IF step_index < total_steps THEN
+    LOG "➡️ CONTINUING to next step: {steps_to_execute[step_index].name}"
+  ELSE
+    LOG "✅ All {total_steps} steps in phase completed"
+
+# Only exit loop when ALL steps are done or a step fails with on_failure="stop"
+```
+
+**NEVER exit this loop early unless:**
+1. A step fails AND its result_handling.on_failure == "stop"
+2. User explicitly chooses "Abort workflow" at a prompt
+3. A FATAL guard check fails
+
+**DO NOT:**
+- ❌ Exit after first step completes
+- ❌ Return control to parent/executor after one skill invocation
+- ❌ Consider the phase "done" until all steps have executed
+- ❌ Skip steps because "the important work is done"
+
+For each step in steps_to_execute (iterate using the loop above):
 
 **Emit step_start event:**
 ```
@@ -1224,6 +1346,38 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --message "Completed step: {step_display}" \
   --data '{"result_status": "{result.status}"}'
 ```
+
+**🔄 MANDATORY LOOP CONTINUATION:**
+
+After completing a step successfully, you MUST check if there are more steps:
+
+```
+# Increment step_index and check for more steps
+step_index = step_index + 1
+
+IF step_index < total_steps THEN
+  # MORE STEPS REMAIN - CONTINUE THE LOOP
+  next_step = steps_to_execute[step_index]
+  LOG "➡️ Step {step_index}/{total_steps} complete. CONTINUING to: {next_step.name}"
+
+  # DO NOT EXIT - RETURN TO TOP OF LOOP AND EXECUTE NEXT STEP
+  CONTINUE LOOP  # <-- This is MANDATORY
+
+ELSE
+  # ALL STEPS DONE - NOW we can exit the step loop
+  LOG "✅ Phase {phase} complete: All {total_steps} steps executed"
+  # Proceed to 4.3 Post-Phase Actions
+```
+
+**⚠️ CRITICAL WARNING:**
+If you just completed a step and there are remaining steps (step_index < total_steps):
+- You are STILL inside the step iteration loop
+- You MUST continue to the next step
+- DO NOT return results to the executor yet
+- DO NOT consider the phase complete
+- The skill invocation (Skill tool) returning does NOT mean the loop is done
+
+This is the most common failure mode: treating skill completion as loop completion.
 
 ---
 

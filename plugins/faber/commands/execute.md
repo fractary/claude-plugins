@@ -1,7 +1,7 @@
 ---
 name: fractary-faber:execute
-description: Execute a FABER plan created by /faber:plan
-argument-hint: '<plan-id> [--serial] [--max-concurrent <n>] [--items <ids>]'
+description: Execute a FABER plan created by /fractary-faber:plan, with optional resume support
+argument-hint: '<plan-id> [--serial] [--max-concurrent <n>] [--items <ids>] [--resume]'
 tools: Skill
 model: claude-haiku-4-5
 ---
@@ -12,7 +12,7 @@ model: claude-haiku-4-5
 You are the entry point for executing FABER plans.
 Your job is to parse arguments and invoke the faber-executor skill.
 
-This command executes a plan previously created by `/faber:plan`.
+This command executes a plan previously created by `/fractary-faber:plan`.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -26,7 +26,7 @@ This command executes a plan previously created by `/faber:plan`.
 
 **Syntax:**
 ```bash
-/faber:execute <plan-id> [options]
+/fractary-faber:execute <plan-id> [options]
 ```
 
 **Arguments:**
@@ -40,23 +40,30 @@ This command executes a plan previously created by `/faber:plan`.
 | `--serial` | flag | false | Run items sequentially instead of parallel |
 | `--max-concurrent <n>` | number | 5 | Maximum parallel executions |
 | `--items <ids>` | string | all | Comma-separated work_ids to execute |
+| `--resume` | flag | false | Resume from exact step where execution stopped |
 
 **Examples:**
 ```bash
 # Execute all items in plan
-/faber:execute fractary-claude-plugins-csv-export-20251208T160000
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000
 
 # Execute in serial mode
-/faber:execute fractary-claude-plugins-csv-export-20251208T160000 --serial
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000 --serial
 
 # Limit concurrency
-/faber:execute fractary-claude-plugins-csv-export-20251208T160000 --max-concurrent 3
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000 --max-concurrent 3
 
 # Execute specific items only
-/faber:execute fractary-claude-plugins-csv-export-20251208T160000 --items 123,124
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000 --items 123,124
 
 # Retry failed items
-/faber:execute fractary-claude-plugins-csv-export-20251208T160000 --items 125
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000 --items 125
+
+# Resume from where execution stopped (exact step)
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000 --resume
+
+# Resume specific items from their exact step
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000 --items 123 --resume
 ```
 
 </INPUTS>
@@ -70,6 +77,7 @@ Extract from user input:
 2. `serial`: Presence of `--serial` flag
 3. `max_concurrent`: Value of `--max-concurrent` flag
 4. `items`: Value of `--items` flag
+5. `resume`: Presence of `--resume` flag
 
 **Validation:**
 - If no `plan_id`: show error
@@ -86,6 +94,7 @@ Provide the following context in your invocation:
 - serial: {serial or false}
 - max_concurrent: {max_concurrent or 5}
 - items: {items or null}
+- resume: {resume or false}
 - working_directory: {pwd}
 ```
 
@@ -106,11 +115,11 @@ The faber-executor skill's output showing execution results.
 ```
 Error: Plan ID is required
 
-Usage: /faber:execute <plan-id> [options]
+Usage: /fractary-faber:execute <plan-id> [options]
 
 Examples:
-  /faber:execute fractary-project-feature-20251208T160000
-  /faber:execute my-plan-id --serial
+  /fractary-faber:execute fractary-project-feature-20251208T160000
+  /fractary-faber:execute my-plan-id --serial
 
 List available plans:
   ls logs/fractary/plugins/faber/plans/
@@ -124,7 +133,7 @@ Check available plans:
   ls logs/fractary/plugins/faber/plans/
 
 Or create a new plan:
-  /faber:plan --work-id 123
+  /fractary-faber:plan --work-id 123
 ```
 
 </OUTPUTS>
@@ -134,7 +143,7 @@ Or create a new plan:
 ## Two-Phase Architecture
 
 ```
-/faber:plan
+/fractary-faber:plan
     |
 faber-planner skill
     |
@@ -142,7 +151,7 @@ Plan artifact saved to logs/fractary/plugins/faber/plans/
     |
 User reviews plan
     |
-/faber:execute <plan-id> (THIS COMMAND)
+/fractary-faber:execute <plan-id> (THIS COMMAND)
     |
 faber-executor skill (invoked via Skill tool)
     |
@@ -168,10 +177,39 @@ The executor uses fail-safe mode:
 
 To retry failed items, use `--items` with the failed work_ids.
 
+## Resume Support (Exact-Step)
+
+The `--resume` flag enables resuming execution from the **exact step** where it stopped, not from phase start.
+
+**How it works:**
+1. Each plan item has a `run_id` linking it to workflow state
+2. State tracks `current_phase` and `current_step_index`
+3. Resume reads state and continues from exact position
+
+**State location:** `.fractary/plugins/faber/state.json`
+
+**Resume behavior:**
+- Without `--resume`: Starts from beginning (fresh execution)
+- With `--resume`: Reads state, continues from `current_step_index`
+- With `--resume --items 123`: Resume only item 123 from its exact step
+
+**Example state structure:**
+```json
+{
+  "run_id": "fractary-claude-plugins-abc123",
+  "plan_id": "fractary-claude-plugins-csv-export-20251208T160000",
+  "work_id": 123,
+  "current_phase": "build",
+  "current_step_index": 2,
+  "steps_completed": ["generate-spec", "create-branch"],
+  "status": "in_progress"
+}
+```
+
 ## See Also
 
-- `/faber:plan` - Create a plan
-- `/faber:run` - Create and execute plan in one step
-- `/faber:status` - Check workflow status
+- `/fractary-faber:plan` - Create a plan
+- `/fractary-faber:run` - Create and execute plan in one step
+- `/fractary-faber:status` - Check workflow status
 
 </NOTES>

@@ -260,7 +260,7 @@ AskUserQuestion(
     "question": "Execute this plan now?",
     "header": "Execute?",
     "options": [
-      {"label": "Yes, execute", "description": "Run: /faber:execute {plan_id}"},
+      {"label": "Yes, execute", "description": "Run: /fractary-faber:execute {plan_id}"},
       {"label": "No, review first", "description": "Review plan before executing"}
     ],
     "multiSelect": false
@@ -307,7 +307,7 @@ Plan saved: logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export
 
 ───────────────────────────────────────
 To execute manually:
-  /faber:execute fractary-claude-plugins-csv-export-20251208T160000
+  /fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000
 
 To review plan:
   cat logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
@@ -323,8 +323,8 @@ To review plan:
 ❌ Cannot Create Plan: No target specified
 
 Either provide a target or --work-id:
-  /faber:plan customer-pipeline
-  /faber:plan --work-id 158
+  /fractary-faber:plan customer-pipeline
+  /fractary-faber:plan --work-id 158
 ```
 
 **Issue not found:**
@@ -386,8 +386,8 @@ The plan includes `execution.mode: "parallel"` which means:
 ## Integration
 
 **Invoked by:**
-- `/faber:plan` command
-- `/faber:run` command (creates plan then immediately executes)
+- `/fractary-faber:plan` command
+- `/fractary-faber:run` command (creates plan then immediately executes)
 
 **Does NOT invoke:**
 - faber-manager (that's the executor's job)

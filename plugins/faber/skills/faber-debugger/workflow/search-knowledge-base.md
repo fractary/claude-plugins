@@ -152,7 +152,7 @@ solutions:
       - "Check the expected type from spec/API"
       - "Update type annotation to match"
       - "Run type check: npm run typecheck"
-    faber_command: "/faber:run --work-id {id} --step builder --prompt 'Fix type errors identified by debugger'"
+    faber_command: "/fractary-faber:run --work-id {id} --step builder --prompt 'Fix type errors identified by debugger'"
 status: verified
 created: 2025-11-15
 last_used: 2025-12-01
@@ -243,7 +243,7 @@ Extract and prepare solutions for high-relevance matches:
         "Update type annotation to match",
         "Run type check: npm run typecheck"
       ],
-      "faber_command": "/faber:run --work-id {id} --step builder --prompt 'Fix type errors identified by debugger'",
+      "faber_command": "/fractary-faber:run --work-id {id} --step builder --prompt 'Fix type errors identified by debugger'",
       "past_references": ["#198", "#205", "#212"],
       "confidence": "high",
       "reason": "Exact match to verified solution used 7 times"

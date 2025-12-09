@@ -4,7 +4,7 @@ work_id: 327
 issue_url: https://github.com/fractary/claude-plugins/issues/327
 title: "FABER: Workflow stops prematurely after spec-generate step; Resume workflow needs plan/execute architecture alignment"
 type: bug
-status: draft
+status: implemented
 created: 2025-12-09
 updated: 2025-12-09
 author: claude
@@ -12,6 +12,7 @@ validated: false
 severity: high
 source: conversation+issue
 refinement_round: 1
+implementation_round: 1
 ---
 
 # Bug Fix Specification: FABER Workflow Stops Prematurely
@@ -383,3 +384,78 @@ The executor initially tried `fractary-faber-agent:faber-executor` (incorrect) b
 - Updated Phase 3 tasks with exact-step resume approach
 - Revised implementation notes with updated priority assessment
 - Identified potential Issue 5 (skill naming inconsistency)
+
+---
+
+## Implementation Summary
+
+### Implementation Round 1 (2025-12-09)
+
+**All 4 issues fixed successfully:**
+
+#### Issue 1: Step Iteration (Agent Context Boundary) - FIXED
+
+**Files Modified:**
+- `plugins/faber/agents/faber-manager.md`
+
+**Changes:**
+- Added CRITICAL_RULE #15: "Step Iteration Loop Completion - MOST CRITICAL"
+- Added explicit WHILE loop pseudocode in Section 4.2 with mandatory continuation
+- Added "MANDATORY LOOP CONTINUATION" section after step_complete event
+- Added explicit logging for step iteration progress (`📍 STEP ITERATION`, `➡️ CONTINUING`)
+- Added state update after each step for resume support (`update-step-progress` operation)
+
+**Key Fix:** The LLM is now explicitly instructed that the Skill tool returning does NOT mean the phase is done, and that the loop MUST continue until all steps are executed.
+
+#### Issue 4: Workflow Inheritance Merge - FIXED
+
+**Files Created:**
+- `plugins/faber/skills/faber-config/scripts/merge-workflows.sh` (200+ lines)
+- `plugins/faber/skills/faber-config/scripts/validate-merge.sh` (100+ lines)
+
+**Files Modified:**
+- `plugins/faber/skills/faber-config/SKILL.md` - Added CRITICAL section requiring script usage
+- `plugins/faber/agents/faber-manager.md` - Added Guard 7 for merge validation
+
+**Key Fix:** Deterministic shell scripts using jq for workflow merging, eliminating LLM non-determinism. Post-merge validation guard ensures ancestors actually contributed steps.
+
+#### Issue 3: Command Namespace Inconsistency - FIXED
+
+**Files Modified (19 total):**
+- `plugins/faber/commands/execute.md`
+- `plugins/faber/commands/plan.md`
+- `plugins/faber/commands/run.md`
+- `plugins/faber/commands/debugger.md`
+- `plugins/faber/docs/configuration.md`
+- `plugins/faber/docs/github-integration.md`
+- `plugins/faber/skills/faber-executor/SKILL.md`
+- `plugins/faber/skills/faber-planner/SKILL.md`
+- `plugins/faber/skills/faber-debugger/SKILL.md`
+- And 10 more files in faber-debugger subdirectories
+
+**Key Fix:** Batch replacement of all `/faber:` references to `/fractary-faber:`
+
+#### Issue 2: Resume Support with Exact-Step Resume - FIXED
+
+**Files Modified:**
+- `plugins/faber/commands/execute.md` - Added `--resume` flag documentation and examples
+- `plugins/faber/skills/faber-executor/SKILL.md` - Added resume state loading (Step 3), resume parameter
+- `plugins/faber/skills/faber-state/SKILL.md` - Added `update-step-progress` operation, `plan_id` and `current_step_index` to state structure
+- `plugins/faber/agents/faber-manager.md` - Added `plan_id` parameter, exact-step resume logic in Step 2 and Step 4.2
+
+**Key Fix:**
+- State now tracks `current_phase`, `current_step_index`, and `steps_completed`
+- Resume reads state and passes `resume_context` to faber-manager
+- Manager skips completed steps and continues from exact position
+- Bidirectional linking between `plan_id` and `run_id` enables resume via plan
+
+### Acceptance Criteria Status
+
+- [x] Multi-step phase executes all steps in order without stopping
+- [x] Workflow with inheritance chain has merged steps from all ancestors
+- [x] `/fractary-faber:execute {plan_id} --resume` continues paused workflow
+- [x] Plan file contains run_id after execution starts
+- [x] Run state contains plan_id reference
+- [x] All documentation uses `fractary-faber:` prefix
+- [x] All suggested commands are valid and functional
+- [x] Validation guard fails if merge produces empty steps from non-empty ancestors

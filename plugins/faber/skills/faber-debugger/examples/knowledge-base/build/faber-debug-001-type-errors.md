@@ -22,13 +22,13 @@ solutions:
       - "Identify the package name from the error message"
       - "Check if @types/{package} exists on npm"
       - "Install: npm install --save-dev @types/{package}"
-    faber_command: "/faber:run --work-id {work_id} --step builder --prompt \"Install missing TypeScript type declarations for the imported modules\""
+    faber_command: "/fractary-faber:run --work-id {work_id} --step builder --prompt \"Install missing TypeScript type declarations for the imported modules\""
   - title: "Fix import paths"
     steps:
       - "Check the import statement path"
       - "Verify the file/module exists at that path"
       - "Update to correct relative or absolute path"
-    faber_command: "/faber:run --work-id {work_id} --step builder --prompt \"Fix incorrect module import paths in TypeScript files\""
+    faber_command: "/fractary-faber:run --work-id {work_id} --step builder --prompt \"Fix incorrect module import paths in TypeScript files\""
 status: verified
 created: 2025-01-15
 last_used: 2025-12-01
@@ -79,7 +79,7 @@ If the error mentions a third-party package:
 
 **FABER Command:**
 ```
-/faber:run --work-id {work_id} --step builder --prompt "Install missing TypeScript type declarations for the imported modules"
+/fractary-faber:run --work-id {work_id} --step builder --prompt "Install missing TypeScript type declarations for the imported modules"
 ```
 
 ### Fix import paths
@@ -94,7 +94,7 @@ If the error is for local modules:
 
 **FABER Command:**
 ```
-/faber:run --work-id {work_id} --step builder --prompt "Fix incorrect module import paths in TypeScript files"
+/fractary-faber:run --work-id {work_id} --step builder --prompt "Fix incorrect module import paths in TypeScript files"
 ```
 
 ## Verification

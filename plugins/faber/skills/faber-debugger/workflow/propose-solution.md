@@ -45,8 +45,8 @@ For high/medium KB matches, adapt past solutions:
 
 **Variable Substitution:**
 ```
-Original: "/faber:run --work-id {id} --step builder"
-Adapted:  "/faber:run --work-id 244 --step builder"
+Original: "/fractary-faber:run --work-id {id} --step builder"
+Adapted:  "/fractary-faber:run --work-id 244 --step builder"
 
 Original: "Fix type in {file}:{line}"
 Adapted:  "Fix type in src/auth.ts:45"
@@ -75,7 +75,7 @@ Adapted:  "Fix type in src/auth.ts:45"
       "Update type annotation in src/auth.ts:45 to match",
       "Run type check: npm run typecheck"
     ],
-    "faber_command": "/faber:run --work-id 244 --step builder --prompt 'Fix type errors in src/auth.ts as identified by debugger'",
+    "faber_command": "/fractary-faber:run --work-id 244 --step builder --prompt 'Fix type errors in src/auth.ts as identified by debugger'",
     "confidence": "high",
     "past_success_rate": "7/7 (100%)"
   }
@@ -288,7 +288,7 @@ Prepare final solution output:
     ],
 
     "continuation": {
-      "command": "/faber:run --work-id 244 --step builder --prompt 'Fix type errors in src/auth.ts as identified by debugger'",
+      "command": "/fractary-faber:run --work-id 244 --step builder --prompt 'Fix type errors in src/auth.ts as identified by debugger'",
       "phase_to_resume": "build",
       "step_to_resume": "implement"
     }
@@ -303,7 +303,7 @@ Prepare final solution output:
 IF all solution attempts have high risk or low confidence:
   Recommend manual investigation
   Provide diagnostic summary for human review
-  Suggest `/faber:debug --problem "specific question"`
+  Suggest `/fractary-faber:debug --problem "specific question"`
 ```
 
 **KB Solution Not Applicable:**
@@ -336,5 +336,5 @@ Return solution summary:
 Recommended Solution: Fix type annotation in src/auth.ts
 Confidence: High (KB match 85%)
 Complexity: Simple (3 steps)
-Command: /faber:run --work-id 244 --step builder --prompt '...'
+Command: /fractary-faber:run --work-id 244 --step builder --prompt '...'
 ```

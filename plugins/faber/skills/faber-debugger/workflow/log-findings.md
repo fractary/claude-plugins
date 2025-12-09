@@ -83,7 +83,7 @@ Steps:
 
 ## Recommended Next Step
 ```
-/faber:run --work-id 244 --step builder --prompt "Fix type errors in src/auth.ts as identified by debugger"
+/fractary-faber:run --work-id 244 --step builder --prompt "Fix type errors in src/auth.ts as identified by debugger"
 ```
 
 ───────────────────────────────────────
@@ -168,7 +168,7 @@ Type annotations in `src/auth.ts:45` are incorrect. The function returns `AuthRe
 ### Recommended Next Step
 
 ```
-/faber:run --work-id 244 --step builder --prompt "Fix type errors in src/auth.ts as identified by debugger"
+/fractary-faber:run --work-id 244 --step builder --prompt "Fix type errors in src/auth.ts as identified by debugger"
 ```
 
 ### Debug Context
@@ -229,7 +229,7 @@ Create detailed log entry for audit trail:
     "github_comment_posted": true,
     "github_comment_url": "https://github.com/.../issues/244#issuecomment-123",
     "spec_created": false,
-    "continuation_command": "/faber:run --work-id 244 --step builder..."
+    "continuation_command": "/fractary-faber:run --work-id 244 --step builder..."
   }
 }
 ```

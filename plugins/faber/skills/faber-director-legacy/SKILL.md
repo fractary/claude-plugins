@@ -430,7 +430,7 @@ The TodoWrite tracker is for **faber-director's own execution flow**, not for wo
 - These are independent concerns - TodoWrite ensures director completes, workflow state ensures manager resumes correctly
 
 **Example - Resume scenario:**
-1. User runs `/faber:run --resume fractary/project/abc123`
+1. User runs `/fractary-faber:run --resume fractary/project/abc123`
 2. faber-director initializes fresh TodoWrite (12 pending steps)
 3. Step 0.5 loads resume context from `abc123` run file
 4. Steps 1-7 execute (some may short-circuit based on resume context)

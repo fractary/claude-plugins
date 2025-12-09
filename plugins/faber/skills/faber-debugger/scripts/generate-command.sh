@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# generate-command.sh - Generate /faber:run continuation command
+# generate-command.sh - Generate /fractary-faber:run continuation command
 #
 # Usage:
 #   generate-command.sh --work-id <id> --phase <phase> --step <step> [options]
@@ -17,7 +17,7 @@
 # Examples:
 #   generate-command.sh --work-id 244 --phase build --step implement --prompt "Fix type errors"
 #
-# Output: The formatted /faber:run command
+# Output: The formatted /fractary-faber:run command
 #
 # Security:
 #   - All inputs are validated for format and suspicious patterns
@@ -229,7 +229,7 @@ map_phase_to_step() {
 STEP_NAME=$(map_phase_to_step "$PHASE" "$STEP")
 
 # Build the command
-CMD="/faber:run --work-id $WORK_ID"
+CMD="/fractary-faber:run --work-id $WORK_ID"
 
 # Add workflow if not default
 if [ "$WORKFLOW" != "default" ]; then
