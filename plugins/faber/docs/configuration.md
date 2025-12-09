@@ -6,8 +6,10 @@ Complete guide to configuring FABER workflow for your projects using the new JSO
 
 - [Quick Start](#quick-start)
 - [Configuration File Location](#configuration-file-location)
+- [Workflow Resolution Order](#workflow-resolution-order)
 - [Configuration Structure](#configuration-structure)
 - [Configuration Sections](#configuration-sections)
+- [Plan and Run Artifacts](#plan-and-run-artifacts)
 
 ## Quick Start
 
@@ -46,11 +48,11 @@ vim .fractary/plugins/faber/config.json
 **Directory structure (v2.0)**:
 ```
 .fractary/plugins/faber/
-├── config.json              # Main configuration (references workflows)
-└── workflows/               # Workflow definition files
-    ├── default.json         # Standard FABER workflow
-    ├── hotfix.json          # Expedited hotfix workflow
-    └── custom.json          # Your custom workflows
+|-- config.json              # Main configuration (references workflows)
+|-- workflows/               # Workflow definition files
+    |-- default.json         # Standard FABER workflow
+    |-- hotfix.json          # Expedited hotfix workflow
+    |-- custom.json          # Your custom workflows
 ```
 
 **Old location (v1.x) - NO LONGER USED**:
@@ -60,10 +62,95 @@ vim .fractary/plugins/faber/config.json
 
 The configuration uses JSON format and follows the standard Fractary plugin configuration pattern. Workflows are now stored as separate files (referenced by config.json) instead of being embedded inline.
 
+## Workflow Resolution Order
+
+When FABER resolves a workflow, it searches in a specific order. Understanding this helps when customizing workflows.
+
+### Resolution Precedence (Highest to Lowest)
+
+1. **Project Workflows** (`.fractary/plugins/faber/workflows/`)
+   - Workflows defined in your project's `.fractary/` directory
+   - Use `project:` namespace prefix (or no prefix)
+   - Example: `project:custom-workflow` or just `custom-workflow`
+
+2. **Plugin-Provided Workflows** (installed plugin cache)
+   - Workflows shipped with the FABER plugin
+   - Use `fractary-faber:` namespace prefix
+   - Example: `fractary-faber:default`, `fractary-faber:core`
+   - Located in: `~/.claude/plugins/cache/fractary/fractary-faber/{version}/config/workflows/`
+
+3. **Built-in Defaults**
+   - Hardcoded fallback workflows
+   - Only used if no other workflows found
+
+### Namespace Prefixes
+
+| Prefix | Source | Example |
+|--------|--------|---------|
+| `fractary-faber:` | Plugin installation | `fractary-faber:default` |
+| `project:` | Project `.fractary/` | `project:my-workflow` |
+| (none) | Searches project first, then plugin | `default` |
+
+### How Resolution Works
+
+When you specify `--workflow my-workflow`:
+
+```
+1. Check: .fractary/plugins/faber/workflows/my-workflow.json
+   - If found: Use it (project workflow)
+   - If not found: Continue
+
+2. Check: ~/.claude/plugins/.../workflows/my-workflow.json
+   - If found: Use it (plugin workflow)
+   - If not found: Continue
+
+3. Check: Built-in defaults
+   - If matches known ID: Use it
+   - If not found: Error
+```
+
+### Workflow Inheritance
+
+Workflows can extend other workflows using the `extends` field:
+
+```json
+{
+  "id": "hotfix",
+  "extends": "fractary-faber:default",
+  "description": "Fast-track workflow for critical fixes",
+  "phases": {
+    "architect": {
+      "enabled": false
+    }
+  }
+}
+```
+
+The inheritance chain is resolved in order:
+1. Start with the base workflow (`fractary-faber:default`)
+2. Apply each extension's overrides
+3. Result is a fully merged workflow
+
+**Example inheritance chain**:
+```
+fractary-faber:core (base primitives)
+    |
+    +-- fractary-faber:default (adds spec generation, implementation)
+        |
+        +-- project:hotfix (disables architect phase)
+```
+
+### Best Practices
+
+1. **Use plugin workflows as-is** for standard development
+2. **Extend plugin workflows** rather than copying them
+3. **Use `fractary-faber:` prefix** when explicitly referencing plugin workflows
+4. **Keep project workflows in `.fractary/`** for version control
+
 ## Configuration Structure
 
 **The baseline FABER workflow is issue-centric**:
-- Core workflow: **Frame** → **Architect** → **Build** → **Evaluate** → **Release**
+- Core workflow: **Frame** -> **Architect** -> **Build** -> **Evaluate** -> **Release**
 - Core artifacts: **Issue** + **Branch** + **Spec**
 
 ### Plugin-Provided Workflows
@@ -156,7 +243,7 @@ Each workflow file contains the complete phase definitions, hooks, and autonomy 
 
 Projects can define multiple workflows for different scenarios. The `/fractary-faber:init` command creates workflow templates and references them in config.json.
 
-#### ⚠️ Important: Always Keep the Default Workflow
+#### Important: Always Keep the Default Workflow
 
 **CRITICAL**: The default workflow should **ALWAYS be retained** even when adding custom workflows. Custom workflows are **added alongside** the default workflow, not as replacements.
 
@@ -200,10 +287,10 @@ vim .fractary/plugins/faber/workflows/documentation.json
 ```
 
 **Why keep the default workflow?**
-- ✅ Provides a working baseline for general development tasks
-- ✅ Serves as fallback when custom workflows don't apply
-- ✅ Acts as reference implementation for creating custom workflows
-- ✅ Ensures FABER works out-of-the-box
+- Provides a working baseline for general development tasks
+- Serves as fallback when custom workflows don't apply
+- Acts as reference implementation for creating custom workflows
+- Ensures FABER works out-of-the-box
 
 **How to use multiple workflows:**
 ```bash
@@ -298,8 +385,8 @@ Workflow validation now checks for:
 /fractary-faber:audit
 
 # Output includes step ID validation:
-# ✓ All step IDs are unique across phases
-# ⚠ Step 'test' uses deprecated 'name' as identifier. Add explicit 'id' field.
+# All step IDs are unique across phases
+# Step 'test' uses deprecated 'name' as identifier. Add explicit 'id' field.
 ```
 
 ### Understanding `description` vs `prompt`
@@ -434,6 +521,47 @@ When warnings or failures occur with `prompt` behavior, FABER displays intellige
 - Options ordered by recommendation (ignore and continue first for warnings, stop workflow recommended for failures)
 
 For complete documentation, see [RESULT-HANDLING.md](./RESULT-HANDLING.md).
+
+## Plan and Run Artifacts
+
+### Storage Locations
+
+FABER stores operational artifacts in the `logs/` directory:
+
+```
+logs/fractary/plugins/faber/
+|-- plans/                   # Plan artifacts from /faber:plan
+|   |-- {plan-id}.json       # Individual plan files
+|-- runs/                    # Run state and events
+    |-- {run-id}/
+        |-- state.json       # Current workflow state
+        |-- metadata.json    # Run metadata
+        |-- events/          # Event log files
+```
+
+**Why `logs/` instead of `.fractary/`?**
+
+- `.fractary/` is for **committed configuration** (version controlled)
+- `logs/` is for **operational artifacts** (gitignored)
+- Plans and runs are operational data, not source code
+- Can be synced/archived via fractary-logs plugin
+
+### Listing Plans
+
+```bash
+# List available plans
+ls logs/fractary/plugins/faber/plans/
+
+# View a specific plan
+cat logs/fractary/plugins/faber/plans/{plan-id}.json
+```
+
+### Plan Lifecycle
+
+1. **Created** by `/faber:plan` or `/faber:run`
+2. **Read** by `/faber:execute`
+3. **Updated** with execution results
+4. **Archived** (optionally) via fractary-logs plugin
 
 ## See Also
 

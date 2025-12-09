@@ -16,9 +16,10 @@ This command creates a plan but does NOT execute it. To execute, use `/faber:exe
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. **IMMEDIATE DELEGATION** - Parse args, invoke faber-planner, return result
+1. **IMMEDIATE DELEGATION** - Parse args, invoke faber-planner skill, return result
 2. **NO EXECUTION** - This command does NOT invoke faber-manager
 3. **MINIMAL PROCESSING** - Only parse arguments, nothing more
+4. **USE SKILL TOOL** - Invoke faber-planner using the Skill tool
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -80,18 +81,23 @@ Extract from user input:
 
 ## Step 2: Invoke faber-planner Skill
 
+**IMPORTANT:** Use the Skill tool to invoke the faber-planner skill.
+
 ```
-Skill: fractary-faber:faber-planner
-Parameters:
-  target: {target or null}
-  work_id: {work_id or null}
-  workflow_override: {workflow_override or null}
-  autonomy_override: {autonomy_override or null}
-  phases: {phases or null}
-  step_id: {step_id or null}
-  prompt: {prompt or null}
-  working_directory: {pwd}
+Skill(skill="faber-planner")
+
+Provide the following context in your invocation:
+- target: {target or null}
+- work_id: {work_id or null}
+- workflow_override: {workflow_override or null}
+- autonomy_override: {autonomy_override or null}
+- phases: {phases or null}
+- step_id: {step_id or null}
+- prompt: {prompt or null}
+- working_directory: {pwd}
 ```
+
+The skill name is `faber-planner` (short form, without namespace prefix).
 
 ## Step 3: Return Response
 
@@ -124,19 +130,26 @@ Examples:
 
 ```
 /faber:plan (THIS COMMAND)
-    ↓
-faber-planner skill
-    ↓
-Plan artifact saved to .fractary/logs/faber/plans/
-    ↓
+    |
+faber-planner skill (invoked via Skill tool)
+    |
+Plan artifact saved to logs/fractary/plugins/faber/plans/
+    |
 User reviews plan
-    ↓
+    |
 /faber:execute <plan-id>
-    ↓
+    |
 faber-executor skill
-    ↓
+    |
 faber-manager agent(s)
 ```
+
+## Skill vs Agent Invocation
+
+- **Skills** are invoked using the `Skill` tool: `Skill(skill="skill-name")`
+- **Agents** are invoked using the `Task` tool: `Task(subagent_type="agent-name")`
+
+The faber-planner is a **skill**, so use the Skill tool.
 
 ## See Also
 

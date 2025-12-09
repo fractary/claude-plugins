@@ -16,9 +16,10 @@ This command executes a plan previously created by `/faber:plan`.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. **IMMEDIATE DELEGATION** - Parse args, invoke faber-executor, return result
-2. **PLAN REQUIRED** - Plan must exist in `.fractary/logs/faber/plans/`
+1. **IMMEDIATE DELEGATION** - Parse args, invoke faber-executor skill, return result
+2. **PLAN REQUIRED** - Plan must exist in `logs/fractary/plugins/faber/plans/`
 3. **MINIMAL PROCESSING** - Only parse arguments, nothing more
+4. **USE SKILL TOOL** - Invoke faber-executor using the Skill tool, NOT Task tool
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -75,15 +76,20 @@ Extract from user input:
 
 ## Step 2: Invoke faber-executor Skill
 
+**IMPORTANT:** Use the Skill tool to invoke the faber-executor skill.
+
 ```
-Skill: fractary-faber:faber-executor
-Parameters:
-  plan_id: {plan_id}
-  serial: {serial or false}
-  max_concurrent: {max_concurrent or 5}
-  items: {items or null}
-  working_directory: {pwd}
+Skill(skill="faber-executor")
+
+Provide the following context in your invocation:
+- plan_id: {plan_id}
+- serial: {serial or false}
+- max_concurrent: {max_concurrent or 5}
+- items: {items or null}
+- working_directory: {pwd}
 ```
+
+The skill name is `faber-executor` (short form, without namespace prefix).
 
 ## Step 3: Return Response
 
@@ -107,7 +113,7 @@ Examples:
   /faber:execute my-plan-id --serial
 
 List available plans:
-  ls .fractary/logs/faber/plans/
+  ls logs/fractary/plugins/faber/plans/
 ```
 
 **Plan Not Found Error:**
@@ -115,7 +121,7 @@ List available plans:
 Error: Plan not found: invalid-plan-id
 
 Check available plans:
-  ls .fractary/logs/faber/plans/
+  ls logs/fractary/plugins/faber/plans/
 
 Or create a new plan:
   /faber:plan --work-id 123
@@ -129,21 +135,29 @@ Or create a new plan:
 
 ```
 /faber:plan
-    ↓
+    |
 faber-planner skill
-    ↓
-Plan artifact saved
-    ↓
+    |
+Plan artifact saved to logs/fractary/plugins/faber/plans/
+    |
 User reviews plan
-    ↓
+    |
 /faber:execute <plan-id> (THIS COMMAND)
-    ↓
-faber-executor skill
-    ↓
-faber-manager agent(s)
-    ↓
+    |
+faber-executor skill (invoked via Skill tool)
+    |
+faber-manager agent(s) (spawned via Task tool by executor)
+    |
 Results aggregated
 ```
+
+## Skill vs Agent Invocation
+
+- **Skills** are invoked using the `Skill` tool: `Skill(skill="skill-name")`
+- **Agents** are invoked using the `Task` tool: `Task(subagent_type="agent-name")`
+
+The faber-executor is a **skill**, so use the Skill tool.
+The faber-manager is an **agent**, which the executor skill will spawn using Task tool.
 
 ## Fail-Safe Execution
 
