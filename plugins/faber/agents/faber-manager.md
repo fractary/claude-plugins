@@ -782,47 +782,33 @@ if phase_only:
 
 ---
 
-## Step 3b: Optional - Initialize TodoWrite Progress Tracking
+## Step 3b: Optional - TodoWrite Progress Tracking
 
 **Visual Progress Indicator** (Optional Enhancement):
 
-TodoWrite can be used to provide visual progress tracking throughout the workflow. This is OPTIONAL and does not affect workflow execution.
+TodoWrite MAY be used to provide visual progress tracking throughout the workflow. This is purely optional and does not affect workflow execution.
 
 ```
-# At workflow start, create initial todos (optional)
-IF enable_progress_tracking THEN
-  # Create a todo item for each phase
-  for phase in phases_to_execute:
-    phase_steps = resolved_workflow.phases[phase].steps
-    step_count = phase_steps.length
+# Example: At workflow start, create initial todos for visibility
+for phase in phases_to_execute:
+  phase_steps = resolved_workflow.phases[phase].steps
+  step_count = phase_steps.length
 
-    TodoWrite(todos=[
-      {
-        "content": f"Execute {phase} phase ({step_count} steps)",
-        "activeForm": f"Executing {phase} phase",
-        "status": "pending"
-      }
-      // Repeat for other phases...
-    ])
+  TodoWrite(todos=[
+    {
+      "content": f"Execute {phase} phase ({step_count} steps)",
+      "activeForm": f"Executing {phase} phase",
+      "status": "pending"
+    }
+    // ... other phases
+  ])
 ```
 
-**Why optional?**
-- Core execution doesn't depend on TodoWrite
-- Provides user visibility into progress
-- Helps with long-running workflows
-- Can be enabled/disabled via configuration
-
-**When to use:**
-- Multi-step workflows (more than 3 phases)
-- Long-running tasks (estimate > 5 minutes)
-- When user wants visual progress indicator
-
-**When to skip:**
-- Single-phase workflows
-- Quick operations
-- Minimizing output verbosity
-
-**Note**: If used, update TodoWrite at phase start and completion milestones.
+**Guidelines:**
+- Use TodoWrite for multi-step workflows (3+ phases) to give user visibility
+- Update todo status at phase start (in_progress) and completion (completed)
+- Skip TodoWrite for single-phase or quick operations
+- This is a UX enhancement, not a workflow requirement
 
 ---
 
@@ -1197,8 +1183,10 @@ IF step.command exists THEN
     - additional_instructions: {additional_instructions}"
   )
 
-  # Extract result from task_result.agentId or task response
-  result = extract_task_result(task_result)
+  # Task tool returns result directly - use it as the step result
+  # The Task tool response contains the agent's output, which should include
+  # a standard FABER response format (status, message, details)
+  result = task_result  # Direct assignment - no extraction needed
 
   # Log command invocation for audit trail
   Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
@@ -1244,33 +1232,75 @@ ELSE
 ```
 
 **Command-to-Agent Mapping Function:**
+
+Commands are mapped to their agents using an **explicit routing table**. This ensures reliable routing and provides clear error messages for unknown commands.
+
 ```
+# Explicit command-to-agent routing table
+COMMAND_AGENT_MAP = {
+  # Spec plugin commands
+  "fractary-spec:generate": "fractary-spec:spec-manager",
+  "fractary-spec:refine": "fractary-spec:spec-manager",
+
+  # Repo plugin commands
+  "fractary-repo:commit": "fractary-repo:repo-manager",
+  "fractary-repo:pr-create": "fractary-repo:repo-manager",
+  "fractary-repo:pr-review": "fractary-repo:repo-manager",
+  "fractary-repo:pr-merge": "fractary-repo:repo-manager",
+  "fractary-repo:branch-create": "fractary-repo:repo-manager",
+
+  # Work plugin commands
+  "fractary-work:issue-fetch": "fractary-work:work-manager",
+  "fractary-work:issue-create": "fractary-work:work-manager",
+  "fractary-work:comment-create": "fractary-work:work-manager",
+
+  # FABER plugin commands
+  "fractary-faber:build": "fractary-faber:faber-manager",
+  "fractary-faber:review": "fractary-faber:faber-manager",
+
+  # Docs plugin commands
+  "fractary-docs:update": "fractary-docs:docs-manager",
+
+  # Logs plugin commands
+  "fractary-logs:emit": "fractary-logs:log-manager"
+}
+
 function map_command_to_agent(command: string) -> string:
-  # Parse command to extract plugin and operation
-  # Examples:
-  #   /fractary-spec:generate → fractary-spec:spec-manager
-  #   /fractary-repo:commit → fractary-repo:repo-manager
-  #   /fractary-work:issue-fetch → fractary-work:work-manager
-
+  # Normalize command: remove leading slash if present
   IF command starts with "/" THEN
-    command = command.slice(1)  # Remove leading slash
+    command = command.slice(1)
 
-  # Split on first colon
-  [plugin, operation] = command.split(":", 1)
+  # Look up in explicit routing table
+  IF command in COMMAND_AGENT_MAP THEN
+    RETURN COMMAND_AGENT_MAP[command]
 
-  # Standard mapping: plugin → plugin:*-manager
-  # Extract manager name from plugin (e.g., "fractary-repo" → "repo-manager")
-  plugin_parts = plugin.split("-")
-  manager_suffix = plugin_parts.slice(1).join("-") + "-manager"
+  # UNKNOWN COMMAND - fail fast with clear error
+  ERROR "Unknown command: '{command}'
 
-  RETURN "{plugin}:{manager_suffix}"
+  The command '{command}' is not in the routing table.
+
+  To add support for this command:
+  1. Add an entry to COMMAND_AGENT_MAP in faber-manager.md
+  2. Ensure the target agent exists and accepts this command
+
+  Available commands:
+  {list keys from COMMAND_AGENT_MAP}"
 ```
+
+**Routing Table Maintenance:**
+- Add new commands to `COMMAND_AGENT_MAP` when creating new plugin commands
+- Commands must be exact matches (case-sensitive)
+- Unknown commands fail immediately with helpful error message
 
 **Example Mappings:**
-- `/fractary-spec:generate` → `fractary-spec:spec-manager`
-- `/fractary-spec:refine` → `fractary-spec:spec-manager`
-- `/fractary-repo:commit` → `fractary-repo:repo-manager`
-- `/fractary-work:issue-fetch` → `fractary-work:work-manager`
+| Command | Agent |
+|---------|-------|
+| `fractary-spec:generate` | `fractary-spec:spec-manager` |
+| `fractary-spec:refine` | `fractary-spec:spec-manager` |
+| `fractary-repo:commit` | `fractary-repo:repo-manager` |
+| `fractary-repo:pr-create` | `fractary-repo:repo-manager` |
+| `fractary-work:issue-fetch` | `fractary-work:work-manager` |
+| `fractary-faber:build` | `fractary-faber:faber-manager` |
 
 **Why Command-based Execution is Deterministic:**
 1. Task tool spawns a separate agent context
