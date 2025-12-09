@@ -1,7 +1,7 @@
 ---
 name: faber-planner
 description: Creates FABER execution plans without executing them. Phase 1 of two-phase architecture.
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-5
 tools:
   - Skill
   - SlashCommand
@@ -146,10 +146,13 @@ Example: fractary-claude-plugins-csv-export-20251208T160000
 git remote get-url origin
 # Parse: https://github.com/{org}/{project}.git → org, project
 
-# Extract date components from current timestamp
+# Extract date/time components from current timestamp
 year = YYYY
 month = MM
 day = DD
+hour = HH
+minute = MM
+second = SS
 ```
 
 Store these in `metadata` object for S3/Athena partitioning:
@@ -157,6 +160,7 @@ Store these in `metadata` object for S3/Athena partitioning:
 - `project` - Repository name (for cross-project analytics)
 - `subproject` - Target/feature being built
 - `year`, `month`, `day` - Date components (for time-based partitioning)
+- `hour`, `minute`, `second` - Time components (for sorting within a day)
 
 ## Step 6: Build Plan Artifact
 
@@ -172,7 +176,10 @@ Store these in `metadata` object for S3/Athena partitioning:
     "subproject": "csv-export",
     "year": "2025",
     "month": "12",
-    "day": "08"
+    "day": "08",
+    "hour": "16",
+    "minute": "00",
+    "second": "00"
   },
 
   "source": {

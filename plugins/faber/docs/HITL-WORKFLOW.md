@@ -416,6 +416,6 @@ The `@faber` trigger in issue comments is planned for future implementation:
 - [RUN-ID-SYSTEM.md](./RUN-ID-SYSTEM.md) - Run isolation and event logging
 - [AUTONOMY.md](./AUTONOMY.md) - Autonomy levels and approval gates
 - `skills/feedback-handler/SKILL.md` - Feedback handler skill documentation
-- `skills/faber-manager/workflow/context-reconstitution.md` - Context loading protocol
-- `skills/faber-manager/workflow/feedback-resume.md` - Resume protocol
-- `skills/faber-manager/workflow/parallel-coordination.md` - Multi-run coordination
+- [context-reconstitution.md](./standards/manager-protocols/context-reconstitution.md) - Context loading protocol
+- [feedback-resume.md](./standards/manager-protocols/feedback-resume.md) - Resume protocol
+- [parallel-coordination.md](./standards/manager-protocols/parallel-coordination.md) - Multi-run coordination

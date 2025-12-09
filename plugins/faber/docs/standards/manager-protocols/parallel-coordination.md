@@ -398,7 +398,7 @@ The faber-manager handles:
 
 ## See Also
 
-- `context-reconstitution.md` - Context loading protocol
-- `feedback-resume.md` - Resume after feedback
-- `plugins/faber/docs/RUN-ID-SYSTEM.md` - Run isolation
-- `plugins/faber/skills/feedback-handler/SKILL.md` - Feedback handling
+- [context-reconstitution.md](./context-reconstitution.md) - Context loading protocol
+- [feedback-resume.md](./feedback-resume.md) - Resume after feedback
+- [RUN-ID-SYSTEM.md](../../RUN-ID-SYSTEM.md) - Run isolation
+- [feedback-handler SKILL.md](../../../skills/feedback-handler/SKILL.md) - Feedback handling

@@ -81,7 +81,10 @@ The plan is a **complete snapshot of intent** saved before execution:
     "subproject": "ipeds",
     "year": "2025",
     "month": "12",
-    "day": "08"
+    "day": "08",
+    "hour": "15",
+    "minute": "30",
+    "second": "00"
   },
 
   "source": {
@@ -249,7 +252,10 @@ Each plan includes a `metadata` block for cross-project, cross-organization anal
     "subproject": "csv-export",
     "year": "2025",
     "month": "12",
-    "day": "08"
+    "day": "08",
+    "hour": "16",
+    "minute": "00",
+    "second": "00"
   }
 }
 ```
