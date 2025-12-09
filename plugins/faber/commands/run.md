@@ -1,114 +1,76 @@
 ---
 name: fractary-faber:run
-description: Execute FABER workflow with target-first design, flexible phase control, resume/rerun capability, and label-based configuration
-argument-hint: '[<target>] [--work-id <id>] [--resume <run-id>] [--rerun <run-id>] [--phase <phases>] [--step <step-id>] [--workflow <id>] [--autonomy <level>] [--prompt "<text>"]'
-tools: Task
+description: Execute FABER workflow - creates plan and executes it in one step
+argument-hint: '[<target>] [--work-id <id>] [--workflow <id>] [--autonomy <level>] [--phase <phases>]'
+tools: Skill
 model: claude-haiku-4-5
 ---
 
 # FABER Run Command
 
 <CONTEXT>
-You are the **primary entry point** for FABER workflows. Your job is to parse user input and immediately invoke the `faber-director` skill with structured parameters.
+You are the convenience command for FABER workflows.
+You create a plan and immediately execute it in one step.
 
-This is the consolidated command that replaces:
-- `/fractary-faber:direct` (deprecated)
-- `/fractary-faber:faber` (removed)
-- Phase-specific commands: `/fractary-faber:frame`, `/fractary-faber:architect`, etc. (deprecated)
+Internally, this command:
+1. Invokes faber-planner to create a plan
+2. Invokes faber-executor to execute the plan
+3. Returns aggregated results
 
-This command follows the principle: **commands never do work** - they immediately delegate to skills/agents.
+For more control, use `/faber:plan` and `/faber:execute` separately.
 </CONTEXT>
 
 <CRITICAL_RULES>
-**NEVER VIOLATE THESE RULES:**
-
-1. **Immediate Delegation**
-   - IMMEDIATELY invoke faber-director skill after parsing arguments
-   - DO NOT load configuration - director does this
-   - DO NOT fetch issues - director does this
-   - DO NOT detect workflows from labels - director does this
-   - DO NOT validate work IDs or targets exist - director does this
-
-2. **Target-First Design**
-   - Target is the primary argument (what to work on)
-   - Work-id is optional (provides issue context)
-   - Target can be: artifact name, natural language, or omitted (when --work-id provided)
-
-3. **Minimal Processing**
-   - ONLY parse raw arguments
-   - ONLY extract optional flags
-   - ONLY capture working directory
-   - Pass everything else to director skill unchanged
-
-4. **Single Responsibility**
-   - This command has ONE job: invoke faber-director skill
-   - All intelligence is in the director skill
-   - All workflow execution is in the manager agent
+1. **IMMEDIATE DELEGATION** - Parse args, invoke planner, then executor
+2. **TWO-PHASE EXECUTION** - Plan first, execute second
+3. **MINIMAL PROCESSING** - Only parse arguments, delegate everything else
 </CRITICAL_RULES>
 
 <INPUTS>
-**Command Syntax:**
+
+**Syntax:**
 ```bash
-/fractary-faber:run [<target>] [options]
+/faber:run [<target>] [options]
 ```
 
 **Arguments:**
-
 | Argument | Type | Required | Description |
 |----------|------|----------|-------------|
-| `<target>` | string | No | What to work on: artifact name, blog post, dataset, module, or freeform natural language. If omitted, requires `--work-id` and target is inferred from issue. |
+| `<target>` | string | No | What to work on. Supports wildcards (e.g., `ipeds/*`) |
 
 **Options:**
-
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--work-id <id>` | string | - | Work item ID (GitHub issue, Jira ticket, Linear issue). Fetches issue details and checks labels for configuration. |
-| `--resume <run-id>` | string | - | Resume a previous run from where it failed/paused. Format: `org/project/uuid`. |
-| `--rerun <run-id>` | string | - | Re-run a previous run with a new run_id (for different parameters). Inherits metadata from original. |
-| `--workflow <id>` | string | (from config) | Workflow to use. See **Workflow Namespacing** below. Can be detected from issue labels. |
-| `--autonomy <level>` | string | `guarded` | Autonomy level: `dry-run`, `assist`, `guarded`, `autonomous`. Can be detected from issue labels. |
-| `--phase <phases>` | string | all | Comma-separated phases to execute (e.g., `frame,architect`). **No spaces**. |
-| `--step <step-id>` | string | - | Specific step to execute. Format: `phase:step-id` (e.g., `build:implement`). Uses the step's `id` field (or `name` for backward compatibility). Mutually exclusive with `--phase`. |
-| `--prompt "<text>"` | string | - | Additional custom instructions to guide the workflow. |
+| `--work-id <id>` | string | - | Work item ID(s). Comma-separated for multiple. |
+| `--workflow <id>` | string | (from config) | Workflow to use |
+| `--autonomy <level>` | string | `guarded` | Autonomy level: dry-run, assist, guarded, autonomous |
+| `--phase <phases>` | string | all | Comma-separated phases to execute |
+| `--step <step-id>` | string | - | Specific step (format: `phase:step-name`) |
+| `--prompt "<text>"` | string | - | Additional instructions |
+| `--plan-only` | flag | false | Create plan but don't execute (same as /faber:plan) |
+| `--serial` | flag | false | Execute items sequentially |
 
 **Examples:**
 ```bash
-# Artifact-first approach (primary use case)
-/fractary-faber:run customer-analytics-v2 --work-id 158
+# Single work item
+/faber:run --work-id 123
 
-# Target with workflow override
-/fractary-faber:run "2024-12-product-launch" --workflow content
+# With target
+/faber:run customer-pipeline --work-id 123
 
-# Natural language request
-/fractary-faber:run "implement the authentication feature from issue 158"
-
-# Work-id only (target inferred from issue)
-/fractary-faber:run --work-id 158
+# Multiple work items (parallel execution)
+/faber:run --work-id 123,124,125
 
 # Phase selection
-/fractary-faber:run target --work-id 158 --phase frame,architect
+/faber:run --work-id 123 --phase frame,architect
 
-# Single step execution
-/fractary-faber:run target --work-id 158 --step build:implement
+# Serial execution
+/faber:run --work-id 123,124 --serial
 
-# With custom instructions
-/fractary-faber:run api-refactor --work-id 300 --prompt "This is a breaking change. Update dependent services."
-
-# Dry run
-/fractary-faber:run target --work-id 158 --autonomy dry-run
-
-# Resume a failed/paused run
-/fractary-faber:run --resume fractary/my-project/a1b2c3d4-e5f6-7890-abcd-ef1234567890
-
-# Resume from a specific step
-/fractary-faber:run --resume fractary/my-project/a1b2c3d4-... --step build:implement
-
-# Re-run with different autonomy
-/fractary-faber:run --rerun fractary/my-project/a1b2c3d4-... --autonomy autonomous
-
-# Full combination
-/fractary-faber:run dashboard --work-id 200 --phase build,evaluate --autonomy guarded --prompt "Focus on accessibility"
+# Plan only (don't execute)
+/faber:run --work-id 123 --plan-only
 ```
+
 </INPUTS>
 
 <WORKFLOW>
@@ -116,319 +78,151 @@ This command follows the principle: **commands never do work** - they immediatel
 ## Step 1: Parse Arguments
 
 Extract from user input:
-
-1. **target**: First positional argument (optional)
-   - If starts with `--`: not a target, it's a flag
-   - If contains natural language: use as-is
-   - If omitted: will be inferred from issue
-
-2. **work_id**: Value of `--work-id` flag (optional)
-3. **resume**: Value of `--resume` flag (optional, format: `org/project/uuid`)
-4. **rerun**: Value of `--rerun` flag (optional, format: `org/project/uuid`)
-5. **workflow_override**: Value of `--workflow` flag (optional)
-6. **autonomy_override**: Value of `--autonomy` flag (optional)
-7. **phases**: Value of `--phase` flag (optional, comma-separated, no spaces)
-8. **step_id**: Value of `--step` flag (optional, format: `phase:step-name`)
-9. **prompt**: Value of `--prompt` flag (optional, may be quoted)
-
-**Parsing Rules:**
-- First non-flag argument is `target`
-- `--work-id <value>` extracts work_id
-- `--resume <value>` extracts resume run_id
-- `--rerun <value>` extracts rerun run_id
-- `--workflow <value>` extracts workflow_override
-- `--autonomy <value>` extracts autonomy_override
-- `--phase <value>` extracts phases (comma-separated, NO SPACES)
-- `--step <value>` extracts step_id
-- `--prompt "<value>"` extracts prompt (handle quotes)
+1. `target`: First positional argument (optional)
+2. `work_id`: Value of `--work-id` flag
+3. `workflow_override`: Value of `--workflow` flag
+4. `autonomy_override`: Value of `--autonomy` flag
+5. `phases`: Value of `--phase` flag
+6. `step_id`: Value of `--step` flag
+7. `prompt`: Value of `--prompt` flag
+8. `plan_only`: Presence of `--plan-only` flag
+9. `serial`: Presence of `--serial` flag
 
 **Validation:**
-- If no `target` AND no `--work-id` AND no `--resume` AND no `--rerun`: show error
-- If both `--resume` AND `--rerun` provided: show error (mutually exclusive)
-- If `--resume` or `--rerun` AND `--work-id`: `--work-id` is ignored (run already has work_id)
+- If no `target` AND no `--work-id`: show error
 - If `--phase` contains spaces: show error
-- If `--step` doesn't match pattern `phase:step-id`: show error
-- If `--autonomy` is invalid level: show error
-- If both `--phase` and `--step` provided: show error (mutually exclusive)
-- If `--resume` or `--rerun` doesn't match format `org/project/uuid`: show error
+- If both `--phase` and `--step`: show error (mutually exclusive)
 
-**Error if no target, work-id, resume, or rerun:**
-```
-Error: Either <target>, --work-id, --resume, or --rerun is required
-
-Usage: /fractary-faber:run [<target>] [options]
-
-Examples:
-  /fractary-faber:run customer-pipeline
-  /fractary-faber:run --work-id 158
-  /fractary-faber:run --resume fractary/project/uuid
-  /fractary-faber:run --rerun fractary/project/uuid --autonomy autonomous
-```
-
-## Step 2: Invoke faber-director via Task Tool
-
-**IMMEDIATELY** invoke faber-director using the **Task tool** (not Skill tool):
+## Step 2: Create Plan (invoke faber-planner)
 
 ```
-Task(
-  subagent_type="fractary-faber:faber-director",
-  description="Execute FABER workflow for work item {work_id or target}",
-  prompt='{
-    "target": "{target or null}",
-    "work_id": "{work_id or null}",
-    "resume": "{resume or null}",
-    "rerun": "{rerun or null}",
-    "workflow_override": "{workflow_override or null}",
-    "autonomy_override": "{autonomy_override or null}",
-    "phases": "{phases or null}",
-    "step_id": "{step_id or null}",
-    "prompt": "{prompt or null}",
-    "working_directory": "{pwd}"
-  }'
-)
+Skill: faber-planner
+Parameters:
+  target: {target or null}
+  work_id: {work_id or null}
+  workflow_override: {workflow_override or null}
+  autonomy_override: {autonomy_override or null}
+  phases: {phases or null}
+  step_id: {step_id or null}
+  prompt: {prompt or null}
+  working_directory: {pwd}
 ```
 
-**Why Task tool instead of Skill tool:**
-- Task tool gives the agent its own execution context
-- The agent completes its full workflow before returning
-- Prevents premature termination when sub-skills return output
+Extract `plan_id` from planner response.
 
-## Step 3: Return Response
+## Step 3: Execute Plan (unless --plan-only)
 
-Return whatever the faber-director skill returns. Do not process or modify its output.
+If `plan_only` is true:
+- Return planner response directly (same as /faber:plan)
+
+Otherwise, invoke executor:
+
+```
+Skill: faber-executor
+Parameters:
+  plan_id: {plan_id from Step 2}
+  serial: {serial or false}
+  max_concurrent: 5
+  items: null
+  working_directory: {pwd}
+```
+
+## Step 4: Return Response
+
+Return the faber-executor skill's output (or planner output if --plan-only).
 
 </WORKFLOW>
 
-<COMPLETION_CRITERIA>
-This command is complete when:
-1. Arguments parsed (or error shown for missing/invalid input)
-2. faber-director skill invoked with context
-3. Skill response returned to user
-</COMPLETION_CRITERIA>
-
 <OUTPUTS>
+
 **Success:**
-The faber-director skill's output is displayed directly to the user.
+```
+🎯 FABER Workflow Complete
+
+Plan: fractary-claude-plugins-csv-export-20251208T160000
+Target: csv-export
+Work ID: #123
+Workflow: fractary-faber:default
+
+Results:
+  ✅ #123 Add CSV export → PR #150
+
+PR ready for review: https://github.com/org/repo/pull/150
+```
+
+**Multiple Items:**
+```
+🎯 FABER Workflow Complete
+
+Plan: fractary-claude-plugins-batch-20251208T160000
+Workflow: fractary-faber:default
+
+Results (3/3 successful):
+  ✅ #123 Add CSV export → PR #150
+  ✅ #124 Add PDF export → PR #151
+  ✅ #125 Fix export bug → PR #152
+
+All PRs ready for review.
+```
 
 **Missing Target/Work-ID Error:**
 ```
 Error: Either <target> or --work-id is required
 
-Usage: /fractary-faber:run [<target>] [options]
+Usage: /faber:run [<target>] [options]
 
 Examples:
-  /fractary-faber:run customer-pipeline
-  /fractary-faber:run --work-id 158
-  /fractary-faber:run "implement feature from issue 158"
+  /faber:run --work-id 123
+  /faber:run customer-pipeline --work-id 123
+  /faber:run --work-id 123,124,125
 ```
 
-**Invalid Phase Format Error:**
-```
-Error: --phase must be comma-separated with no spaces
-
-Correct: --phase frame,architect,build
-Wrong:   --phase frame, architect, build
-```
-
-**Invalid Step Format Error:**
-```
-Error: --step must be in format 'phase:step-id'
-
-Examples:
-  --step build:implement
-  --step evaluate:test
-  --step release:update-docs
-
-Note: Uses the step's 'id' field (or 'name' for backward compatibility).
-```
-
-**Invalid Autonomy Level Error:**
-```
-Error: Invalid autonomy level: 'invalid'
-
-Valid levels: dry-run, assist, guarded, autonomous
-```
-
-**Mutual Exclusivity Error (phase/step):**
-```
-Error: --phase and --step are mutually exclusive
-
-Use --phase for complete phases: --phase build,evaluate
-Use --step for single step: --step build:implement
-```
-
-**Mutual Exclusivity Error (resume/rerun):**
-```
-Error: --resume and --rerun are mutually exclusive
-
-Use --resume to continue an existing run from where it stopped
-Use --rerun to start a new run based on a previous one (with changes)
-```
-
-**Invalid Run ID Format Error:**
-```
-Error: Invalid run ID format: 'invalid'
-
-Run ID must be in format: org/project/uuid
-Example: fractary/my-project/a1b2c3d4-e5f6-7890-abcd-ef1234567890
-```
-
-**Run Not Found Error:**
-```
-Error: Run not found: 'fractary/project/uuid'
-
-The run directory does not exist. Check the run ID or use /fractary-faber:status to list available runs.
-```
 </OUTPUTS>
-
-<ERROR_HANDLING>
-
-## Missing Arguments
-If no target, work_id, resume, or rerun provided:
-- Show usage error with examples
-- Do NOT invoke director skill
-
-## Invalid Phase Format
-If `--phase` contains spaces:
-- Show error explaining comma-separated format
-- Do NOT invoke director skill
-
-## Invalid Step Format
-If `--step` doesn't match `phase:step-id`:
-- Show error with valid format examples
-- Do NOT invoke director skill
-
-## Invalid Autonomy Level
-If `--autonomy` value is not valid:
-- Show error with valid options
-- Do NOT invoke director skill
-
-## Mutual Exclusivity (phase/step)
-If both `--phase` and `--step` provided:
-- Show error explaining they are mutually exclusive
-- Do NOT invoke director skill
-
-## Mutual Exclusivity (resume/rerun)
-If both `--resume` and `--rerun` provided:
-- Show error explaining they are mutually exclusive
-- Do NOT invoke director skill
-
-## Invalid Run ID Format
-If `--resume` or `--rerun` value doesn't match `org/project/uuid` format:
-- Show error with valid format example
-- Do NOT invoke director skill
-
-## All Other Errors
-All other errors (config not found, issue not found, run not found, workflow failed, label parsing, etc.) are handled by the faber-director skill. This command does NOT handle them.
-
-</ERROR_HANDLING>
 
 <NOTES>
 
-## Architecture
+## Two-Phase Architecture
 
 ```
-/fractary-faber:run (THIS COMMAND - lightweight parser)
-    |
-    v
-faber-director skill (intelligence layer)
-    - Loads config
-    - Fetches issue (if work_id)
-    - Detects labels for configuration
-    - Validates phases
-    - Parses natural language target
-    |
-    v
-faber-manager agent (execution layer)
-    - Executes workflow phases
-    - Manages state
-    - Handles retries
+/faber:run (THIS COMMAND)
+    ↓
+┌─────────────────────────────────┐
+│ Phase 1: faber-planner          │
+│   - Create plan artifact        │
+│   - Save to logs directory      │
+└─────────────────────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ Phase 2: faber-executor         │
+│   - Read plan                   │
+│   - Spawn faber-manager(s)      │
+│   - Aggregate results           │
+└─────────────────────────────────┘
+    ↓
+Results returned to user
 ```
 
-## Replaces (Deprecated Commands)
+## Convenience vs Control
 
-| Deprecated | Replacement |
-|------------|-------------|
-| `/fractary-faber:direct 158` | `/fractary-faber:run --work-id 158` |
-| `/fractary-faber:faber run 158` | `/fractary-faber:run --work-id 158` |
-| `/fractary-faber:frame 158` | `/fractary-faber:run --work-id 158 --phase frame` |
-| `/fractary-faber:architect 158` | `/fractary-faber:run --work-id 158 --phase frame,architect` |
-| `/fractary-faber:build 158` | `/fractary-faber:run --work-id 158 --phase build` |
-| `/fractary-faber:evaluate 158` | `/fractary-faber:run --work-id 158 --phase evaluate` |
-| `/fractary-faber:release 158` | `/fractary-faber:run --work-id 158 --phase release` |
+| Command | Creates Plan | Executes | Use Case |
+|---------|--------------|----------|----------|
+| `/faber:run` | Yes | Yes | Quick single workflow |
+| `/faber:plan` | Yes | No | Review before execute |
+| `/faber:execute` | No | Yes | Execute existing plan |
 
-## Workflow Namespacing
+## Plan Persistence
 
-Workflows are identified by namespace prefixes that determine where they are loaded from:
-
-| Namespace | Location | Example |
-|-----------|----------|---------|
-| `fractary-faber:` | Plugin workflows (centrally maintained) | `fractary-faber:default`, `fractary-faber:core` |
-| `project:` | Project-specific workflows | `project:my-workflow` |
-| (no prefix) | Defaults to `project:` | `my-workflow` → `project:my-workflow` |
-
-**Key behaviors:**
-
-1. **No `--workflow` specified**: Uses `default_workflow` from config (set by `/fractary-faber:init` to `fractary-faber:default`)
-2. **`--workflow my-workflow`**: Looks in `.fractary/plugins/faber/workflows/my-workflow.json` (project directory)
-3. **`--workflow fractary-faber:default`**: Looks in plugin's `config/workflows/default.json`
-
-**Plugin workflows** (`fractary-faber:*`):
-- `fractary-faber:core` - Base primitives (issue, branch, PR lifecycle)
-- `fractary-faber:default` - Standard software dev (extends core + spec generation + implementation)
-
-**Project workflows** (no prefix):
-- Stored in `.fractary/plugins/faber/workflows/`
-- Can extend plugin workflows: `"extends": "fractary-faber:core"`
-- Don't require namespace prefix when referenced
-
-**Examples:**
-```bash
-# Uses config's default_workflow (typically fractary-faber:default)
-/fractary-faber:run --work-id 123
-
-# Explicitly use plugin's default workflow
-/fractary-faber:run --work-id 123 --workflow fractary-faber:default
-
-# Use project-specific workflow (no prefix needed)
-/fractary-faber:run --work-id 123 --workflow my-custom-workflow
-```
-
-## Label-Based Configuration
-
-When `--work-id` is provided, the director skill checks issue labels for configuration:
-
-| Label | Maps To |
-|-------|---------|
-| `faber:workflow=hotfix` | `--workflow hotfix` |
-| `faber:autonomy=autonomous` | `--autonomy autonomous` |
-| `faber:phase=frame,architect` | `--phase frame,architect` |
-| `faber:step=build:implement` | `--step build:implement` |
-| `faber:target=customer-pipeline` | `<target>` |
-
-**Priority:** CLI args > Issue labels > Config defaults
-
-## Step ID Format
-
-Steps use the format `phase:step-id` where `step-id` is the value of the step's `id` field (or `name` for backward compatibility):
-
-**Current (uses `id` field):**
-- `architect:generate-spec`
-- `build:implement`
-- `build:commit`
-- `evaluate:test`
-- `evaluate:review`
-- `evaluate:fix`
-- `release:update-docs`
-
-**Note:** Step IDs must be unique across all phases in a workflow. This enables unambiguous step targeting, logging, and state tracking. If you see deprecation warnings about using `name` as identifier, add explicit `id` fields to your workflow steps.
+All plans are saved to `.fractary/logs/faber/plans/` even when using `/faber:run`.
+This enables:
+- Debugging after failure
+- Audit trail
+- Resume/retry if needed
 
 ## See Also
 
-- `faber-director` skill: Intelligence layer
-- `faber-manager` agent: Execution layer
-- `/fractary-faber:status`: Query workflow state
-- `/fractary-faber:init`: Initialize FABER config
-- Specification: `/specs/SPEC-00107-faber-run-command-consolidation.md`
+- `/faber:plan` - Create plan only (for review)
+- `/faber:execute` - Execute existing plan
+- `/faber:status` - Check workflow status
+- `/faber:init` - Initialize FABER configuration
 
 </NOTES>
