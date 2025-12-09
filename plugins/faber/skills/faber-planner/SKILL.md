@@ -2,6 +2,15 @@
 name: faber-planner
 description: Creates FABER execution plans without executing them. Phase 1 of two-phase architecture.
 model: claude-sonnet-4-20250514
+tools:
+  - Skill
+  - SlashCommand
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - Grep
+  - AskUserQuestion
 ---
 
 # FABER Planner Skill

@@ -2,6 +2,13 @@
 name: faber-executor
 description: Executes FABER plans by spawning faber-manager agents. Simple and reliable.
 model: claude-sonnet-4-20250514
+tools:
+  - Task
+  - Read
+  - Write
+  - Bash
+  - Glob
+  - SlashCommand
 ---
 
 # FABER Executor Skill
@@ -102,7 +109,7 @@ For each item in items_to_run:
   )
 ```
 
-Wait for all using AgentOutputTool.
+Wait for all background agents to complete using the AgentOutputTool (retrieve results from Task agents spawned with `run_in_background=true`).
 
 ### Serial Mode (--serial)
 
@@ -235,7 +242,7 @@ Or create a new plan:
 This executor is intentionally simple:
 - Read plan (can't fail if file exists)
 - Spawn managers (Task tool is reliable)
-- Wait for results (AgentOutputTool handles this)
+- Wait for results (AgentOutputTool retrieves background agent results)
 - Aggregate (simple data collection)
 
 Complexity is in the planning phase (faber-planner).
@@ -260,6 +267,22 @@ Worktrees are cleaned up automatically when:
 3. Worktree path exists in plan
 
 This uses the existing `/repo:pr-merge --worktree-cleanup` behavior.
+
+## Storage Structure
+
+**Plans:** `logs/fractary/plugins/faber/plans/{plan_id}.json`
+- One file per plan
+- Created by faber-planner
+- Updated by faber-executor with execution results
+
+**Runs:** `logs/fractary/plugins/faber/runs/{plan_id}/`
+- Directory per plan execution
+- Contains per-item state files: `items/{work_id}/state.json`
+- Contains aggregate state: `aggregate.json`
+
+**Lookup by issue:**
+- Issue labels contain `faber:plan={plan_id}`
+- Find plan_id from issue → load state from `runs/{plan_id}/items/{work_id}/`
 
 ## Integration
 
