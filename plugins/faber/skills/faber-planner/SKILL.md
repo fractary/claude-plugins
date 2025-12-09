@@ -33,6 +33,7 @@ You receive input, resolve the workflow, prepare targets, and output a plan file
 3. **PROMPT USER** - After saving, use AskUserQuestion to prompt for execution
 4. **WORKFLOW SNAPSHOT** - Resolve and snapshot the complete workflow in the plan
 5. **RESUME MODE** - If target already has branch, include resume context in plan
+6. **MANDATORY SCRIPT FOR WORKFLOW** - You MUST call `merge-workflows.sh` script in Step 3. NEVER construct the workflow manually or skip this step. The script handles inheritance resolution deterministically.
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -77,17 +78,40 @@ Read `.fractary/plugins/faber/config.json`:
 Also check for logs directory configuration in `.fractary/plugins/logs/config.json`:
 - Extract `log_directory` (or use default "logs")
 
-## Step 3: Resolve Workflow
+## Step 3: Resolve Workflow (MANDATORY SCRIPT EXECUTION)
 
-**Invoke faber-config skill:**
-```
-Skill: faber-config
-Operation: resolve-workflow
-Parameters:
-  workflow_id: {workflow_override or default_workflow}
+**CRITICAL**: You MUST execute this script. Do NOT skip this step or attempt to construct the workflow manually.
+
+```bash
+# Determine plugin root (where plugin source code lives)
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/fractary}"
+
+# Execute the merge-workflows.sh script
+"${PLUGIN_ROOT}/plugins/faber/skills/faber-config/scripts/merge-workflows.sh" \
+  "{workflow_override or default_workflow}" \
+  --plugin-root "${PLUGIN_ROOT}" \
+  --project-root "$(pwd)"
 ```
 
-Store the resolved workflow with full inheritance chain.
+**Example with default workflow:**
+```bash
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/fractary}"
+"${PLUGIN_ROOT}/plugins/faber/skills/faber-config/scripts/merge-workflows.sh" \
+  "fractary-faber:default" \
+  --plugin-root "${PLUGIN_ROOT}" \
+  --project-root "$(pwd)"
+```
+
+The script returns JSON with `status`, `message`, and `workflow` fields.
+- If `status` is "success": Extract the `workflow` object for the plan
+- If `status` is "failure": Report the error and abort
+
+**Why this is mandatory:**
+- LLM-based workflow resolution is non-deterministic and prone to skipping inheritance merging
+- Issue #327 documented cases where the LLM skipped the merge algorithm entirely
+- The script guarantees correct inheritance chain resolution every time
+
+Store the resolved workflow (from script output) with full inheritance chain.
 
 ## Step 4: For Each Target, Prepare Plan Item
 
