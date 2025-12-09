@@ -24,6 +24,7 @@ For more control, use `/faber:plan` and `/faber:execute` separately.
 1. **IMMEDIATE DELEGATION** - Parse args, invoke planner, then executor
 2. **TWO-PHASE EXECUTION** - Plan first, execute second
 3. **MINIMAL PROCESSING** - Only parse arguments, delegate everything else
+4. **USE SKILL TOOL** - Invoke skills using the Skill tool, NOT Task tool
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -95,17 +96,20 @@ Extract from user input:
 
 ## Step 2: Create Plan (invoke faber-planner)
 
+**IMPORTANT:** Use the Skill tool to invoke the faber-planner skill.
+
 ```
-Skill: faber-planner
-Parameters:
-  target: {target or null}
-  work_id: {work_id or null}
-  workflow_override: {workflow_override or null}
-  autonomy_override: {autonomy_override or null}
-  phases: {phases or null}
-  step_id: {step_id or null}
-  prompt: {prompt or null}
-  working_directory: {pwd}
+Skill(skill="faber-planner")
+
+Provide the following context in your invocation:
+- target: {target or null}
+- work_id: {work_id or null}
+- workflow_override: {workflow_override or null}
+- autonomy_override: {autonomy_override or null}
+- phases: {phases or null}
+- step_id: {step_id or null}
+- prompt: {prompt or null}
+- working_directory: {pwd}
 ```
 
 Extract `plan_id` from planner response.
@@ -115,16 +119,17 @@ Extract `plan_id` from planner response.
 If `plan_only` is true:
 - Return planner response directly (same as /faber:plan)
 
-Otherwise, invoke executor:
+Otherwise, invoke executor using the Skill tool:
 
 ```
-Skill: faber-executor
-Parameters:
-  plan_id: {plan_id from Step 2}
-  serial: {serial or false}
-  max_concurrent: 5
-  items: null
-  working_directory: {pwd}
+Skill(skill="faber-executor")
+
+Provide the following context in your invocation:
+- plan_id: {plan_id from Step 2}
+- serial: {serial or false}
+- max_concurrent: 5
+- items: null
+- working_directory: {pwd}
 ```
 
 ## Step 4: Return Response
@@ -137,7 +142,7 @@ Return the faber-executor skill's output (or planner output if --plan-only).
 
 **Success:**
 ```
-🎯 FABER Workflow Complete
+FABER Workflow Complete
 
 Plan: fractary-claude-plugins-csv-export-20251208T160000
 Target: csv-export
@@ -145,22 +150,22 @@ Work ID: #123
 Workflow: fractary-faber:default
 
 Results:
-  ✅ #123 Add CSV export → PR #150
+  #123 Add CSV export -> PR #150
 
 PR ready for review: https://github.com/org/repo/pull/150
 ```
 
 **Multiple Items:**
 ```
-🎯 FABER Workflow Complete
+FABER Workflow Complete
 
 Plan: fractary-claude-plugins-batch-20251208T160000
 Workflow: fractary-faber:default
 
 Results (3/3 successful):
-  ✅ #123 Add CSV export → PR #150
-  ✅ #124 Add PDF export → PR #151
-  ✅ #125 Fix export bug → PR #152
+  #123 Add CSV export -> PR #150
+  #124 Add PDF export -> PR #151
+  #125 Fix export bug -> PR #152
 
 All PRs ready for review.
 ```
@@ -185,22 +190,30 @@ Examples:
 
 ```
 /faber:run (THIS COMMAND)
-    ↓
-┌─────────────────────────────────┐
-│ Phase 1: faber-planner          │
-│   - Create plan artifact        │
-│   - Save to logs directory      │
-└─────────────────────────────────┘
-    ↓
-┌─────────────────────────────────┐
-│ Phase 2: faber-executor         │
-│   - Read plan                   │
-│   - Spawn faber-manager(s)      │
-│   - Aggregate results           │
-└─────────────────────────────────┘
-    ↓
+    |
++-------------------------------+
+| Phase 1: faber-planner        |
+|   - Create plan artifact      |
+|   - Save to logs directory    |
++-------------------------------+
+    |
++-------------------------------+
+| Phase 2: faber-executor       |
+|   - Read plan                 |
+|   - Spawn faber-manager(s)    |
+|   - Aggregate results         |
++-------------------------------+
+    |
 Results returned to user
 ```
+
+## Skill vs Agent Invocation
+
+- **Skills** are invoked using the `Skill` tool: `Skill(skill="skill-name")`
+- **Agents** are invoked using the `Task` tool: `Task(subagent_type="agent-name")`
+
+Both faber-planner and faber-executor are **skills**, so use the Skill tool.
+The faber-manager is an **agent**, which the executor skill will spawn using Task tool.
 
 ## Convenience vs Control
 
@@ -212,7 +225,7 @@ Results returned to user
 
 ## Plan Persistence
 
-All plans are saved to `.fractary/logs/faber/plans/` even when using `/faber:run`.
+All plans are saved to `logs/fractary/plugins/faber/plans/` even when using `/faber:run`.
 This enables:
 - Debugging after failure
 - Audit trail
