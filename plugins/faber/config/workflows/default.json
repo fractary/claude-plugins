@@ -12,7 +12,7 @@
     },
     "architect": {
       "enabled": true,
-      "description": "Generate technical specification from issue context",
+      "description": "Generate and refine technical specification from issue context",
       "pre_steps": [],
       "steps": [
         {
@@ -23,6 +23,19 @@
           "config": {
             "use_issue_context": true,
             "auto_detect_template": true
+          }
+        },
+        {
+          "id": "refine-spec",
+          "name": "Refine Specification",
+          "description": "Critically review spec and gather clarifications from user",
+          "skill": "fractary-spec:spec-refiner",
+          "config": {
+            "allow_iterative_rounds": true,
+            "best_effort_on_no_answers": true
+          },
+          "arguments": {
+            "work_id": "{work_id}"
           }
         }
       ],
