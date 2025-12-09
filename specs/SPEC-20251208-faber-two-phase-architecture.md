@@ -73,7 +73,17 @@ The plan is a **complete snapshot of intent** saved before execution:
 {
   "id": "fractary-claude-plugins-ipeds-20251208T153000",
   "created": "2025-12-08T15:30:00Z",
-  "created_by": "faber-director",
+  "created_by": "faber-planner",
+
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "ipeds",
+    "year": "2025",
+    "month": "12",
+    "day": "08"
+  },
+
   "source": {
     "input": "ipeds/*",
     "work_id": null,
@@ -226,6 +236,40 @@ Worktrees created during plan execution are automatically cleaned up:
 - Uses existing `/repo:pr-merge --worktree-cleanup` behavior
 - Plan tracks worktree paths for cleanup coordination
 - No manual cleanup required for successful workflows
+
+#### 9. Analytics Metadata
+
+Each plan includes a `metadata` block for cross-project, cross-organization analytics:
+
+```json
+{
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "csv-export",
+    "year": "2025",
+    "month": "12",
+    "day": "08"
+  }
+}
+```
+
+**Purpose:**
+- Enables S3 + Athena analytics with Hive-style partitioning
+- Supports cross-project and cross-organization reporting
+- Pre-computed fields for efficient query pruning
+
+**S3 Path Structure (for archival):**
+```
+s3://fractary-analytics/faber/
+├── plans/org={org}/project={project}/year={YYYY}/month={MM}/day={DD}/{plan_id}.json
+└── runs/org={org}/project={project}/year={YYYY}/month={MM}/day={DD}/status={status}/{run_id}.json
+```
+
+**Benefits:**
+- Time-based queries only scan relevant partitions
+- Easy filtering by org, project, or date range
+- Ready for Athena table definitions without transformation
 
 ---
 
@@ -513,10 +557,11 @@ Each plan item has its own state file:
 
 1. [x] Review and refine this spec
 2. [x] Create GitHub issue for implementation (#314)
-3. [ ] Phase 1: Simplify faber-director (fix #309)
-4. [ ] Phase 2: Add plan artifact generation
-5. [ ] Phase 3: Create /faber:execute command
-6. [ ] Phase 4: Add parallel execution support
+3. [x] Phase 1: Simplify faber-director → Created faber-planner (~200 lines)
+4. [x] Phase 2: Add plan artifact generation (with analytics metadata)
+5. [x] Phase 3: Create /faber:execute command and faber-executor skill
+6. [ ] Phase 4: Add parallel execution support (Task tool with run_in_background)
+7. [ ] Phase 5: Implement S3 sync for cross-project analytics
 
 ---
 
@@ -552,3 +597,13 @@ Each plan item has its own state file:
 - `logs/` is for operational artifacts (gitignored)
 - Added user prompt after plan creation asking whether to execute
 - Clarified model selection: haiku (commands), sonnet (skills), opus (agents)
+
+### 2025-12-09: Analytics Metadata
+
+**Changes:**
+- Added `metadata` block to plan artifact structure
+- Includes `org`, `project`, `subproject`, `year`, `month`, `day` fields
+- Enables S3 + Athena analytics with Hive-style partitioning
+- Supports cross-project, cross-organization reporting
+- Added §9: Analytics Metadata design decision section
+- Pre-computed fields eliminate transformation during sync

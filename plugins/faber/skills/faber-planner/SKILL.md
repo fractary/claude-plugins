@@ -118,7 +118,7 @@ Check if branch exists for this work_id:
 }
 ```
 
-## Step 5: Generate Plan ID
+## Step 5: Generate Plan ID and Metadata
 
 Format: `{org}-{project}-{subproject}-{timestamp}`
 
@@ -131,6 +131,24 @@ timestamp = YYYYMMDDTHHMMSS
 Example: fractary-claude-plugins-csv-export-20251208T160000
 ```
 
+**Extract metadata for analytics:**
+```bash
+# Get org and project from git remote
+git remote get-url origin
+# Parse: https://github.com/{org}/{project}.git → org, project
+
+# Extract date components from current timestamp
+year = YYYY
+month = MM
+day = DD
+```
+
+Store these in `metadata` object for S3/Athena partitioning:
+- `org` - Organization name (for cross-org analytics)
+- `project` - Repository name (for cross-project analytics)
+- `subproject` - Target/feature being built
+- `year`, `month`, `day` - Date components (for time-based partitioning)
+
 ## Step 6: Build Plan Artifact
 
 ```json
@@ -138,6 +156,15 @@ Example: fractary-claude-plugins-csv-export-20251208T160000
   "id": "fractary-claude-plugins-csv-export-20251208T160000",
   "created": "2025-12-08T16:00:00Z",
   "created_by": "faber-planner",
+
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "csv-export",
+    "year": "2025",
+    "month": "12",
+    "day": "08"
+  },
 
   "source": {
     "input": "original user input",
