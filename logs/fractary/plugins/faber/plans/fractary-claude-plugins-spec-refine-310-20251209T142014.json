@@ -1,0 +1,133 @@
+{
+  "id": "fractary-claude-plugins-spec-refine-310-20251209T142014",
+  "created": "2025-12-09T14:20:14Z",
+  "created_by": "faber-planner",
+
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "spec-refine",
+    "year": "2025",
+    "month": "12",
+    "day": "09",
+    "hour": "14",
+    "minute": "20",
+    "second": "14"
+  },
+
+  "source": {
+    "input": "work-id 310",
+    "work_id": "310",
+    "expanded_from": null
+  },
+
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-09T14:20:14Z",
+    "inheritance_chain": ["fractary-faber:default", "fractary-faber:core"],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": []
+      },
+      "architect": {
+        "enabled": true,
+        "description": "Generate technical specification from issue context",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "generate-spec",
+            "name": "Generate Specification",
+            "description": "Create technical specification from issue context",
+            "skill": "fractary-spec:spec-generator",
+            "config": {
+              "use_issue_context": true,
+              "auto_detect_template": true
+            }
+          }
+        ],
+        "post_steps": []
+      },
+      "build": {
+        "enabled": true,
+        "description": "Implement solution based on specification",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "implement",
+            "name": "Implement Solution",
+            "description": "Implement based on specification following project patterns",
+            "skill": "fractary-faber:build",
+            "config": {
+              "use_spec": true,
+              "post_progress_comments": true
+            }
+          }
+        ],
+        "post_steps": []
+      },
+      "evaluate": {
+        "enabled": true,
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": []
+      },
+      "release": {
+        "enabled": true,
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": []
+      }
+    }
+  },
+
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+
+  "items": [
+    {
+      "target": "Add fractary-spec:refine skill step after spec:create step in default faber workflow",
+      "work_id": "310",
+      "issue": {
+        "number": 310,
+        "title": "Add fractary-spec:refine skill step after spec:create step in default faber workflow",
+        "url": "https://github.com/fractary/claude-plugins/issues/310",
+        "state": "open",
+        "labels": [],
+        "author": "jmcwilliam"
+      },
+      "branch": {
+        "name": "feat/310-add-spec-refine-workflow",
+        "status": "new",
+        "resume_from": null
+      },
+      "worktree": "../claude-plugins-wt-feat-310-add-spec-refine-workflow"
+    }
+  ],
+
+  "execution": {
+    "mode": "parallel",
+    "max_concurrent": 5,
+    "status": "awaiting_approval",
+    "started_at": "2025-12-09T14:22:12Z",
+    "completed_at": "2025-12-09T14:28:22Z",
+    "results": [
+      {
+        "work_id": "310",
+        "status": "awaiting_approval",
+        "run_id": "fractary/claude-plugins/0acd4e89-4671-4105-ae34-51d1a0ed071a",
+        "branch": "feat/310-add-spec-refine-workflow",
+        "spec": "/specs/WORK-00310-add-spec-refine-step.md",
+        "pr_url": "https://github.com/fractary/claude-plugins/pull/317",
+        "pr_number": 317,
+        "phases_completed": ["frame", "architect", "build", "evaluate"],
+        "phases_pending": ["release"],
+        "error": null
+      }
+    ]
+  }
+}
