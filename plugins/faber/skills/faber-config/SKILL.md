@@ -243,6 +243,35 @@ Build Phase Execution Order:
 - `DUPLICATE_STEP_ID`: Same step ID appears multiple times in merged workflow
 - `INVALID_SKIP_STEP`: skip_steps references a step that doesn't exist in ancestors
 
+**CRITICAL - Use Deterministic Script:**
+
+The merge algorithm described above MUST be executed deterministically using the provided script.
+DO NOT attempt to perform the merge logic manually - this leads to incomplete merges.
+
+**Script Execution (MANDATORY for inheritance chains):**
+```bash
+# Use this script for ALL resolve-workflow operations with inheritance
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+"${SCRIPT_DIR}/scripts/merge-workflows.sh" "$workflow_id" \
+  --plugin-root "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/fractary}" \
+  --project-root "$(pwd)"
+```
+
+**Post-Merge Validation (MANDATORY):**
+After merge, ALWAYS validate the result:
+```bash
+"${SCRIPT_DIR}/scripts/validate-merge.sh" "$merged_workflow_json"
+```
+
+If validation fails with "no steps from any ancestor", the merge was incomplete.
+This is a FATAL error - do not proceed with workflow execution.
+
+**Why Scripts Are Required:**
+- LLM-based merge is non-deterministic and prone to skipping merge logic
+- Issue #327 documented a case where the LLM identified the inheritance chain but
+  did not execute the merge algorithm, resulting in empty phase steps
+- The deterministic script guarantees consistent merge behavior
+
 ---
 
 ## validate-config

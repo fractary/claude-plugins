@@ -189,7 +189,7 @@ solutions:
       - "Identify the expected return type from implementation"
       - "Update the type annotation to match"
       - "Run type checker to verify"
-    faber_command: "/faber:run --work-id {id} --step builder --prompt 'Fix type annotation as identified by debugger'"
+    faber_command: "/fractary-faber:run --work-id {id} --step builder --prompt 'Fix type annotation as identified by debugger'"
 status: unverified
 created: 2025-12-05
 last_used: 2025-12-05

@@ -34,11 +34,14 @@ State tracks: current phase, phase statuses, artifacts, retry counts, errors, la
 ```json
 {
   "run_id": "fractary/my-project/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "plan_id": "fractary-claude-plugins-csv-export-20251208T160000",
   "work_id": "123",
   "workflow_id": "default",
   "workflow_version": "2.1",
   "status": "in_progress",
   "current_phase": "build",
+  "current_step_index": 2,
+  "steps_completed": ["generate-spec", "create-branch"],
   "last_event_id": 15,
   "started_at": "2025-12-03T10:00:00Z",
   "updated_at": "2025-12-03T10:30:00Z",
@@ -285,6 +288,49 @@ Mark the workflow as completed or failed.
 4. Set `state.completed_at = now()`
 5. Add summary/errors if provided
 6. Write state back
+
+---
+
+## update-step-progress
+
+Track exact step progress within a phase (for resume support).
+
+**Parameters:**
+- `run_id` (optional): Run identifier. If provided, updates per-run state.
+- `phase` (required): Current phase being executed
+- `current_step_index` (required): Index of the current/next step in the phase
+- `steps_completed` (required): Array of step names/IDs that have been completed
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "operation": "update-step-progress",
+  "phase": "build",
+  "current_step_index": 2,
+  "steps_completed": ["generate-spec", "create-branch"],
+  "resumable": true
+}
+```
+
+**Execution:**
+1. Compute state path from run_id if provided
+2. Read current state
+3. Set `state.current_phase = phase`
+4. Set `state.current_step_index = current_step_index`
+5. Set `state.steps_completed = steps_completed`
+6. Update `updated_at` timestamp
+7. Write state back
+
+**Purpose:**
+This operation enables exact-step resume by tracking:
+- Which phase we're currently in
+- Which step index we're at (0-indexed)
+- Which steps have already been completed
+
+When resuming with `--resume`, the executor reads this state and passes it
+to faber-manager as `resume_context`, allowing the manager to skip completed
+steps and continue from the exact position.
 
 ---
 

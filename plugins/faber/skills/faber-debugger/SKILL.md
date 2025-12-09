@@ -24,7 +24,7 @@ You use the claude-sonnet-4-5 model for balanced analysis performance.
 <CRITICAL_RULES>
 1. **ALWAYS search knowledge base first** - Before diagnosing, check if similar issues have been resolved before
 2. **ALWAYS log findings** - Document diagnosis and proposed solutions to both terminal AND GitHub issue
-3. **ALWAYS provide actionable next steps** - Include a `/faber:run` command when proposing solutions
+3. **ALWAYS provide actionable next steps** - Include a `/fractary-faber:run` command when proposing solutions
 4. **NEVER apply fixes directly** - Only propose solutions; the build phase implements them
 5. **ALWAYS update knowledge base** - After successful resolutions, add new entries for future reference
 6. **ALWAYS return structured response** - Use standard FABER response format with status/message/details
@@ -155,13 +155,13 @@ See `workflow/propose-solution.md` for detailed steps.
 
 ## Step 5: Generate Continuation Command
 
-Create the appropriate `/faber:run` command for continuing the workflow.
+Create the appropriate `/fractary-faber:run` command for continuing the workflow.
 
 See `workflow/generate-continuation.md` for detailed steps.
 
 **Command Format:**
 ```
-/faber:run --work-id {work_id} --workflow {workflow} --step {next_step} --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes."
+/fractary-faber:run --work-id {work_id} --workflow {workflow} --step {next_step} --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes."
 ```
 
 **Include:**
@@ -240,7 +240,7 @@ See `workflow/update-knowledge-base.md` for detailed steps.
         "kb_entry": "faber-debug-042"
       }
     ],
-    "continuation_command": "/faber:run --work-id 244 --step builder --prompt 'Fix session cleanup async handling as identified by debugger'",
+    "continuation_command": "/fractary-faber:run --work-id 244 --step builder --prompt 'Fix session cleanup async handling as identified by debugger'",
     "spec_created": false,
     "github_comment_url": "https://github.com/org/repo/issues/244#issuecomment-123456"
   }
@@ -276,7 +276,7 @@ See `workflow/update-knowledge-base.md` for detailed steps.
     "solutions": [...],
     "spec_created": true,
     "spec_path": "specs/WORK-00244-debugger-fixes.md",
-    "continuation_command": "/faber:run --work-id 244 --step builder --prompt 'Implement fixes from debugger spec'"
+    "continuation_command": "/fractary-faber:run --work-id 244 --step builder --prompt 'Implement fixes from debugger spec'"
   },
   "warning_analysis": "Multiple issues were found that require careful coordination. A specification has been created to ensure proper implementation order and testing.",
   "suggested_fixes": [
@@ -387,7 +387,7 @@ solutions:
     steps:
       - "Step 1"
       - "Step 2"
-    faber_command: "/faber:run --work-id {id} --step X"
+    faber_command: "/fractary-faber:run --work-id {id} --step X"
 status: verified|unverified|deprecated
 created: YYYY-MM-DD
 last_used: YYYY-MM-DD
@@ -429,7 +429,7 @@ The debugger can be invoked:
 
 3. **Manually via command:**
    ```
-   /faber:debug --run-id abc123 --problem "Description"
+   /fractary-faber:debug --run-id abc123 --problem "Description"
    ```
 
 ## Plugin Dependencies
@@ -474,7 +474,7 @@ plugins/faber/skills/faber-debugger/
 ├── scripts/
 │   ├── search-kb.sh                      # Knowledge base search
 │   ├── aggregate-errors.sh               # Parse workflow errors
-│   ├── generate-command.sh               # Create /faber:run command
+│   ├── generate-command.sh               # Create /fractary-faber:run command
 │   ├── log-to-issue.sh                   # Post GitHub comment
 │   └── kb-add-entry.sh                   # Add knowledge base entry
 └── templates/

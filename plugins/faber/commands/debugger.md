@@ -5,8 +5,8 @@ Invoke the FABER debugger to diagnose workflow issues and propose solutions.
 ## Usage
 
 ```bash
-/faber:debug --run-id <run-id> [options]
-/faber:debug --work-id <work-id> [options]
+/fractary-faber:debug --run-id <run-id> [options]
+/fractary-faber:debug --work-id <work-id> [options]
 ```
 
 ## Options
@@ -30,10 +30,10 @@ When invoked without `--problem`, the debugger automatically:
 
 ```bash
 # Debug the latest run for work item 244
-/faber:debug --work-id 244
+/fractary-faber:debug --work-id 244
 
 # Debug a specific run
-/faber:debug --run-id "fractary/claude-plugins/abc123"
+/fractary-faber:debug --run-id "fractary/claude-plugins/abc123"
 ```
 
 ### Targeted Debugging Mode
@@ -41,7 +41,7 @@ When `--problem` is provided, the debugger focuses on the specific issue:
 
 ```bash
 # Debug a specific problem
-/faber:debug --work-id 244 --problem "Test suite failing with timeout errors"
+/fractary-faber:debug --work-id 244 --problem "Test suite failing with timeout errors"
 ```
 
 ### Learning Mode
@@ -49,7 +49,7 @@ After a successful fix, add the resolution to the knowledge base:
 
 ```bash
 # Add successful resolution to KB
-/faber:debug --run-id "fractary/claude-plugins/abc123" --learn
+/fractary-faber:debug --run-id "fractary/claude-plugins/abc123" --learn
 ```
 
 ## Examples
@@ -57,7 +57,7 @@ After a successful fix, add the resolution to the knowledge base:
 ### Debug Failed Build
 ```bash
 # Debug why the build failed
-/faber:debug --work-id 244
+/fractary-faber:debug --work-id 244
 
 # Output:
 # 🔍 DEBUGGER ANALYSIS COMPLETE
@@ -75,22 +75,22 @@ After a successful fix, add the resolution to the knowledge base:
 # Fix type annotation in src/auth.ts
 #
 # ## Recommended Next Step
-# /faber:run --work-id 244 --step builder --prompt "Fix type errors..."
+# /fractary-faber:run --work-id 244 --step builder --prompt "Fix type errors..."
 ```
 
 ### Debug Specific Phase
 ```bash
 # Focus on evaluate phase issues
-/faber:debug --work-id 244 --phase evaluate
+/fractary-faber:debug --work-id 244 --phase evaluate
 
 # Focus on a specific step
-/faber:debug --work-id 244 --phase build --step commit
+/fractary-faber:debug --work-id 244 --phase build --step commit
 ```
 
 ### Create Spec for Complex Issues
 ```bash
 # Force spec creation for multi-step fix
-/faber:debug --work-id 244 --create-spec
+/fractary-faber:debug --work-id 244 --create-spec
 ```
 
 ## Output
@@ -120,7 +120,7 @@ Type annotations are incorrect...
 
 ### Recommended Next Step
 ```
-/faber:run --work-id 244 --step builder --prompt "..."
+/fractary-faber:run --work-id 244 --step builder --prompt "..."
 ```
 ```
 
@@ -175,11 +175,11 @@ cat .fractary/plugins/faber/debugger/knowledge-base/index.json | jq '.entries | 
 ### Manual KB Entry
 ```bash
 # Add a manual entry after resolving an issue
-/faber:debug --run-id "run-id" --learn
+/fractary-faber:debug --run-id "run-id" --learn
 ```
 
 ## See Also
 
-- `/faber:run` - Run or resume FABER workflow
-- `/faber:status` - View workflow status
+- `/fractary-faber:run` - Run or resume FABER workflow
+- `/fractary-faber:status` - View workflow status
 - `plugins/faber/skills/faber-debugger/SKILL.md` - Full skill documentation

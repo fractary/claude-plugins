@@ -1,0 +1,131 @@
+{
+  "id": "fractary-claude-plugins-update-documentation-20251209T152629",
+  "created": "2025-12-09T15:26:29Z",
+  "created_by": "faber-planner",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "update-documentation-cleanup",
+    "year": "2025",
+    "month": "12",
+    "day": "09",
+    "hour": "15",
+    "minute": "26",
+    "second": "29"
+  },
+  "source": {
+    "input": "--work-id 271",
+    "work_id": "271",
+    "expanded_from": null
+  },
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-09T15:26:29Z",
+    "inheritance_chain": [
+      "fractary-faber:default",
+      "fractary-faber:core"
+    ],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "description": "Automatic: Fetch work item and prepare environment",
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": []
+      },
+      "architect": {
+        "enabled": true,
+        "description": "Generate technical specification from issue context",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "generate-spec",
+            "name": "Generate Specification",
+            "description": "Create technical specification from issue context",
+            "skill": "fractary-spec:spec-generator",
+            "config": {
+              "use_issue_context": true,
+              "auto_detect_template": true
+            }
+          }
+        ],
+        "post_steps": []
+      },
+      "build": {
+        "enabled": true,
+        "description": "Automatic: Create branch. Implement solution based on specification",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "implement",
+            "name": "Implement Solution",
+            "description": "Implement based on specification following project patterns",
+            "skill": "fractary-faber:build",
+            "config": {
+              "use_spec": true,
+              "post_progress_comments": true
+            }
+          }
+        ],
+        "post_steps": []
+      },
+      "evaluate": {
+        "enabled": true,
+        "description": "Test and validate implementation",
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": [],
+        "max_retries": 3
+      },
+      "release": {
+        "enabled": true,
+        "description": "Automatic: Create PR. Merge and deploy",
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": [],
+        "requires_approval": true
+      }
+    }
+  },
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+  "items": [
+    {
+      "target": "Update documentation and cleanup old files in all plugins",
+      "work_id": "271",
+      "issue": {
+        "number": 271,
+        "title": "Update documentation and cleanup old files in all plugins",
+        "url": "https://github.com/fractary/claude-plugins/issues/271",
+        "state": "open",
+        "author": "jmcwilliam"
+      },
+      "branch": {
+        "name": "feat/271-update-documentation-cleanup",
+        "status": "resume",
+        "resume_from": {
+          "phase": "release",
+          "step": "create-pr"
+        }
+      },
+      "worktree": "../claude-plugins-wt-feat-271-update-documentation-cleanup",
+      "previous_run": {
+        "run_id": "fractary/claude-plugins/94e4b2dc-2542-446d-a3f7-949cb6af515e",
+        "status": "completed",
+        "pr_number": 318,
+        "completed_at": "2025-12-09T14:42:37.149Z"
+      }
+    }
+  ],
+  "execution": {
+    "mode": "parallel",
+    "max_concurrent": 5,
+    "status": "pending",
+    "started_at": null,
+    "completed_at": null,
+    "results": []
+  },
+  "notes": "This plan is for issue #271 which has already completed a full FABER workflow. The previous run (94e4b2dc-2542-446d-a3f7-949cb6af515e) successfully completed all phases and created PR #318. This plan can be used to resume/retry operations or to run the workflow again if needed."
+}

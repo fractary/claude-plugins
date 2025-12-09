@@ -1,6 +1,6 @@
 # Generate Continuation Command
 
-This workflow step creates the appropriate `/faber:run` command for continuing the workflow after applying fixes.
+This workflow step creates the appropriate `/fractary-faber:run` command for continuing the workflow after applying fixes.
 
 ## Overview
 
@@ -147,7 +147,7 @@ scripts/generate-command.sh \
 
 **Output Format:**
 ```
-/faber:run --work-id 244 --workflow default --step builder --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes.
+/fractary-faber:run --work-id 244 --workflow default --step builder --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes.
 
 ## Debugger Analysis Summary
 Build failed due to type mismatches in auth module.
@@ -172,13 +172,13 @@ For complex solutions requiring multiple steps:
     {
       "order": 1,
       "description": "Install dependencies",
-      "command": "/faber:run --work-id 244 --step builder --prompt 'Install missing @types/xyz package'",
+      "command": "/fractary-faber:run --work-id 244 --step builder --prompt 'Install missing @types/xyz package'",
       "expected_outcome": "Types installed successfully"
     },
     {
       "order": 2,
       "description": "Fix type errors",
-      "command": "/faber:run --work-id 244 --step builder --prompt 'Fix type errors with newly available types'",
+      "command": "/fractary-faber:run --work-id 244 --step builder --prompt 'Fix type errors with newly available types'",
       "expected_outcome": "Type check passes"
     }
   ],
@@ -193,7 +193,7 @@ Multiple coordinated fixes needed. A specification has been created:
 specs/WORK-00244-debugger-fixes.md
 
 Continue with:
-/faber:run --work-id 244 --step builder --prompt 'Implement fixes per debugger specification'
+/fractary-faber:run --work-id 244 --step builder --prompt 'Implement fixes per debugger specification'
 ```
 
 ---
@@ -228,7 +228,7 @@ Return formatted command with context:
 ```json
 {
   "continuation": {
-    "command": "/faber:run --work-id 244 --step builder --prompt '...'",
+    "command": "/fractary-faber:run --work-id 244 --step builder --prompt '...'",
     "parsed": {
       "work_id": "244",
       "workflow": "default",
@@ -252,7 +252,7 @@ Return formatted command with context:
 ## Recommended Next Step
 
 \`\`\`
-/faber:run --work-id 244 --step builder --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes.
+/fractary-faber:run --work-id 244 --step builder --prompt "Review the issues and proposed solutions identified by faber-debugger and implement the recommended fixes.
 
 ## Debugger Analysis Summary
 Build failed due to type mismatches in auth module.
@@ -303,5 +303,5 @@ Return command for display:
 
 ```
 Continuation Command:
-/faber:run --work-id 244 --step builder --prompt 'Fix type errors as identified by debugger'
+/fractary-faber:run --work-id 244 --step builder --prompt 'Fix type errors as identified by debugger'
 ```

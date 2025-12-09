@@ -17,7 +17,7 @@ Internally, this command:
 2. Invokes faber-executor to execute the plan
 3. Returns aggregated results
 
-For more control, use `/faber:plan` and `/faber:execute` separately.
+For more control, use `/fractary-faber:plan` and `/fractary-faber:execute` separately.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -31,7 +31,7 @@ For more control, use `/faber:plan` and `/faber:execute` separately.
 
 **Syntax:**
 ```bash
-/faber:run [<target>] [options]
+/fractary-faber:run [<target>] [options]
 ```
 
 **Arguments:**
@@ -48,28 +48,28 @@ For more control, use `/faber:plan` and `/faber:execute` separately.
 | `--phase <phases>` | string | all | Comma-separated phases to execute |
 | `--step <step-id>` | string | - | Specific step (format: `phase:step-name`) |
 | `--prompt "<text>"` | string | - | Additional instructions |
-| `--plan-only` | flag | false | Create plan but don't execute (same as /faber:plan) |
+| `--plan-only` | flag | false | Create plan but don't execute (same as /fractary-faber:plan) |
 | `--serial` | flag | false | Execute items sequentially |
 
 **Examples:**
 ```bash
 # Single work item
-/faber:run --work-id 123
+/fractary-faber:run --work-id 123
 
 # With target
-/faber:run customer-pipeline --work-id 123
+/fractary-faber:run customer-pipeline --work-id 123
 
 # Multiple work items (parallel execution)
-/faber:run --work-id 123,124,125
+/fractary-faber:run --work-id 123,124,125
 
 # Phase selection
-/faber:run --work-id 123 --phase frame,architect
+/fractary-faber:run --work-id 123 --phase frame,architect
 
 # Serial execution
-/faber:run --work-id 123,124 --serial
+/fractary-faber:run --work-id 123,124 --serial
 
 # Plan only (don't execute)
-/faber:run --work-id 123 --plan-only
+/fractary-faber:run --work-id 123 --plan-only
 ```
 
 </INPUTS>
@@ -117,7 +117,7 @@ Extract `plan_id` from planner response.
 ## Step 3: Execute Plan (unless --plan-only)
 
 If `plan_only` is true:
-- Return planner response directly (same as /faber:plan)
+- Return planner response directly (same as /fractary-faber:plan)
 
 Otherwise, invoke executor using the Skill tool:
 
@@ -174,12 +174,12 @@ All PRs ready for review.
 ```
 Error: Either <target> or --work-id is required
 
-Usage: /faber:run [<target>] [options]
+Usage: /fractary-faber:run [<target>] [options]
 
 Examples:
-  /faber:run --work-id 123
-  /faber:run customer-pipeline --work-id 123
-  /faber:run --work-id 123,124,125
+  /fractary-faber:run --work-id 123
+  /fractary-faber:run customer-pipeline --work-id 123
+  /fractary-faber:run --work-id 123,124,125
 ```
 
 </OUTPUTS>
@@ -189,7 +189,7 @@ Examples:
 ## Two-Phase Architecture
 
 ```
-/faber:run (THIS COMMAND)
+/fractary-faber:run (THIS COMMAND)
     |
 +-------------------------------+
 | Phase 1: faber-planner        |
@@ -219,13 +219,13 @@ The faber-manager is an **agent**, which the executor skill will spawn using Tas
 
 | Command | Creates Plan | Executes | Use Case |
 |---------|--------------|----------|----------|
-| `/faber:run` | Yes | Yes | Quick single workflow |
-| `/faber:plan` | Yes | No | Review before execute |
-| `/faber:execute` | No | Yes | Execute existing plan |
+| `/fractary-faber:run` | Yes | Yes | Quick single workflow |
+| `/fractary-faber:plan` | Yes | No | Review before execute |
+| `/fractary-faber:execute` | No | Yes | Execute existing plan |
 
 ## Plan Persistence
 
-All plans are saved to `logs/fractary/plugins/faber/plans/` even when using `/faber:run`.
+All plans are saved to `logs/fractary/plugins/faber/plans/` even when using `/fractary-faber:run`.
 This enables:
 - Debugging after failure
 - Audit trail
@@ -233,9 +233,9 @@ This enables:
 
 ## See Also
 
-- `/faber:plan` - Create plan only (for review)
-- `/faber:execute` - Execute existing plan
-- `/faber:status` - Check workflow status
-- `/faber:init` - Initialize FABER configuration
+- `/fractary-faber:plan` - Create plan only (for review)
+- `/fractary-faber:execute` - Execute existing plan
+- `/fractary-faber:status` - Check workflow status
+- `/fractary-faber:init` - Initialize FABER configuration
 
 </NOTES>

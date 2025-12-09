@@ -22,13 +22,13 @@ solutions:
       - "Identify the missing package name from the error"
       - "Run: npm install {package-name}"
       - "Verify package.json was updated"
-    faber_command: "/faber:run --work-id {work_id} --step builder --prompt \"Install missing npm dependency and add to package.json\""
+    faber_command: "/fractary-faber:run --work-id {work_id} --step builder --prompt \"Install missing npm dependency and add to package.json\""
   - title: "Reinstall node_modules"
     steps:
       - "Delete node_modules directory"
       - "Delete package-lock.json if corrupted"
       - "Run: npm install"
-    faber_command: "/faber:run --work-id {work_id} --step builder --prompt \"Clean reinstall of npm dependencies\""
+    faber_command: "/fractary-faber:run --work-id {work_id} --step builder --prompt \"Clean reinstall of npm dependencies\""
 status: verified
 created: 2025-01-20
 last_used: 2025-11-28
@@ -77,7 +77,7 @@ This issue commonly occurs when:
 
 **FABER Command:**
 ```
-/faber:run --work-id {work_id} --step builder --prompt "Install missing npm dependency and add to package.json"
+/fractary-faber:run --work-id {work_id} --step builder --prompt "Install missing npm dependency and add to package.json"
 ```
 
 ### Reinstall node_modules
@@ -92,7 +92,7 @@ If node_modules is corrupted or out of sync:
 
 **FABER Command:**
 ```
-/faber:run --work-id {work_id} --step builder --prompt "Clean reinstall of npm dependencies"
+/fractary-faber:run --work-id {work_id} --step builder --prompt "Clean reinstall of npm dependencies"
 ```
 
 ## Verification

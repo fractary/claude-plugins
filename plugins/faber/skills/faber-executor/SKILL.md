@@ -39,6 +39,7 @@ This simplicity is by design - so simple it can't fail.
 - `serial` (boolean, optional): Run items sequentially instead of parallel
 - `max_concurrent` (number, optional): Limit parallel execution (default: 5)
 - `items` (string, optional): Comma-separated item indices to execute
+- `resume` (boolean, optional): Resume from exact step where execution stopped
 - `working_directory` (string): Project root
 </INPUTS>
 
@@ -75,19 +76,54 @@ Else:
 items_to_run = plan.items
 ```
 
-## Step 3: Update Plan Status
+## Step 3: Load Resume State (if --resume)
+
+If `resume` is true:
+```
+For each item in items_to_run:
+  state_path = "logs/fractary/plugins/faber/runs/{plan_id}/items/{item.work_id}/state.json"
+
+  IF state file exists:
+    state = read(state_path)
+    item.resume_from = {
+      "phase": state.current_phase,
+      "step_index": state.current_step_index,
+      "steps_completed": state.steps_completed,
+      "run_id": state.run_id
+    }
+    item.is_resume = true
+  ELSE:
+    item.is_resume = false
+    LOG "⚠️ No state found for item {item.work_id}, starting fresh"
+```
+
+**State structure (read from file):**
+```json
+{
+  "run_id": "fractary-claude-plugins-abc123",
+  "plan_id": "fractary-claude-plugins-csv-export-20251208T160000",
+  "work_id": 123,
+  "current_phase": "build",
+  "current_step_index": 2,
+  "steps_completed": ["generate-spec", "create-branch"],
+  "status": "in_progress"
+}
+```
+
+## Step 4: Update Plan Status
 
 Update plan file:
 ```json
 {
   "execution": {
     "status": "running",
-    "started_at": "2025-12-08T16:30:00Z"
+    "started_at": "2025-12-08T16:30:00Z",
+    "is_resume": {resume}
   }
 }
 ```
 
-## Step 4: Spawn Managers
+## Step 5: Spawn Managers
 
 ### Parallel Mode (default)
 
@@ -123,7 +159,7 @@ Wait for all background agents to complete using the AgentOutputTool (retrieve r
 
 Spawn managers one at a time, wait for each before next.
 
-## Step 5: Collect Results
+## Step 6: Collect Results
 
 For each manager result:
 ```json
@@ -135,7 +171,7 @@ For each manager result:
 }
 ```
 
-## Step 6: Update Plan with Results
+## Step 7: Update Plan with Results
 
 Update plan file:
 ```json
@@ -151,13 +187,13 @@ Update plan file:
 }
 ```
 
-## Step 7: Trigger Worktree Cleanup
+## Step 8: Trigger Worktree Cleanup
 
 For each successful item:
 - If PR was merged, cleanup worktree automatically
 - Uses `/repo:worktree-remove` if worktree exists
 
-## Step 8: Return Summary
+## Step 9: Return Summary
 
 Output aggregated results.
 
@@ -201,7 +237,7 @@ Results (2/3 successful):
      Error: Tests failed (3 failures)
 
 To retry failed item:
-  /faber:execute {plan_id} --items 125
+  /fractary-faber:execute {plan_id} --items 125
 ```
 
 ## All Failed
@@ -226,7 +262,7 @@ Check available plans:
   ls logs/fractary/plugins/faber/plans/
 
 Or create a new plan:
-  /faber:plan --work-id 123
+  /fractary-faber:plan --work-id 123
 ```
 
 </OUTPUTS>
@@ -267,6 +303,39 @@ Complexity is in the planning phase (faber-planner).
 - Useful for debugging
 - Useful when resources are limited
 
+## Resume Support (Exact-Step)
+
+The `--resume` flag enables resuming execution from the **exact step** where it stopped:
+
+**How it works:**
+1. Load state from `logs/fractary/plugins/faber/runs/{plan_id}/items/{work_id}/state.json`
+2. Extract `current_phase` and `current_step_index`
+3. Pass resume context to faber-manager
+4. Manager skips completed steps, continues from exact position
+
+**State tracking:**
+- faber-manager writes state after each step completes
+- State includes `plan_id` for bidirectional linking
+- Resume reads this state to determine where to continue
+
+**Example resume flow:**
+```
+# Original execution stopped at build step 2
+state.json:
+  current_phase: "build"
+  current_step_index: 2
+  steps_completed: ["generate-spec", "create-branch"]
+
+# Resume execution
+/fractary-faber:execute {plan_id} --resume
+
+# Manager receives:
+  is_resume: true
+  resume_from: {phase: "build", step_index: 2, ...}
+
+# Manager skips steps 0-1, starts at step 2
+```
+
 ## Worktree Cleanup
 
 Worktrees are cleaned up automatically when:
@@ -295,8 +364,8 @@ This uses the existing `/repo:pr-merge --worktree-cleanup` behavior.
 ## Integration
 
 **Invoked by:**
-- `/faber:execute` command
-- `/faber:run` command (after plan creation)
+- `/fractary-faber:execute` command
+- `/fractary-faber:run` command (after plan creation)
 
 **Invokes:**
 - `faber-manager` agent (via Task tool)

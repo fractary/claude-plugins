@@ -530,7 +530,7 @@ FABER stores operational artifacts in the `logs/` directory:
 
 ```
 logs/fractary/plugins/faber/
-|-- plans/                   # Plan artifacts from /faber:plan
+|-- plans/                   # Plan artifacts from /fractary-faber:plan
 |   |-- {plan-id}.json       # Individual plan files
 |-- runs/                    # Run state and events
     |-- {run-id}/
@@ -558,8 +558,8 @@ cat logs/fractary/plugins/faber/plans/{plan-id}.json
 
 ### Plan Lifecycle
 
-1. **Created** by `/faber:plan` or `/faber:run`
-2. **Read** by `/faber:execute`
+1. **Created** by `/fractary-faber:plan` or `/fractary-faber:run`
+2. **Read** by `/fractary-faber:execute`
 3. **Updated** with execution results
 4. **Archived** (optionally) via fractary-logs plugin
 

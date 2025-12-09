@@ -12,7 +12,7 @@ model: claude-haiku-4-5
 You are the entry point for creating FABER execution plans.
 Your job is to parse arguments and invoke the faber-planner skill.
 
-This command creates a plan but does NOT execute it. To execute, use `/faber:execute`.
+This command creates a plan but does NOT execute it. To execute, use `/fractary-faber:execute`.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -26,7 +26,7 @@ This command creates a plan but does NOT execute it. To execute, use `/faber:exe
 
 **Syntax:**
 ```bash
-/faber:plan [<target>] [options]
+/fractary-faber:plan [<target>] [options]
 ```
 
 **Arguments:**
@@ -47,16 +47,16 @@ This command creates a plan but does NOT execute it. To execute, use `/faber:exe
 **Examples:**
 ```bash
 # Single target
-/faber:plan customer-pipeline --work-id 123
+/fractary-faber:plan customer-pipeline --work-id 123
 
 # Wildcard expansion
-/faber:plan "ipeds/*"
+/fractary-faber:plan "ipeds/*"
 
 # Multiple issues
-/faber:plan --work-id 101,102,103
+/fractary-faber:plan --work-id 101,102,103
 
 # Phase selection
-/faber:plan --work-id 123 --phase frame,architect
+/fractary-faber:plan --work-id 123 --phase frame,architect
 ```
 
 </INPUTS>
@@ -114,12 +114,12 @@ The faber-planner skill's output showing plan ID and summary.
 ```
 Error: Either <target> or --work-id is required
 
-Usage: /faber:plan [<target>] [options]
+Usage: /fractary-faber:plan [<target>] [options]
 
 Examples:
-  /faber:plan customer-pipeline
-  /faber:plan --work-id 158
-  /faber:plan "ipeds/*"
+  /fractary-faber:plan customer-pipeline
+  /fractary-faber:plan --work-id 158
+  /fractary-faber:plan "ipeds/*"
 ```
 
 </OUTPUTS>
@@ -129,7 +129,7 @@ Examples:
 ## Two-Phase Architecture
 
 ```
-/faber:plan (THIS COMMAND)
+/fractary-faber:plan (THIS COMMAND)
     |
 faber-planner skill (invoked via Skill tool)
     |
@@ -137,7 +137,7 @@ Plan artifact saved to logs/fractary/plugins/faber/plans/
     |
 User reviews plan
     |
-/faber:execute <plan-id>
+/fractary-faber:execute <plan-id>
     |
 faber-executor skill
     |
@@ -153,8 +153,8 @@ The faber-planner is a **skill**, so use the Skill tool.
 
 ## See Also
 
-- `/faber:execute` - Execute a plan
-- `/faber:run` - Create and execute plan in one step
-- `/faber:status` - Check workflow status
+- `/fractary-faber:execute` - Execute a plan
+- `/fractary-faber:run` - Create and execute plan in one step
+- `/fractary-faber:status` - Check workflow status
 
 </NOTES>
