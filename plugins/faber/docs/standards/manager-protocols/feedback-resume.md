@@ -419,6 +419,6 @@ IF context.resume_point?.phase == current_phase THEN
 
 ## See Also
 
-- `context-reconstitution.md` - Context loading protocol
-- `faber-manager.md` - Main workflow agent
-- `plugins/faber/docs/HITL-WORKFLOW.md` - Complete HITL documentation
+- [context-reconstitution.md](./context-reconstitution.md) - Context loading protocol
+- [faber-manager.md](../../../agents/faber-manager.md) - Main workflow agent
+- [HITL-WORKFLOW.md](../../HITL-WORKFLOW.md) - Complete HITL documentation

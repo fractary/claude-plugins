@@ -3,7 +3,7 @@
 **Spec ID**: SPEC-20251208-faber-two-phase-architecture
 **Title**: Restructure FABER into Two-Phase Plan/Execute Model
 **Type**: Architecture / Refactoring
-**Status**: Draft
+**Status**: Draft (Refined)
 **Created**: 2025-12-08
 **Author**: Conversation Context
 **Source**: Planning discussion in Claude Code session
@@ -54,7 +54,7 @@ Phase 1: /faber:plan (Director creates artifact)
 │   ├── Create GitHub issue (if needed)
 │   ├── Create branch
 │   └── Create worktree
-├── Save plan artifact to .faber/plans/
+├── Save plan artifact to logs/fractary/plugins/faber/plans/
 └── STOP (do not execute)
 
 Phase 2: /faber:execute <plan-id> (Manager executes)
@@ -71,9 +71,22 @@ The plan is a **complete snapshot of intent** saved before execution:
 
 ```json
 {
-  "id": "plan-abc123",
+  "id": "fractary-claude-plugins-ipeds-20251208T153000",
   "created": "2025-12-08T15:30:00Z",
-  "created_by": "faber-director",
+  "created_by": "faber-planner",
+
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "ipeds",
+    "year": "2025",
+    "month": "12",
+    "day": "08",
+    "hour": "15",
+    "minute": "30",
+    "second": "00"
+  },
+
   "source": {
     "input": "ipeds/*",
     "work_id": null,
@@ -181,6 +194,89 @@ The `/faber:execute` command is intentionally simple (~50 lines):
 
 So simple it can't fail. The complexity is in the planning phase.
 
+#### 5. Plan ID Naming Convention
+
+Plan IDs follow a hierarchical naming pattern for cross-project analytics:
+
+```
+{organization}-{project}-{subproject}-{timestamp}
+```
+
+**Examples:**
+- `fractary-claude-plugins-ipeds-20251208T153000`
+- `acme-data-pipeline-customers-20251209T091500`
+- `myorg-webapp-auth-20251210T140000`
+
+**Benefits:**
+- Globally unique across organization
+- Human-readable and sortable by time
+- Ready for central control plane / reporting / analytics
+- Easy to identify source project from ID alone
+
+#### 6. Fail-Safe Parallel Execution
+
+When executing items in parallel:
+- Each item runs independently
+- If one item fails, others **continue** to completion
+- Failures are aggregated at the end
+- Final report shows which items succeeded/failed
+
+This prevents a single failure from blocking all work.
+
+#### 7. Resume Mode for Existing Branches
+
+When `/faber:plan` encounters an issue that already has an associated branch:
+- **Detect existing state** from issue labels and branch
+- **Resume from last checkpoint** rather than starting fresh
+- **Skip completed phases** and continue from where execution stopped
+
+This enables seamless recovery from interrupted workflows.
+
+#### 8. Automatic Worktree Cleanup
+
+Worktrees created during plan execution are automatically cleaned up:
+- When a PR is merged, its associated worktree is removed
+- Uses existing `/repo:pr-merge --worktree-cleanup` behavior
+- Plan tracks worktree paths for cleanup coordination
+- No manual cleanup required for successful workflows
+
+#### 9. Analytics Metadata
+
+Each plan includes a `metadata` block for cross-project, cross-organization analytics:
+
+```json
+{
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "csv-export",
+    "year": "2025",
+    "month": "12",
+    "day": "08",
+    "hour": "16",
+    "minute": "00",
+    "second": "00"
+  }
+}
+```
+
+**Purpose:**
+- Enables S3 + Athena analytics with Hive-style partitioning
+- Supports cross-project and cross-organization reporting
+- Pre-computed fields for efficient query pruning
+
+**S3 Path Structure (for archival):**
+```
+s3://fractary-analytics/faber/
+├── plans/org={org}/project={project}/year={YYYY}/month={MM}/day={DD}/{plan_id}.json
+└── runs/org={org}/project={project}/year={YYYY}/month={MM}/day={DD}/status={status}/{run_id}.json
+```
+
+**Benefits:**
+- Time-based queries only scan relevant partitions
+- Easy filtering by org, project, or date range
+- Ready for Athena table definitions without transformation
+
 ---
 
 ## Detailed Design
@@ -240,24 +336,35 @@ So simple it can't fail. The complexity is in the planning phase.
 
 ### Plan Storage
 
+Plans and run state are stored in the centralized `logs/` directory (not `.fractary/`):
+
 ```
-.faber/
+logs/fractary/plugins/faber/
 ├── plans/
-│   ├── plan-abc123.json          # Plan artifact
-│   ├── plan-def456.json
+│   ├── fractary-project-feature-20251208T153000.json
+│   ├── fractary-project-data-20251209T091500.json
 │   └── ...
 ├── runs/
-│   └── abc123/
+│   └── fractary-project-feature-20251208T153000/
 │       ├── items/
 │       │   ├── 401/              # Per-item state
 │       │   │   └── state.json
 │       │   └── 402/
 │       │       └── state.json
 │       └── aggregate.json        # Overall execution state
-└── logs/
+└── daily/
     └── 2025-12-08/
-        └── plan-abc123.log
+        └── fractary-project-feature-20251208T153000.log
 ```
+
+**Storage Rationale:**
+- `.fractary/` is for **persistent config** that gets committed to git
+- `logs/` is for **operational artifacts** that are gitignored
+- Centralized logs directory enables:
+  - Easy backup/archival via fractary-logs plugin
+  - Cloud sync to a central location
+  - Consistent log management across all plugins
+- The log directory path is configurable in `.fractary/plugins/logs/config.json`
 
 ### Audit Trail
 
@@ -333,7 +440,11 @@ For simple single-target runs, keep the current pattern as a convenience wrapper
 /faber:run --work-id 123
 ```
 
-Internally: creates ephemeral plan → immediately executes
+**Behavior:**
+- Creates a plan and saves it to `logs/fractary/plugins/faber/plans/`
+- Immediately executes the plan
+- Plan is persisted for debugging and audit purposes
+- Not ephemeral (can be referenced later if needed)
 
 ---
 
@@ -344,7 +455,7 @@ Internally: creates ephemeral plan → immediately executes
 Each plan item has its own state file:
 
 ```json
-// .faber/runs/abc123/items/401/state.json
+// logs/fractary/plugins/faber/runs/abc123/items/401/state.json
 {
   "item_index": 0,
   "target": "ipeds/admissions",
@@ -369,7 +480,7 @@ Each plan item has its own state file:
 
 1. Find issue by number
 2. Read `faber:run-id` label
-3. Load state from `.faber/runs/{run_id}/items/{issue}/state.json`
+3. Load state from `logs/fractary/plugins/faber/runs/{run_id}/items/{issue}/state.json`
 4. Resume from last checkpoint
 
 ---
@@ -419,10 +530,23 @@ Each plan item has its own state file:
 
 ## Open Questions
 
-1. **Ephemeral vs Persistent Plans**: Should `/faber:run` create a visible plan, or ephemeral?
-2. **Plan Expiration**: Do old plans need cleanup?
-3. **Partial Execution**: How to handle "execute items 2-4 of plan"?
-4. **Cross-Repo Plans**: Can a plan span multiple repositories?
+### Resolved
+
+1. ~~**Ephemeral vs Persistent Plans**~~: **RESOLVED** - All plans are persisted to `logs/fractary/plugins/faber/plans/`. Even `/faber:run` creates a visible plan for debugging and audit purposes.
+
+2. ~~**Failure Handling**~~: **RESOLVED** - Fail-safe mode. Items continue independently; failures aggregated at end.
+
+3. ~~**Existing Branch Handling**~~: **RESOLVED** - Resume mode. Detect existing state and continue from last checkpoint.
+
+4. ~~**Worktree Cleanup**~~: **RESOLVED** - Automatic cleanup on PR merge.
+
+5. ~~**Pre-validation**~~: **RESOLVED** - No pre-validation. Trust the plan, fail fast per item during execution.
+
+### Still Open
+
+1. **Plan Expiration**: Do old plans need cleanup? (Consider log rotation policies)
+2. **Partial Execution**: How to handle "execute items 2-4 of plan"? (Currently: `--items 401,402`)
+3. **Cross-Repo Plans**: Can a plan span multiple repositories? (Future consideration)
 
 ---
 
@@ -437,9 +561,55 @@ Each plan item has its own state file:
 
 ## Next Steps
 
-1. [ ] Review and refine this spec
-2. [ ] Create GitHub issue for implementation
-3. [ ] Phase 1: Simplify faber-director (fix #309)
-4. [ ] Phase 2: Add plan artifact generation
-5. [ ] Phase 3: Create /faber:execute command
-6. [ ] Phase 4: Add parallel execution support
+1. [x] Review and refine this spec
+2. [x] Create GitHub issue for implementation (#314)
+3. [x] Phase 1: Simplify faber-director → Created faber-planner (~200 lines)
+4. [x] Phase 2: Add plan artifact generation (with analytics metadata)
+5. [x] Phase 3: Create /faber:execute command and faber-executor skill
+6. [ ] Phase 4: Add parallel execution support (Task tool with run_in_background)
+7. [ ] Phase 5: Implement S3 sync for cross-project analytics
+
+---
+
+## Changelog
+
+### 2025-12-08: Initial Refinement
+
+**Questions Addressed:**
+
+| Question | Decision |
+|----------|----------|
+| Plan ID format | Hierarchical: `{org}-{project}-{subproject}-{timestamp}` for analytics readiness |
+| Plan persistence | Saved to `logs/fractary/plugins/faber/plans/` (not ephemeral) |
+| Failure mode | Fail-safe: continue other items, aggregate failures |
+| Existing branches | Resume mode: detect state and continue from checkpoint |
+| Pre-validation | None: trust plan, fail fast per item |
+| Worktree cleanup | Automatic on PR merge |
+
+**Sections Added:**
+- §5: Plan ID Naming Convention
+- §6: Fail-Safe Parallel Execution
+- §7: Resume Mode for Existing Branches
+- §8: Automatic Worktree Cleanup
+- Storage rationale for log-based plan persistence
+
+**Open Questions Resolved:** 5 of 8
+
+### 2025-12-09: Path Correction and User Prompt
+
+**Changes:**
+- Changed storage location from `.fractary/logs/` to `logs/fractary/plugins/faber/`
+- `.fractary/` is now reserved for committed config only
+- `logs/` is for operational artifacts (gitignored)
+- Added user prompt after plan creation asking whether to execute
+- Clarified model selection: haiku (commands), sonnet (skills), opus (agents)
+
+### 2025-12-09: Analytics Metadata
+
+**Changes:**
+- Added `metadata` block to plan artifact structure
+- Includes `org`, `project`, `subproject`, `year`, `month`, `day` fields
+- Enables S3 + Athena analytics with Hive-style partitioning
+- Supports cross-project, cross-organization reporting
+- Added §9: Analytics Metadata design decision section
+- Pre-computed fields eliminate transformation during sync

@@ -1,14 +1,19 @@
 ---
-name: faber-director
+name: faber-director-legacy
 description: |
-  13-STEP WORKFLOW ORCHESTRATOR - MUST execute ALL steps through Step 9.
-  CRITICAL: Returning after faber-config (Step 0b) is a BUG.
-  Step 8 MUST invoke faber-manager via Task tool.
-  DO NOT output workflow resolution JSON as final result.
+  ⚠️ DEPRECATED - Use faber-planner + faber-executor instead.
+  This skill is preserved for reference only.
+  See: SPEC-20251208-faber-two-phase-architecture.md
 model: claude-opus-4-5
 ---
 
-# Universal FABER Director Skill
+# [DEPRECATED] Universal FABER Director Skill
+
+> ⚠️ **DEPRECATED**: This skill has been replaced by the two-phase architecture:
+> - **faber-planner**: Creates execution plans
+> - **faber-executor**: Executes plans by spawning faber-manager agents
+>
+> This file is preserved for reference. Do not use in new code.
 
 <CONTEXT>
 You are the **Universal FABER Director Skill**, the WORKFLOW ORCHESTRATOR for FABER.

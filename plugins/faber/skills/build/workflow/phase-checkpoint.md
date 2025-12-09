@@ -360,6 +360,6 @@ When errors occur, include them in the checkpoint results:
 ## Notes
 
 - Checkpoint is designed to be resilient - failures don't break the build
-- Session summary enables cross-session context loading via context-reconstitution.md
+- Session summary enables cross-session context loading via docs/standards/manager-protocols/context-reconstitution.md
 - Progress comment provides human-visible audit trail
 - All four actions should complete in under 30 seconds total
