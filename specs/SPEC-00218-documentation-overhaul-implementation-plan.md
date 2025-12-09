@@ -34,8 +34,11 @@ The Fractary Claude Plugins repository has grown organically, resulting in:
 | Undocumented commands | 32+ | 0 |
 | Undocumented skills | 26+ | 0 |
 | Non-compliant SKILL.md files | 2 | 0 |
+| Agents with YAML frontmatter | ~85% | 100% |
 | Orphaned temporary files | 2 | 0 |
 | Specs directory organization | Chaotic | Organized with README |
+| Root documentation index | None | Complete INDEX.md |
+| Broken cross-references | Unknown | 0 |
 
 ---
 
@@ -202,7 +205,22 @@ Total files: 119
 
 ### 3.4 Tier 4: Standards Compliance
 
-#### 3.4.1 XML Markup Missing
+#### 3.4.1 Agent YAML Frontmatter Gaps
+
+Agent files should include YAML frontmatter for metadata and discoverability. Current compliance is approximately 85-90%, with some agents missing proper frontmatter.
+
+**Required Frontmatter Structure:**
+```yaml
+---
+name: agent-name
+description: Brief description of the agent
+version: 1.0.0
+---
+```
+
+**Action Required:** Audit all agent files in `plugins/*/agents/*.md` and add missing frontmatter.
+
+#### 3.4.2 XML Markup Missing
 
 Two SKILL.md files lack required XML markup structure:
 
@@ -410,7 +428,57 @@ mv specs/WORK-*.md .archive/work-items/
 **Duration:** 1-2 days
 **Objective:** Improve repository organization and discoverability
 
-#### 4.4.1 Specs Directory README
+#### 4.4.1 Root Documentation Index
+
+Create a comprehensive documentation index at `/docs/INDEX.md` to serve as the central navigation hub for all documentation.
+
+**Structure:**
+```markdown
+# Fractary Claude Plugins Documentation Index
+
+## Quick Links
+- [Getting Started](./getting-started.md)
+- [Plugin Standards](./standards/FRACTARY-PLUGIN-STANDARDS.md)
+- [CLAUDE.md](../CLAUDE.md)
+
+## Plugins
+
+### Workflow Orchestrators
+- [faber](../plugins/faber/README.md) - Core FABER workflow
+- [faber-app](../plugins/faber-app/README.md) - Application workflows
+- [faber-cloud](../plugins/faber-cloud/README.md) - Cloud infrastructure
+- [faber-db](../plugins/faber-db/README.md) - Database workflows
+- [faber-article](../plugins/faber-article/README.md) - Content workflows
+
+### Primitive Managers
+- [work](../plugins/work/README.md) - Work item management
+- [repo](../plugins/repo/README.md) - Source control
+- [file](../plugins/file/README.md) - File storage
+- [codex](../plugins/codex/README.md) - Knowledge management
+- [logs](../plugins/logs/README.md) - Logging
+- [spec](../plugins/spec/README.md) - Specifications
+- [docs](../plugins/docs/README.md) - Documentation
+
+### Utilities
+- [status](../plugins/status/README.md) - Status line
+- [helm](../plugins/helm/README.md) - Dashboard
+- [helm-cloud](../plugins/helm-cloud/README.md) - Cloud monitoring
+
+## Specifications
+- [All Specifications](../specs/README.md)
+
+## Architecture
+- [Plugin Standards](./standards/FRACTARY-PLUGIN-STANDARDS.md)
+- [Three-Layer Architecture](./standards/THREE-LAYER-ARCHITECTURE.md)
+```
+
+**Benefits:**
+- Central entry point for new users
+- Quick navigation to any plugin
+- Categorized organization (orchestrators vs primitives vs utilities)
+- Links to standards and architecture docs
+
+#### 4.4.2 Specs Directory README
 
 Create comprehensive `specs/README.md`:
 
@@ -471,10 +539,70 @@ docs/
 
 ### 4.5 Phase 5: Standards Compliance (Priority: LOW)
 
-**Duration:** 0.5 day
-**Objective:** Ensure all skill files meet XML markup standards
+**Duration:** 1 day
+**Objective:** Ensure all files meet standards and validate cross-references
 
-#### 4.5.1 Add XML Markup
+#### 4.5.1 Agent Frontmatter Audit
+
+Scan all agent files and add missing YAML frontmatter:
+
+```bash
+#!/bin/bash
+# audit-agent-frontmatter.sh
+for agent_file in plugins/*/agents/*.md; do
+    if ! head -1 "$agent_file" | grep -q "^---"; then
+        echo "Missing frontmatter: $agent_file"
+    fi
+done
+```
+
+**Action:** For each agent missing frontmatter, add:
+```yaml
+---
+name: <agent-name>
+description: <brief description>
+version: 1.0.0
+---
+```
+
+#### 4.5.2 Cross-Reference Validation
+
+Validate all internal markdown links to ensure they point to existing files.
+
+**Validation Script:**
+```bash
+#!/bin/bash
+# validate-cross-references.sh
+
+find . -name "*.md" -type f | while read md_file; do
+    # Extract markdown links [text](path)
+    grep -oE '\[([^\]]+)\]\(([^)]+)\)' "$md_file" | while read link; do
+        path=$(echo "$link" | sed 's/.*(\([^)]*\)).*/\1/')
+
+        # Skip external URLs and anchors
+        [[ "$path" == http* ]] && continue
+        [[ "$path" == \#* ]] && continue
+
+        # Remove anchor from path
+        path_without_anchor="${path%%#*}"
+
+        # Resolve relative path
+        dir=$(dirname "$md_file")
+        resolved_path="$dir/$path_without_anchor"
+
+        if [[ ! -f "$resolved_path" && ! -d "$resolved_path" ]]; then
+            echo "Broken link in $md_file: $path"
+        fi
+    done
+done
+```
+
+**Action:** Run validation and fix all broken cross-references by either:
+1. Updating the link to the correct path
+2. Creating the missing target file
+3. Removing the link if the content is no longer relevant
+
+#### 4.5.3 Add XML Markup
 
 **Files to update:**
 1. `plugins/faber-cloud/skills/cloud-common/SKILL.md`
