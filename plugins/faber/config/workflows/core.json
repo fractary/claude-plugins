@@ -45,6 +45,9 @@
             "push_after_commit": true,
             "conventional_commits": true,
             "link_to_issue": true
+          },
+          "arguments": {
+            "work_id": "{work_id}"
           }
         }
       ]
@@ -58,7 +61,10 @@
           "id": "core-issue-review",
           "name": "Review Issue Implementation",
           "description": "Verify implementation completeness against issue requirements",
-          "skill": "fractary-faber:issue-reviewer"
+          "skill": "fractary-faber:issue-reviewer",
+          "arguments": {
+            "work_id": "{work_id}"
+          }
         }
       ],
       "steps": [],
@@ -70,17 +76,24 @@
           "skill": "fractary-repo:commit-creator",
           "config": {
             "push_after_commit": true
+          },
+          "arguments": {
+            "work_id": "{work_id}"
           }
         },
         {
           "id": "core-create-pr",
           "name": "Create Pull Request",
-          "description": "Create PR for the implementation (skips if PR already exists)",
+          "description": "Create PR for the implementation (skips if PR already exists). Links to issue for auto-close on merge.",
           "skill": "fractary-repo:pr-manager",
           "config": {
             "action": "create",
             "auto_link_issue": true,
             "skip_if_exists": true
+          },
+          "arguments": {
+            "work_id": "{work_id}",
+            "issue_data": "{issue_data}"
           }
         },
         {
