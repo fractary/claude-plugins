@@ -1,0 +1,436 @@
+{
+  "schema_version": "2.0",
+  "storage": {
+    "local_path": "/logs",
+    "cloud_archive_path": "archive/logs/{year}/{month}/{issue_number}",
+    "cloud_logs_path": "archive/logs/claude-logs/{year}",
+    "cloud_summaries_path": "archive/logs/claude-summaries/{year}",
+    "archive_index_file": ".archive-index.json",
+    "provider": "s3",
+    "bucket": "fractary-logs",
+    "limits": {
+      "max_session_size_mb": 50,
+      "max_log_size_mb": 100,
+      "warn_session_size_mb": 10,
+      "total_storage_warn_gb": 1
+    }
+  },
+  "retention": {
+    "default": {
+      "local_days": 30,
+      "cloud_days": "forever",
+      "priority": "medium",
+      "auto_archive": true,
+      "cleanup_after_archive": true
+    },
+    "paths": [
+      {
+        "pattern": "sessions/*",
+        "log_type": "session",
+        "local_days": 7,
+        "cloud_days": "forever",
+        "priority": "high",
+        "auto_archive": true,
+        "cleanup_after_archive": false,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_if_referenced_in_docs": true,
+          "keep_recent_n": 10
+        },
+        "archive_triggers": {
+          "age_days": 7,
+          "size_mb": null,
+          "status": [
+            "stopped",
+            "error"
+          ]
+        },
+        "validation": {
+          "require_summary": true,
+          "require_redaction_check": true,
+          "warn_if_no_decisions": true
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Claude Code conversation session logs",
+          "typical_size_mb": 1,
+          "typical_duration_minutes": 30,
+          "value": "High - contains decisions, context, and implementation details"
+        }
+      },
+      {
+        "pattern": "builds/*",
+        "log_type": "build",
+        "local_days": 3,
+        "cloud_days": 30,
+        "priority": "medium",
+        "auto_archive": true,
+        "cleanup_after_archive": true,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_recent_n": 5
+        },
+        "archive_triggers": {
+          "age_days": 3,
+          "size_mb": null,
+          "status": [
+            "success",
+            "failure",
+            "cancelled"
+          ]
+        },
+        "validation": {
+          "require_summary": true,
+          "require_redaction_check": true,
+          "warn_if_no_errors_on_failure": true
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Build process logs (compile, link, package)",
+          "typical_size_mb": 5,
+          "typical_duration_minutes": 10,
+          "value": "Medium - useful for debugging but short-term relevance"
+        }
+      },
+      {
+        "pattern": "deployments/*",
+        "log_type": "deployment",
+        "local_days": 30,
+        "cloud_days": "forever",
+        "priority": "critical",
+        "auto_archive": true,
+        "cleanup_after_archive": false,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_if_referenced_in_docs": true,
+          "keep_recent_n": 20,
+          "never_delete_production": true
+        },
+        "archive_triggers": {
+          "age_days": 30,
+          "size_mb": null,
+          "status": [
+            "success",
+            "failure",
+            "rolled_back"
+          ]
+        },
+        "validation": {
+          "require_summary": true,
+          "require_redaction_check": true,
+          "require_health_checks_for_production": true,
+          "require_rollback_plan_for_production": true
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Deployment and release logs",
+          "typical_size_mb": 2,
+          "typical_duration_minutes": 15,
+          "value": "Critical - audit trail, compliance, rollback reference"
+        }
+      },
+      {
+        "pattern": "test/*",
+        "log_type": "test",
+        "local_days": 3,
+        "cloud_days": 7,
+        "priority": "low",
+        "auto_archive": true,
+        "cleanup_after_archive": true,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_recent_n": 3
+        },
+        "archive_triggers": {
+          "age_days": 3,
+          "size_mb": null,
+          "status": [
+            "success",
+            "failure"
+          ]
+        },
+        "validation": {
+          "require_summary": false,
+          "require_redaction_check": false
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Test execution logs",
+          "typical_size_mb": 3,
+          "typical_duration_minutes": 5,
+          "value": "Low - temporary debugging, rarely referenced after passing"
+        }
+      },
+      {
+        "pattern": "debug/*",
+        "log_type": "debug",
+        "local_days": 7,
+        "cloud_days": 30,
+        "priority": "medium",
+        "auto_archive": true,
+        "cleanup_after_archive": true,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_recent_n": 5
+        },
+        "archive_triggers": {
+          "age_days": 7,
+          "size_mb": null,
+          "status": [
+            "stopped",
+            "error"
+          ]
+        },
+        "validation": {
+          "require_summary": false,
+          "require_redaction_check": true
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Debug session logs",
+          "typical_size_mb": 2,
+          "typical_duration_minutes": 20,
+          "value": "Medium - useful for tracking down issues"
+        }
+      },
+      {
+        "pattern": "audit/*",
+        "log_type": "audit",
+        "local_days": 90,
+        "cloud_days": "forever",
+        "priority": "critical",
+        "auto_archive": true,
+        "cleanup_after_archive": false,
+        "retention_exceptions": {
+          "keep_if_referenced_in_docs": true,
+          "keep_recent_n": 100,
+          "never_delete_security_incidents": true,
+          "never_delete_compliance_audits": true
+        },
+        "archive_triggers": {
+          "age_days": 90,
+          "size_mb": null,
+          "status": [
+            "completed"
+          ]
+        },
+        "validation": {
+          "require_summary": true,
+          "require_redaction_check": false
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Audit trail and compliance logs",
+          "typical_size_mb": 1,
+          "typical_duration_minutes": 60,
+          "value": "Critical - compliance, security, regulatory requirements"
+        }
+      },
+      {
+        "pattern": "operational/*",
+        "log_type": "operational",
+        "local_days": 14,
+        "cloud_days": 90,
+        "priority": "medium",
+        "auto_archive": true,
+        "cleanup_after_archive": true,
+        "retention_exceptions": {
+          "keep_recent_n": 10
+        },
+        "archive_triggers": {
+          "age_days": 14,
+          "size_mb": null,
+          "status": [
+            "completed"
+          ]
+        },
+        "validation": {
+          "require_summary": false,
+          "require_redaction_check": false
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Operational logs (monitoring, metrics, alerts)",
+          "typical_size_mb": 4,
+          "typical_duration_minutes": null,
+          "value": "Medium - useful for trend analysis and debugging"
+        }
+      },
+      {
+        "pattern": "workflow/*",
+        "log_type": "workflow",
+        "local_days": 7,
+        "cloud_days": "forever",
+        "priority": "high",
+        "auto_archive": true,
+        "cleanup_after_archive": false,
+        "retention_exceptions": {
+          "keep_if_linked_to_open_issue": true,
+          "keep_recent_n": 20
+        },
+        "archive_triggers": {
+          "age_days": 7,
+          "size_mb": null,
+          "status": [
+            "completed",
+            "failed"
+          ]
+        },
+        "validation": {
+          "require_summary": true,
+          "require_redaction_check": true
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "FABER workflow execution logs",
+          "typical_size_mb": 2,
+          "typical_duration_minutes": 45,
+          "value": "High - contains workflow decisions and execution trace"
+        }
+      },
+      {
+        "pattern": "changelog/*",
+        "log_type": "changelog",
+        "local_days": 7,
+        "cloud_days": "forever",
+        "priority": "high",
+        "auto_archive": true,
+        "cleanup_after_archive": false,
+        "retention_exceptions": {
+          "keep_if_referenced_in_docs": true,
+          "keep_recent_n": 50
+        },
+        "archive_triggers": {
+          "age_days": 7,
+          "size_mb": null,
+          "status": [
+            "published"
+          ]
+        },
+        "validation": {
+          "require_summary": false,
+          "require_redaction_check": false
+        },
+        "compression": {
+          "enabled": true,
+          "format": "gzip",
+          "threshold_mb": 1
+        },
+        "metadata": {
+          "description": "Release changelogs and version history",
+          "typical_size_mb": 0.5,
+          "typical_duration_minutes": null,
+          "value": "High - permanent record of releases and changes"
+        }
+      }
+    ]
+  },
+  "auto_backup": {
+    "enabled": true,
+    "trigger_on_init": true,
+    "trigger_on_session_start": true,
+    "backup_older_than_days": 7,
+    "generate_summaries": true
+  },
+  "summarization": {
+    "enabled": true,
+    "auto_generate_on_archive": true,
+    "model": "claude-sonnet-4-5-20250929",
+    "store_with_logs": false,
+    "separate_paths": true,
+    "format": "markdown"
+  },
+  "archive": {
+    "auto_archive_on": {
+      "work_complete": true,
+      "issue_close": true,
+      "manual_trigger": true
+    },
+    "compression": {
+      "enabled": true,
+      "format": "gzip",
+      "threshold_mb": 1
+    },
+    "post_archive": {
+      "update_archive_index": true,
+      "comment_on_issue": true,
+      "remove_from_local": true,
+      "keep_index": true
+    }
+  },
+  "session_logging": {
+    "enabled": true,
+    "auto_capture": true,
+    "format": "markdown",
+    "include_timestamps": true,
+    "redact_sensitive": true,
+    "auto_name_by_issue": true,
+    "model_name": "claude-sonnet-4-5-20250929",
+    "redaction_patterns": {
+      "api_keys": true,
+      "jwt_tokens": true,
+      "passwords": true,
+      "credit_cards": true,
+      "email_addresses": false
+    }
+  },
+  "search": {
+    "index_local": true,
+    "search_cloud": true,
+    "max_results": 100,
+    "default_context_lines": 3
+  },
+  "integration": {
+    "github": {
+      "enabled": true,
+      "comment_on_capture": false,
+      "comment_on_archive": true
+    },
+    "faber": {
+      "auto_capture": true,
+      "auto_archive_on_complete": true
+    }
+  },
+  "docs_integration": {
+    "enabled": true,
+    "copy_summary_to_docs": true,
+    "docs_path": "docs/conversations",
+    "update_index": true,
+    "index_file": "docs/conversations/README.md",
+    "summary_filename_pattern": "{date}-{issue_number}-{slug}.md",
+    "index_format": "table",
+    "max_index_entries": 50
+  }
+}
