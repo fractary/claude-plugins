@@ -102,18 +102,23 @@ Extract from user input:
 Task(
   subagent_type="fractary-faber:faber-planner",
   description="Create FABER plan for work item {work_id or target}",
-  prompt='{
-    "target": "{target or null}",
-    "work_id": "{work_id or null}",
-    "workflow_override": "{workflow_override or null}",
-    "autonomy_override": "{autonomy_override or null}",
-    "phases": "{phases or null}",
-    "step_id": "{step_id or null}",
-    "prompt": "{prompt or null}",
-    "working_directory": "{pwd}"
-  }'
+  prompt='<parameters>
+    target: {target value, or omit if not provided}
+    work_id: {work_id value, or omit if not provided}
+    workflow_override: {workflow_override value, or omit if not provided}
+    autonomy_override: {autonomy_override value, or omit if not provided}
+    phases: {phases value, or omit if not provided}
+    step_id: {step_id value, or omit if not provided}
+    prompt: {prompt value, or omit if not provided}
+    working_directory: {pwd}
+  </parameters>'
 )
 ```
+
+**Parameter handling:**
+- Only include parameters that have values
+- Omit parameters that are null/not provided
+- The agent will use defaults for omitted parameters
 
 Extract `plan_id` from planner response.
 
