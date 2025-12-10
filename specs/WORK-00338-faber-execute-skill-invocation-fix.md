@@ -4,7 +4,7 @@ work_id: 338
 issue_url: https://github.com/fractary/claude-plugins/issues/338
 title: Fix faber execute command skill invocation
 type: bug
-status: draft
+status: implemented
 created: 2025-12-10
 refined: 2025-12-10
 author: Claude
@@ -177,9 +177,9 @@ By making the instructions unambiguous and adding explicit prohibitions, the mod
 **Objective**: Update execute.md to prevent incorrect invocation
 
 **Tasks**:
-- [ ] Add explicit "DO NOT use Task tool" in CRITICAL_RULES
-- [ ] Add example of the exact Skill tool call to use
-- [ ] Add warning about the common mistake pattern
+- [x] Add explicit "DO NOT use Task tool" in CRITICAL_RULES
+- [x] Add example of the exact Skill tool call to use
+- [x] Add warning about the common mistake pattern
 - [ ] Test the fix manually
 
 **Estimated Scope**: Small (single file edit)

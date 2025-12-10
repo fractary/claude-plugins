@@ -20,6 +20,7 @@ This command executes a plan previously created by `/fractary-faber:plan`.
 2. **PLAN REQUIRED** - Plan must exist in `logs/fractary/plugins/faber/plans/`
 3. **MINIMAL PROCESSING** - Only parse arguments, nothing more
 4. **USE SKILL TOOL** - Invoke faber-executor using the Skill tool, NOT Task tool
+5. **NEVER USE TASK TOOL** - faber-executor is a SKILL, not an agent. Using Task tool will fail with "Agent type not found" error.
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -86,17 +87,28 @@ Extract from user input:
 
 **IMPORTANT:** Use the Skill tool to invoke the faber-executor skill.
 
+**EXACT INVOCATION** (copy this exactly):
 ```
 Skill(skill="faber-executor")
+```
 
-Provide the following context in your invocation:
+**DO NOT USE:**
+```
+Task(subagent_type="fractary-faber:faber-executor")  ← THIS WILL FAIL
+```
+
+The faber-executor is a **SKILL**, not an agent. Using Task tool will produce:
+```
+Error: Agent type 'fractary-faber:faber-executor' not found
+```
+
+**Provide the following context in your invocation:**
 - plan_id: {plan_id}
 - serial: {serial or false}
 - max_concurrent: {max_concurrent or 5}
 - items: {items or null}
 - resume: {resume or false}
 - working_directory: {pwd}
-```
 
 The skill name is `faber-executor` (short form, without namespace prefix).
 
@@ -137,6 +149,27 @@ Or create a new plan:
 ```
 
 </OUTPUTS>
+
+<WARNING>
+**Common Mistake: Do not confuse faber-executor (a skill) with faber-manager (an agent).**
+
+| Component | Type | How to Invoke |
+|-----------|------|---------------|
+| faber-executor | **Skill** | `Skill(skill="faber-executor")` |
+| faber-manager | **Agent** | `Task(subagent_type="fractary-faber:faber-manager")` |
+
+The faber-executor skill is responsible for orchestrating plan execution. It internally spawns faber-manager agents for each work item using the Task tool.
+
+**Your job** (this command): Invoke faber-executor as a skill.
+**Executor's job**: Spawn faber-manager agents for each item.
+
+If you use Task tool to invoke faber-executor, you will get:
+```
+Error: Agent type 'fractary-faber:faber-executor' not found
+```
+
+This bypasses the executor's orchestration logic (parallel execution, resume support, results aggregation).
+</WARNING>
 
 <NOTES>
 
