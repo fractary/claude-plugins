@@ -2,15 +2,8 @@
 name: faber-planner
 description: Creates FABER execution plans without executing them. Phase 1 of two-phase architecture.
 model: claude-opus-4-5
-tools:
-  - Skill
-  - SlashCommand
-  - Read
-  - Write
-  - Bash
-  - Glob
-  - Grep
-  - AskUserQuestion
+tools: Skill, SlashCommand, Read, Write, Bash, Glob, Grep, AskUserQuestion
+color: orange
 ---
 
 # FABER Planner Agent
