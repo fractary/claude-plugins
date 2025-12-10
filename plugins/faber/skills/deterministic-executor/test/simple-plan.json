@@ -1,0 +1,102 @@
+{
+  "id": "test-deterministic-executor-20251210",
+  "created": "2025-12-10T20:00:00Z",
+  "created_by": "manual-test",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "test"
+  },
+  "source": {
+    "input": "manual test",
+    "work_id": "test-001"
+  },
+  "workflow": {
+    "id": "test-workflow",
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "test-read-file",
+            "name": "Read a test file",
+            "description": "Simple test: read the CLAUDE.md file and report its line count",
+            "command": null,
+            "prompt": "Read the file CLAUDE.md in the project root and report how many lines it has. Return JSON: {\"status\": \"success\", \"message\": \"File has X lines\", \"artifacts\": {\"line_count\": X}}"
+          }
+        ]
+      },
+      "architect": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "test-list-files",
+            "name": "List plugin directories",
+            "description": "List the top-level directories in plugins/",
+            "command": null,
+            "prompt": "List all directories in the plugins/ folder. Return JSON: {\"status\": \"success\", \"message\": \"Found X plugins\", \"artifacts\": {\"plugins\": [\"list\", \"of\", \"names\"]}}"
+          }
+        ]
+      },
+      "build": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "test-create-file",
+            "name": "Create a test file",
+            "description": "Create a simple test file to prove execution",
+            "command": null,
+            "prompt": "Create a file at plugins/faber/skills/deterministic-executor/test/execution-proof.txt with the content 'Deterministic executor test completed at [current timestamp]'. Return JSON: {\"status\": \"success\", \"message\": \"File created\", \"artifacts\": {\"file_path\": \"plugins/faber/skills/deterministic-executor/test/execution-proof.txt\"}}"
+          }
+        ]
+      },
+      "evaluate": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "test-verify-file",
+            "name": "Verify test file exists",
+            "description": "Verify the file we created exists",
+            "command": null,
+            "prompt": "Check if the file plugins/faber/skills/deterministic-executor/test/execution-proof.txt exists and read its contents. Return JSON: {\"status\": \"success\", \"message\": \"File verified\", \"artifacts\": {\"file_exists\": true, \"content\": \"...\"}}"
+          }
+        ]
+      },
+      "release": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "test-cleanup",
+            "name": "Cleanup test file",
+            "description": "Remove the test file we created",
+            "command": null,
+            "prompt": "Delete the file plugins/faber/skills/deterministic-executor/test/execution-proof.txt. Return JSON: {\"status\": \"success\", \"message\": \"Test file cleaned up\", \"artifacts\": {}}"
+          }
+        ]
+      }
+    }
+  },
+  "autonomy": "guarded",
+  "items": [
+    {
+      "target": "test",
+      "work_id": "test-001",
+      "issue": {
+        "number": 0,
+        "title": "Test deterministic executor",
+        "description": "A simple test workflow to validate the deterministic executor prototype",
+        "state": "OPEN",
+        "labels": ["test"],
+        "url": "local://test"
+      },
+      "branch": {
+        "name": "test-deterministic-executor",
+        "status": "new"
+      }
+    }
+  ],
+  "execution": {
+    "mode": "serial",
+    "status": "pending"
+  }
+}
