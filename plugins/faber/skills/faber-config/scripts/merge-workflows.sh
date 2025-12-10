@@ -87,14 +87,32 @@ resolve_workflow_path() {
 }
 
 # Function to load a workflow JSON file
+# Implements fallback: if workflow_id has no namespace (implicitly "project") and file doesn't exist
+# in project location, try the plugin's default workflows location
 load_workflow() {
     local workflow_id="$1"
     local path
     path=$(resolve_workflow_path "$workflow_id")
 
+    # Check if file exists at resolved path
     if [[ ! -f "$path" ]]; then
-        echo '{"status": "failure", "message": "Workflow not found: '"$workflow_id"'", "errors": ["File not found: '"$path"'"]}' >&2
-        exit 1
+        # Fallback logic: if no explicit namespace was provided (no colon in workflow_id),
+        # try the plugin's default workflow location before failing
+        if [[ "$workflow_id" != *":"* ]]; then
+            local fallback_path="${PLUGIN_ROOT}/plugins/faber/config/workflows/${workflow_id}.json"
+            if [[ -f "$fallback_path" ]]; then
+                # Found in plugin defaults - use this path
+                path="$fallback_path"
+            else
+                # Not found in either location
+                echo '{"status": "failure", "message": "Workflow not found: '"$workflow_id"'", "errors": ["File not found in project ('"$path"') or plugin defaults ('"$fallback_path"')"]}' >&2
+                exit 1
+            fi
+        else
+            # Explicit namespace was provided, don't fallback
+            echo '{"status": "failure", "message": "Workflow not found: '"$workflow_id"'", "errors": ["File not found: '"$path"'"]}' >&2
+            exit 1
+        fi
     fi
 
     # Validate JSON
