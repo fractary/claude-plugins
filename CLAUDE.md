@@ -55,6 +55,46 @@ This is the **Fractary Claude Code Plugins** repository, containing a collection
 2. Find the equivalent source file in this repository under `plugins/` (see [Directory Structure](#directory-structure) below)
 3. Edit the source file instead
 
+## CRITICAL: Command Names Must Include Full `fractary-` Prefix
+
+**All plugin commands MUST be referenced with their full name including the `fractary-` prefix.**
+
+Commands will NOT work without the proper prefix. The plugin system uses the full name from `plugin.json` to route commands.
+
+### Command Naming Format
+
+```
+/fractary-{plugin-name}:{command-name}
+```
+
+### Examples
+
+| ✅ Correct | ❌ Wrong |
+|-----------|----------|
+| `/fractary-faber:init` | `/faber:init` |
+| `/fractary-faber:plan` | `/faber:plan` |
+| `/fractary-faber:execute` | `/faber:execute` |
+| `/fractary-faber:run` | `/faber:run` |
+| `/fractary-faber:status` | `/faber:status` |
+| `/fractary-repo:commit` | `/repo:commit` |
+| `/fractary-repo:branch-create` | `/repo:branch-create` |
+| `/fractary-repo:pr-create` | `/repo:pr-create` |
+| `/fractary-work:issue-fetch` | `/work:issue-fetch` |
+| `/fractary-faber-cloud:deploy-apply` | `/faber-cloud:deploy-apply` |
+
+### Rule Enforcement
+
+**Before recommending ANY command to the user:**
+1. Check that the command name starts with `fractary-`
+2. Use the format `/fractary-{plugin}:{command}`
+3. NEVER use shortened forms like `/faber:*`, `/repo:*`, `/work:*`
+
+**Common mistake to avoid:**
+```
+❌ "To execute this plan: /faber:execute plan-id"
+✅ "To execute this plan: /fractary-faber:execute plan-id"
+```
+
 ## Architecture
 
 ### Plugin Ecosystem
