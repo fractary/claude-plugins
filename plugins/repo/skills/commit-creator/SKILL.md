@@ -188,52 +188,40 @@ This self-contained check ensures:
 **Note:** The `allow_empty` parameter is now only needed for intentional empty commits
 (e.g., marking a point in history). Normal "nothing to commit" returns success.
 
-**6. EXECUTE COMMIT SCRIPT:**
+**6. INVOKE HANDLER:**
 
-Execute the create-commit script directly using the Bash tool.
+Invoke the active source control handler skill to create the commit.
 
-**Script Location**: Find the script based on the active platform from config:
-1. Read platform from config: `config.handlers.source_control.active` (e.g., "github")
-2. Try these paths in order (use the first that exists):
-   - Installed: `~/.claude/plugins/marketplaces/fractary/plugins/repo/skills/handler-source-control-{platform}/scripts/create-commit.sh`
-   - Development: `plugins/repo/skills/handler-source-control-{platform}/scripts/create-commit.sh`
+**Determine Handler**: Read the platform from config at `config.handlers.source_control.active` (e.g., "github", "gitlab", "bitbucket").
 
-**Script Invocation** (use Bash tool):
-```bash
-# Find and execute the script (adjust path based on environment)
-SCRIPT_PATH="$(ls ~/.claude/plugins/marketplaces/fractary/plugins/repo/skills/handler-source-control-github/scripts/create-commit.sh 2>/dev/null || ls plugins/repo/skills/handler-source-control-github/scripts/create-commit.sh 2>/dev/null)" && \
-"$SCRIPT_PATH" "<message>" "<type>" "<work_id>" "<author_context>" "<description>"
+**Construct Handler Skill Name**: `fractary-repo:handler-source-control-{platform}`
+- For GitHub: `fractary-repo:handler-source-control-github`
+- For GitLab: `fractary-repo:handler-source-control-gitlab`
+- For Bitbucket: `fractary-repo:handler-source-control-bitbucket`
+
+**Invoke the Handler**: Use the Skill tool with the handler skill name:
+```
+Skill(skill="fractary-repo:handler-source-control-github")
 ```
 
-**Simplified invocation** (if you know the environment):
-```bash
-# For installed plugins:
-~/.claude/plugins/marketplaces/fractary/plugins/repo/skills/handler-source-control-github/scripts/create-commit.sh "<message>" "<type>" "<work_id>" "<author_context>" "<description>"
+**IMPORTANT**: Before invoking the handler, output the operation request as JSON so the handler can parse it:
 
-# For development (in source repo):
-plugins/repo/skills/handler-source-control-github/scripts/create-commit.sh "<message>" "<type>" "<work_id>" "<author_context>" "<description>"
+```json
+{
+  "operation": "create-commit",
+  "parameters": {
+    "message": "<formatted_message>",
+    "type": "<type>",
+    "work_id": "<work_id or empty string>",
+    "author_context": "<author_context or empty string>",
+    "description": "<description or empty string>"
+  }
+}
 ```
 
-**Parameters** (positional):
-1. `message` - Commit message summary (required)
-2. `type` - Commit type: feat|fix|chore|docs|test|refactor|style|perf (required)
-3. `work_id` - Work item reference, e.g., "#123" (optional, pass empty string "" if not provided)
-4. `author_context` - FABER context (optional, pass empty string "" if not provided)
-5. `description` - Extended description (optional, pass empty string "" if not provided)
-
-**Example**:
-```bash
-plugins/repo/skills/handler-source-control-github/scripts/create-commit.sh \
-  "Add CSV export functionality" \
-  "feat" \
-  "#123" \
-  "implementor" \
-  "Implements streaming export for large datasets"
-```
-
-The script will:
-- Stage any unstaged changes automatically
-- Create the commit with formatted message and metadata
+The handler skill will:
+- Read the JSON operation request from the conversation context
+- Execute the appropriate platform-specific script (`scripts/create-commit.sh`)
 - Return JSON with status, commit_sha, and message
 
 **7. VALIDATE RESPONSE:**

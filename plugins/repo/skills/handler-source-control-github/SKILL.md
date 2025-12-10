@@ -1,6 +1,7 @@
 ---
 name: handler-source-control-github
 description: GitHub source control handler centralizing Git CLI and GitHub API operations with protected branch safety
+tools: Bash
 model: claude-opus-4-5
 ---
 
@@ -46,23 +47,34 @@ You are part of the handler pattern that enables universal source control operat
 </CRITICAL_RULES>
 
 <INPUTS>
-You receive structured operation requests from core skills:
+You receive structured operation requests from core skills via the conversation context.
+
+**How to read the request**: Look in the conversation for a JSON block that was output by the calling skill immediately before invoking you. The JSON has this structure:
 
 ```json
 {
   "operation": "generate-branch-name|create-branch|delete-branch|create-commit|push-branch|pull-branch|create-pr|comment-pr|analyze-pr|review-pr|merge-pr|create-tag|push-tag|wait-for-ci|list-stale-branches",
   "parameters": {
-    // Operation-specific parameters
-  },
-  "config": {
-    "default_branch": "main",
-    "protected_branches": ["main", "master", "production"],
-    "branch_naming": "feat/{issue_id}-{slug}",
-    "require_signed_commits": false,
-    "merge_strategy": "no-ff"
+    // Operation-specific parameters - see OPERATIONS section for each operation's parameters
   }
 }
 ```
+
+**Example**: If the commit-creator skill invoked you, there will be a JSON block like:
+```json
+{
+  "operation": "create-commit",
+  "parameters": {
+    "message": "Add CSV export functionality",
+    "type": "feat",
+    "work_id": "#123",
+    "author_context": "implementor",
+    "description": "Extended description here"
+  }
+}
+```
+
+Parse this JSON to get the operation name and parameters, then route to the appropriate script.
 </INPUTS>
 
 <WORKFLOW>
@@ -86,7 +98,16 @@ Platform: GitHub
 - Check protected branch rules if applicable
 
 **4. EXECUTE OPERATION:**
-Route to appropriate script based on operation (see OPERATIONS section below).
+Based on the `operation` field in the JSON request, execute the corresponding script using the Bash tool.
+
+**Script Path**: Scripts are located relative to this skill at `scripts/{operation-name}.sh`
+
+**For create-commit**, run:
+```bash
+scripts/create-commit.sh "<message>" "<type>" "<work_id>" "<author_context>" "<description>"
+```
+
+See OPERATIONS section below for each operation's script and parameters.
 
 **5. HANDLE RESPONSE:**
 - Parse script output (JSON or plain text)
