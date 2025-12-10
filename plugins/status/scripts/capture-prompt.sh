@@ -17,9 +17,9 @@ MAX_INPUT_SIZE=10000  # 10KB limit for safety
 # Claude 3.5 Sonnet / Claude 4 context window
 CONTEXT_WINDOW=200000
 # Pricing: Claude 3.5 Sonnet ($3/M input, $15/M output)
-# Values in micro-dollars (millionths of a dollar) per token
-INPUT_PRICE_PER_TOKEN=3      # $3/M = 0.000003/token = 3 micro-dollars
-OUTPUT_PRICE_PER_TOKEN=15    # $15/M = 0.000015/token = 15 micro-dollars
+# Values are dollars per million tokens (used directly in cost formula)
+INPUT_PRICE_PER_MILLION=3    # $3 per million input tokens
+OUTPUT_PRICE_PER_MILLION=15  # $15 per million output tokens
 
 # Ensure plugin directory exists
 mkdir -p "$PLUGIN_DIR"
@@ -118,7 +118,6 @@ PROMPT_TOKENS_EST=$(( (PROMPT_LENGTH + 3) / 4 ))  # Round up
 
 # Initialize or read existing metrics
 INPUT_TOKENS=0
-OUTPUT_TOKENS=0
 STARTED_AT="$TIMESTAMP"
 
 if [ -f "$METRICS_CACHE" ]; then
@@ -126,12 +125,11 @@ if [ -f "$METRICS_CACHE" ]; then
   EXISTING_SESSION=$(jq -r '.session_id // ""' "$METRICS_CACHE" 2>/dev/null || echo "")
 
   if [ "$EXISTING_SESSION" = "$SESSION_ID" ]; then
-    # Same session - accumulate
+    # Same session - accumulate input tokens from previous prompts
     INPUT_TOKENS=$(jq -r '.input_tokens_est // 0' "$METRICS_CACHE" 2>/dev/null || echo 0)
-    OUTPUT_TOKENS=$(jq -r '.output_tokens_est // 0' "$METRICS_CACHE" 2>/dev/null || echo 0)
     STARTED_AT=$(jq -r '.started_at // ""' "$METRICS_CACHE" 2>/dev/null || echo "$TIMESTAMP")
   fi
-  # If different session, we start fresh (INPUT_TOKENS and OUTPUT_TOKENS stay at 0)
+  # If different session, we start fresh (INPUT_TOKENS stays at 0)
 fi
 
 # Add this prompt's estimated tokens
@@ -155,10 +153,10 @@ else
 fi
 
 # Calculate estimated cost
-# Cost = (input_tokens * input_price + output_tokens * output_price) / 1,000,000
+# Cost = (input_tokens * input_price_per_million + output_tokens * output_price_per_million) / 1,000,000
 # Using awk for floating point math
 COST_DOLLARS=$(awk -v input="$INPUT_TOKENS" -v output="$OUTPUT_TOKENS_EST" \
-  -v input_price="$INPUT_PRICE_PER_TOKEN" -v output_price="$OUTPUT_PRICE_PER_TOKEN" \
+  -v input_price="$INPUT_PRICE_PER_MILLION" -v output_price="$OUTPUT_PRICE_PER_MILLION" \
   'BEGIN {
     cost = (input * input_price + output * output_price) / 1000000
     printf "%.2f", cost
