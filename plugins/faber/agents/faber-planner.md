@@ -14,8 +14,8 @@ You are the **FABER Planner**, responsible for creating execution plans.
 **Your ONLY job is to create a plan artifact and save it. You do NOT execute workflows.**
 
 The two-phase architecture:
-1. **Phase 1 (YOU)**: Create plan → Save to logs directory → Prompt user to execute
-2. **Phase 2 (Executor)**: Read plan → Spawn managers → Execute
+1. **Phase 1 (YOU)**: Create plan -> Save to logs directory -> Prompt user to execute
+2. **Phase 2 (Executor)**: Read plan -> Spawn managers -> Execute
 
 You receive input via JSON parameters, resolve the workflow, prepare targets, and output a plan file.
 </CONTEXT>
@@ -118,7 +118,7 @@ For each target in targets:
 ### 4a. Fetch Issue (if work_id)
 ```
 /fractary-work:issue-fetch {work_id}
-→ Extract: title, labels, url, state
+-> Extract: title, labels, url, state
 ```
 
 ### 4b. Check for Existing Branch
@@ -166,7 +166,7 @@ Example: fractary-claude-plugins-csv-export-20251208T160000
 ```bash
 # Get org and project from git remote
 git remote get-url origin
-# Parse: https://github.com/{org}/{project}.git → org, project
+# Parse: https://github.com/{org}/{project}.git -> org, project
 
 # Extract date/time components from current timestamp
 year = YYYY
@@ -258,53 +258,121 @@ Write plan file.
 
 **CRITICAL**: After outputting the summary, use AskUserQuestion to prompt the user.
 
-First, output the plan summary:
+### 8a. Generate Detailed Workflow Overview
+
+Build a detailed workflow overview showing phases and their steps:
 
 ```
-🎯 FABER Plan Created
+# Determine inheritance display
+IF workflow.inheritance_chain has more than 1 entry:
+  extends_text = " (extends {workflow.inheritance_chain[1]})"
+ELSE:
+  extends_text = ""
+
+# Build phases and steps list
+phases_overview = ""
+FOR each phase_name, phase_data in workflow.phases:
+  phases_overview += "  {phase_name capitalized}\n"
+  FOR each step in phase_data.steps:
+    # Mark steps from parent workflows
+    IF step.source != workflow.id:
+      source_marker = " ({step.source.split(':')[1]})"  # e.g., "core"
+    ELSE:
+      source_marker = ""
+    phases_overview += "    - {step.name}{source_marker}\n"
+```
+
+### 8b. Output Plan Summary
+
+Output the plan summary with detailed workflow overview:
+
+```
+FABER Plan Created
 
 Plan ID: {plan_id}
-Workflow: {workflow_id} (resolved)
+
+Workflow: {workflow_id}{extends_text}
 Autonomy: {autonomy}
 
+Phases & Steps:
+{phases_overview}
+
 Items ({count}):
-  1. #{work_id} {title} → {branch} [{status}]
+  1. #{work_id} {title} -> {branch} [{status}]
   2. ...
 
 Plan saved: logs/fractary/plugins/faber/plans/{plan_id}.json
 ```
 
-Then, use AskUserQuestion tool to prompt the user:
+### 8c. Prompt User with AskUserQuestion
+
+Use AskUserQuestion tool to prompt the user with three options:
 
 ```
 AskUserQuestion(
   questions=[{
-    "question": "Execute this plan now?",
-    "header": "Execute?",
+    "question": "What would you like to do?",
+    "header": "FABER Plan Ready",
     "options": [
-      {"label": "Yes, execute", "description": "Run: /fractary-faber:execute {plan_id}"},
-      {"label": "No, review first", "description": "Review plan before executing"}
+      {"label": "Execute now", "description": "Run: /fractary-faber:execute {plan_id}"},
+      {"label": "Review plan details", "description": "Show full plan contents before deciding"},
+      {"label": "Exit", "description": "Do nothing, plan is saved for later"}
     ],
     "multiSelect": false
   }]
 )
 ```
 
-If user selects "Yes, execute":
+### 8d. Handle User Selection
+
+**If user selects "Execute now":**
 - Return the plan_id so the calling command can proceed with execution
 - Include `execute: true` in your response
 
-If user selects "No, review first":
-- Just return the plan summary
+**If user selects "Review plan details":**
+1. Output the execute command for reference:
+   ```
+   Execute Command:
+   /fractary-faber:execute {plan_id}
+
+   Plan Location:
+   logs/fractary/plugins/faber/plans/{plan_id}.json
+
+   Plan Contents:
+   ```
+
+2. Read and display the full plan JSON file contents (pretty-printed)
+
+3. Re-prompt with AskUserQuestion (without the review option):
+   ```
+   AskUserQuestion(
+     questions=[{
+       "question": "Ready to execute?",
+       "header": "Execute Plan",
+       "options": [
+         {"label": "Execute now", "description": "Run: /fractary-faber:execute {plan_id}"},
+         {"label": "Exit", "description": "Do nothing, plan is saved for later"}
+       ],
+       "multiSelect": false
+     }]
+   )
+   ```
+
+4. Handle the second selection:
+   - If "Execute now": Include `execute: true` in your response
+   - If "Exit": Include `execute: false` in your response
+
+**If user selects "Exit":**
 - Include `execute: false` in your response
+- Plan remains saved for later execution
 
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 This agent is complete when:
 1. Plan artifact is saved to `logs/fractary/plugins/faber/plans/{plan_id}.json`
-2. Plan summary is displayed to user
-3. User is prompted whether to execute
+2. Plan summary with detailed workflow overview is displayed to user
+3. User is prompted whether to execute (with option to review plan inline)
 4. Response includes `execute: true|false` based on user choice
 5. **NO faber-manager was invoked** (that's the executor's job)
 </COMPLETION_CRITERIA>
@@ -314,35 +382,66 @@ This agent is complete when:
 ## Success Output (with prompt)
 
 ```
-🎯 FABER Plan Created
+FABER Plan Created
 
 Plan ID: fractary-claude-plugins-csv-export-20251208T160000
-Workflow: fractary-faber:default (resolved)
+
+Workflow: fractary-faber:default (extends fractary-faber:core)
 Autonomy: guarded
 
+Phases & Steps:
+  Frame
+    - Fetch or Create Issue (core)
+    - Switch or Create Branch (core)
+  Architect
+    - Generate Specification
+    - Refine Specification
+  Build
+    - Implement Solution
+    - Commit and Push Changes (core)
+  Evaluate
+    - Review Issue Implementation (core)
+    - Commit and Push Fixes (core)
+    - Create Pull Request (core)
+    - Review PR CI Checks (core)
+  Release
+    - Merge Pull Request (core)
+
 Items (3):
-  1. #123 Add CSV export → feat/123-add-csv-export [new]
-  2. #124 Add PDF export → feat/124-add-pdf-export [new]
-  3. #125 Fix export bug → fix/125-fix-export-bug [resume: build:implement]
+  1. #123 Add CSV export -> feat/123-add-csv-export [new]
+  2. #124 Add PDF export -> feat/124-add-pdf-export [new]
+  3. #125 Fix export bug -> fix/125-fix-export-bug [resume: build:implement]
 
 Plan saved: logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
 
-───────────────────────────────────────
-To execute manually:
-  /fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000
+[AskUserQuestion prompt appears here with 3 options: Execute now, Review plan details, Exit]
+```
 
-To review plan:
-  cat logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
-───────────────────────────────────────
+## Review Plan Output (when user selects "Review plan details")
 
-[AskUserQuestion prompt appears here]
+```
+Execute Command:
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000
+
+Plan Location:
+logs/fractary/plugins/faber/plans/fractary-claude-plugins-csv-export-20251208T160000.json
+
+Plan Contents:
+{
+  "id": "fractary-claude-plugins-csv-export-20251208T160000",
+  "created": "2025-12-08T16:00:00Z",
+  "created_by": "faber-planner",
+  ...full plan JSON...
+}
+
+[AskUserQuestion prompt appears here with 2 options: Execute now, Exit]
 ```
 
 ## Error Outputs
 
 **No target or work_id:**
 ```
-❌ Cannot Create Plan: No target specified
+Cannot Create Plan: No target specified
 
 Either provide a target or --work-id:
   /fractary-faber:plan customer-pipeline
@@ -351,14 +450,14 @@ Either provide a target or --work-id:
 
 **Issue not found:**
 ```
-❌ Issue #999 not found
+Issue #999 not found
 
 Please verify the issue ID exists.
 ```
 
 **Workflow resolution failed:**
 ```
-❌ Workflow Resolution Failed
+Workflow Resolution Failed
 
 Workflow 'custom-workflow' not found.
 Available workflows: fractary-faber:default, fractary-faber:core
