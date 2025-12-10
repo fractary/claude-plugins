@@ -1,0 +1,35 @@
+{
+  "plan_id": "faber-335-20251210T134500",
+  "timestamp": "2025-12-10T13:45:00Z",
+  "work_id": "335",
+  "title": "% context usage and session cost not working",
+  "description": "Issue #277 Was supposed to add some additional information to the Fractary status line it was supposed to add the percent of context window remaining and the estimated cost for this session as far as token usage. It is not showing in the status line, so something is not working.",
+  "work_type": "bug",
+  "target": null,
+  "workflow": "default",
+  "autonomy": "guarded",
+  "phases": {
+    "frame": {
+      "enabled": true,
+      "description": "Fetch issue #335, analyze status line implementation and related issue #277"
+    },
+    "architect": {
+      "enabled": true,
+      "description": "Investigate status line script, identify why context usage % and session cost are not displaying"
+    },
+    "build": {
+      "enabled": true,
+      "description": "Fix the status line implementation to properly display context usage % and session cost"
+    },
+    "evaluate": {
+      "enabled": true,
+      "description": "Test status line output to verify context usage % and session cost are showing correctly"
+    },
+    "release": {
+      "enabled": true,
+      "description": "Create PR with fix, update documentation if needed"
+    }
+  },
+  "estimated_duration": "2-4 hours - Bug fix requiring investigation of status line implementation, debugging the display logic, fixing the issue, and testing the output",
+  "rationale": "This is a bug fix (work_type: bug) for a feature that was supposedly implemented in issue #277 but is not functioning correctly. The status line should display context usage percentage and estimated session cost, but these metrics are not appearing. This requires investigation of the existing status line code, identification of the root cause, implementation of the fix, and verification that the metrics display correctly. All phases are enabled as this is a standard bug fix workflow requiring analysis, design of the fix, implementation, testing, and release via PR."
+}

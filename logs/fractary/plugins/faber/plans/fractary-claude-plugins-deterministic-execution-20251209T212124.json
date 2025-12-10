@@ -1,0 +1,90 @@
+{
+  "id": "fractary-claude-plugins-deterministic-execution-20251209T212124",
+  "created": "2025-12-09T21:21:24Z",
+  "created_by": "faber-planner",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "deterministic-execution",
+    "year": "2025",
+    "month": "12",
+    "day": "09",
+    "hour": "21",
+    "minute": "21",
+    "second": "24"
+  },
+  "source": {
+    "input": "--work-id 328",
+    "work_id": "328",
+    "expanded_from": null
+  },
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-09T21:21:24Z",
+    "inheritance_chain": [
+      "fractary-faber:default"
+    ],
+    "description": "Standard FABER workflow (Frame → Architect → Build → Evaluate → Release)",
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "description": "Fetch and analyze work item"
+      },
+      "architect": {
+        "enabled": true,
+        "description": "Design solution and create specification"
+      },
+      "build": {
+        "enabled": true,
+        "description": "Implement from specification"
+      },
+      "evaluate": {
+        "enabled": true,
+        "description": "Test and review with retry loop"
+      },
+      "release": {
+        "enabled": true,
+        "description": "Create PR, deploy, and document"
+      }
+    }
+  },
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+  "items": [
+    {
+      "target": "deterministic-execution",
+      "work_id": "328",
+      "issue": {
+        "number": 328,
+        "title": "FABER: Deterministic step execution via Task tool and command-based workflow config",
+        "description": "Following the implementation of Issue #327 (workflow stops prematurely), we identified that the current approach of relying on LLM-based step iteration is inherently fragile. Even with explicit instructions and guards, the LLM can \"forget\" to continue the loop after a skill completes.\n\nThis issue proposes a more deterministic architecture that uses Claude's Task tool as a hard execution boundary for each workflow step.",
+        "state": "open",
+        "labels": [
+          "enhancement",
+          "faber",
+          "architecture"
+        ],
+        "url": "https://github.com/fractary/claude-plugins/issues/328",
+        "author": "jmcwilliam",
+        "created_at": "2025-12-09T20:32:09Z",
+        "updated_at": "2025-12-09T20:51:05Z"
+      },
+      "branch": {
+        "name": "feat/328-deterministic-step-execution",
+        "status": "new",
+        "resume_from": null
+      },
+      "worktree": "../claude-plugins-wt-feat-328-deterministic-step-execution"
+    }
+  ],
+  "execution": {
+    "mode": "parallel",
+    "max_concurrent": 5,
+    "status": "pending",
+    "started_at": null,
+    "completed_at": null,
+    "results": []
+  }
+}
