@@ -34,6 +34,7 @@ You are part of the handler pattern that enables universal source control operat
    - ALWAYS use shell scripts for operations (never run commands directly in LLM context)
    - ALWAYS validate inputs before invoking scripts
    - ALWAYS return structured JSON responses
+   - ALWAYS use environment variables to pass free-text parameters (messages, descriptions, titles, bodies, comments) to scripts - this prevents shell escaping issues with special characters
 
 4. **Semantic Conventions**
    - ALWAYS follow semantic branch naming: `{prefix}/{issue_id}-{slug}`
@@ -102,9 +103,43 @@ Based on the `operation` field in the JSON request, execute the corresponding sc
 
 **Script Path**: Scripts are located relative to this skill at `scripts/{operation-name}.sh`
 
+**CRITICAL: Safe Parameter Passing with Environment Variables**
+
+When parameters contain free-text (messages, descriptions, titles, bodies, comments), you MUST use environment variables to pass them to scripts. This prevents shell escaping issues with special characters (commas, quotes, backticks, newlines, etc.).
+
 **For create-commit**, run:
 ```bash
-scripts/create-commit.sh "<message>" "<type>" "<work_id>" "<author_context>" "<description>"
+COMMIT_MESSAGE="<message>" \
+COMMIT_TYPE="<type>" \
+COMMIT_WORK_ID="<work_id>" \
+COMMIT_AUTHOR_CONTEXT="<author_context>" \
+COMMIT_DESCRIPTION="<description>" \
+./scripts/create-commit.sh
+```
+
+**For create-pr**, run:
+```bash
+PR_WORK_ID="<work_id>" \
+PR_BRANCH_NAME="<branch_name>" \
+PR_ISSUE_ID="<issue_id>" \
+PR_TITLE="<title>" \
+PR_BODY="<body>" \
+./scripts/create-pr.sh
+```
+
+**For comment-pr**, run:
+```bash
+COMMENT_PR_NUMBER="<pr_number>" \
+COMMENT_BODY="<comment>" \
+./scripts/comment-pr.sh
+```
+
+**For review-pr**, run:
+```bash
+REVIEW_PR_NUMBER="<pr_number>" \
+REVIEW_TYPE="<type>" \
+REVIEW_BODY="<body>" \
+./scripts/review-pr.sh
 ```
 
 See OPERATIONS section below for each operation's script and parameters.
@@ -228,14 +263,14 @@ Next: {what_calling_skill_should_do}
 
 **Format**: Follows Conventional Commits + FABER metadata
 
-**Example Invocation**:
+**Example Invocation** (using environment variables for safe parameter passing):
 ```bash
-./scripts/create-commit.sh \
-  "Add user export to CSV functionality" \
-  "feat" \
-  "#123" \
-  "implementor" \
-  "Implements CSV export with streaming for large datasets"
+COMMIT_MESSAGE="Add user export to CSV functionality" \
+COMMIT_TYPE="feat" \
+COMMIT_WORK_ID="#123" \
+COMMIT_AUTHOR_CONTEXT="implementor" \
+COMMIT_DESCRIPTION="Implements CSV export with streaming for large datasets" \
+./scripts/create-commit.sh
 ```
 
 **Output Format**:
@@ -336,14 +371,14 @@ Next: {what_calling_skill_should_do}
 - Includes "closes #{work_id}" reference if work_id provided
 - Adds "Generated with Claude Code" attribution
 
-**Example Invocation**:
+**Example Invocation** (using environment variables for safe parameter passing):
 ```bash
-./scripts/create-pr.sh \
-  "Add user export feature" \
-  "Implements CSV export with streaming..." \
-  "main" \
-  "feat/123-add-export" \
-  "123"
+PR_WORK_ID="W-123" \
+PR_BRANCH_NAME="feat/123-add-export" \
+PR_ISSUE_ID="123" \
+PR_TITLE="Add user export feature" \
+PR_BODY="Implements CSV export with streaming..." \
+./scripts/create-pr.sh
 ```
 
 **Output Format**:
@@ -366,9 +401,11 @@ Next: {what_calling_skill_should_do}
 - `pr_number` - PR number
 - `comment` - Comment text (markdown)
 
-**Example Invocation**:
+**Example Invocation** (using environment variables for safe parameter passing):
 ```bash
-./scripts/comment-pr.sh "456" "All tests passing! Ready for review."
+COMMENT_PR_NUMBER="456" \
+COMMENT_BODY="All tests passing! Ready for review." \
+./scripts/comment-pr.sh
 ```
 
 **Output Format**:
@@ -449,9 +486,12 @@ Next: {what_calling_skill_should_do}
 - `action` - Review action (approve|request_changes|comment)
 - `body` - Review comment (markdown)
 
-**Example Invocation**:
+**Example Invocation** (using environment variables for safe parameter passing):
 ```bash
-./scripts/review-pr.sh "456" "approve" "LGTM! Great implementation."
+REVIEW_PR_NUMBER="456" \
+REVIEW_TYPE="approve" \
+REVIEW_BODY="LGTM! Great implementation." \
+./scripts/review-pr.sh
 ```
 
 **Output Format**:

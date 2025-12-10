@@ -1,20 +1,38 @@
 #!/bin/bash
 # Repo Manager: GitHub Create Pull Request
 # Creates a pull request using gh CLI
+#
+# Usage (preferred - environment variables):
+#   PR_WORK_ID="..." PR_BRANCH_NAME="..." PR_ISSUE_ID="..." PR_TITLE="..." [PR_BODY="..."] ./create-pr.sh
+#
+# Usage (legacy - positional arguments):
+#   create-pr.sh <work_id> <branch_name> <issue_id> <title> [body]
+#
+# Environment Variables (preferred for special characters):
+#   PR_WORK_ID     - Work item ID (required)
+#   PR_BRANCH_NAME - Branch name for the PR (required)
+#   PR_ISSUE_ID    - Issue ID to link (required)
+#   PR_TITLE       - PR title (required)
+#   PR_BODY        - PR body/description in markdown (optional)
+#
+# Note: Environment variables take precedence over positional arguments.
+#       Use environment variables when parameters contain special characters
+#       (commas, quotes, backticks, newlines, etc.) to avoid shell escaping issues.
 
 set -euo pipefail
 
-# Check arguments
-if [ $# -lt 4 ]; then
-    echo "Usage: $0 <work_id> <branch_name> <issue_id> <title> [body]" >&2
+# Read from environment variables first, fall back to positional arguments
+WORK_ID="${PR_WORK_ID:-${1:-}}"
+BRANCH_NAME="${PR_BRANCH_NAME:-${2:-}}"
+ISSUE_ID="${PR_ISSUE_ID:-${3:-}}"
+TITLE="${PR_TITLE:-${4:-}}"
+BODY="${PR_BODY:-${5:-}}"
+
+# Check required parameters
+if [ -z "$WORK_ID" ] || [ -z "$BRANCH_NAME" ] || [ -z "$ISSUE_ID" ] || [ -z "$TITLE" ]; then
+    echo "Error: Missing required parameters. Set PR_WORK_ID, PR_BRANCH_NAME, PR_ISSUE_ID, and PR_TITLE environment variables, or pass as positional arguments." >&2
     exit 2
 fi
-
-WORK_ID="$1"
-BRANCH_NAME="$2"
-ISSUE_ID="$3"
-TITLE="$4"
-BODY="${5:-}"
 
 # Check if gh CLI is available
 if ! command -v gh &> /dev/null; then
