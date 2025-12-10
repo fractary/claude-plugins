@@ -2,7 +2,7 @@
 name: fractary-faber:plan
 description: Create a FABER execution plan without executing it
 argument-hint: '[<target>] [--work-id <id>] [--workflow <id>] [--autonomy <level>] [--phase <phases>]'
-tools: Skill
+tools: Task
 model: claude-haiku-4-5
 ---
 
@@ -10,16 +10,16 @@ model: claude-haiku-4-5
 
 <CONTEXT>
 You are the entry point for creating FABER execution plans.
-Your job is to parse arguments and invoke the faber-planner skill.
+Your job is to parse arguments and invoke the faber-planner agent via Task tool.
 
 This command creates a plan but does NOT execute it. To execute, use `/fractary-faber:execute`.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. **IMMEDIATE DELEGATION** - Parse args, invoke faber-planner skill, return result
+1. **IMMEDIATE DELEGATION** - Parse args, invoke faber-planner agent via Task tool, return result
 2. **NO EXECUTION** - This command does NOT invoke faber-manager
 3. **MINIMAL PROCESSING** - Only parse arguments, nothing more
-4. **USE SKILL TOOL** - Invoke faber-planner using the Skill tool
+4. **USE TASK TOOL** - Invoke faber-planner using the Task tool with subagent_type
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -79,29 +79,32 @@ Extract from user input:
 - If `--phase` contains spaces: show error
 - If both `--phase` and `--step`: show error (mutually exclusive)
 
-## Step 2: Invoke faber-planner Skill
+## Step 2: Invoke faber-planner Agent
 
-**IMPORTANT:** Use the Skill tool to invoke the faber-planner skill.
+**IMPORTANT:** Use the Task tool to invoke the faber-planner agent.
 
 ```
-Skill(skill="faber-planner")
-
-Provide the following context in your invocation:
-- target: {target or null}
-- work_id: {work_id or null}
-- workflow_override: {workflow_override or null}
-- autonomy_override: {autonomy_override or null}
-- phases: {phases or null}
-- step_id: {step_id or null}
-- prompt: {prompt or null}
-- working_directory: {pwd}
+Task(
+  subagent_type="fractary-faber:faber-planner",
+  description="Create FABER plan for work item {work_id or target}",
+  prompt='{
+    "target": "{target or null}",
+    "work_id": "{work_id or null}",
+    "workflow_override": "{workflow_override or null}",
+    "autonomy_override": "{autonomy_override or null}",
+    "phases": "{phases or null}",
+    "step_id": "{step_id or null}",
+    "prompt": "{prompt or null}",
+    "working_directory": "{pwd}"
+  }'
+)
 ```
 
-The skill name is `faber-planner` (short form, without namespace prefix).
+The agent type is `fractary-faber:faber-planner` (full namespace).
 
 ## Step 3: Return Response
 
-Return the faber-planner skill's output directly.
+Return the faber-planner agent's output directly.
 
 </WORKFLOW>
 
@@ -130,26 +133,33 @@ Examples:
 
 ```
 /fractary-faber:plan (THIS COMMAND)
-    |
-faber-planner skill (invoked via Skill tool)
-    |
+    ↓
+faber-planner agent (invoked via Task tool)
+    ↓
 Plan artifact saved to logs/fractary/plugins/faber/plans/
-    |
+    ↓
 User reviews plan
-    |
+    ↓
 /fractary-faber:execute <plan-id>
-    |
+    ↓
 faber-executor skill
-    |
+    ↓
 faber-manager agent(s)
 ```
 
-## Skill vs Agent Invocation
+## Agent Invocation
 
-- **Skills** are invoked using the `Skill` tool: `Skill(skill="skill-name")`
-- **Agents** are invoked using the `Task` tool: `Task(subagent_type="agent-name")`
+The faber-planner is an **agent**, so use the Task tool:
 
-The faber-planner is a **skill**, so use the Skill tool.
+```
+Task(
+  subagent_type="fractary-faber:faber-planner",
+  description="...",
+  prompt="..."
+)
+```
+
+This ensures reliable delegation - the Task tool has clearer "hand off and wait" semantics compared to the Skill tool.
 
 ## See Also
 

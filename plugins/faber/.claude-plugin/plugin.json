@@ -4,7 +4,8 @@
   "description": "Universal SDLC workflow framework with two-phase plan/execute architecture",
   "commands": "./commands/",
   "agents": [
-    "./agents/faber-manager.md"
+    "./agents/faber-manager.md",
+    "./agents/faber-planner.md"
   ],
   "skills": "./skills/"
 }
