@@ -40,7 +40,7 @@
           "id": "core-commit-and-push-build",
           "name": "Commit and Push Changes",
           "description": "Ensure all build changes are committed and pushed",
-          "skill": "fractary-repo:commit-creator",
+          "command": "fractary-repo:commit",
           "config": {
             "push_after_commit": true,
             "conventional_commits": true,
@@ -61,7 +61,7 @@
           "id": "core-issue-review",
           "name": "Review Issue Implementation",
           "description": "Verify implementation completeness against issue requirements",
-          "skill": "fractary-faber:issue-reviewer",
+          "command": "fractary-faber:review",
           "arguments": {
             "work_id": "{work_id}"
           }
@@ -73,7 +73,7 @@
           "id": "core-commit-and-push-evaluate",
           "name": "Commit and Push Fixes",
           "description": "Ensure evaluation fixes are committed",
-          "skill": "fractary-repo:commit-creator",
+          "command": "fractary-repo:commit",
           "config": {
             "push_after_commit": true
           },
@@ -85,9 +85,8 @@
           "id": "core-create-pr",
           "name": "Create Pull Request",
           "description": "Create PR for the implementation (skips if PR already exists). Links to issue for auto-close on merge.",
-          "skill": "fractary-repo:pr-manager",
+          "command": "fractary-repo:pr-create",
           "config": {
-            "action": "create",
             "auto_link_issue": true,
             "skip_if_exists": true
           },
@@ -100,9 +99,8 @@
           "id": "core-review-pr-checks",
           "name": "Review PR CI Checks",
           "description": "Wait for and review CI/CD pipeline results",
-          "skill": "fractary-repo:pr-manager",
+          "command": "fractary-repo:pr-review",
           "config": {
-            "action": "review",
             "wait_for_ci": true
           }
         }
@@ -119,9 +117,8 @@
           "id": "core-merge-pr",
           "name": "Merge Pull Request",
           "description": "Merge the PR and delete branch",
-          "skill": "fractary-repo:pr-manager",
+          "command": "fractary-repo:pr-merge",
           "config": {
-            "action": "merge",
             "delete_branch": true
           }
         }

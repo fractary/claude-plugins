@@ -19,7 +19,7 @@
           "id": "generate-spec",
           "name": "Generate Specification",
           "description": "Create technical specification from issue context",
-          "skill": "fractary-spec:spec-generator",
+          "command": "fractary-spec:generate",
           "config": {
             "use_issue_context": true,
             "auto_detect_template": true
@@ -29,7 +29,7 @@
           "id": "refine-spec",
           "name": "Refine Specification",
           "description": "Critically review spec and gather clarifications from user",
-          "skill": "fractary-spec:spec-refiner",
+          "command": "fractary-spec:refine",
           "config": {
             "allow_iterative_rounds": true,
             "best_effort_on_no_answers": true
@@ -50,7 +50,7 @@
           "id": "implement",
           "name": "Implement Solution",
           "description": "Implement based on specification following project patterns",
-          "skill": "fractary-faber:build",
+          "command": "fractary-faber:build",
           "config": {
             "use_spec": true,
             "post_progress_comments": true
