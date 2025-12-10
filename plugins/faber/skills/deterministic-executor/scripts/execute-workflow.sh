@@ -336,6 +336,15 @@ init_claude_session() {
         return 0
     fi
 
+    # Extract workflow context safely (handle special characters in issue titles)
+    local workflow_context
+    workflow_context=$(echo "$plan_context" | jq -c '{
+        plan_id: .id,
+        work_id: .source.work_id,
+        issue: .items[0].issue,
+        workflow_id: .workflow.id
+    }' 2>/dev/null || echo '{"error": "failed to parse plan context"}')
+
     local init_prompt="You are executing a FABER workflow using the deterministic executor.
 
 IMPORTANT RULES:
@@ -346,16 +355,13 @@ IMPORTANT RULES:
 5. You have full access to tools: Bash, Read, Write, Edit, Glob, Grep, Task, Skill, SlashCommand
 
 WORKFLOW CONTEXT:
-$(echo "$plan_context" | jq -c '{
-    plan_id: .id,
-    work_id: .source.work_id,
-    issue: .items[0].issue,
-    workflow_id: .workflow.id
-}')
+$workflow_context
 
 Acknowledge that you understand and are ready to receive steps."
 
-    local result=$(claude -p "$init_prompt" --output-format json 2>/dev/null || echo '{"error": "failed"}')
+    # Use --dangerously-skip-permissions for non-interactive execution
+    # This is necessary because sub-Claude instances can't get interactive approval
+    local result=$(claude -p "$init_prompt" --output-format json --dangerously-skip-permissions </dev/null 2>/dev/null || echo '{"error": "failed"}')
 
     local session_id=$(echo "$result" | jq -r '.session_id // empty')
 
@@ -400,26 +406,50 @@ Instructions:
 
 Execute now:"
 
-    local result=$(claude --resume "$session_id" -p "$step_prompt" --output-format json 2>/dev/null || echo '{"error": "claude invocation failed"}')
+    # Note: Redirect stdin from /dev/null to prevent claude from consuming
+    # the while loop's stdin (from STEPS_FILE)
+    # Use --dangerously-skip-permissions for non-interactive execution
+    local result=$(claude --resume "$session_id" -p "$step_prompt" --output-format json --dangerously-skip-permissions </dev/null 2>/dev/null || echo '{"error": "claude invocation failed"}')
 
     # Extract Claude's response text (which should contain our JSON)
     local claude_response=$(echo "$result" | jq -r '.result // empty')
 
     # Try to extract JSON from the response
-    # Claude might wrap it in markdown or include extra text
+    # Claude might wrap it in markdown code blocks or include extra text
     local step_result=""
 
     # First, try to parse the whole response as JSON
     if echo "$claude_response" | jq -e . >/dev/null 2>&1; then
         step_result="$claude_response"
     else
-        # Try to extract JSON from markdown code blocks or inline
-        step_result=$(echo "$claude_response" | grep -o '{[^}]*"status"[^}]*}' | head -1 || echo "")
+        # Try to extract JSON from markdown code blocks (```json ... ```)
+        # Use sed to extract content between ```json and ```
+        local extracted=$(echo "$claude_response" | sed -n '/```json/,/```/p' | sed '1d;$d' | tr -d '\n')
+        if [[ -n "$extracted" ]] && echo "$extracted" | jq -e . >/dev/null 2>&1; then
+            step_result="$extracted"
+        else
+            # Try to find any JSON object with "status" field using Python for proper parsing
+            step_result=$(echo "$claude_response" | python3 -c '
+import sys, re, json
+text = sys.stdin.read()
+# Find JSON objects in the text
+pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
+matches = re.findall(pattern, text)
+for m in matches:
+    try:
+        obj = json.loads(m)
+        if "status" in obj:
+            print(json.dumps(obj))
+            sys.exit(0)
+    except:
+        pass
+' 2>/dev/null || echo "")
+        fi
     fi
 
     if [[ -z "$step_result" ]]; then
         # If we can't parse JSON, create a failure response
-        step_result='{"status": "unknown", "message": "Could not parse step result", "raw_response": "'"$(echo "$claude_response" | head -c 500)"'"}'
+        step_result='{"status": "unknown", "message": "Could not parse step result", "raw_response": "'"$(echo "$claude_response" | head -c 500 | tr -d '\n' | sed 's/"/\\"/g')"'"}'
     fi
 
     echo "$step_result"
@@ -485,8 +515,9 @@ CRITICAL INSTRUCTIONS:
 
 BEGIN EXECUTION:"
 
-    # Execute with Claude
-    local result=$(claude --resume "$session_id" -p "$serialized_prompt" --output-format json 2>/dev/null || echo '{"error": "claude invocation failed"}')
+    # Execute with Claude (redirect stdin to prevent consuming loop's input)
+    # Use --dangerously-skip-permissions for non-interactive execution
+    local result=$(claude --resume "$session_id" -p "$serialized_prompt" --output-format json --dangerously-skip-permissions </dev/null 2>/dev/null || echo '{"error": "claude invocation failed"}')
 
     # Extract Claude's response
     local claude_response=$(echo "$result" | jq -r '.result // empty')

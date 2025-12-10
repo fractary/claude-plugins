@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://raw.githubusercontent.com/fractary/claude-plugins/main/plugins/faber/config/config.schema.json",
   "title": "FABER Configuration Schema",
-  "description": "JSON Schema for FABER v2.2 workflow configuration with workflow inheritance support",
+  "description": "JSON Schema for FABER v2.3 workflow configuration with workflow inheritance and target definitions support",
   "type": "object",
   "required": ["schema_version", "workflows", "integrations"],
   "additionalProperties": false,
@@ -24,6 +24,9 @@
     "workflow_namespaces": {
       "$ref": "#/definitions/workflow_namespaces"
     },
+    "targets": {
+      "$ref": "#/definitions/targets"
+    },
     "workflows": {
       "type": "array",
       "minItems": 0,
@@ -43,6 +46,70 @@
     }
   },
   "definitions": {
+    "targets": {
+      "type": "object",
+      "description": "Target configuration for work-ID-free planning. Allows defining named targets with metadata so the planner can work effectively without requiring a linked issue.",
+      "additionalProperties": false,
+      "properties": {
+        "definitions": {
+          "type": "array",
+          "description": "Array of target definitions. Order matters for tie-breaking when patterns have equal specificity.",
+          "items": {
+            "$ref": "#/definitions/target_definition"
+          }
+        },
+        "default_type": {
+          "type": "string",
+          "default": "file",
+          "description": "Default target type when no pattern matches and require_match is false. Default: 'file'"
+        },
+        "require_match": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, error when target doesn't match any pattern. If false, use default_type. Default: false"
+        },
+        "auto_create_issue": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, automatically create an issue when target-based planning starts, providing full FABER integration. Default: false"
+        }
+      }
+    },
+    "target_definition": {
+      "type": "object",
+      "description": "A named target definition with glob pattern and metadata for the planner.",
+      "required": ["name", "pattern", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Unique identifier for this target definition (lowercase, hyphens allowed)"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Glob pattern to match against the target input. Examples: 'ipeds/*', 'src/**/*.ts', 'plugins/*/', '{src/auth,src/session}/**'"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["dataset", "code", "plugin", "docs", "config", "test", "infra"],
+          "description": "Target category that determines plan structure and emphasis"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this target represents"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Arbitrary metadata passed to the planner. Use for project-specific context like entity_type, processing_type, languages, expected_artifacts, etc.",
+          "additionalProperties": true
+        },
+        "workflow_override": {
+          "type": "string",
+          "description": "Optional workflow ID to use for this target type instead of the default workflow. Can be namespaced (e.g., 'fractary-faber:data-pipeline') or project-local."
+        }
+      }
+    },
     "workflow_namespaces": {
       "type": "object",
       "description": "Workflow namespace resolution configuration. Defines where to find workflows for each namespace.",

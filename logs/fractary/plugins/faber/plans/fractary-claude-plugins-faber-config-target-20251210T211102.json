@@ -1,0 +1,209 @@
+{
+  "id": "fractary-claude-plugins-faber-config-target-20251210T211102",
+  "created": "2025-12-10T21:11:02Z",
+  "created_by": "faber-planner",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "faber-config-target",
+    "year": "2025",
+    "month": "12",
+    "day": "10",
+    "hour": "21",
+    "minute": "11",
+    "second": "02"
+  },
+  "source": {
+    "input": "work_id: 323",
+    "work_id": "323",
+    "expanded_from": null
+  },
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-10T21:11:02Z",
+    "inheritance_chain": [
+      "fractary-faber:default",
+      "fractary-faber:core"
+    ],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "core-fetch-or-create-issue",
+            "name": "Fetch or Create Issue",
+            "description": "Fetch existing issue or create new one. Reads referenced docs and existing commits.",
+            "command": "/fractary-work:issue-fetch",
+            "arguments": {
+              "issue_number": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "pre_step"
+          },
+          {
+            "id": "core-switch-or-create-branch",
+            "name": "Switch or Create Branch",
+            "description": "Checkout existing branch or create new one linked to issue",
+            "command": "/fractary-repo:branch-create",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "pre_step"
+          }
+        ]
+      },
+      "architect": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "generate-spec",
+            "name": "Generate Specification",
+            "description": "Create technical specification from issue context",
+            "command": "/fractary-spec:create",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:default",
+            "position": "step"
+          },
+          {
+            "id": "refine-spec",
+            "name": "Refine Specification",
+            "description": "Critically review spec and gather clarifications from user",
+            "command": "/fractary-spec:refine",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:default",
+            "position": "step"
+          }
+        ]
+      },
+      "build": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "implement",
+            "name": "Implement Solution",
+            "description": "Implement based on specification following project patterns",
+            "command": "/fractary-faber:build",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:default",
+            "position": "step"
+          },
+          {
+            "id": "core-commit-and-push-build",
+            "name": "Commit and Push Changes",
+            "description": "Ensure all build changes are committed and pushed",
+            "command": "/fractary-repo:commit-and-push",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          }
+        ]
+      },
+      "evaluate": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "core-issue-review",
+            "name": "Review Issue Implementation",
+            "description": "Verify implementation completeness against issue requirements",
+            "command": "/fractary-faber:review",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "pre_step"
+          },
+          {
+            "id": "core-commit-and-push-evaluate",
+            "name": "Commit and Push Fixes",
+            "description": "Ensure evaluation fixes are committed",
+            "command": "/fractary-repo:commit-and-push",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          },
+          {
+            "id": "core-create-pr",
+            "name": "Create Pull Request",
+            "description": "Create PR for the implementation (skips if PR already exists). Links to issue for auto-close on merge.",
+            "command": "/fractary-repo:pr-create",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          },
+          {
+            "id": "core-review-pr-checks",
+            "name": "Review PR CI Checks",
+            "description": "Wait for and review CI/CD pipeline results",
+            "command": "/fractary-repo:pr-review",
+            "arguments": {
+              "wait_for_ci": true
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          }
+        ],
+        "max_retries": 3
+      },
+      "release": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "core-merge-pr",
+            "name": "Merge Pull Request",
+            "description": "Merge the PR and delete branch",
+            "command": "/fractary-repo:pr-merge",
+            "arguments": {
+              "delete_branch": true
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          }
+        ]
+      }
+    }
+  },
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+  "items": [
+    {
+      "target": "323",
+      "work_id": "323",
+      "issue": {
+        "number": 323,
+        "title": "does faber config need info on what <target> is so plan can work if no work-id specified",
+        "state": "open",
+        "labels": [],
+        "url": "https://github.com/fractary/claude-plugins/issues/323"
+      },
+      "branch": {
+        "name": "feat/323-does-faber-config-need-info",
+        "status": "new",
+        "resume_from": null
+      },
+      "worktree": null
+    }
+  ],
+  "execution": {
+    "mode": "sequential",
+    "max_concurrent": 1,
+    "status": "pending",
+    "started_at": null,
+    "completed_at": null,
+    "results": []
+  }
+}
