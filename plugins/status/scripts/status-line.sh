@@ -9,6 +9,7 @@ set -euo pipefail
 # Configuration
 PLUGIN_DIR="${FRACTARY_PLUGINS_DIR:-.fractary/plugins}/status"
 PROMPT_CACHE="$PLUGIN_DIR/last-prompt.json"
+METRICS_CACHE="$PLUGIN_DIR/session-metrics.json"
 
 # Find repo plugin scripts directory
 # Try multiple locations for robustness
@@ -169,32 +170,45 @@ if [ -f "$PROMPT_CACHE" ]; then
   fi
 fi
 
-# Get context free percentage and token cost (from environment or FABER state)
+# ============================================================================
+# Context Metrics (% free and estimated cost)
+# Priority: 1) Session metrics cache, 2) Environment vars, 3) FABER state
+# ============================================================================
 CONTEXT_FREE=""
 TOKEN_COST=""
 
-# Cache the latest FABER state file path (single find call for both metrics)
-LATEST_FABER_STATE=""
-if [ -d ".fractary/plugins/faber/runs" ]; then
-  # Use -printf with cut to safely handle paths with spaces/special chars
-  LATEST_FABER_STATE=$(find .fractary/plugins/faber/runs -name "state.json" -type f \
-    -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+# Primary source: Session metrics cache (populated by capture-prompt.sh)
+# This is the most reliable source as it tracks actual prompt usage
+if [ -f "$METRICS_CACHE" ]; then
+  CONTEXT_FREE=$(jq -r '.context_free_percent // empty' "$METRICS_CACHE" 2>/dev/null || echo "")
+  TOKEN_COST=$(jq -r '.estimated_cost // empty' "$METRICS_CACHE" 2>/dev/null || echo "")
 fi
 
-# Read context free percentage (from environment or FABER state)
-if [ -n "${CLAUDE_CONTEXT_FREE:-}" ]; then
+# Fallback 1: Environment variables (if Claude Code ever provides them)
+if [ -z "$CONTEXT_FREE" ] && [ -n "${CLAUDE_CONTEXT_FREE:-}" ]; then
   CONTEXT_FREE="$CLAUDE_CONTEXT_FREE"
-elif [ -n "$LATEST_FABER_STATE" ] && [ -f "$LATEST_FABER_STATE" ]; then
-  # Read from cached FABER state path (safely quoted)
-  CONTEXT_FREE=$(jq -r '.metrics.context_free_percent // empty' "$LATEST_FABER_STATE" 2>/dev/null)
+fi
+if [ -z "$TOKEN_COST" ] && [ -n "${CLAUDE_SESSION_COST:-}" ]; then
+  TOKEN_COST="$CLAUDE_SESSION_COST"
 fi
 
-# Read token cost (from environment or FABER state)
-if [ -n "${CLAUDE_SESSION_COST:-}" ]; then
-  TOKEN_COST="$CLAUDE_SESSION_COST"
-elif [ -n "$LATEST_FABER_STATE" ] && [ -f "$LATEST_FABER_STATE" ]; then
-  # Read from cached FABER state path (safely quoted)
-  TOKEN_COST=$(jq -r '.metrics.token_cost // empty' "$LATEST_FABER_STATE" 2>/dev/null)
+# Fallback 2: FABER state (legacy support)
+if [ -z "$CONTEXT_FREE" ] || [ -z "$TOKEN_COST" ]; then
+  LATEST_FABER_STATE=""
+  if [ -d ".fractary/plugins/faber/runs" ]; then
+    # Use -printf with cut to safely handle paths with spaces/special chars
+    LATEST_FABER_STATE=$(find .fractary/plugins/faber/runs -name "state.json" -type f \
+      -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+  fi
+
+  if [ -n "$LATEST_FABER_STATE" ] && [ -f "$LATEST_FABER_STATE" ]; then
+    if [ -z "$CONTEXT_FREE" ]; then
+      CONTEXT_FREE=$(jq -r '.metrics.context_free_percent // empty' "$LATEST_FABER_STATE" 2>/dev/null || echo "")
+    fi
+    if [ -z "$TOKEN_COST" ]; then
+      TOKEN_COST=$(jq -r '.metrics.token_cost // empty' "$LATEST_FABER_STATE" 2>/dev/null || echo "")
+    fi
+  fi
 fi
 
 # Build status line
@@ -208,17 +222,17 @@ STATUS_LINE="${STATUS_LINE} ${CYAN}${BRANCH}${NC}"
 
 # File changes (yellow if dirty, green if clean)
 if [ "$TOTAL_CHANGES" -gt 0 ]; then
-  STATUS_LINE="${STATUS_LINE} ${YELLOW}±${TOTAL_CHANGES}${NC}"
+  STATUS_LINE="${STATUS_LINE} ${YELLOW}+-${TOTAL_CHANGES}${NC}"
 else
-  STATUS_LINE="${STATUS_LINE} ${GREEN}±0${NC}"
+  STATUS_LINE="${STATUS_LINE} ${GREEN}+-0${NC}"
 fi
 
 # Ahead/behind (green for ahead, red for behind)
 if [ "$AHEAD" -gt 0 ]; then
-  STATUS_LINE="${STATUS_LINE} ${GREEN}↑${AHEAD}${NC}"
+  STATUS_LINE="${STATUS_LINE} ${GREEN}^${AHEAD}${NC}"
 fi
 if [ "$BEHIND" -gt 0 ]; then
-  STATUS_LINE="${STATUS_LINE} ${RED}↓${BEHIND}${NC}"
+  STATUS_LINE="${STATUS_LINE} ${RED}v${BEHIND}${NC}"
 fi
 
 # Issue number (magenta, clickable if GitHub repo detected)
@@ -246,11 +260,11 @@ if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "0" ]; then
 fi
 
 # Build metrics display (right-aligned, dim color)
-# Order: cost first, then context free percentage (per user preference)
+# Order: cost first, then context free percentage (per user preference in #277)
 METRICS_LINE=""
 
 # Validate and display token cost (must be numeric, round to 2 decimals)
-if [ -n "$TOKEN_COST" ] && [ "$TOKEN_COST" != "0" ]; then
+if [ -n "$TOKEN_COST" ] && [ "$TOKEN_COST" != "0" ] && [ "$TOKEN_COST" != "0.00" ]; then
   # Validate: only display if numeric (integer or decimal)
   if [[ "$TOKEN_COST" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
     # Round to 2 decimal places per spec
