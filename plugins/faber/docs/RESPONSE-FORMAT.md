@@ -18,7 +18,7 @@ FABER workflow manager expects all step and hook executions to return a standard
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | enum | Execution outcome: `"success"`, `"warning"`, or `"failure"` |
+| `status` | enum | Execution outcome: `"success"`, `"warning"`, `"failure"`, or `"pending_input"` |
 | `message` | string | Human-readable summary (1-2 sentences) |
 
 ### Optional Fields
@@ -36,7 +36,7 @@ FABER workflow manager expects all step and hook executions to return a standard
 
 ```json
 {
-  "status": "success" | "warning" | "failure",
+  "status": "success" | "warning" | "failure" | "pending_input",
   "message": "Human-readable summary of what happened",
 
   "details": {
@@ -164,6 +164,57 @@ Operation failed - the goal was not achieved.
 - Shows intelligent failure prompt with errors, analysis, and fixes
 - For hooks only: `on_failure: "continue"` allows informational hooks to not block
 
+### Pending Input
+
+Operation requires user input before it can continue. The skill has presented questions or options to the user and is waiting for their response.
+
+```json
+{
+  "status": "pending_input",
+  "message": "Awaiting user response to refinement questions",
+  "details": {
+    "questions_asked": 5,
+    "questions_pending": 5,
+    "input_type": "clarification"
+  },
+  "pending_input": {
+    "reason": "Specification refinement requires user clarification on key design decisions",
+    "questions_presented": true,
+    "can_proceed_without": true,
+    "timeout_behavior": "best_effort"
+  }
+}
+```
+
+**Use "pending_input" when:**
+- User input is required before proceeding
+- Questions have been presented via AskUserQuestion
+- Workflow should halt until user responds (or explicitly skips)
+- The skill needs clarification to make correct decisions
+
+**CRITICAL**: Skills MUST present questions via AskUserQuestion BEFORE returning `pending_input`. The status indicates "questions have been asked, awaiting response" - NOT "I want to ask questions".
+
+**Manager behavior:**
+- `on_pending_input: "wait"` (default) - Workflow halts, saves state, waits for user
+- Manager saves workflow state for resume capability
+- User is notified of pending questions
+- Resume command provided: `/fractary-faber:run --work-id {id} --resume {run_id}`
+
+**Best-effort fallback:**
+If `pending_input.can_proceed_without` is `true` and user doesn't respond within a reasonable time or explicitly skips:
+- Skill proceeds with best-effort decisions
+- Returns `warning` status indicating decisions were made without user input
+- Logs which questions went unanswered
+
+**Example skill implementation**:
+```
+1. Generate questions from analysis
+2. Present questions via AskUserQuestion tool
+3. If user answers: apply answers, return "success"
+4. If user skips/doesn't answer: make best-effort decisions, return "warning"
+5. If waiting for user: return "pending_input" (workflow halts)
+```
+
 ## Multiple Errors/Warnings
 
 A single response can contain multiple errors or warnings. The `status` field reflects the worst case:
@@ -288,9 +339,10 @@ Manager uses these to offer recovery options in failure/warning prompts.
 FABER manager validates all responses against the schema. Invalid responses result in:
 
 1. **Missing status**: Error - status is required
-2. **Invalid status value**: Error - must be success/warning/failure
+2. **Invalid status value**: Error - must be success/warning/failure/pending_input
 3. **Missing message**: Warning - message is strongly recommended
 4. **Type mismatches**: Error - arrays must be arrays, objects must be objects
+5. **pending_input without questions**: Error - must present questions via AskUserQuestion first
 
 ### JSON Schema
 
@@ -371,6 +423,7 @@ The response `status` maps to workflow `result_handling` configuration:
 | `"success"` | `on_success` | `"continue"` |
 | `"warning"` | `on_warning` | `"continue"` |
 | `"failure"` | `on_failure` | `"stop"` (IMMUTABLE for steps) |
+| `"pending_input"` | `on_pending_input` | `"wait"` (saves state, waits for user) |
 
 See [RESULT-HANDLING.md](./RESULT-HANDLING.md) for complete result handling documentation.
 

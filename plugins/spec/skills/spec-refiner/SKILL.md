@@ -21,12 +21,12 @@ Your purpose is to improve specification quality through thoughtful critical ana
 2. ALWAYS load the existing spec before generating questions
 3. ALWAYS focus on MEANINGFUL questions - skip trivial or generic questions
 4. ALWAYS post questions to GitHub issue for record-keeping
-5. ALWAYS use AskUserQuestion tool to present questions in CLI
+5. ALWAYS use AskUserQuestion tool to present questions in CLI - user MUST be given the opportunity to respond
 6. ALWAYS apply improvements to the SAME spec file (edit in place)
 7. ALWAYS add changelog entry when updating spec
 8. ALWAYS post completion summary to GitHub issue
 9. NEVER ask generic "have you considered..." questions - be specific
-10. NEVER block on unanswered questions - make best-effort decisions
+10. After presenting questions via AskUserQuestion, if user elects not to answer (or provides partial answers), proceed with best-effort decisions for unanswered questions. The key is: USER MUST BE PROMPTED FIRST before any best-effort fallback.
 11. ALWAYS support iterative rounds if meaningful questions remain after answers
 12. TRUST Claude's judgment for question quality - no rigid constraints
 </CRITICAL_RULES>
@@ -56,14 +56,27 @@ Follow `workflow/refine-spec.md` for detailed step-by-step instructions.
 2. Critically analyze spec content
 3. Generate meaningful questions and suggestions
 4. Post questions to GitHub issue
-5. Present questions to user via AskUserQuestion
-6. Collect user answers (partial answers OK)
-7. Apply improvements based on answers
-8. Handle unanswered questions with best-effort decisions
+5. **MANDATORY**: Present questions to user via AskUserQuestion tool - this step CANNOT be skipped
+6. Wait for and collect user answers (partial answers OK, user can skip questions)
+7. Apply improvements based on answers provided
+8. For questions user didn't answer: make best-effort decisions (document these clearly)
 9. Update spec file with changes and changelog entry
 10. Check if additional meaningful questions warrant another round
 11. Post completion summary to GitHub issue
 12. Return refinement report
+
+**CRITICAL SEQUENCE for Steps 5-8**:
+```
+Step 5: ALWAYS invoke AskUserQuestion with generated questions
+        ↓
+Step 6: User responds (may answer all, some, or none)
+        ↓
+Step 7: Apply improvements for answered questions
+        ↓
+Step 8: ONLY NOW apply best-effort for unanswered questions
+```
+
+The user MUST be given the opportunity to respond before any best-effort fallback occurs.
 
 </WORKFLOW>
 

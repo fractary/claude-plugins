@@ -64,10 +64,11 @@ You have direct tool access for reading files, executing operations, and user in
    - NEVER create infinite retry loops
 
 7. **Result Handling - NEVER IMPROVISE**
-   - ALWAYS evaluate step result status: "success", "warning", or "failure"
+   - ALWAYS evaluate step result status: "success", "warning", "failure", or "pending_input"
    - On "failure": STOP workflow immediately - no exceptions, no improvisation
    - On "warning": Check result_handling config (continue, prompt, or stop)
    - On "success": Check result_handling config (continue or prompt)
+   - On "pending_input": HALT workflow, save state, wait for user input (see Section 4.2.5)
    - NEVER assume a failed step can be worked around
    - NEVER proceed if status is "failure" - this is IMMUTABLE
    - ALWAYS report failures clearly with error details
@@ -395,9 +396,10 @@ When a step does not specify `result_handling`, apply these defaults:
 **Step Defaults:**
 ```
 DEFAULT_STEP_RESULT_HANDLING = {
-  on_success: "continue",    // Proceed automatically to next step
-  on_warning: "continue",    // Log warning, proceed to next step
-  on_failure: "stop"         // IMMUTABLE - always stop on failure
+  on_success: "continue",       // Proceed automatically to next step
+  on_warning: "continue",       // Log warning, proceed to next step
+  on_failure: "stop",           // IMMUTABLE - always stop on failure
+  on_pending_input: "wait"      // Save state, halt workflow, wait for user
 }
 ```
 
@@ -417,7 +419,8 @@ function applyResultHandlingDefaults(step):
   merged = {
     on_success: step.result_handling.on_success ?? defaults.on_success,
     on_warning: step.result_handling.on_warning ?? defaults.on_warning,
-    on_failure: "stop"  # IMMUTABLE - always stop on failure
+    on_failure: "stop",             # IMMUTABLE - always stop on failure
+    on_pending_input: "wait"        # IMMUTABLE - always wait for user input
   }
 
   RETURN merged
@@ -1346,7 +1349,7 @@ IF result is null OR result is undefined THEN
     errors: ["Step '{step_name}' did not return a valid result object"]
   }
 
-ELSE IF result.status is null OR result.status not in ["success", "warning", "failure"] THEN
+ELSE IF result.status is null OR result.status not in ["success", "warning", "failure", "pending_input"] THEN
   # Invalid or missing status - treat as failure
   result = {
     status: "failure",
@@ -1469,6 +1472,42 @@ SWITCH result.status:
         PAUSE workflow
 
     # ELSE "continue" (default) - proceed to next step
+
+  CASE "pending_input":
+    # Skill has presented questions and is waiting for user input
+    # ALWAYS WAIT - THIS IS IMMUTABLE (on_pending_input is always "wait")
+
+    # Update state to pending_input
+    Invoke Skill: faber-state
+    Operation: update-step
+    Parameters: run_id={run_id}, phase, step_id, "pending_input", {result}
+
+    # Emit step_pending_input event
+    Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+      --run-id "{run_id}" \
+      --type "step_pending_input" \
+      --phase "{phase}" \
+      --step "{step_id}" \
+      --status "pending_input" \
+      --message "Step awaiting user input: {step_display}" \
+      --data '{"reason": "{result.pending_input.reason}", "questions_presented": true}'
+
+    # Log and notify user
+    LOG "⏸ Step '{step_name}' is waiting for user input"
+    LOG "  Reason: {result.pending_input.reason}"
+    LOG "  Questions have been presented - please respond to continue"
+    LOG ""
+    LOG "Resume command: /fractary-faber:run --work-id {work_id} --resume {run_id}"
+
+    # HALT workflow - save state and wait
+    HALT workflow with:
+      status: "pending_input"
+      halted_at: "{phase}:{step_name}"
+      reason: result.pending_input.reason
+      resume_command: "/fractary-faber:run --work-id {work_id} --resume {run_id}"
+
+    # Workflow execution stops here until user responds and resumes
+    RETURN  # Exit step execution loop - workflow is halted
 ```
 
 **Update state - step complete (only if not failed):**
@@ -1550,7 +1589,10 @@ Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
   --message "Completed {phase} phase"
 ```
 
-**Post phase completion comment to issue (if work_id provided):**
+**MANDATORY: Post phase completion comment to issue (when work_id provided):**
+
+**CRITICAL**: This step is MANDATORY when work_id is provided. Phase completion comments MUST be posted for stakeholder visibility. Do NOT skip this step - see Critical Rule #11.
+
 ```
 IF work_id is provided THEN
   # Construct phase summary based on artifacts created
@@ -1565,6 +1607,7 @@ IF work_id is provided THEN
   # Get key artifacts from state for this phase
   artifacts_summary = get_phase_artifacts(state, phase)
 
+  # MANDATORY: Post comment - this is NOT optional
   Skill(skill="fractary-work:comment-creator")
   "Post comment to issue #{work_id}:
    {phase_emoji} **{phase.capitalize()} Phase Complete**
@@ -1573,7 +1616,15 @@ IF work_id is provided THEN
    {artifacts_summary}
 
    _Proceeding to next phase..._"
+
+  # Log successful comment posting
+  LOG "✓ Phase completion comment posted to issue #{work_id}"
+ELSE
+  LOG "ℹ No work_id provided - skipping issue comment (this is expected for manual workflows)"
+END
 ```
+
+**Why this is mandatory**: Stakeholders monitoring issues need visibility into workflow progress. Silent workflows without comments make it impossible to track automated work. See Critical Rule #11.
 
 **Autonomy Gate Notification (informational only):**
 
