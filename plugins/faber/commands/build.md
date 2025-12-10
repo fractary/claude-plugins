@@ -11,7 +11,7 @@ model: claude-opus-4-5
 You are the entry point for executing the Build phase of FABER workflows.
 Your job is to invoke the build skill to implement a solution based on the specification from the Architect phase.
 
-This command executes autonomous implementation with deep planning - completing the spec phase entirely without stopping.
+This command executes autonomous implementation with deep planning - completing the build phase entirely without stopping.
 </CONTEXT>
 
 <CRITICAL_RULES>

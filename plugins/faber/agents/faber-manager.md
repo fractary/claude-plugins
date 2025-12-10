@@ -782,6 +782,36 @@ if phase_only:
 
 ---
 
+## Step 3b: Optional - TodoWrite Progress Tracking
+
+**Visual Progress Indicator** (Optional Enhancement):
+
+TodoWrite MAY be used to provide visual progress tracking throughout the workflow. This is purely optional and does not affect workflow execution.
+
+```
+# Example: At workflow start, create initial todos for visibility
+for phase in phases_to_execute:
+  phase_steps = resolved_workflow.phases[phase].steps
+  step_count = phase_steps.length
+
+  TodoWrite(todos=[
+    {
+      "content": f"Execute {phase} phase ({step_count} steps)",
+      "activeForm": f"Executing {phase} phase",
+      "status": "pending"
+    }
+    // ... other phases
+  ])
+```
+
+**Guidelines:**
+- Use TodoWrite for multi-step workflows (3+ phases) to give user visibility
+- Update todo status at phase start (in_progress) and completion (completed)
+- Skip TodoWrite for single-phase or quick operations
+- This is a UX enhancement, not a workflow requirement
+
+---
+
 ## Step 4: Phase Orchestration Loop
 
 For each phase in phases_to_execute:
@@ -1125,11 +1155,50 @@ IF step.arguments exists THEN
 
 **Execute step (CRITICAL - use correct tool for each type):**
 
-**MANDATORY**: When a step has a `skill` field, you MUST use the Skill tool to invoke it.
-DO NOT improvise or interpret the step yourself - invoke the actual skill.
+**MANDATORY**: Steps can be executed in two ways (in priority order):
+1. **Command-based (NEW - preferred)**: Uses Task tool for deterministic execution
+2. **Skill-based (legacy)**: Uses Skill tool for backward compatibility
+
+**Priority logic**: If step has `command` field, use it. Otherwise fall back to `skill` or `prompt`.
 
 ```
-IF step.skill exists THEN
+# DETERMINISTIC EXECUTION: Command-based (NEW)
+IF step.command exists THEN
+  # Map command to agent for Task invocation
+  agent_name = map_command_to_agent(step.command)
+
+  # Invoke via Task tool for HARD EXECUTION BOUNDARY
+  # Task tool returns only when agent completes - LLM cannot skip this
+  task_result = Task(
+    subagent_type=agent_name,
+    description="Execute step: {step.name}",
+    prompt="Execute command: {step.command}
+
+    Context:
+    - target: {target}
+    - work_id: {work_id}
+    - run_id: {run_id}
+    - issue_data: {issue_data}
+    - config: {step.config}
+    - additional_instructions: {additional_instructions}"
+  )
+
+  # Task tool returns result directly - use it as the step result
+  # The Task tool response contains the agent's output, which should include
+  # a standard FABER response format (status, message, details)
+  result = task_result  # Direct assignment - no extraction needed
+
+  # Log command invocation for audit trail
+  Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
+    --run-id "{run_id}" \
+    --type "command_invoked" \
+    --phase "{phase}" \
+    --step "{step_id}" \
+    --command_name "{step.command}" \
+    --message "Invoked command: {step.command} via Task tool"
+
+# BACKWARD COMPATIBILITY: Legacy skill-based execution
+ELSE IF step.skill exists THEN
   # MUST use Skill tool - DO NOT interpret or improvise
   Skill(skill="{step.skill}")
 
@@ -1143,7 +1212,6 @@ IF step.skill exists THEN
    - additional_instructions: {additional_instructions}"
 
   # AFTER skill completes: Log skill invocation for audit trail (Guard 4)
-  # This creates an immutable record that the skill was invoked
   Bash: plugins/faber/skills/run-manager/scripts/emit-event.sh \
     --run-id "{run_id}" \
     --type "skill_invoked" \
@@ -1159,14 +1227,92 @@ ELSE IF step.prompt exists THEN
   Execute the prompt with step_context
 
 ELSE
-  # Step has neither skill nor prompt - this is a configuration error
-  ERROR "Step '{step.name}' has neither 'skill' nor 'prompt' field"
+  # Step has neither command, skill, nor prompt - this is a configuration error
+  ERROR "Step '{step.name}' has no 'command', 'skill', or 'prompt' field"
 ```
 
+**Command-to-Agent Mapping Function:**
+
+Commands are mapped to their agents using an **explicit routing table**. This ensures reliable routing and provides clear error messages for unknown commands.
+
+```
+# Explicit command-to-agent routing table
+COMMAND_AGENT_MAP = {
+  # Spec plugin commands
+  "fractary-spec:generate": "fractary-spec:spec-manager",
+  "fractary-spec:refine": "fractary-spec:spec-manager",
+
+  # Repo plugin commands
+  "fractary-repo:commit": "fractary-repo:repo-manager",
+  "fractary-repo:pr-create": "fractary-repo:repo-manager",
+  "fractary-repo:pr-review": "fractary-repo:repo-manager",
+  "fractary-repo:pr-merge": "fractary-repo:repo-manager",
+  "fractary-repo:branch-create": "fractary-repo:repo-manager",
+
+  # Work plugin commands
+  "fractary-work:issue-fetch": "fractary-work:work-manager",
+  "fractary-work:issue-create": "fractary-work:work-manager",
+  "fractary-work:comment-create": "fractary-work:work-manager",
+
+  # FABER plugin commands
+  "fractary-faber:build": "fractary-faber:faber-manager",
+  "fractary-faber:review": "fractary-faber:faber-manager",
+
+  # Docs plugin commands
+  "fractary-docs:update": "fractary-docs:docs-manager",
+
+  # Logs plugin commands
+  "fractary-logs:emit": "fractary-logs:log-manager"
+}
+
+function map_command_to_agent(command: string) -> string:
+  # Normalize command: remove leading slash if present
+  IF command starts with "/" THEN
+    command = command.slice(1)
+
+  # Look up in explicit routing table
+  IF command in COMMAND_AGENT_MAP THEN
+    RETURN COMMAND_AGENT_MAP[command]
+
+  # UNKNOWN COMMAND - fail fast with clear error
+  ERROR "Unknown command: '{command}'
+
+  The command '{command}' is not in the routing table.
+
+  To add support for this command:
+  1. Add an entry to COMMAND_AGENT_MAP in faber-manager.md
+  2. Ensure the target agent exists and accepts this command
+
+  Available commands:
+  {list keys from COMMAND_AGENT_MAP}"
+```
+
+**Routing Table Maintenance:**
+- Add new commands to `COMMAND_AGENT_MAP` when creating new plugin commands
+- Commands must be exact matches (case-sensitive)
+- Unknown commands fail immediately with helpful error message
+
+**Example Mappings:**
+| Command | Agent |
+|---------|-------|
+| `fractary-spec:generate` | `fractary-spec:spec-manager` |
+| `fractary-spec:refine` | `fractary-spec:spec-manager` |
+| `fractary-repo:commit` | `fractary-repo:repo-manager` |
+| `fractary-repo:pr-create` | `fractary-repo:repo-manager` |
+| `fractary-work:issue-fetch` | `fractary-work:work-manager` |
+| `fractary-faber:build` | `fractary-faber:faber-manager` |
+
+**Why Command-based Execution is Deterministic:**
+1. Task tool spawns a separate agent context
+2. Parent (faber-manager) is blocked until child agent completes
+3. When Task returns, parent receives explicit result object
+4. Parent cannot "accidentally skip" the next step - Task return is a hard boundary
+5. Small context overhead per step is worth the guarantee of deterministic execution
+
 - ALWAYS include `additional_instructions` in context for AI-driven steps
-- NEVER substitute your own implementation for a defined skill
-- Skills follow their own naming conventions and output formats - trust them
-- ALWAYS log skill invocations to events/ directory for audit trail
+- NEVER substitute your own implementation for a defined step
+- Commands have well-defined agent handlers - trust them
+- ALWAYS log command/skill invocations to events/ directory for audit trail
 - NEVER skip logging - this is how we verify execution actually happened
 
 **Capture and validate result (CRITICAL - see CRITICAL_RULE #8):**

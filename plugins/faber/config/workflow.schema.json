@@ -164,16 +164,21 @@
         },
         "prompt": {
           "type": "string",
-          "description": "Execution instruction for Claude when no skill is present, or to customize skill behavior. Takes precedence over description for execution."
+          "description": "Execution instruction for Claude when no skill/command is present, or to customize skill behavior. Takes precedence over description for execution."
+        },
+        "command": {
+          "type": "string",
+          "pattern": "^/?[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$",
+          "description": "Command reference in format /plugin:command-name or plugin:command-name. Preferred over skill field - provides deterministic execution via Task tool with hard execution boundaries. Examples: /fractary-spec:generate, /fractary-repo:commit"
         },
         "skill": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$",
-          "description": "Skill reference in format plugin:skill-name"
+          "description": "DEPRECATED: Skill reference in format plugin:skill-name. Use 'command' field instead for deterministic execution. Will be removed in FABER v3.0."
         },
         "config": {
           "type": "object",
-          "description": "Step-specific configuration passed to the skill"
+          "description": "Step-specific configuration passed to the skill or command"
         },
         "arguments": {
           "type": "object",
@@ -194,6 +199,7 @@
           "anyOf": [
             {"required": ["description"]},
             {"required": ["prompt"]},
+            {"required": ["command"]},
             {"required": ["skill"]}
           ]
         }
