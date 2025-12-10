@@ -274,9 +274,16 @@ phases_overview = ""
 FOR each phase_name, phase_data in workflow.phases:
   phases_overview += "  {phase_name capitalized}\n"
   FOR each step in phase_data.steps:
-    # Mark steps from parent workflows
-    IF step.source != workflow.id:
-      source_marker = " ({step.source.split(':')[1]})"  # e.g., "core"
+    # Mark steps from parent workflows (with safe field access)
+    # The 'source' field is set by merge-workflows.sh and indicates
+    # which workflow definition the step originated from.
+    # If source field is missing or equals current workflow, no marker needed.
+    IF step.source EXISTS AND step.source != workflow.id:
+      # Extract suffix after colon (e.g., "fractary-faber:core" -> "core")
+      IF step.source contains ":":
+        source_marker = " ({step.source.split(':')[1]})"  # e.g., "core"
+      ELSE:
+        source_marker = " ({step.source})"  # Fallback: use full source name
     ELSE:
       source_marker = ""
     phases_overview += "    - {step.name}{source_marker}\n"
@@ -343,6 +350,23 @@ AskUserQuestion(
 
 2. Read and display the full plan JSON file contents (pretty-printed)
 
+   **Error Handling for File Read:**
+   ```
+   TRY:
+     plan_content = Read(file_path="logs/fractary/plugins/faber/plans/{plan_id}.json")
+     Display plan_content (pretty-printed JSON)
+   CATCH FileNotFoundError:
+     Output: "Error: Plan file not found at expected location. The plan may have been moved or deleted."
+     Output: "Expected: logs/fractary/plugins/faber/plans/{plan_id}.json"
+     Include `execute: false` in response and exit flow
+   CATCH JSONParseError:
+     Output: "Error: Plan file exists but contains invalid JSON. Please recreate the plan."
+     Include `execute: false` in response and exit flow
+   CATCH PermissionError:
+     Output: "Error: Cannot read plan file due to permissions. Check file permissions."
+     Include `execute: false` in response and exit flow
+   ```
+
 3. Re-prompt with AskUserQuestion (without the review option):
    ```
    AskUserQuestion(
@@ -376,6 +400,71 @@ This agent is complete when:
 4. Response includes `execute: true|false` based on user choice
 5. **NO faber-manager was invoked** (that's the executor's job)
 </COMPLETION_CRITERIA>
+
+<EXECUTION_SIGNAL_MECHANISM>
+## How Execution Signal Works
+
+When the faber-planner completes, it communicates the user's decision to the calling command
+via its final response text. The calling command (e.g., `/fractary-faber:run`) parses this response.
+
+**Signal Format:**
+The agent's final response MUST include one of these indicators:
+
+```
+execute: true
+plan_id: {plan_id}
+```
+
+OR
+
+```
+execute: false
+plan_id: {plan_id}
+```
+
+**Calling Command Behavior:**
+
+1. **`/fractary-faber:plan`** (creates plan only):
+   - Ignores the execute signal
+   - Simply returns the plan_id to the user
+   - User must manually run `/fractary-faber:execute {plan_id}`
+
+2. **`/fractary-faber:run`** (creates and optionally executes):
+   - Parses the agent response for `execute: true|false`
+   - If `execute: true`: Automatically invokes faber-executor with the plan_id
+   - If `execute: false`: Returns without executing, plan remains saved
+
+**Example Agent Response (execute true):**
+```
+FABER Plan Created
+...plan summary...
+
+[User selected "Execute now"]
+
+execute: true
+plan_id: fractary-claude-plugins-csv-export-20251208T160000
+```
+
+**Example Agent Response (execute false):**
+```
+FABER Plan Created
+...plan summary...
+
+[User selected "Exit"]
+
+execute: false
+plan_id: fractary-claude-plugins-csv-export-20251208T160000
+
+Plan saved for later execution:
+/fractary-faber:execute fractary-claude-plugins-csv-export-20251208T160000
+```
+
+**Why This Design:**
+- Keeps the planner focused on planning (no execution logic)
+- Calling command decides whether to act on the signal
+- Same planner works for both plan-only and plan-and-execute flows
+- Clear, parseable output for programmatic consumption
+</EXECUTION_SIGNAL_MECHANISM>
 
 <OUTPUTS>
 
