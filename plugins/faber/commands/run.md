@@ -2,7 +2,7 @@
 name: fractary-faber:run
 description: Execute FABER workflow - creates plan and executes it in one step
 argument-hint: '[<target>] [--work-id <id>] [--workflow <id>] [--autonomy <level>] [--phase <phases>]'
-tools: Skill
+tools: Task, Skill
 model: claude-haiku-4-5
 ---
 
@@ -94,23 +94,31 @@ Extract from user input:
 - If `--phase` contains spaces: show error
 - If both `--phase` and `--step`: show error (mutually exclusive)
 
-## Step 2: Create Plan (invoke faber-planner)
+## Step 2: Create Plan (invoke faber-planner agent)
 
-**IMPORTANT:** Use the Skill tool to invoke the faber-planner skill.
+**IMPORTANT:** Use the Task tool to invoke the faber-planner agent.
 
 ```
-Skill(skill="faber-planner")
-
-Provide the following context in your invocation:
-- target: {target or null}
-- work_id: {work_id or null}
-- workflow_override: {workflow_override or null}
-- autonomy_override: {autonomy_override or null}
-- phases: {phases or null}
-- step_id: {step_id or null}
-- prompt: {prompt or null}
-- working_directory: {pwd}
+Task(
+  subagent_type="fractary-faber:faber-planner",
+  description="Create FABER plan for work item {work_id or target}",
+  prompt='<parameters>
+    target: {target value, or omit if not provided}
+    work_id: {work_id value, or omit if not provided}
+    workflow_override: {workflow_override value, or omit if not provided}
+    autonomy_override: {autonomy_override value, or omit if not provided}
+    phases: {phases value, or omit if not provided}
+    step_id: {step_id value, or omit if not provided}
+    prompt: {prompt value, or omit if not provided}
+    working_directory: {pwd}
+  </parameters>'
+)
 ```
+
+**Parameter handling:**
+- Only include parameters that have values
+- Omit parameters that are null/not provided
+- The agent will use defaults for omitted parameters
 
 Extract `plan_id` from planner response.
 
@@ -190,29 +198,32 @@ Examples:
 
 ```
 /fractary-faber:run (THIS COMMAND)
-    |
+    ↓
 +-------------------------------+
-| Phase 1: faber-planner        |
+| Phase 1: faber-planner agent  |
+|   (invoked via Task tool)     |
 |   - Create plan artifact      |
 |   - Save to logs directory    |
 +-------------------------------+
-    |
+    ↓
 +-------------------------------+
-| Phase 2: faber-executor       |
+| Phase 2: faber-executor skill |
+|   (invoked via Skill tool)    |
 |   - Read plan                 |
 |   - Spawn faber-manager(s)    |
 |   - Aggregate results         |
 +-------------------------------+
-    |
+    ↓
 Results returned to user
 ```
 
 ## Skill vs Agent Invocation
 
-- **Skills** are invoked using the `Skill` tool: `Skill(skill="skill-name")`
 - **Agents** are invoked using the `Task` tool: `Task(subagent_type="agent-name")`
+- **Skills** are invoked using the `Skill` tool: `Skill(skill="skill-name")`
 
-Both faber-planner and faber-executor are **skills**, so use the Skill tool.
+The faber-planner is an **agent**, so use the Task tool.
+The faber-executor is a **skill**, so use the Skill tool.
 The faber-manager is an **agent**, which the executor skill will spawn using Task tool.
 
 ## Convenience vs Control

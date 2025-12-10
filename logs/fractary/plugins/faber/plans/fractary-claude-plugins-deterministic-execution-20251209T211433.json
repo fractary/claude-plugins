@@ -1,0 +1,90 @@
+{
+  "id": "fractary-claude-plugins-deterministic-execution-20251209T211433",
+  "created": "2025-12-09T21:14:33Z",
+  "created_by": "faber-planner",
+
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "deterministic-execution",
+    "year": "2025",
+    "month": "12",
+    "day": "09",
+    "hour": "21",
+    "minute": "14",
+    "second": "33"
+  },
+
+  "source": {
+    "input": "--work-id 328",
+    "work_id": "328",
+    "expanded_from": null
+  },
+
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-09T21:14:33Z",
+    "inheritance_chain": ["fractary-faber:default"],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "description": "Fetch and classify work item"
+      },
+      "architect": {
+        "enabled": true,
+        "description": "Design solution and create specification"
+      },
+      "build": {
+        "enabled": true,
+        "description": "Implement the feature"
+      },
+      "evaluate": {
+        "enabled": true,
+        "description": "Test and review implementation",
+        "max_retries": 3
+      },
+      "release": {
+        "enabled": true,
+        "description": "Create PR and document changes"
+      }
+    }
+  },
+
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+
+  "items": [
+    {
+      "target": "FABER: Deterministic step execution via Task tool and command-based workflow config",
+      "work_id": "328",
+      "issue": {
+        "number": 328,
+        "title": "FABER: Deterministic step execution via Task tool and command-based workflow config",
+        "url": "https://github.com/fractary/claude-plugins/issues/328",
+        "state": "open",
+        "labels": ["enhancement", "faber", "architecture"],
+        "created_at": "2025-12-09T20:32:09Z",
+        "updated_at": "2025-12-09T20:51:05Z",
+        "author": "jmcwilliam"
+      },
+      "branch": {
+        "name": "feat/328-deterministic-step-execution",
+        "status": "new",
+        "resume_from": null
+      },
+      "worktree": "../claude-plugins-wt-feat-328-deterministic-step-execution",
+      "work_type": "feature"
+    }
+  ],
+
+  "execution": {
+    "mode": "sequential",
+    "max_concurrent": 1,
+    "status": "pending",
+    "started_at": null,
+    "completed_at": null,
+    "results": []
+  }
+}

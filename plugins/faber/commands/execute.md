@@ -177,19 +177,19 @@ This bypasses the executor's orchestration logic (parallel execution, resume sup
 
 ```
 /fractary-faber:plan
-    |
-faber-planner skill
-    |
+    ↓
+faber-planner agent (invoked via Task tool)
+    ↓
 Plan artifact saved to logs/fractary/plugins/faber/plans/
-    |
+    ↓
 User reviews plan
-    |
+    ↓
 /fractary-faber:execute <plan-id> (THIS COMMAND)
-    |
+    ↓
 faber-executor skill (invoked via Skill tool)
-    |
+    ↓
 faber-manager agent(s) (spawned via Task tool by executor)
-    |
+    ↓
 Results aggregated
 ```
 

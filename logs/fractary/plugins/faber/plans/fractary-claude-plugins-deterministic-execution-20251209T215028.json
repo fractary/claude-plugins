@@ -1,0 +1,226 @@
+{
+  "id": "fractary-claude-plugins-deterministic-execution-20251209T215028",
+  "created": "2025-12-09T21:50:28Z",
+  "created_by": "faber-planner",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "deterministic-execution",
+    "year": "2025",
+    "month": "12",
+    "day": "09",
+    "hour": "21",
+    "minute": "50",
+    "second": "28"
+  },
+  "source": {
+    "input": "--work-id 328",
+    "work_id": "328",
+    "expanded_from": null
+  },
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-09T21:50:28Z",
+    "inheritance_chain": [
+      "fractary-faber:default",
+      "fractary-faber:core"
+    ],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "description": "Fetch work item and setup branch",
+        "pre_steps": [
+          {
+            "id": "core-fetch-or-create-issue",
+            "name": "Fetch or Create Issue",
+            "description": "Fetch existing issue or create new one. Reads referenced docs and existing commits.",
+            "prompt": "If work_id provided: fetch issue with fractary-work:issue-fetcher, read all referenced documents and existing commits for context. If no work_id: create issue with fractary-work:issue-creator using the target description."
+          },
+          {
+            "id": "core-switch-or-create-branch",
+            "name": "Switch or Create Branch",
+            "description": "Checkout existing branch or create new one linked to issue",
+            "prompt": "If issue has associated branch: checkout and fetch it. If new issue or no branch: create branch with fractary-repo:branch-create --work-id. Update git status cache with branch and work ID."
+          }
+        ],
+        "steps": [],
+        "post_steps": []
+      },
+      "architect": {
+        "enabled": true,
+        "description": "Generate and refine technical specification from issue context",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "generate-spec",
+            "name": "Generate Specification",
+            "description": "Create technical specification from issue context",
+            "skill": "fractary-spec:spec-generator",
+            "config": {
+              "use_issue_context": true,
+              "auto_detect_template": true
+            }
+          },
+          {
+            "id": "refine-spec",
+            "name": "Refine Specification",
+            "description": "Critically review spec and gather clarifications from user",
+            "skill": "fractary-spec:spec-refiner",
+            "config": {
+              "allow_iterative_rounds": true,
+              "best_effort_on_no_answers": true
+            },
+            "arguments": {
+              "work_id": "{work_id}"
+            }
+          }
+        ],
+        "post_steps": []
+      },
+      "build": {
+        "enabled": true,
+        "description": "Implement solution based on specification",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "implement",
+            "name": "Implement Solution",
+            "description": "Implement based on specification following project patterns",
+            "skill": "fractary-faber:build",
+            "config": {
+              "use_spec": true,
+              "post_progress_comments": true
+            }
+          }
+        ],
+        "post_steps": [
+          {
+            "id": "core-commit-and-push-build",
+            "name": "Commit and Push Changes",
+            "description": "Ensure all build changes are committed and pushed",
+            "skill": "fractary-repo:commit-creator",
+            "config": {
+              "push_after_commit": true,
+              "conventional_commits": true,
+              "link_to_issue": true
+            },
+            "arguments": {
+              "work_id": "{work_id}"
+            }
+          }
+        ]
+      },
+      "evaluate": {
+        "enabled": true,
+        "description": "Review implementation and create PR",
+        "max_retries": 3,
+        "pre_steps": [
+          {
+            "id": "core-issue-review",
+            "name": "Review Issue Implementation",
+            "description": "Verify implementation completeness against issue requirements",
+            "skill": "fractary-faber:issue-reviewer",
+            "arguments": {
+              "work_id": "{work_id}"
+            }
+          }
+        ],
+        "steps": [],
+        "post_steps": [
+          {
+            "id": "core-commit-and-push-evaluate",
+            "name": "Commit and Push Fixes",
+            "description": "Ensure evaluation fixes are committed",
+            "skill": "fractary-repo:commit-creator",
+            "config": {
+              "push_after_commit": true
+            },
+            "arguments": {
+              "work_id": "{work_id}"
+            }
+          },
+          {
+            "id": "core-create-pr",
+            "name": "Create Pull Request",
+            "description": "Create PR for the implementation (skips if PR already exists). Links to issue for auto-close on merge.",
+            "skill": "fractary-repo:pr-manager",
+            "config": {
+              "action": "create",
+              "auto_link_issue": true,
+              "skip_if_exists": true
+            },
+            "arguments": {
+              "work_id": "{work_id}",
+              "issue_data": "{issue_data}"
+            }
+          },
+          {
+            "id": "core-review-pr-checks",
+            "name": "Review PR CI Checks",
+            "description": "Wait for and review CI/CD pipeline results",
+            "skill": "fractary-repo:pr-manager",
+            "config": {
+              "action": "review",
+              "wait_for_ci": true
+            }
+          }
+        ]
+      },
+      "release": {
+        "enabled": true,
+        "description": "Merge PR and complete workflow",
+        "require_approval": true,
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": [
+          {
+            "id": "core-merge-pr",
+            "name": "Merge Pull Request",
+            "description": "Merge the PR and delete branch",
+            "skill": "fractary-repo:pr-manager",
+            "config": {
+              "action": "merge",
+              "delete_branch": true
+            }
+          }
+        ]
+      }
+    },
+    "autonomy": {
+      "level": "guarded",
+      "description": "Pauses before release for approval - recommended for production",
+      "require_approval_for": ["release"]
+    }
+  },
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+  "items": [
+    {
+      "target": "#328",
+      "work_id": "328",
+      "issue": {
+        "number": 328,
+        "title": "FABER: Deterministic step execution via Task tool and command-based workflow config",
+        "url": "https://github.com/fractary/claude-plugins/issues/328",
+        "state": "OPEN",
+        "labels": ["enhancement", "faber", "architecture"],
+        "author": "jmcwilliam"
+      },
+      "branch": {
+        "name": "feat/328-deterministic-step-execution",
+        "status": "new"
+      },
+      "worktree": "../claude-plugins-wt-feat-328-deterministic-step-execution"
+    }
+  ],
+  "execution": {
+    "mode": "parallel",
+    "max_concurrent": 5,
+    "status": "pending",
+    "started_at": null,
+    "completed_at": null,
+    "results": []
+  }
+}

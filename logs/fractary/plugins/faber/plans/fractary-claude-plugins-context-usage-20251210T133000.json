@@ -1,0 +1,183 @@
+{
+  "id": "fractary-claude-plugins-context-usage-20251210T133000",
+  "created": "2025-12-10T13:30:00Z",
+  "created_by": "faber-planner",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "context-usage-status-display",
+    "year": "2025",
+    "month": "12",
+    "day": "10",
+    "hour": "13",
+    "minute": "30",
+    "second": "00"
+  },
+  "source": {
+    "input": "--work-id 335",
+    "work_id": "335",
+    "expanded_from": null
+  },
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-10T13:30:00Z",
+    "inheritance_chain": ["fractary-faber:default", "fractary-faber:core"],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "description": "Fetch work item and setup branch",
+        "pre_steps": [
+          {
+            "id": "core-fetch-or-create-issue",
+            "name": "Fetch or Create Issue",
+            "description": "Fetch existing issue or create new one",
+            "command": "/fractary-work:issue-fetch",
+            "arguments": {"issue_number": "{work_id}"}
+          },
+          {
+            "id": "core-switch-or-create-branch",
+            "name": "Switch or Create Branch",
+            "description": "Checkout existing branch or create new one linked to issue",
+            "command": "/fractary-repo:branch-create",
+            "arguments": {"work_id": "{work_id}"}
+          }
+        ],
+        "steps": [],
+        "post_steps": []
+      },
+      "architect": {
+        "enabled": true,
+        "description": "Generate and refine technical specification from issue context",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "generate-spec",
+            "name": "Generate Specification",
+            "description": "Create technical specification from issue context",
+            "command": "/fractary-spec:create",
+            "arguments": {"work_id": "{work_id}"}
+          },
+          {
+            "id": "refine-spec",
+            "name": "Refine Specification",
+            "description": "Critically review spec and gather clarifications from user",
+            "command": "/fractary-spec:refine",
+            "arguments": {"work_id": "{work_id}"}
+          }
+        ],
+        "post_steps": []
+      },
+      "build": {
+        "enabled": true,
+        "description": "Implement solution based on specification",
+        "pre_steps": [],
+        "steps": [
+          {
+            "id": "implement",
+            "name": "Implement Solution",
+            "description": "Implement based on specification following project patterns",
+            "command": "/fractary-faber:build",
+            "arguments": {"work_id": "{work_id}"}
+          }
+        ],
+        "post_steps": [
+          {
+            "id": "core-commit-and-push-build",
+            "name": "Commit and Push Changes",
+            "description": "Ensure all build changes are committed and pushed",
+            "command": "/fractary-repo:commit-and-push",
+            "arguments": {"work_id": "{work_id}"}
+          }
+        ]
+      },
+      "evaluate": {
+        "enabled": true,
+        "description": "Review implementation and create PR",
+        "max_retries": 3,
+        "pre_steps": [
+          {
+            "id": "core-issue-review",
+            "name": "Review Issue Implementation",
+            "description": "Verify implementation completeness against issue requirements",
+            "command": "/fractary-faber:review",
+            "arguments": {"work_id": "{work_id}"}
+          }
+        ],
+        "steps": [],
+        "post_steps": [
+          {
+            "id": "core-commit-and-push-evaluate",
+            "name": "Commit and Push Fixes",
+            "description": "Ensure evaluation fixes are committed",
+            "command": "/fractary-repo:commit-and-push",
+            "arguments": {"work_id": "{work_id}"}
+          },
+          {
+            "id": "core-create-pr",
+            "name": "Create Pull Request",
+            "description": "Create PR for the implementation (skips if PR already exists)",
+            "command": "/fractary-repo:pr-create",
+            "arguments": {"work_id": "{work_id}"}
+          },
+          {
+            "id": "core-review-pr-checks",
+            "name": "Review PR CI Checks",
+            "description": "Wait for and review CI/CD pipeline results",
+            "command": "/fractary-repo:pr-review",
+            "arguments": {"wait_for_ci": true}
+          }
+        ]
+      },
+      "release": {
+        "enabled": true,
+        "description": "Merge PR and complete workflow",
+        "require_approval": true,
+        "pre_steps": [],
+        "steps": [],
+        "post_steps": [
+          {
+            "id": "core-merge-pr",
+            "name": "Merge Pull Request",
+            "description": "Merge the PR and delete branch",
+            "command": "/fractary-repo:pr-merge",
+            "arguments": {"delete_branch": true}
+          }
+        ]
+      }
+    }
+  },
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+  "items": [
+    {
+      "target": "context-usage-status-display",
+      "work_id": "335",
+      "issue": {
+        "number": 335,
+        "identifier": "#335",
+        "title": "% context usage and session cost not working",
+        "description": "Issue #277 was supposed to add some additional information to the Fractary status line. It was supposed to add the percent of context window remaining and the estimated cost for this session as far as token usage. It is not showing in the status line, so something is not working.",
+        "url": "https://github.com/fractary/claude-plugins/issues/335",
+        "state": "open",
+        "labels": [],
+        "assignees": []
+      },
+      "branch": {
+        "name": "feat/335-context-usage-display",
+        "status": "new",
+        "resume_from": null
+      },
+      "worktree": null
+    }
+  ],
+  "execution": {
+    "mode": "sequential",
+    "max_concurrent": 1,
+    "status": "pending",
+    "started_at": null,
+    "completed_at": null,
+    "results": []
+  }
+}
