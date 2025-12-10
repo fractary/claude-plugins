@@ -549,7 +549,7 @@ Write spec to `{local_path}/{filename}`:
 
 ## Step 15: Link to GitHub Issue (If `work_id` Provided or Detected)
 
-If `work_id` is provided AND `integration.update_issue_on_create` is true in config:
+**MANDATORY**: If `work_id` is provided or was auto-detected, ALWAYS comment on the GitHub issue. This is not config-dependent - basic spec creation comments are mandatory for workflow visibility.
 
 Comment on GitHub issue:
 ```markdown
