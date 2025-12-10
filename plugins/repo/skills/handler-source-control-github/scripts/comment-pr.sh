@@ -1,17 +1,32 @@
 #!/bin/bash
 # Repo Manager: GitHub Comment on Pull Request
 # Adds a comment to an existing pull request
+#
+# Usage (preferred - environment variables):
+#   COMMENT_PR_NUMBER="..." COMMENT_BODY="..." ./comment-pr.sh
+#
+# Usage (legacy - positional arguments):
+#   comment-pr.sh <pr_number> <comment_body>
+#
+# Environment Variables (preferred for special characters):
+#   COMMENT_PR_NUMBER - PR number to comment on (required)
+#   COMMENT_BODY      - Comment text in markdown (required)
+#
+# Note: Environment variables take precedence over positional arguments.
+#       Use environment variables when parameters contain special characters
+#       (commas, quotes, backticks, newlines, etc.) to avoid shell escaping issues.
 
 set -euo pipefail
 
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <pr_number> <comment_body>" >&2
+# Read from environment variables first, fall back to positional arguments
+PR_NUMBER="${COMMENT_PR_NUMBER:-${1:-}}"
+COMMENT_BODY="${COMMENT_BODY:-${2:-}}"
+
+# Check required parameters
+if [ -z "$PR_NUMBER" ] || [ -z "$COMMENT_BODY" ]; then
+    echo "Error: Missing required parameters. Set COMMENT_PR_NUMBER and COMMENT_BODY environment variables, or pass as positional arguments." >&2
     exit 2
 fi
-
-PR_NUMBER="$1"
-COMMENT_BODY="$2"
 
 # Check if gh CLI is available
 if ! command -v gh &> /dev/null; then

@@ -2,30 +2,39 @@
 # Repo Manager: GitHub Create Commit
 # Creates a semantic commit following Conventional Commits + optional FABER metadata
 #
-# Usage: create-commit.sh <message> <type> [work_id] [author_context] [description]
+# Usage (preferred - environment variables):
+#   COMMIT_MESSAGE="message" COMMIT_TYPE="feat" [COMMIT_WORK_ID="..."] [COMMIT_AUTHOR_CONTEXT="..."] [COMMIT_DESCRIPTION="..."] ./create-commit.sh
 #
-# Parameters:
-#   message        - Commit message summary (required)
-#   type           - Commit type: feat|fix|chore|docs|test|refactor|style|perf (required)
-#   work_id        - Work item reference e.g., "#123", "PROJ-456" (optional)
-#   author_context - FABER context: architect|implementor|tester|reviewer (optional)
-#   description    - Extended commit body description (optional)
+# Usage (legacy - positional arguments):
+#   create-commit.sh <message> <type> [work_id] [author_context] [description]
+#
+# Environment Variables (preferred for special characters):
+#   COMMIT_MESSAGE        - Commit message summary (required)
+#   COMMIT_TYPE           - Commit type: feat|fix|chore|docs|test|refactor|style|perf (required)
+#   COMMIT_WORK_ID        - Work item reference e.g., "#123", "PROJ-456" (optional)
+#   COMMIT_AUTHOR_CONTEXT - FABER context: architect|implementor|tester|reviewer (optional)
+#   COMMIT_DESCRIPTION    - Extended commit body description (optional)
+#
+# Note: Environment variables take precedence over positional arguments.
+#       Use environment variables when parameters contain special characters
+#       (commas, quotes, backticks, newlines, etc.) to avoid shell escaping issues.
 #
 # Output: JSON with status, commit_sha, message, work_id
 
 set -euo pipefail
 
-# Check minimum arguments
-if [ $# -lt 2 ]; then
-    echo '{"status": "failure", "error": "Usage: create-commit.sh <message> <type> [work_id] [author_context] [description]", "error_code": 2}' >&2
+# Read from environment variables first, fall back to positional arguments
+MESSAGE="${COMMIT_MESSAGE:-${1:-}}"
+TYPE="${COMMIT_TYPE:-${2:-}}"
+WORK_ID="${COMMIT_WORK_ID:-${3:-}}"
+AUTHOR_CONTEXT="${COMMIT_AUTHOR_CONTEXT:-${4:-}}"
+DESCRIPTION="${COMMIT_DESCRIPTION:-${5:-}}"
+
+# Check required parameters
+if [ -z "$MESSAGE" ] || [ -z "$TYPE" ]; then
+    echo '{"status": "failure", "error": "Missing required parameters. Set COMMIT_MESSAGE and COMMIT_TYPE environment variables, or pass as positional arguments.", "error_code": 2}' >&2
     exit 2
 fi
-
-MESSAGE="$1"
-TYPE="$2"
-WORK_ID="${3:-}"
-AUTHOR_CONTEXT="${4:-}"
-DESCRIPTION="${5:-}"
 
 # Validate commit type
 VALID_TYPES="feat fix chore docs test refactor style perf hotfix"

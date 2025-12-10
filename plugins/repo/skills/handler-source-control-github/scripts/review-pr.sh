@@ -1,19 +1,35 @@
 #!/bin/bash
 # Repo Manager: GitHub Review Pull Request
 # Submits a review on a pull request
+#
+# Usage (preferred - environment variables):
+#   REVIEW_PR_NUMBER="..." REVIEW_TYPE="..." [REVIEW_BODY="..."] ./review-pr.sh
+#
+# Usage (legacy - positional arguments):
+#   review-pr.sh <pr_number> <review_type> [review_body]
+#
+# Environment Variables (preferred for special characters):
+#   REVIEW_PR_NUMBER - PR number to review (required)
+#   REVIEW_TYPE      - Review type: approve, request-changes, comment (required)
+#   REVIEW_BODY      - Review comment in markdown (optional)
+#
+# Note: Environment variables take precedence over positional arguments.
+#       Use environment variables when parameters contain special characters
+#       (commas, quotes, backticks, newlines, etc.) to avoid shell escaping issues.
 
 set -euo pipefail
 
-# Check arguments
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <pr_number> <review_type> [review_body]" >&2
+# Read from environment variables first, fall back to positional arguments
+PR_NUMBER="${REVIEW_PR_NUMBER:-${1:-}}"
+REVIEW_TYPE="${REVIEW_TYPE:-${2:-}}"
+REVIEW_BODY="${REVIEW_BODY:-${3:-}}"
+
+# Check required parameters
+if [ -z "$PR_NUMBER" ] || [ -z "$REVIEW_TYPE" ]; then
+    echo "Error: Missing required parameters. Set REVIEW_PR_NUMBER and REVIEW_TYPE environment variables, or pass as positional arguments." >&2
     echo "Review types: approve, request-changes, comment" >&2
     exit 2
 fi
-
-PR_NUMBER="$1"
-REVIEW_TYPE="$2"
-REVIEW_BODY="${3:-}"
 
 # Check if gh CLI is available
 if ! command -v gh &> /dev/null; then
