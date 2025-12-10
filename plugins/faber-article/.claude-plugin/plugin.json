@@ -1,6 +1,6 @@
 {
   "name": "fractary-faber-article",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Content creation lifecycle automation for blog articles - ideate, research, outline, draft, enhance, optimize SEO, generate hero images, and publish with AI assistance. Supports configurable research depth (basic/moderate/deep), semi-automated workflow checkpoints, state tracking (idea → outline → draft → review → seo → scheduled → published), and brand voice consistency.",
   "commands": "./commands/",
   "agents": [

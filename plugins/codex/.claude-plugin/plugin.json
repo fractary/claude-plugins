@@ -1,6 +1,6 @@
 {
   "name": "fractary-codex",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Knowledge retrieval and documentation sync - memory fabric for AI agents with cache-first retrieval, multi-source support, MCP integration, and bidirectional synchronization.",
   "commands": "./commands/",
   "agents": ["./agents/codex-manager.md"],

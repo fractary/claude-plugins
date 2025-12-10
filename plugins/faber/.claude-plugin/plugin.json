@@ -1,6 +1,6 @@
 {
   "name": "fractary-faber",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Universal SDLC workflow framework with two-phase plan/execute architecture",
   "commands": "./commands/",
   "agents": [

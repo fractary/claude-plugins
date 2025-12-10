@@ -1,6 +1,6 @@
 {
   "name": "fractary-logs",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Type-aware operational log management - 8 log types with per-type retention, schema validation, and intelligent classification",
   "commands": "./commands/",
   "agents": ["./agents/log-manager.md"],

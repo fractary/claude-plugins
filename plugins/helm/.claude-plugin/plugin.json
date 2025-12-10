@@ -1,6 +1,6 @@
 {
   "name": "fractary-helm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Central Helm orchestrator - unified monitoring, dashboard, and issue management across all domains",
   "commands": "./commands/",
   "agents": [

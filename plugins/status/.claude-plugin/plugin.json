@@ -1,6 +1,6 @@
 {
   "name": "fractary-status",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Custom Claude Code status line showing git status, issue numbers, PR numbers, and last prompt",
   "commands": "./commands/",
   "skills": "./skills/"

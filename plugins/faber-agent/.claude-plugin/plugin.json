@@ -1,6 +1,6 @@
 {
   "name": "fractary-faber-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Meta-plugin for creating Claude Code agents, skills, commands, and plugins with automated standards compliance",
   "commands": "./commands/",
   "agents": [

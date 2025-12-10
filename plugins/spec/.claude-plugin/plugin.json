@@ -1,6 +1,6 @@
 {
   "name": "fractary-spec",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Manage ephemeral specifications tied to work items with lifecycle-based archival",
   "commands": "./commands/",
   "agents": ["./agents/spec-manager.md"],
