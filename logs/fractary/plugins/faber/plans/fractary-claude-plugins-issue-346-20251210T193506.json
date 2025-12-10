@@ -1,0 +1,214 @@
+{
+  "id": "fractary-claude-plugins-issue-346-20251210T193506",
+  "created": "2025-12-10T19:35:06Z",
+  "created_by": "faber-planner",
+  "metadata": {
+    "org": "fractary",
+    "project": "claude-plugins",
+    "subproject": "issue-346",
+    "year": "2025",
+    "month": "12",
+    "day": "10",
+    "hour": "19",
+    "minute": "35",
+    "second": "06"
+  },
+  "source": {
+    "input": "work_id: 346",
+    "work_id": "346",
+    "expanded_from": null
+  },
+  "workflow": {
+    "id": "fractary-faber:default",
+    "resolved_at": "2025-12-10T19:35:06Z",
+    "inheritance_chain": [
+      "fractary-faber:default",
+      "fractary-faber:core"
+    ],
+    "phases": {
+      "frame": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "core-fetch-or-create-issue",
+            "name": "Fetch or Create Issue",
+            "description": "Fetch existing issue or create new one. Reads referenced docs and existing commits.",
+            "command": "/fractary-work:issue-fetch",
+            "arguments": {
+              "issue_number": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "pre_step"
+          },
+          {
+            "id": "core-switch-or-create-branch",
+            "name": "Switch or Create Branch",
+            "description": "Checkout existing branch or create new one linked to issue",
+            "command": "/fractary-repo:branch-create",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "pre_step"
+          }
+        ]
+      },
+      "architect": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "generate-spec",
+            "name": "Generate Specification",
+            "description": "Create technical specification from issue context",
+            "command": "/fractary-spec:create",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:default",
+            "position": "step"
+          },
+          {
+            "id": "refine-spec",
+            "name": "Refine Specification",
+            "description": "Critically review spec and gather clarifications from user",
+            "command": "/fractary-spec:refine",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:default",
+            "position": "step"
+          }
+        ]
+      },
+      "build": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "implement",
+            "name": "Implement Solution",
+            "description": "Implement based on specification following project patterns",
+            "command": "/fractary-faber:build",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:default",
+            "position": "step"
+          },
+          {
+            "id": "core-commit-and-push-build",
+            "name": "Commit and Push Changes",
+            "description": "Ensure all build changes are committed and pushed",
+            "command": "/fractary-repo:commit-and-push",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          }
+        ]
+      },
+      "evaluate": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "core-issue-review",
+            "name": "Review Issue Implementation",
+            "description": "Verify implementation completeness against issue requirements",
+            "command": "/fractary-faber:review",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "pre_step"
+          },
+          {
+            "id": "core-commit-and-push-evaluate",
+            "name": "Commit and Push Fixes",
+            "description": "Ensure evaluation fixes are committed",
+            "command": "/fractary-repo:commit-and-push",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          },
+          {
+            "id": "core-create-pr",
+            "name": "Create Pull Request",
+            "description": "Create PR for the implementation (skips if PR already exists). Links to issue for auto-close on merge.",
+            "command": "/fractary-repo:pr-create",
+            "arguments": {
+              "work_id": "{work_id}"
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          },
+          {
+            "id": "core-review-pr-checks",
+            "name": "Review PR CI Checks",
+            "description": "Wait for and review CI/CD pipeline results",
+            "command": "/fractary-repo:pr-review",
+            "arguments": {
+              "wait_for_ci": true
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          }
+        ],
+        "max_retries": 3
+      },
+      "release": {
+        "enabled": true,
+        "steps": [
+          {
+            "id": "core-merge-pr",
+            "name": "Merge Pull Request",
+            "description": "Merge the PR and delete branch",
+            "command": "/fractary-repo:pr-merge",
+            "arguments": {
+              "delete_branch": true
+            },
+            "source": "fractary-faber:core",
+            "position": "post_step"
+          }
+        ]
+      }
+    }
+  },
+  "autonomy": "guarded",
+  "phases_to_run": null,
+  "step_to_run": null,
+  "additional_instructions": null,
+  "items": [
+    {
+      "target": "346",
+      "work_id": "346",
+      "issue": {
+        "number": 346,
+        "title": "agent and skill tools definitions should all be on one line",
+        "description": "I just encountered an issue where one of our agents was not working. It was effectively being initiated and then immediately exiting because it didn't have any tools. It did have tools defined but they were in the frontmatter with a new tool on each line and a - before it, which Claude apparently could not interpret and interpreted as the agent having no tools at all. This was worth than not even having the tools frontmatter element defined because with it missing it at least would have inherited the tools of its parent, but instead, it saw it as tools: blank and thought it had no tools, so it immediately exited and did nothing.\n\nWe need to review the frontmatter of all agents, skills and commands to see if any others are using this format and then convert it to the proper format of having the list of tools be on the same line as tools: and be comma separated. If the frontmatter doesn't currently define the list of tools we do not need to add it.\n\nWe then need to figure out how we make sure this never happens again. I'm open to proposals, but definitely think that the Favre-Agent plugin should have some sort of check in its validation process or best practices to ensure this isn't the case.",
+        "state": "OPEN",
+        "labels": [],
+        "url": "https://github.com/fractary/claude-plugins/issues/346",
+        "author": {
+          "login": "jmcwilliam",
+          "name": "Josh McWilliam"
+        }
+      },
+      "branch": {
+        "name": "feat/346-agent-and-skill-tools-definitions-should-all-be-on-one-line",
+        "status": "new",
+        "resume_from": null
+      },
+      "worktree": "../claude-plugins-wt-feat-346-agent-and-skill-tools-definitions-should-all-be-on-one-line"
+    }
+  ],
+  "execution": {
+    "mode": "parallel",
+    "max_concurrent": 5,
+    "status": "running",
+    "started_at": "2025-12-10T19:36:02Z",
+    "completed_at": null,
+    "results": []
+  }
+}

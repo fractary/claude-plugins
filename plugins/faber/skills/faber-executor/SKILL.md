@@ -2,13 +2,7 @@
 name: faber-executor
 description: Executes FABER plans by spawning faber-manager agents. Simple and reliable.
 model: claude-sonnet-4-5
-tools:
-  - Task
-  - Read
-  - Write
-  - Bash
-  - Glob
-  - SlashCommand
+tools: Task, Read, Write, Bash, Glob, SlashCommand
 ---
 
 # FABER Executor Skill
