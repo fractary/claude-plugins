@@ -1082,24 +1082,21 @@ Repositories follow the `{tool}-{language}` pattern:
 
 | GitHub Repository | npm Package | PyPI Package | Description |
 |-------------------|-------------|--------------|-------------|
-| `fractary/core-ts` | `@fractary/core` | - | Shared types, utilities, base classes |
-| `fractary/primitives-ts` | `@fractary/primitives` | - | LLM providers + Work/Repo/File integrations |
+| `fractary/core-ts` | `@fractary/core` | - | Foundation: types, utilities, LLM providers, integrations |
 | `fractary/faber-ts` | `@fractary/faber` | - | Workflow orchestration engine |
 | `fractary/codex-ts` | `@fractary/codex` | - | Knowledge and memory management |
 | `fractary/helm-ts` | `@fractary/helm` | - | Monitoring and governance |
 | `fractary/forge-ts` | `@fractary/forge` | - | Authoring and templating tools |
 | `fractary/cli` | `@fractary/cli` | - | Unified command-line interface |
-| `fractary/core-py` | - | `fractary-core` | Python: Shared types (future) |
+| `fractary/core-py` | - | `fractary-core` | Python: Foundation (future) |
 | `fractary/faber-py` | - | `fractary-faber` | Python: Workflow engine (future) |
 
 ### 14.2 Dependency Graph
 
 ```
-@fractary/core          ← Foundation (no dependencies)
+@fractary/core          ← Foundation (types, utils, providers, integrations)
        ↑
-@fractary/primitives    ← Depends on core
-       ↑
-@fractary/faber         ← Depends on core, primitives
+@fractary/faber         ← Depends on core
 @fractary/codex         ← Depends on core
 @fractary/helm          ← Depends on core (observes faber)
 @fractary/forge         ← Depends on core
@@ -1107,17 +1104,31 @@ Repositories follow the `{tool}-{language}` pattern:
 @fractary/cli           ← Depends on all SDKs
 ```
 
+### 14.3 Design Decision: Unified Core
+
+The `@fractary/core` package includes both foundational utilities AND integrations (LLM providers, work tracking, repo operations, file storage). This design:
+
+- **Simplifies dependency management** - One package to install for all basics
+- **Reduces version coordination** - Core moves as a unit
+- **Easier onboarding** - "Just install core"
+- **Can be split later** - If install size becomes an issue, extract `@fractary/integrations`
+
 ---
 
 ## 15. Package: @fractary/core
 
 > **Repository**: `fractary/core-ts`
 > **npm**: `@fractary/core`
-> **Purpose**: Shared types, utilities, and base classes used across all Fractary SDKs
+> **Purpose**: Foundation package containing types, utilities, LLM providers, and platform integrations
 
 ### 15.1 Overview
 
-The core package provides foundational types and utilities that all other Fractary packages depend on. It has no external Fractary dependencies and minimal third-party dependencies.
+The core package is the foundation of the Fractary ecosystem. It provides:
+- Common types and utilities used across all packages
+- Error classes and configuration loading
+- LLM provider adapters (Anthropic, OpenAI, Google, Ollama)
+- Platform integrations (GitHub, Jira, Linear, Git, S3, R2)
+- Tool definitions and executor framework
 
 ### 15.2 Directory Structure
 
@@ -1141,6 +1152,7 @@ fractary/core-ts/
 │   │   ├── base.ts             # FractaryError base class
 │   │   ├── config.ts           # ConfigurationError
 │   │   ├── validation.ts       # ValidationError
+│   │   ├── provider.ts         # ProviderError
 │   │   └── index.ts
 │   │
 │   ├── utils/
@@ -1148,6 +1160,48 @@ fractary/core-ts/
 │   │   ├── fs.ts               # File system utilities
 │   │   ├── json.ts             # JSON utilities
 │   │   ├── logger.ts           # Logging interface
+│   │   └── index.ts
+│   │
+│   ├── providers/
+│   │   ├── types.ts            # LLMProvider interface
+│   │   ├── anthropic.ts        # Anthropic Claude adapter
+│   │   ├── openai.ts           # OpenAI GPT adapter
+│   │   ├── google.ts           # Google Gemini adapter
+│   │   ├── ollama.ts           # Ollama local adapter
+│   │   ├── registry.ts         # Provider registry
+│   │   └── index.ts
+│   │
+│   ├── work/
+│   │   ├── types.ts            # WorkItem, Issue interfaces
+│   │   ├── github.ts           # GitHub Issues adapter
+│   │   ├── jira.ts             # Jira Cloud adapter
+│   │   ├── linear.ts           # Linear adapter
+│   │   ├── registry.ts         # Work provider registry
+│   │   └── index.ts
+│   │
+│   ├── repo/
+│   │   ├── types.ts            # Repository, Branch, PR interfaces
+│   │   ├── git.ts              # Git CLI operations
+│   │   ├── github.ts           # GitHub API adapter
+│   │   ├── gitlab.ts           # GitLab API adapter
+│   │   ├── bitbucket.ts        # Bitbucket API adapter
+│   │   ├── registry.ts         # Repo provider registry
+│   │   └── index.ts
+│   │
+│   ├── file/
+│   │   ├── types.ts            # FileStorage interface
+│   │   ├── local.ts            # Local filesystem
+│   │   ├── s3.ts               # AWS S3
+│   │   ├── r2.ts               # Cloudflare R2
+│   │   └── index.ts
+│   │
+│   ├── tools/
+│   │   ├── types.ts            # Tool, ToolCall, ToolResult interfaces
+│   │   ├── file-tools.ts       # file_read, file_write, file_search
+│   │   ├── git-tools.ts        # git_status, git_diff, git_commit
+│   │   ├── github-tools.ts     # github_issue, github_pr
+│   │   ├── shell-tools.ts      # shell_exec (sandboxed)
+│   │   ├── executor.ts         # ToolExecutor implementation
 │   │   └── index.ts
 │   │
 │   └── index.ts                # Public API
@@ -1246,93 +1300,20 @@ export class ValidationError extends FractaryError {
     this.value = value;
   }
 }
-```
 
-### 15.5 Dependencies
+// errors/provider.ts
+export class ProviderError extends FractaryError {
+  readonly provider: string;
 
-```json
-{
-  "name": "@fractary/core",
-  "version": "1.0.0",
-  "dependencies": {
-    "toml": "^3.0.0",
-    "ajv": "^8.12.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
+  constructor(message: string, provider: string, context?: Record<string, any>) {
+    super(message, 'PROVIDER_ERROR', { ...context, provider });
+    this.name = 'ProviderError';
+    this.provider = provider;
   }
 }
 ```
 
----
-
-## 16. Package: @fractary/primitives
-
-> **Repository**: `fractary/primitives-ts`
-> **npm**: `@fractary/primitives`
-> **Purpose**: LLM provider adapters and integrations for work tracking, source control, and file storage
-
-### 16.1 Overview
-
-The primitives package provides the building blocks that multiple Fractary tools use: LLM providers, work item integrations (GitHub Issues, Jira, Linear), source control operations (Git, GitHub, GitLab), and file storage abstractions.
-
-### 16.2 Directory Structure
-
-```
-fractary/primitives-ts/
-├── src/
-│   ├── providers/
-│   │   ├── types.ts              # LLMProvider interface
-│   │   ├── anthropic.ts          # Anthropic Claude adapter
-│   │   ├── openai.ts             # OpenAI GPT adapter
-│   │   ├── google.ts             # Google Gemini adapter
-│   │   ├── ollama.ts             # Ollama local adapter
-│   │   ├── registry.ts           # Provider registry
-│   │   └── index.ts
-│   │
-│   ├── work/
-│   │   ├── types.ts              # WorkItem, Issue interfaces
-│   │   ├── github.ts             # GitHub Issues adapter
-│   │   ├── jira.ts               # Jira Cloud adapter
-│   │   ├── linear.ts             # Linear adapter
-│   │   ├── registry.ts           # Work provider registry
-│   │   └── index.ts
-│   │
-│   ├── repo/
-│   │   ├── types.ts              # Repository, Branch, PR interfaces
-│   │   ├── git.ts                # Git CLI operations
-│   │   ├── github.ts             # GitHub API adapter
-│   │   ├── gitlab.ts             # GitLab API adapter
-│   │   ├── bitbucket.ts          # Bitbucket API adapter
-│   │   ├── registry.ts           # Repo provider registry
-│   │   └── index.ts
-│   │
-│   ├── file/
-│   │   ├── types.ts              # FileStorage interface
-│   │   ├── local.ts              # Local filesystem
-│   │   ├── s3.ts                 # AWS S3
-│   │   ├── r2.ts                 # Cloudflare R2
-│   │   └── index.ts
-│   │
-│   ├── tools/
-│   │   ├── types.ts              # Tool, ToolCall, ToolResult interfaces
-│   │   ├── file-tools.ts         # file_read, file_write, file_search
-│   │   ├── git-tools.ts          # git_status, git_diff, git_commit
-│   │   ├── github-tools.ts       # github_issue, github_pr
-│   │   ├── shell-tools.ts        # shell_exec (sandboxed)
-│   │   ├── executor.ts           # ToolExecutor implementation
-│   │   └── index.ts
-│   │
-│   └── index.ts
-│
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
-```
-
-### 16.3 LLM Provider Interface
+### 15.5 LLM Provider Interface
 
 ```typescript
 // providers/types.ts
@@ -1406,7 +1387,7 @@ export interface StreamChunk {
 }
 ```
 
-### 16.4 Anthropic Provider Implementation
+### 15.6 Anthropic Provider Implementation
 
 ```typescript
 // providers/anthropic.ts
@@ -1464,7 +1445,97 @@ export class AnthropicProvider implements LLMProvider {
 }
 ```
 
-### 16.5 Tool Executor
+### 15.7 Work Tracking Interface
+
+```typescript
+// work/types.ts
+
+export interface WorkProvider {
+  readonly name: string;
+
+  /** Fetch a work item by ID */
+  getWorkItem(id: string): Promise<WorkItem>;
+
+  /** Search work items */
+  searchWorkItems(query: WorkItemQuery): Promise<WorkItem[]>;
+
+  /** Create a work item */
+  createWorkItem(item: CreateWorkItemInput): Promise<WorkItem>;
+
+  /** Update a work item */
+  updateWorkItem(id: string, updates: UpdateWorkItemInput): Promise<WorkItem>;
+
+  /** Add a comment */
+  addComment(workItemId: string, comment: string): Promise<Comment>;
+}
+
+export interface WorkItem {
+  id: string;
+  key: string;          // e.g., "PROJ-123" or "#123"
+  title: string;
+  description: string;
+  status: string;
+  type: 'feature' | 'bug' | 'chore' | 'task' | 'story' | 'epic';
+  labels: string[];
+  assignee?: string;
+  reporter?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  url: string;
+}
+```
+
+### 15.8 Repository Operations Interface
+
+```typescript
+// repo/types.ts
+
+export interface RepoProvider {
+  readonly name: string;
+
+  /** Get current branch */
+  getCurrentBranch(): Promise<string>;
+
+  /** Create a branch */
+  createBranch(name: string, baseBranch?: string): Promise<Branch>;
+
+  /** Create a commit */
+  commit(message: string, options?: CommitOptions): Promise<Commit>;
+
+  /** Push to remote */
+  push(branch: string, options?: PushOptions): Promise<void>;
+
+  /** Create a pull request */
+  createPullRequest(input: CreatePRInput): Promise<PullRequest>;
+
+  /** Get pull request */
+  getPullRequest(number: number): Promise<PullRequest>;
+
+  /** Merge pull request */
+  mergePullRequest(number: number, options?: MergeOptions): Promise<void>;
+}
+
+export interface PullRequest {
+  number: number;
+  title: string;
+  body: string;
+  state: 'open' | 'closed' | 'merged';
+  headBranch: string;
+  baseBranch: string;
+  url: string;
+  createdAt: Date;
+  mergedAt?: Date;
+}
+
+export interface Commit {
+  sha: string;
+  message: string;
+  author: string;
+  date: Date;
+}
+```
+
+### 15.9 Tool Executor
 
 ```typescript
 // tools/executor.ts
@@ -1531,37 +1602,53 @@ export class ToolExecutor {
 }
 ```
 
-### 16.6 Dependencies
+### 15.10 Dependencies
 
 ```json
 {
-  "name": "@fractary/primitives",
+  "name": "@fractary/core",
   "version": "1.0.0",
+  "description": "Foundation package for Fractary ecosystem",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./providers": "./dist/providers/index.js",
+    "./work": "./dist/work/index.js",
+    "./repo": "./dist/repo/index.js",
+    "./file": "./dist/file/index.js",
+    "./tools": "./dist/tools/index.js"
+  },
   "dependencies": {
-    "@fractary/core": "^1.0.0",
+    "toml": "^3.0.0",
+    "ajv": "^8.12.0",
     "@anthropic-ai/sdk": "^0.30.0",
     "openai": "^4.70.0",
     "@google/generative-ai": "^0.21.0",
     "simple-git": "^3.22.0",
     "octokit": "^4.0.0",
     "glob": "^10.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
   }
 }
 ```
 
 ---
 
-## 17. Package: @fractary/faber
+## 16. Package: @fractary/faber
 
 > **Repository**: `fractary/faber-ts`
 > **npm**: `@fractary/faber`
 > **Purpose**: Deterministic workflow orchestration engine for AI-assisted development
 
-### 17.1 Overview
+### 16.1 Overview
 
 The faber package is the core workflow orchestration engine. It provides deterministic workflow execution, model routing, ensemble support, and state management. This is the main package that implements the FABER workflow (Frame → Architect → Build → Evaluate → Release).
 
-### 17.2 Directory Structure
+### 16.2 Directory Structure
 
 ```
 fractary/faber-ts/
@@ -1616,7 +1703,7 @@ fractary/faber-ts/
 └── CLAUDE.md
 ```
 
-### 17.3 Workflow Engine Interface
+### 16.3 Workflow Engine Interface
 
 ```typescript
 // engine/types.ts
@@ -1693,13 +1780,12 @@ export interface WorkflowEvents {
 }
 ```
 
-### 17.4 Workflow Engine Implementation
+### 16.4 Workflow Engine Implementation
 
 ```typescript
 // engine/engine.ts
 
-import { LLMProvider, ToolExecutor } from '@fractary/primitives';
-import { Logger } from '@fractary/core';
+import { LLMProvider, ToolExecutor, Logger } from '@fractary/core';
 import { WorkflowEngine, ExecutionPlan, ExecutionOptions, ExecutionResult } from './types';
 import { ModelRouter } from '../router';
 import { StateStore } from '../state';
@@ -1820,12 +1906,12 @@ export class FaberEngine implements WorkflowEngine {
 }
 ```
 
-### 17.5 Model Router
+### 16.5 Model Router
 
 ```typescript
 // router/router.ts
 
-import { LLMProvider, CompletionRequest, CompletionResponse } from '@fractary/primitives';
+import { LLMProvider, CompletionRequest, CompletionResponse } from '@fractary/core';
 import { ModelConfig, EnsembleConfig, ModelRoutingConfig } from './types';
 import { EnsembleExecutor } from './ensemble';
 
@@ -1875,32 +1961,31 @@ export class ModelRouter {
 }
 ```
 
-### 17.6 Dependencies
+### 16.6 Dependencies
 
 ```json
 {
   "name": "@fractary/faber",
   "version": "1.0.0",
   "dependencies": {
-    "@fractary/core": "^1.0.0",
-    "@fractary/primitives": "^1.0.0"
+    "@fractary/core": "^1.0.0"
   }
 }
 ```
 
 ---
 
-## 18. Package: @fractary/codex
+## 17. Package: @fractary/codex
 
 > **Repository**: `fractary/codex-ts`
 > **npm**: `@fractary/codex`
 > **Purpose**: Knowledge and memory management for AI-assisted development
 
-### 18.1 Overview
+### 17.1 Overview
 
 The codex package provides knowledge management, documentation sync, and memory capabilities. It enables sharing knowledge across projects and maintaining context for AI assistants.
 
-### 18.2 Directory Structure
+### 17.2 Directory Structure
 
 ```
 fractary/codex-ts/
@@ -1937,7 +2022,7 @@ fractary/codex-ts/
 └── CLAUDE.md
 ```
 
-### 18.3 Core Interfaces
+### 17.3 Core Interfaces
 
 ```typescript
 // metadata/types.ts
@@ -1974,7 +2059,7 @@ export interface FileChange {
 }
 ```
 
-### 18.4 Dependencies
+### 17.4 Dependencies
 
 ```json
 {
@@ -1982,25 +2067,24 @@ export interface FileChange {
   "version": "1.0.0",
   "dependencies": {
     "@fractary/core": "^1.0.0",
-    "gray-matter": "^4.0.3",
-    "glob": "^10.3.0"
+    "gray-matter": "^4.0.3"
   }
 }
 ```
 
 ---
 
-## 19. Package: @fractary/helm
+## 18. Package: @fractary/helm
 
 > **Repository**: `fractary/helm-ts`
 > **npm**: `@fractary/helm`
 > **Purpose**: Monitoring, metrics, and governance for AI workflows
 
-### 19.1 Overview
+### 18.1 Overview
 
 The helm package provides monitoring, cost tracking, performance metrics, and governance policies for AI workflow execution. It observes faber executions and provides insights.
 
-### 19.2 Directory Structure
+### 18.2 Directory Structure
 
 ```
 fractary/helm-ts/
@@ -2037,7 +2121,7 @@ fractary/helm-ts/
 └── CLAUDE.md
 ```
 
-### 19.3 Core Interfaces
+### 18.3 Core Interfaces
 
 ```typescript
 // monitor/types.ts
@@ -2090,7 +2174,7 @@ export interface PolicyResult {
 }
 ```
 
-### 19.4 Dependencies
+### 18.4 Dependencies
 
 ```json
 {
@@ -2104,17 +2188,17 @@ export interface PolicyResult {
 
 ---
 
-## 20. Package: @fractary/forge
+## 19. Package: @fractary/forge
 
 > **Repository**: `fractary/forge-ts`
 > **npm**: `@fractary/forge`
 > **Purpose**: Authoring and templating tools for AI agents and workflows
 
-### 20.1 Overview
+### 19.1 Overview
 
 The forge package provides tools for authoring AI agent definitions, workflow templates, and transforming them for different platforms (Claude Code, LangChain, etc.).
 
-### 20.2 Directory Structure
+### 19.2 Directory Structure
 
 ```
 fractary/forge-ts/
@@ -2154,7 +2238,7 @@ fractary/forge-ts/
 └── CLAUDE.md
 ```
 
-### 20.3 Dependencies
+### 19.3 Dependencies
 
 ```json
 {
@@ -2170,17 +2254,17 @@ fractary/forge-ts/
 
 ---
 
-## 21. Package: @fractary/cli
+## 20. Package: @fractary/cli
 
 > **Repository**: `fractary/cli`
 > **npm**: `@fractary/cli`
 > **Purpose**: Unified command-line interface for all Fractary tools
 
-### 21.1 Overview
+### 20.1 Overview
 
 The CLI package provides the user-facing command-line interface. It's a thin layer over the SDK packages, handling argument parsing, output formatting, and user interaction.
 
-### 21.2 Directory Structure
+### 20.2 Directory Structure
 
 ```
 fractary/cli/
@@ -2239,7 +2323,7 @@ fractary/cli/
 └── CLAUDE.md
 ```
 
-### 21.3 CLI Entry Point
+### 20.3 CLI Entry Point
 
 ```typescript
 // src/cli.ts
@@ -2265,7 +2349,7 @@ program.addCommand(createForgeCommand());
 program.parse();
 ```
 
-### 21.4 Example Command Implementation
+### 20.4 Example Command Implementation
 
 ```typescript
 // src/tools/faber/commands/run.ts
@@ -2273,7 +2357,7 @@ program.parse();
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { FaberEngine, loadConfig, createPlan } from '@fractary/faber';
-import { createProviders } from '@fractary/primitives';
+import { createProviders } from '@fractary/core';
 
 export function runCommand(): Command {
   return new Command('run')
@@ -2343,7 +2427,7 @@ export function runCommand(): Command {
 }
 ```
 
-### 21.5 Dependencies
+### 20.5 Dependencies
 
 ```json
 {
@@ -2354,7 +2438,6 @@ export function runCommand(): Command {
   },
   "dependencies": {
     "@fractary/core": "^1.0.0",
-    "@fractary/primitives": "^1.0.0",
     "@fractary/faber": "^1.0.0",
     "@fractary/codex": "^1.0.0",
     "@fractary/helm": "^1.0.0",
@@ -2369,16 +2452,16 @@ export function runCommand(): Command {
 
 ---
 
-## 22. Implementation Roadmap (Updated)
+## 21. Implementation Roadmap (Updated)
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Core Foundation (Week 1-2)
 1. Create `fractary/core-ts` repository
    - Types, utilities, error classes
    - Config loading and validation
-2. Create `fractary/primitives-ts` repository
    - LLM provider adapters (Anthropic, OpenAI)
+   - Work tracking integrations (GitHub, Jira)
+   - Repo operations (Git, GitHub API)
    - Tool executor framework
-   - Basic tools (file, git)
 
 ### Phase 2: Faber SDK (Week 3-4)
 1. Create `fractary/faber-ts` repository
@@ -2407,7 +2490,7 @@ export function runCommand(): Command {
 
 ---
 
-## 23. References
+## 22. References
 
 - [SPEC-00002: FABER Architecture](./SPEC-00002-faber-architecture.md)
 - [Anthropic API Documentation](https://docs.anthropic.com/en/api)
