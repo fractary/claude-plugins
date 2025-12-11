@@ -5,31 +5,35 @@
 | **Status** | Draft |
 | **Created** | 2025-12-11 |
 | **Author** | Claude (with human direction) |
-| **Related** | SPEC-00015-faber-orchestrator, fractary/core, fractary/cli |
+| **Related** | SPEC-00015-faber-orchestrator, SPEC-00023-faber-sdk, SPEC-00024-codex-sdk |
 
 ## 1. Executive Summary
 
-This specification defines the **Fractary SDK Architecture**, establishing the foundational interfaces, layer boundaries, and contracts that all domain-specific SDKs must implement. It serves as the keystone document that domain specs (Work, Repo, File, Codex, Spec, Logs, Faber) reference for shared interfaces and patterns.
+This specification defines the **Fractary SDK Architecture**, establishing the foundational interfaces, layer boundaries, and contracts for the SDK ecosystem. It describes the **two-SDK architecture** where `@fractary/faber` and `@fractary/codex` are independent packages with no compile-time dependencies, unified by a common CLI layer.
 
 ### 1.1 Scope
 
 This document covers:
 - Three-layer architecture (SDK → CLI → Plugins)
-- All provider interfaces (`WorkProvider`, `RepoProvider`, `FileStorage`, `SpecProvider`, `LogProvider`, `LLMProvider`)
+- Two independent SDKs: `@fractary/faber` (development toolkit) and `@fractary/codex` (knowledge infrastructure)
+- Future SDKs: `@fractary/helm` (governance) and `@fractary/forge` (authoring)
+- FABER SDK interfaces (`WorkProvider`, `RepoProvider`, `FileStorage`, `SpecProvider`, `LogProvider`, `LLMProvider`)
+- Codex SDK interface summary (full details in SPEC-00024)
 - Configuration schema and loading patterns
-- CLI command structure and routing
+- CLI command structure and routing (`@fractary/cli`)
 - Error hierarchy and handling patterns
-- Logging interface
 - What remains in `claude-plugins` after migration
 - Migration path from plugins to SDK/CLI
 
 ### 1.2 Design Goals
 
-1. **Provider Agnostic** - Single interface, multiple implementations (GitHub/Jira/Linear, GitHub/GitLab/Bitbucket, S3/R2/GCS)
-2. **CLI-First** - All functionality accessible via `fractary` CLI
-3. **SDK-Composable** - TypeScript and Python SDKs for programmatic access
-4. **Plugin-Compatible** - Claude Code plugins become thin CLI wrappers
-5. **Configuration-Driven** - Behavior determined by config files, not code
+1. **Independent SDKs** - No compile-time dependencies between `@fractary/faber` and `@fractary/codex`
+2. **Runtime Integration** - Optional cross-SDK features via runtime detection
+3. **Provider Agnostic** - Single interface, multiple implementations (GitHub/Jira/Linear, GitHub/GitLab/Bitbucket, S3/R2/GCS)
+4. **CLI-First** - All functionality accessible via unified `fractary` CLI
+5. **SDK-Composable** - TypeScript and Python SDKs for programmatic access
+6. **Plugin-Compatible** - Claude Code plugins become thin CLI wrappers
+7. **Configuration-Driven** - Behavior determined by config files, not code
 
 ## 2. Three-Layer Architecture
 
@@ -59,11 +63,13 @@ This document covers:
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Layer 1: SDK Packages                            │
-│  @fractary/core: WorkProvider, RepoProvider, FileStorage, etc.      │
-│  @fractary/faber: WorkflowEngine, ModelRouter, StateStore           │
+│  @fractary/faber: WorkProvider, RepoProvider, FileStorage,          │
+│                   SpecProvider, LogProvider, WorkflowEngine         │
+│  @fractary/codex: CodexClient, StorageProvider, TypeRegistry,       │
+│                   CacheManager, SyncEngine, MCPServer               │
 │                                                                     │
 │  Purpose: Programmable API, provider implementations, business logic│
-│  Implementation: TypeScript + Python packages                       │
+│  Implementation: TypeScript + Python packages (independent SDKs)    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -104,16 +110,37 @@ User types: /fractary-repo:commit "Add feature"
 
 ### 3.1 Package Overview
 
+The Fractary ecosystem uses **independent SDKs** with no compile-time dependencies between them. This enables:
+- Standalone usage of either SDK
+- Runtime detection for optional cross-SDK features
+- Simpler dependency management and versioning
+
 | Package | npm | Purpose | Dependencies |
 |---------|-----|---------|--------------|
-| `@fractary/core` | `@fractary/core` | Foundation: providers, integrations, tools | External only |
-| `@fractary/faber` | `@fractary/faber` | Workflow orchestration engine | `@fractary/core` |
-| `@fractary/cli` | `@fractary/cli` | Command-line interface | All SDK packages |
+| `@fractary/faber` | `@fractary/faber` | Development toolkit: work tracking, repo operations, specs, logs, state, workflow | External only |
+| `@fractary/codex` | `@fractary/codex` | Knowledge infrastructure: references, types, storage, caching, sync, MCP | External only |
+| `@fractary/cli` | `@fractary/cli` | Command-line interface exposing all SDK functionality | `@fractary/faber`, `@fractary/codex` |
+| `@fractary/helm` | `@fractary/helm` | Runtime monitoring, evaluation, governance | Future SDK |
+| `@fractary/forge` | `@fractary/forge` | Authoring tools for primitives and bundles | Future SDK |
 
-### 3.2 @fractary/core Internal Structure
+**Key Design Principle**: `@fractary/faber` and `@fractary/codex` have **no compile-time dependencies** on each other. When FABER needs Codex features (e.g., spec archival), it uses runtime detection:
+
+```typescript
+// Runtime detection pattern
+const codex = await tryRequire('@fractary/codex');
+if (codex) {
+  await codex.archive(spec);
+} else {
+  // Graceful fallback to local-only operation
+}
+```
+
+### 3.2 @fractary/faber Internal Structure
+
+The FABER SDK is a standalone development toolkit containing all primitives needed for AI-assisted development workflows.
 
 ```
-@fractary/core/
+@fractary/faber/
 ├── types/              # Common types (Result, Maybe, Logger)
 ├── errors/             # Error class hierarchy
 ├── config/             # Configuration loading and validation
@@ -123,12 +150,80 @@ User types: /fractary-repo:commit "Add feature"
 ├── file/               # File storage (Local, S3, R2, GCS, Google Drive)
 ├── spec/               # Specification management
 ├── logs/               # Log management
+├── state/              # Workflow state persistence
+├── workflow/           # FABER workflow engine (Frame, Architect, Build, Evaluate, Release)
 └── tools/              # Tool executor framework
 ```
 
-## 4. Core Interfaces
+### 3.3 @fractary/codex Internal Structure
 
-### 4.1 Common Types
+The Codex SDK is a standalone knowledge infrastructure for cross-project memory and document management.
+
+```
+@fractary/codex/
+├── types/              # Common types and interfaces
+├── errors/             # Codex-specific error hierarchy
+├── config/             # Configuration loading
+├── references/         # Universal reference system (codex://{org}/{project}/{path})
+├── registry/           # Extensible type registry (built-in + custom types)
+├── storage/            # Storage abstraction layer (Local, S3, R2, GCS, Google Drive)
+├── cache/              # Intelligent caching with TTL (<100ms cache hit)
+├── sync/               # Bidirectional synchronization engine
+├── mcp/                # MCP server for knowledge access
+├── permissions/        # Frontmatter-based access control
+└── migration/          # v2→v3 migration utilities
+```
+
+See [SPEC-00024: Codex SDK](./SPEC-00024-codex-sdk.md) for comprehensive details.
+
+### 3.4 @fractary/cli Internal Structure
+
+The CLI is the unified command-line interface that consumes both SDKs and exposes all functionality to users.
+
+```
+@fractary/cli/
+├── commands/
+│   ├── work/           # fractary work issue|comment|label|milestone
+│   ├── repo/           # fractary repo branch|commit|pr|tag|worktree
+│   ├── file/           # fractary file upload|download|list
+│   ├── spec/           # fractary spec create|refine|validate|archive
+│   ├── logs/           # fractary logs capture|write|search|archive
+│   ├── faber/          # fractary faber init|run|status|plan
+│   └── codex/          # fractary codex fetch|sync|cache|validate
+├── formatters/         # Output formatting (json, table, plain)
+├── config/             # CLI configuration management
+└── utils/              # Shared CLI utilities
+```
+
+## 4. SDK Interfaces
+
+This section defines the interfaces for both SDKs. Each SDK has independent interfaces with no cross-dependencies.
+
+### 4.0 Interface Ownership Summary
+
+| Interface | SDK | Purpose |
+|-----------|-----|---------|
+| `WorkProvider` | `@fractary/faber` | Work item tracking (GitHub Issues, Jira, Linear) |
+| `RepoProvider` | `@fractary/faber` | Repository operations (Git, GitHub, GitLab, Bitbucket) |
+| `FileStorage` | `@fractary/faber` | File storage operations (Local, S3, R2, GCS, Drive) |
+| `SpecProvider` | `@fractary/faber` | Specification management |
+| `LogProvider` | `@fractary/faber` | Log management and retention |
+| `LLMProvider` | `@fractary/faber` | LLM provider abstraction |
+| `WorkflowEngine` | `@fractary/faber` | FABER workflow orchestration |
+| `CodexClient` | `@fractary/codex` | Main client for knowledge operations |
+| `StorageProvider` | `@fractary/codex` | Storage abstraction for Codex |
+| `TypeRegistry` | `@fractary/codex` | Extensible artifact type system |
+| `CacheManager` | `@fractary/codex` | Intelligent caching with TTL |
+| `SyncEngine` | `@fractary/codex` | Bidirectional synchronization |
+| `MCPServer` | `@fractary/codex` | MCP server for knowledge access |
+
+**Note**: The `@fractary/codex` interfaces are fully specified in [SPEC-00024: Codex SDK](./SPEC-00024-codex-sdk.md). This document focuses on `@fractary/faber` interfaces.
+
+---
+
+## 4.1 FABER SDK Interfaces
+
+### 4.1.1 Common Types
 
 ```typescript
 // types/common.ts
@@ -175,7 +270,7 @@ export interface EventEmitter<Events extends Record<string, unknown>> {
 }
 ```
 
-### 4.2 Error Hierarchy
+### 4.1.2 Error Hierarchy
 
 ```typescript
 // errors/base.ts
@@ -270,7 +365,7 @@ export class RateLimitError extends FractaryError {
 }
 ```
 
-### 4.3 WorkProvider Interface
+### 4.1.3 WorkProvider Interface
 
 ```typescript
 // work/types.ts
@@ -444,7 +539,7 @@ export interface Milestone {
 }
 ```
 
-### 4.4 RepoProvider Interface
+### 4.1.4 RepoProvider Interface
 
 ```typescript
 // repo/types.ts
@@ -769,7 +864,7 @@ export interface RepoStatus {
 }
 ```
 
-### 4.5 FileStorage Interface
+### 4.1.5 FileStorage Interface
 
 ```typescript
 // file/types.ts
@@ -847,7 +942,7 @@ export interface FileInfo {
 }
 ```
 
-### 4.6 SpecProvider Interface
+### 4.1.6 SpecProvider Interface
 
 ```typescript
 // spec/types.ts
@@ -983,7 +1078,7 @@ export interface SpecUpdates {
 }
 ```
 
-### 4.7 LogProvider Interface
+### 4.1.7 LogProvider Interface
 
 ```typescript
 // logs/types.ts
@@ -1247,7 +1342,7 @@ export interface CompressionConfig {
 }
 ```
 
-### 4.8 LLMProvider Interface
+### 4.1.8 LLMProvider Interface
 
 ```typescript
 // providers/types.ts
@@ -1324,6 +1419,22 @@ export interface StreamChunk {
 
 export type JSONSchema = Record<string, unknown>;
 ```
+
+### 4.2 Codex SDK Interfaces
+
+The Codex SDK interfaces are fully specified in [SPEC-00024: Codex SDK](./SPEC-00024-codex-sdk.md). Key interfaces include:
+
+| Interface | Purpose |
+|-----------|---------|
+| `CodexClient` | Main client for all Codex operations |
+| `StorageProvider` | Abstraction for storage backends (Local, S3, R2, GCS, Drive) |
+| `TypeRegistry` | Extensible artifact type system with built-in + custom types |
+| `CacheManager` | Intelligent caching with TTL and <100ms hit time |
+| `SyncEngine` | Bidirectional synchronization between projects and Codex |
+| `MCPServer` | MCP server exposing knowledge access tools |
+| `PermissionManager` | Frontmatter-based access control system |
+
+For complete interface definitions, see SPEC-00024 sections 5-11.
 
 ## 5. Configuration System
 
@@ -1433,14 +1544,16 @@ All commands support:
 
 | Current Location | SDK Location | Notes |
 |-----------------|--------------|-------|
-| `plugins/work/skills/handler-*` | `@fractary/core/work/` | Provider implementations |
-| `plugins/repo/skills/handler-*` | `@fractary/core/repo/` | Provider implementations |
-| `plugins/file/skills/handler-*` | `@fractary/core/file/` | Provider implementations |
-| `plugins/spec/skills/*` | `@fractary/core/spec/` | Spec operations |
-| `plugins/logs/skills/*` | `@fractary/core/logs/` | Log operations |
-| `plugins/codex/skills/*` | `@fractary/core/codex/` | Codex operations |
-| `plugins/faber/skills/*` | `@fractary/faber/` | Workflow engine |
+| `plugins/work/skills/handler-*` | `@fractary/faber/work/` | Work tracking providers |
+| `plugins/repo/skills/handler-*` | `@fractary/faber/repo/` | Repository providers |
+| `plugins/file/skills/handler-*` | `@fractary/faber/file/` | File storage providers |
+| `plugins/spec/skills/*` | `@fractary/faber/spec/` | Spec operations |
+| `plugins/logs/skills/*` | `@fractary/faber/logs/` | Log operations |
+| `plugins/faber/skills/*` | `@fractary/faber/workflow/` | Workflow engine |
+| `plugins/codex/skills/*` | `@fractary/codex/` | Knowledge infrastructure (separate SDK) |
 | All shell scripts | SDK implementations | TypeScript/Python |
+
+**Note**: Codex operations move to the independent `@fractary/codex` SDK, not into `@fractary/faber`. See [SPEC-00024](./SPEC-00024-codex-sdk.md) for details.
 
 ### 7.2 What Stays in Plugins
 
@@ -1479,11 +1592,12 @@ plugins/work/
 
 ### 7.4 Migration Timeline
 
-1. **Phase 1**: Build `@fractary/core` with all provider interfaces
-2. **Phase 2**: Build `@fractary/cli` wrapping core
-3. **Phase 3**: Update plugins to invoke CLI instead of internal skills
-4. **Phase 4**: Remove migrated skill implementations from plugins
-5. **Phase 5**: Build `@fractary/faber` workflow engine
+1. **Phase 1**: Build `@fractary/faber` SDK with all development primitives (work, repo, file, spec, logs, workflow)
+2. **Phase 2**: Build `@fractary/codex` SDK with knowledge infrastructure (references, types, storage, cache, sync, MCP)
+3. **Phase 3**: Build `@fractary/cli` consuming both SDKs
+4. **Phase 4**: Update plugins to invoke CLI instead of internal skills
+5. **Phase 5**: Remove migrated skill implementations from plugins
+6. **Future**: Build `@fractary/helm` (runtime governance) and `@fractary/forge` (authoring tools)
 
 ## 8. Testing Strategy
 
@@ -1548,7 +1662,12 @@ All packages follow semver:
 
 ## 11. References
 
-- [SPEC-00015: FABER Orchestrator](./SPEC-00015-faber-orchestrator.md) - Workflow engine details
+### SDK Specifications
+- [SPEC-00023: FABER SDK](./SPEC-00023-faber-sdk.md) - Consolidated FABER SDK specification
+- [SPEC-00024: Codex SDK](./SPEC-00024-codex-sdk.md) - Consolidated Codex SDK specification
+- [SPEC-00015: FABER Orchestrator](./SPEC-00015-faber-orchestrator.md) - Workflow engine details (being updated for two-SDK architecture)
+
+### External Documentation
 - [Anthropic API Documentation](https://docs.anthropic.com/en/api)
 - [OpenAI API Documentation](https://platform.openai.com/docs/api-reference)
 - [Commander.js Documentation](https://github.com/tj/commander.js)
