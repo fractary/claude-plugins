@@ -1072,7 +1072,1342 @@ interface CostTracking {
 3. **Plugin system**: Allow custom tools and providers? (Consider for v2)
 4. **Caching layer**: Shared cache across runs? (Evaluate need)
 
-## 14. References
+## 14. SDK Architecture
+
+The Fractary ecosystem is organized into multiple SDK packages with clear separation of concerns. Each SDK is published as a separate npm package and lives in its own GitHub repository.
+
+### 14.1 Repository Naming Convention
+
+Repositories follow the `{tool}-{language}` pattern:
+
+| GitHub Repository | npm Package | PyPI Package | Description |
+|-------------------|-------------|--------------|-------------|
+| `fractary/core-ts` | `@fractary/core` | - | Shared types, utilities, base classes |
+| `fractary/primitives-ts` | `@fractary/primitives` | - | LLM providers + Work/Repo/File integrations |
+| `fractary/faber-ts` | `@fractary/faber` | - | Workflow orchestration engine |
+| `fractary/codex-ts` | `@fractary/codex` | - | Knowledge and memory management |
+| `fractary/helm-ts` | `@fractary/helm` | - | Monitoring and governance |
+| `fractary/forge-ts` | `@fractary/forge` | - | Authoring and templating tools |
+| `fractary/cli` | `@fractary/cli` | - | Unified command-line interface |
+| `fractary/core-py` | - | `fractary-core` | Python: Shared types (future) |
+| `fractary/faber-py` | - | `fractary-faber` | Python: Workflow engine (future) |
+
+### 14.2 Dependency Graph
+
+```
+@fractary/core          ← Foundation (no dependencies)
+       ↑
+@fractary/primitives    ← Depends on core
+       ↑
+@fractary/faber         ← Depends on core, primitives
+@fractary/codex         ← Depends on core
+@fractary/helm          ← Depends on core (observes faber)
+@fractary/forge         ← Depends on core
+       ↑
+@fractary/cli           ← Depends on all SDKs
+```
+
+---
+
+## 15. Package: @fractary/core
+
+> **Repository**: `fractary/core-ts`
+> **npm**: `@fractary/core`
+> **Purpose**: Shared types, utilities, and base classes used across all Fractary SDKs
+
+### 15.1 Overview
+
+The core package provides foundational types and utilities that all other Fractary packages depend on. It has no external Fractary dependencies and minimal third-party dependencies.
+
+### 15.2 Directory Structure
+
+```
+fractary/core-ts/
+├── src/
+│   ├── types/
+│   │   ├── common.ts           # Common types (Result, Maybe, etc.)
+│   │   ├── config.ts           # Configuration types
+│   │   ├── events.ts           # Event system types
+│   │   ├── errors.ts           # Error types
+│   │   └── index.ts            # Type exports
+│   │
+│   ├── config/
+│   │   ├── loader.ts           # Config file loading (TOML, JSON)
+│   │   ├── validator.ts        # Schema validation
+│   │   ├── resolver.ts         # Environment variable resolution
+│   │   └── index.ts
+│   │
+│   ├── errors/
+│   │   ├── base.ts             # FractaryError base class
+│   │   ├── config.ts           # ConfigurationError
+│   │   ├── validation.ts       # ValidationError
+│   │   └── index.ts
+│   │
+│   ├── utils/
+│   │   ├── async.ts            # Async utilities (retry, timeout)
+│   │   ├── fs.ts               # File system utilities
+│   │   ├── json.ts             # JSON utilities
+│   │   ├── logger.ts           # Logging interface
+│   │   └── index.ts
+│   │
+│   └── index.ts                # Public API
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 15.3 Core Types
+
+```typescript
+// types/common.ts
+
+/** Result type for operations that can fail */
+export type Result<T, E = Error> =
+  | { success: true; value: T }
+  | { success: false; error: E };
+
+/** Optional value wrapper */
+export type Maybe<T> = T | null | undefined;
+
+/** Async result */
+export type AsyncResult<T, E = Error> = Promise<Result<T, E>>;
+
+/** Event emitter interface */
+export interface EventEmitter<Events extends Record<string, any>> {
+  on<K extends keyof Events>(event: K, handler: (data: Events[K]) => void): void;
+  off<K extends keyof Events>(event: K, handler: (data: Events[K]) => void): void;
+  emit<K extends keyof Events>(event: K, data: Events[K]): void;
+}
+
+/** Logger interface */
+export interface Logger {
+  debug(message: string, meta?: Record<string, any>): void;
+  info(message: string, meta?: Record<string, any>): void;
+  warn(message: string, meta?: Record<string, any>): void;
+  error(message: string, meta?: Record<string, any>): void;
+}
+```
+
+```typescript
+// types/config.ts
+
+/** Base configuration interface */
+export interface FractaryConfig {
+  version: string;
+  [key: string]: unknown;
+}
+
+/** Environment variable reference */
+export interface EnvRef {
+  env: string;
+  default?: string;
+}
+
+/** Configuration source */
+export type ConfigSource = 'file' | 'env' | 'default' | 'override';
+```
+
+### 15.4 Error Classes
+
+```typescript
+// errors/base.ts
+
+export class FractaryError extends Error {
+  readonly code: string;
+  readonly context?: Record<string, any>;
+
+  constructor(message: string, code: string, context?: Record<string, any>) {
+    super(message);
+    this.name = 'FractaryError';
+    this.code = code;
+    this.context = context;
+  }
+}
+
+// errors/config.ts
+export class ConfigurationError extends FractaryError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 'CONFIG_ERROR', context);
+    this.name = 'ConfigurationError';
+  }
+}
+
+// errors/validation.ts
+export class ValidationError extends FractaryError {
+  readonly path: string[];
+  readonly value: unknown;
+
+  constructor(message: string, path: string[], value: unknown) {
+    super(message, 'VALIDATION_ERROR', { path, value });
+    this.name = 'ValidationError';
+    this.path = path;
+    this.value = value;
+  }
+}
+```
+
+### 15.5 Dependencies
+
+```json
+{
+  "name": "@fractary/core",
+  "version": "1.0.0",
+  "dependencies": {
+    "toml": "^3.0.0",
+    "ajv": "^8.12.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}
+```
+
+---
+
+## 16. Package: @fractary/primitives
+
+> **Repository**: `fractary/primitives-ts`
+> **npm**: `@fractary/primitives`
+> **Purpose**: LLM provider adapters and integrations for work tracking, source control, and file storage
+
+### 16.1 Overview
+
+The primitives package provides the building blocks that multiple Fractary tools use: LLM providers, work item integrations (GitHub Issues, Jira, Linear), source control operations (Git, GitHub, GitLab), and file storage abstractions.
+
+### 16.2 Directory Structure
+
+```
+fractary/primitives-ts/
+├── src/
+│   ├── providers/
+│   │   ├── types.ts              # LLMProvider interface
+│   │   ├── anthropic.ts          # Anthropic Claude adapter
+│   │   ├── openai.ts             # OpenAI GPT adapter
+│   │   ├── google.ts             # Google Gemini adapter
+│   │   ├── ollama.ts             # Ollama local adapter
+│   │   ├── registry.ts           # Provider registry
+│   │   └── index.ts
+│   │
+│   ├── work/
+│   │   ├── types.ts              # WorkItem, Issue interfaces
+│   │   ├── github.ts             # GitHub Issues adapter
+│   │   ├── jira.ts               # Jira Cloud adapter
+│   │   ├── linear.ts             # Linear adapter
+│   │   ├── registry.ts           # Work provider registry
+│   │   └── index.ts
+│   │
+│   ├── repo/
+│   │   ├── types.ts              # Repository, Branch, PR interfaces
+│   │   ├── git.ts                # Git CLI operations
+│   │   ├── github.ts             # GitHub API adapter
+│   │   ├── gitlab.ts             # GitLab API adapter
+│   │   ├── bitbucket.ts          # Bitbucket API adapter
+│   │   ├── registry.ts           # Repo provider registry
+│   │   └── index.ts
+│   │
+│   ├── file/
+│   │   ├── types.ts              # FileStorage interface
+│   │   ├── local.ts              # Local filesystem
+│   │   ├── s3.ts                 # AWS S3
+│   │   ├── r2.ts                 # Cloudflare R2
+│   │   └── index.ts
+│   │
+│   ├── tools/
+│   │   ├── types.ts              # Tool, ToolCall, ToolResult interfaces
+│   │   ├── file-tools.ts         # file_read, file_write, file_search
+│   │   ├── git-tools.ts          # git_status, git_diff, git_commit
+│   │   ├── github-tools.ts       # github_issue, github_pr
+│   │   ├── shell-tools.ts        # shell_exec (sandboxed)
+│   │   ├── executor.ts           # ToolExecutor implementation
+│   │   └── index.ts
+│   │
+│   └── index.ts
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 16.3 LLM Provider Interface
+
+```typescript
+// providers/types.ts
+
+export interface LLMProvider {
+  readonly name: string;
+  readonly supportedModels: string[];
+
+  /** Send a completion request */
+  complete(request: CompletionRequest): Promise<CompletionResponse>;
+
+  /** Stream a completion request */
+  stream(request: CompletionRequest): AsyncIterable<StreamChunk>;
+
+  /** Count tokens for a message (estimate) */
+  countTokens(messages: Message[]): Promise<number>;
+}
+
+export interface CompletionRequest {
+  model: string;
+  messages: Message[];
+  tools?: ToolDefinition[];
+  temperature?: number;
+  maxTokens?: number;
+  stopSequences?: string[];
+  systemPrompt?: string;
+}
+
+export interface CompletionResponse {
+  id: string;
+  model: string;
+  content: ContentBlock[];
+  stopReason: 'end_turn' | 'tool_use' | 'max_tokens' | 'stop_sequence';
+  usage: TokenUsage;
+}
+
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+}
+
+export interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string | ContentBlock[];
+}
+
+export interface ContentBlock {
+  type: 'text' | 'tool_use' | 'tool_result';
+  text?: string;
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: Record<string, any>;
+  toolResult?: string | object;
+  isError?: boolean;
+}
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: JSONSchema;
+}
+
+export interface StreamChunk {
+  type: 'text_delta' | 'tool_use_start' | 'tool_use_delta' | 'message_stop';
+  text?: string;
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: string;  // Partial JSON
+}
+```
+
+### 16.4 Anthropic Provider Implementation
+
+```typescript
+// providers/anthropic.ts
+
+import Anthropic from '@anthropic-ai/sdk';
+import { LLMProvider, CompletionRequest, CompletionResponse } from './types';
+
+export class AnthropicProvider implements LLMProvider {
+  readonly name = 'anthropic';
+  readonly supportedModels = [
+    'claude-opus-4-20250514',
+    'claude-sonnet-4-20250514',
+    'claude-3-5-haiku-20241022',
+  ];
+
+  private client: Anthropic;
+
+  constructor(apiKey: string, options?: { baseUrl?: string }) {
+    this.client = new Anthropic({
+      apiKey,
+      baseURL: options?.baseUrl,
+    });
+  }
+
+  async complete(request: CompletionRequest): Promise<CompletionResponse> {
+    const response = await this.client.messages.create({
+      model: request.model,
+      max_tokens: request.maxTokens ?? 4096,
+      temperature: request.temperature,
+      system: request.systemPrompt,
+      messages: this.convertMessages(request.messages),
+      tools: request.tools?.map(this.convertTool),
+      stop_sequences: request.stopSequences,
+    });
+
+    return this.convertResponse(response);
+  }
+
+  async *stream(request: CompletionRequest): AsyncIterable<StreamChunk> {
+    const stream = await this.client.messages.stream({
+      model: request.model,
+      max_tokens: request.maxTokens ?? 4096,
+      temperature: request.temperature,
+      system: request.systemPrompt,
+      messages: this.convertMessages(request.messages),
+      tools: request.tools?.map(this.convertTool),
+    });
+
+    for await (const event of stream) {
+      yield this.convertStreamEvent(event);
+    }
+  }
+
+  // ... conversion methods
+}
+```
+
+### 16.5 Tool Executor
+
+```typescript
+// tools/executor.ts
+
+import { ToolCall, ToolResult, ToolDefinition } from './types';
+import { fileTools } from './file-tools';
+import { gitTools } from './git-tools';
+import { githubTools } from './github-tools';
+import { shellTools } from './shell-tools';
+
+export interface ToolExecutorConfig {
+  workingDirectory: string;
+  allowedShellCommands?: string[];
+  githubToken?: string;
+  sandbox?: boolean;
+}
+
+export class ToolExecutor {
+  private tools: Map<string, ToolHandler>;
+  private config: ToolExecutorConfig;
+
+  constructor(config: ToolExecutorConfig) {
+    this.config = config;
+    this.tools = new Map();
+
+    // Register built-in tools
+    this.registerTools(fileTools(config));
+    this.registerTools(gitTools(config));
+    if (config.githubToken) {
+      this.registerTools(githubTools(config.githubToken));
+    }
+    this.registerTools(shellTools(config));
+  }
+
+  async execute(toolCall: ToolCall): Promise<ToolResult> {
+    const handler = this.tools.get(toolCall.name);
+    if (!handler) {
+      return {
+        toolUseId: toolCall.id,
+        content: `Unknown tool: ${toolCall.name}`,
+        isError: true,
+      };
+    }
+
+    try {
+      const result = await handler.execute(toolCall.input);
+      return {
+        toolUseId: toolCall.id,
+        content: result,
+        isError: false,
+      };
+    } catch (error) {
+      return {
+        toolUseId: toolCall.id,
+        content: error instanceof Error ? error.message : String(error),
+        isError: true,
+      };
+    }
+  }
+
+  getAvailableTools(): ToolDefinition[] {
+    return Array.from(this.tools.values()).map(h => h.definition);
+  }
+}
+```
+
+### 16.6 Dependencies
+
+```json
+{
+  "name": "@fractary/primitives",
+  "version": "1.0.0",
+  "dependencies": {
+    "@fractary/core": "^1.0.0",
+    "@anthropic-ai/sdk": "^0.30.0",
+    "openai": "^4.70.0",
+    "@google/generative-ai": "^0.21.0",
+    "simple-git": "^3.22.0",
+    "octokit": "^4.0.0",
+    "glob": "^10.3.0"
+  }
+}
+```
+
+---
+
+## 17. Package: @fractary/faber
+
+> **Repository**: `fractary/faber-ts`
+> **npm**: `@fractary/faber`
+> **Purpose**: Deterministic workflow orchestration engine for AI-assisted development
+
+### 17.1 Overview
+
+The faber package is the core workflow orchestration engine. It provides deterministic workflow execution, model routing, ensemble support, and state management. This is the main package that implements the FABER workflow (Frame → Architect → Build → Evaluate → Release).
+
+### 17.2 Directory Structure
+
+```
+fractary/faber-ts/
+├── src/
+│   ├── engine/
+│   │   ├── types.ts              # WorkflowEngine interface
+│   │   ├── engine.ts             # WorkflowEngine implementation
+│   │   ├── executor.ts           # Step executor (LLM + tool loop)
+│   │   ├── planner.ts            # Execution plan creation
+│   │   └── index.ts
+│   │
+│   ├── router/
+│   │   ├── types.ts              # ModelRouter interface
+│   │   ├── router.ts             # Step-to-model routing
+│   │   ├── ensemble.ts           # Ensemble execution strategies
+│   │   └── index.ts
+│   │
+│   ├── state/
+│   │   ├── types.ts              # State interfaces
+│   │   ├── store.ts              # State persistence
+│   │   ├── events.ts             # Event logging
+│   │   └── index.ts
+│   │
+│   ├── workflow/
+│   │   ├── types.ts              # Workflow, Phase, Step interfaces
+│   │   ├── loader.ts             # Workflow definition loader
+│   │   ├── validator.ts          # Workflow validation
+│   │   └── index.ts
+│   │
+│   ├── prompts/
+│   │   ├── types.ts              # Prompt template interface
+│   │   ├── loader.ts             # Template loading
+│   │   ├── renderer.ts           # Variable substitution
+│   │   ├── templates/            # Built-in templates
+│   │   │   ├── classify_work.md
+│   │   │   ├── generate_spec.md
+│   │   │   ├── implement.md
+│   │   │   └── code_review.md
+│   │   └── index.ts
+│   │
+│   ├── config/
+│   │   ├── types.ts              # FaberConfig interface
+│   │   ├── loader.ts             # Config loading
+│   │   ├── schema.ts             # Config schema
+│   │   └── index.ts
+│   │
+│   └── index.ts                  # Public API
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 17.3 Workflow Engine Interface
+
+```typescript
+// engine/types.ts
+
+import { EventEmitter } from '@fractary/core';
+
+export interface WorkflowEngine {
+  /** Execute a complete workflow */
+  execute(plan: ExecutionPlan, options?: ExecutionOptions): Promise<ExecutionResult>;
+
+  /** Execute a single step */
+  executeStep(step: Step, context: ExecutionContext): Promise<StepResult>;
+
+  /** Pause a running workflow */
+  pause(runId: string): Promise<void>;
+
+  /** Resume a paused workflow */
+  resume(runId: string, options?: ResumeOptions): Promise<ExecutionResult>;
+
+  /** Cancel a running workflow */
+  cancel(runId: string, reason?: string): Promise<void>;
+
+  /** Get workflow status */
+  getStatus(runId: string): Promise<RunStatus>;
+
+  /** Get execution logs */
+  getLogs(runId: string, options?: LogOptions): AsyncIterable<LogEntry>;
+
+  /** Subscribe to events */
+  on: EventEmitter<WorkflowEvents>['on'];
+}
+
+export interface ExecutionPlan {
+  id: string;
+  workId: string;
+  workflow: WorkflowDefinition;
+  context: WorkflowContext;
+  createdAt: Date;
+}
+
+export interface ExecutionOptions {
+  autonomy?: 'autonomous' | 'guarded' | 'assisted';
+  dryRun?: boolean;
+  fromStep?: string;
+  phases?: string[];
+  verbose?: boolean;
+  onApprovalRequired?: (step: Step) => Promise<boolean>;
+}
+
+export interface ExecutionResult {
+  runId: string;
+  planId: string;
+  workId: string;
+  status: 'completed' | 'failed' | 'cancelled' | 'paused';
+  phases: PhaseResult[];
+  duration: number;
+  cost: CostSummary;
+  error?: Error;
+  artifacts: Record<string, any>;
+}
+
+export interface WorkflowEvents {
+  workflow_start: { runId: string; planId: string };
+  workflow_complete: { runId: string; result: ExecutionResult };
+  workflow_failed: { runId: string; error: Error };
+  workflow_paused: { runId: string; step: string };
+  phase_start: { runId: string; phase: string };
+  phase_complete: { runId: string; phase: string };
+  step_start: { runId: string; phase: string; step: string };
+  step_complete: { runId: string; phase: string; step: string; result: StepResult };
+  step_failed: { runId: string; phase: string; step: string; error: Error };
+  tool_call: { runId: string; step: string; tool: string; input: any };
+  tool_result: { runId: string; step: string; tool: string; result: any };
+}
+```
+
+### 17.4 Workflow Engine Implementation
+
+```typescript
+// engine/engine.ts
+
+import { LLMProvider, ToolExecutor } from '@fractary/primitives';
+import { Logger } from '@fractary/core';
+import { WorkflowEngine, ExecutionPlan, ExecutionOptions, ExecutionResult } from './types';
+import { ModelRouter } from '../router';
+import { StateStore } from '../state';
+import { StepExecutor } from './executor';
+
+export class FaberEngine implements WorkflowEngine {
+  private router: ModelRouter;
+  private stateStore: StateStore;
+  private stepExecutor: StepExecutor;
+  private toolExecutor: ToolExecutor;
+  private logger: Logger;
+  private eventHandlers: Map<string, Set<Function>>;
+
+  constructor(config: FaberEngineConfig) {
+    this.router = new ModelRouter(config.modelRouting, config.providers);
+    this.stateStore = new StateStore(config.stateDir);
+    this.toolExecutor = new ToolExecutor(config.tools);
+    this.stepExecutor = new StepExecutor(this.router, this.toolExecutor);
+    this.logger = config.logger;
+    this.eventHandlers = new Map();
+  }
+
+  async execute(plan: ExecutionPlan, options: ExecutionOptions = {}): Promise<ExecutionResult> {
+    const runId = this.generateRunId();
+    const state = await this.stateStore.initialize(runId, plan);
+
+    this.emit('workflow_start', { runId, planId: plan.id });
+
+    try {
+      for (const phase of this.getPhases(plan, options)) {
+        await this.executePhase(runId, phase, state, options);
+      }
+
+      const result = this.buildResult(runId, state, 'completed');
+      this.emit('workflow_complete', { runId, result });
+      return result;
+
+    } catch (error) {
+      await this.stateStore.markFailed(runId, error as Error);
+      this.emit('workflow_failed', { runId, error: error as Error });
+      throw error;
+    }
+  }
+
+  private async executePhase(
+    runId: string,
+    phase: Phase,
+    state: ExecutionState,
+    options: ExecutionOptions
+  ): Promise<void> {
+    this.emit('phase_start', { runId, phase: phase.id });
+    await this.stateStore.startPhase(runId, phase.id);
+
+    for (const step of phase.steps) {
+      // Check if approval required (guarded/assisted mode)
+      if (this.requiresApproval(step, options)) {
+        const approved = await options.onApprovalRequired?.(step);
+        if (!approved) {
+          await this.pause(runId);
+          return;
+        }
+      }
+
+      await this.executeStepWithRetry(runId, phase, step, state, options);
+    }
+
+    await this.stateStore.completePhase(runId, phase.id);
+    this.emit('phase_complete', { runId, phase: phase.id });
+  }
+
+  private async executeStepWithRetry(
+    runId: string,
+    phase: Phase,
+    step: Step,
+    state: ExecutionState,
+    options: ExecutionOptions
+  ): Promise<void> {
+    const maxRetries = phase.maxRetries ?? 0;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        this.emit('step_start', { runId, phase: phase.id, step: step.id });
+        await this.stateStore.startStep(runId, step.id);
+
+        const context = this.buildContext(state, step);
+        const result = await this.stepExecutor.execute(step, context, {
+          onToolCall: (tool, input) => {
+            this.emit('tool_call', { runId, step: step.id, tool, input });
+          },
+          onToolResult: (tool, result) => {
+            this.emit('tool_result', { runId, step: step.id, tool, result });
+          },
+        });
+
+        await this.stateStore.completeStep(runId, step.id, result);
+        this.emit('step_complete', { runId, phase: phase.id, step: step.id, result });
+        return;
+
+      } catch (error) {
+        lastError = error as Error;
+        this.logger.warn(`Step ${step.id} failed (attempt ${attempt + 1}/${maxRetries + 1})`, {
+          error: lastError.message,
+        });
+
+        if (attempt < maxRetries) {
+          await this.stateStore.recordRetry(runId, step.id, lastError);
+        }
+      }
+    }
+
+    await this.stateStore.failStep(runId, step.id, lastError!);
+    this.emit('step_failed', { runId, phase: phase.id, step: step.id, error: lastError! });
+    throw lastError;
+  }
+
+  // ... other methods
+}
+```
+
+### 17.5 Model Router
+
+```typescript
+// router/router.ts
+
+import { LLMProvider, CompletionRequest, CompletionResponse } from '@fractary/primitives';
+import { ModelConfig, EnsembleConfig, ModelRoutingConfig } from './types';
+import { EnsembleExecutor } from './ensemble';
+
+export class ModelRouter {
+  private providers: Map<string, LLMProvider>;
+  private config: ModelRoutingConfig;
+  private ensemble: EnsembleExecutor;
+
+  constructor(config: ModelRoutingConfig, providers: Map<string, LLMProvider>) {
+    this.config = config;
+    this.providers = providers;
+    this.ensemble = new EnsembleExecutor(providers);
+  }
+
+  getModelConfig(step: Step): ModelConfig | EnsembleConfig {
+    // Check step-specific routing first
+    const stepRouting = this.config.steps?.[step.id];
+    if (stepRouting) return stepRouting;
+
+    // Check step type routing
+    const typeRouting = this.config.steps?.[step.type];
+    if (typeRouting) return typeRouting;
+
+    // Fall back to default
+    return this.config.default;
+  }
+
+  async execute(step: Step, request: CompletionRequest): Promise<CompletionResponse> {
+    const routing = this.getModelConfig(step);
+
+    if ('strategy' in routing && routing.strategy === 'ensemble') {
+      return this.ensemble.execute(request, routing);
+    }
+
+    const provider = this.providers.get(routing.provider);
+    if (!provider) {
+      throw new Error(`Unknown provider: ${routing.provider}`);
+    }
+
+    return provider.complete({
+      ...request,
+      model: routing.model,
+      temperature: routing.temperature ?? request.temperature,
+      maxTokens: routing.maxTokens ?? request.maxTokens,
+    });
+  }
+}
+```
+
+### 17.6 Dependencies
+
+```json
+{
+  "name": "@fractary/faber",
+  "version": "1.0.0",
+  "dependencies": {
+    "@fractary/core": "^1.0.0",
+    "@fractary/primitives": "^1.0.0"
+  }
+}
+```
+
+---
+
+## 18. Package: @fractary/codex
+
+> **Repository**: `fractary/codex-ts`
+> **npm**: `@fractary/codex`
+> **Purpose**: Knowledge and memory management for AI-assisted development
+
+### 18.1 Overview
+
+The codex package provides knowledge management, documentation sync, and memory capabilities. It enables sharing knowledge across projects and maintaining context for AI assistants.
+
+### 18.2 Directory Structure
+
+```
+fractary/codex-ts/
+├── src/
+│   ├── metadata/
+│   │   ├── types.ts              # Frontmatter types
+│   │   ├── parser.ts             # YAML frontmatter parsing
+│   │   ├── validator.ts          # Schema validation
+│   │   └── index.ts
+│   │
+│   ├── sync/
+│   │   ├── types.ts              # Sync configuration types
+│   │   ├── router.ts             # File → repo routing
+│   │   ├── differ.ts             # Change detection
+│   │   ├── syncer.ts             # Sync execution
+│   │   └── index.ts
+│   │
+│   ├── memory/
+│   │   ├── types.ts              # Memory store types
+│   │   ├── store.ts              # Memory persistence
+│   │   ├── retriever.ts          # Semantic retrieval
+│   │   └── index.ts
+│   │
+│   ├── config/
+│   │   ├── types.ts              # CodexConfig interface
+│   │   ├── loader.ts             # Config loading
+│   │   └── index.ts
+│   │
+│   └── index.ts
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 18.3 Core Interfaces
+
+```typescript
+// metadata/types.ts
+
+export interface DocumentMetadata {
+  title: string;
+  description?: string;
+  system?: string;
+  visibility?: 'public' | 'internal' | 'private';
+  tags?: string[];
+  sync?: SyncConfig;
+  [key: string]: unknown;
+}
+
+export interface SyncConfig {
+  to?: string[];
+  exclude?: string[];
+  strategy?: 'mirror' | 'merge' | 'manual';
+}
+
+// sync/types.ts
+
+export interface SyncResult {
+  source: string;
+  destinations: SyncDestination[];
+  status: 'synced' | 'skipped' | 'error';
+  changes: FileChange[];
+}
+
+export interface FileChange {
+  path: string;
+  type: 'added' | 'modified' | 'deleted';
+  diff?: string;
+}
+```
+
+### 18.4 Dependencies
+
+```json
+{
+  "name": "@fractary/codex",
+  "version": "1.0.0",
+  "dependencies": {
+    "@fractary/core": "^1.0.0",
+    "gray-matter": "^4.0.3",
+    "glob": "^10.3.0"
+  }
+}
+```
+
+---
+
+## 19. Package: @fractary/helm
+
+> **Repository**: `fractary/helm-ts`
+> **npm**: `@fractary/helm`
+> **Purpose**: Monitoring, metrics, and governance for AI workflows
+
+### 19.1 Overview
+
+The helm package provides monitoring, cost tracking, performance metrics, and governance policies for AI workflow execution. It observes faber executions and provides insights.
+
+### 19.2 Directory Structure
+
+```
+fractary/helm-ts/
+├── src/
+│   ├── monitor/
+│   │   ├── types.ts              # Monitor interfaces
+│   │   ├── observer.ts           # Workflow observer
+│   │   ├── collector.ts          # Metrics collection
+│   │   └── index.ts
+│   │
+│   ├── metrics/
+│   │   ├── types.ts              # Metric types
+│   │   ├── cost.ts               # Cost tracking
+│   │   ├── performance.ts        # Latency, throughput
+│   │   ├── quality.ts            # Success rates, retries
+│   │   └── index.ts
+│   │
+│   ├── governance/
+│   │   ├── types.ts              # Policy types
+│   │   ├── policies.ts           # Built-in policies
+│   │   ├── enforcer.ts           # Policy enforcement
+│   │   └── index.ts
+│   │
+│   ├── reports/
+│   │   ├── types.ts              # Report types
+│   │   ├── generator.ts          # Report generation
+│   │   └── index.ts
+│   │
+│   └── index.ts
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 19.3 Core Interfaces
+
+```typescript
+// monitor/types.ts
+
+export interface WorkflowMonitor {
+  /** Attach to a workflow engine */
+  attach(engine: WorkflowEngine): void;
+
+  /** Get metrics for a run */
+  getMetrics(runId: string): Promise<RunMetrics>;
+
+  /** Get aggregated metrics */
+  getAggregateMetrics(options: MetricsQuery): Promise<AggregateMetrics>;
+
+  /** Generate report */
+  generateReport(options: ReportOptions): Promise<Report>;
+}
+
+// metrics/types.ts
+
+export interface RunMetrics {
+  runId: string;
+  duration: number;
+  cost: CostBreakdown;
+  tokenUsage: TokenBreakdown;
+  stepMetrics: StepMetrics[];
+  modelUsage: ModelUsage[];
+}
+
+export interface CostBreakdown {
+  total: number;
+  byModel: Record<string, number>;
+  byStep: Record<string, number>;
+  byPhase: Record<string, number>;
+}
+
+// governance/types.ts
+
+export interface GovernancePolicy {
+  id: string;
+  name: string;
+  description: string;
+  check(context: PolicyContext): PolicyResult;
+}
+
+export interface PolicyResult {
+  passed: boolean;
+  violations: Violation[];
+  warnings: Warning[];
+}
+```
+
+### 19.4 Dependencies
+
+```json
+{
+  "name": "@fractary/helm",
+  "version": "1.0.0",
+  "dependencies": {
+    "@fractary/core": "^1.0.0"
+  }
+}
+```
+
+---
+
+## 20. Package: @fractary/forge
+
+> **Repository**: `fractary/forge-ts`
+> **npm**: `@fractary/forge`
+> **Purpose**: Authoring and templating tools for AI agents and workflows
+
+### 20.1 Overview
+
+The forge package provides tools for authoring AI agent definitions, workflow templates, and transforming them for different platforms (Claude Code, LangChain, etc.).
+
+### 20.2 Directory Structure
+
+```
+fractary/forge-ts/
+├── src/
+│   ├── concepts/
+│   │   ├── types.ts              # Role, Tool, Eval, Team, Workflow
+│   │   ├── loaders/              # Concept loaders
+│   │   │   ├── role.ts
+│   │   │   ├── tool.ts
+│   │   │   ├── eval.ts
+│   │   │   ├── team.ts
+│   │   │   └── workflow.ts
+│   │   └── index.ts
+│   │
+│   ├── bindings/
+│   │   ├── types.ts              # Binding interface
+│   │   ├── claude-code.ts        # Claude Code transformer
+│   │   ├── langgraph.ts          # LangGraph transformer
+│   │   └── index.ts
+│   │
+│   ├── overlays/
+│   │   ├── types.ts              # Overlay types
+│   │   ├── resolver.ts           # Overlay resolution
+│   │   ├── merger.ts             # Deep merge logic
+│   │   └── index.ts
+│   │
+│   ├── templates/
+│   │   ├── types.ts              # Template types
+│   │   ├── engine.ts             # Template rendering
+│   │   └── index.ts
+│   │
+│   └── index.ts
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 20.3 Dependencies
+
+```json
+{
+  "name": "@fractary/forge",
+  "version": "1.0.0",
+  "dependencies": {
+    "@fractary/core": "^1.0.0",
+    "js-yaml": "^4.1.0",
+    "handlebars": "^4.7.0"
+  }
+}
+```
+
+---
+
+## 21. Package: @fractary/cli
+
+> **Repository**: `fractary/cli`
+> **npm**: `@fractary/cli`
+> **Purpose**: Unified command-line interface for all Fractary tools
+
+### 21.1 Overview
+
+The CLI package provides the user-facing command-line interface. It's a thin layer over the SDK packages, handling argument parsing, output formatting, and user interaction.
+
+### 21.2 Directory Structure
+
+```
+fractary/cli/
+├── src/
+│   ├── cli.ts                    # Main entry point
+│   │
+│   ├── tools/
+│   │   ├── faber/
+│   │   │   ├── index.ts          # Faber command group
+│   │   │   └── commands/
+│   │   │       ├── run.ts
+│   │   │       ├── plan.ts
+│   │   │       ├── execute.ts
+│   │   │       ├── status.ts
+│   │   │       ├── logs.ts
+│   │   │       ├── cancel.ts
+│   │   │       └── config.ts
+│   │   │
+│   │   ├── codex/
+│   │   │   ├── index.ts
+│   │   │   └── commands/
+│   │   │       ├── init.ts
+│   │   │       ├── validate.ts
+│   │   │       ├── sync.ts
+│   │   │       └── config.ts
+│   │   │
+│   │   ├── helm/
+│   │   │   ├── index.ts
+│   │   │   └── commands/
+│   │   │       ├── status.ts
+│   │   │       ├── metrics.ts
+│   │   │       └── report.ts
+│   │   │
+│   │   └── forge/
+│   │       ├── index.ts
+│   │       └── commands/
+│   │           ├── init.ts
+│   │           ├── create.ts
+│   │           ├── build.ts
+│   │           └── validate.ts
+│   │
+│   ├── utils/
+│   │   ├── output.ts             # Chalk formatting
+│   │   ├── prompts.ts            # User prompts
+│   │   ├── progress.ts           # Progress indicators
+│   │   └── config.ts             # CLI config loading
+│   │
+│   └── index.ts
+│
+├── bin/
+│   └── fractary                  # CLI entry script
+│
+├── package.json
+├── tsconfig.json
+├── README.md
+└── CLAUDE.md
+```
+
+### 21.3 CLI Entry Point
+
+```typescript
+// src/cli.ts
+
+import { Command } from 'commander';
+import { createFaberCommand } from './tools/faber';
+import { createCodexCommand } from './tools/codex';
+import { createHelmCommand } from './tools/helm';
+import { createForgeCommand } from './tools/forge';
+
+const program = new Command();
+
+program
+  .name('fractary')
+  .description('Unified CLI for Fractary tools')
+  .version('1.0.0');
+
+program.addCommand(createFaberCommand());
+program.addCommand(createCodexCommand());
+program.addCommand(createHelmCommand());
+program.addCommand(createForgeCommand());
+
+program.parse();
+```
+
+### 21.4 Example Command Implementation
+
+```typescript
+// src/tools/faber/commands/run.ts
+
+import { Command } from 'commander';
+import chalk from 'chalk';
+import { FaberEngine, loadConfig, createPlan } from '@fractary/faber';
+import { createProviders } from '@fractary/primitives';
+
+export function runCommand(): Command {
+  return new Command('run')
+    .description('Execute a FABER workflow for a work item')
+    .requiredOption('--work-id <id>', 'Work item ID')
+    .option('--workflow <id>', 'Workflow to use', 'default')
+    .option('--autonomy <level>', 'Autonomy level', 'guarded')
+    .option('--phase <phases>', 'Phases to run (comma-separated)')
+    .option('--dry-run', 'Show what would be executed')
+    .option('--verbose', 'Enable verbose output')
+    .option('--json', 'Output as JSON')
+    .action(async (options) => {
+      try {
+        const config = await loadConfig('.fractary/faber/config.toml');
+        const providers = createProviders(config.providers);
+        const engine = new FaberEngine({ ...config, providers });
+
+        // Set up event handlers for progress display
+        if (!options.json) {
+          engine.on('phase_start', ({ phase }) => {
+            console.log(chalk.cyan(`\n▶ Phase: ${phase}`));
+          });
+          engine.on('step_start', ({ step }) => {
+            console.log(chalk.gray(`  → ${step}`));
+          });
+          engine.on('step_complete', ({ step }) => {
+            console.log(chalk.green(`  ✓ ${step}`));
+          });
+          engine.on('step_failed', ({ step, error }) => {
+            console.log(chalk.red(`  ✗ ${step}: ${error.message}`));
+          });
+        }
+
+        const plan = await createPlan({
+          workId: options.workId,
+          workflow: options.workflow,
+        });
+
+        const result = await engine.execute(plan, {
+          autonomy: options.autonomy,
+          dryRun: options.dryRun,
+          phases: options.phase?.split(','),
+          verbose: options.verbose,
+          onApprovalRequired: async (step) => {
+            // Interactive approval prompt
+            return promptForApproval(step);
+          },
+        });
+
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          console.log(chalk.green(`\n✓ Workflow ${result.status}`));
+          console.log(chalk.gray(`  Duration: ${result.duration}ms`));
+          console.log(chalk.gray(`  Cost: $${result.cost.total.toFixed(4)}`));
+        }
+
+      } catch (error: any) {
+        if (options.json) {
+          console.log(JSON.stringify({ error: error.message }, null, 2));
+        } else {
+          console.error(chalk.red('Error:'), error.message);
+        }
+        process.exit(1);
+      }
+    });
+}
+```
+
+### 21.5 Dependencies
+
+```json
+{
+  "name": "@fractary/cli",
+  "version": "1.0.0",
+  "bin": {
+    "fractary": "./bin/fractary"
+  },
+  "dependencies": {
+    "@fractary/core": "^1.0.0",
+    "@fractary/primitives": "^1.0.0",
+    "@fractary/faber": "^1.0.0",
+    "@fractary/codex": "^1.0.0",
+    "@fractary/helm": "^1.0.0",
+    "@fractary/forge": "^1.0.0",
+    "commander": "^11.1.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.0",
+    "inquirer": "^9.2.0"
+  }
+}
+```
+
+---
+
+## 22. Implementation Roadmap (Updated)
+
+### Phase 1: Foundation (Week 1-2)
+1. Create `fractary/core-ts` repository
+   - Types, utilities, error classes
+   - Config loading and validation
+2. Create `fractary/primitives-ts` repository
+   - LLM provider adapters (Anthropic, OpenAI)
+   - Tool executor framework
+   - Basic tools (file, git)
+
+### Phase 2: Faber SDK (Week 3-4)
+1. Create `fractary/faber-ts` repository
+   - Workflow engine
+   - Model router
+   - State management
+   - Prompt templates
+
+### Phase 3: CLI Integration (Week 5-6)
+1. Update `fractary/cli` repository
+   - Wire faber commands to SDK
+   - Add progress display
+   - Add interactive prompts
+
+### Phase 4: Advanced Features (Week 7-8)
+1. Ensemble support in faber
+2. Additional providers (Google, Ollama)
+3. Helm monitoring integration
+4. Documentation and testing
+
+### Phase 5: Additional SDKs (Week 9+)
+1. Update `fractary/codex-ts` to new patterns
+2. Create `fractary/helm-ts`
+3. Update `fractary/forge-ts`
+4. Python SDKs (future)
+
+---
+
+## 23. References
 
 - [SPEC-00002: FABER Architecture](./SPEC-00002-faber-architecture.md)
 - [Anthropic API Documentation](https://docs.anthropic.com/en/api)
