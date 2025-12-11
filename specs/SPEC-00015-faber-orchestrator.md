@@ -1074,24 +1074,81 @@ interface CostTracking {
 
 ## 14. SDK Architecture
 
-The Fractary ecosystem is organized into multiple SDK packages with clear separation of concerns. Each SDK is published as a separate npm package and lives in its own GitHub repository.
+The Fractary ecosystem is organized into multiple SDK packages with clear separation of concerns. Each SDK is published to npm (TypeScript) and PyPI (Python) from a single monorepo per tool.
 
-### 14.1 Repository Naming Convention
+### 14.1 Repository Structure: Monorepo per Tool
 
-Repositories follow the `{tool}-{language}` pattern:
+Each tool has a single GitHub repository containing both TypeScript and Python implementations:
 
 | GitHub Repository | npm Package | PyPI Package | Description |
 |-------------------|-------------|--------------|-------------|
-| `fractary/core-ts` | `@fractary/core` | - | Foundation: types, utilities, LLM providers, integrations |
-| `fractary/faber-ts` | `@fractary/faber` | - | Workflow orchestration engine |
-| `fractary/codex-ts` | `@fractary/codex` | - | Knowledge and memory management |
-| `fractary/helm-ts` | `@fractary/helm` | - | Monitoring and governance |
-| `fractary/forge-ts` | `@fractary/forge` | - | Authoring and templating tools |
-| `fractary/cli` | `@fractary/cli` | - | Unified command-line interface |
-| `fractary/core-py` | - | `fractary-core` | Python: Foundation (future) |
-| `fractary/faber-py` | - | `fractary-faber` | Python: Workflow engine (future) |
+| `fractary/core` | `@fractary/core` | `fractary-core` | Foundation: types, utilities, LLM providers, integrations |
+| `fractary/faber` | `@fractary/faber` | `fractary-faber` | Workflow orchestration engine |
+| `fractary/codex` | `@fractary/codex` | `fractary-codex` | Knowledge and memory management |
+| `fractary/helm` | `@fractary/helm` | `fractary-helm` | Monitoring and governance |
+| `fractary/forge` | `@fractary/forge` | `fractary-forge` | Authoring and templating tools |
+| `fractary/cli` | `@fractary/cli` | `fractary-cli` | Unified command-line interface |
 
-### 14.2 Dependency Graph
+### 14.2 Monorepo Directory Structure
+
+Each repository follows a consistent structure with language implementations in subfolders:
+
+```
+fractary/core/
+├── packages/
+│   ├── ts/                    # TypeScript implementation
+│   │   ├── src/
+│   │   ├── package.json       # @fractary/core
+│   │   ├── tsconfig.json
+│   │   └── vitest.config.ts
+│   │
+│   └── py/                    # Python implementation (future)
+│       ├── src/
+│       │   └── fractary_core/
+│       ├── pyproject.toml     # fractary-core
+│       └── pytest.ini
+│
+├── specs/                     # Shared interface specifications
+│   ├── providers.schema.json  # LLMProvider interface schema
+│   ├── work.schema.json       # WorkItem, Issue schemas
+│   ├── repo.schema.json       # Repository, PR schemas
+│   └── file.schema.json       # FileStorage schemas
+│
+├── tests/
+│   ├── conformance/           # Cross-language test cases
+│   │   ├── providers/         # Provider conformance tests
+│   │   ├── work/              # Work tracking conformance
+│   │   └── repo/              # Repo operations conformance
+│   └── fixtures/              # Shared test data
+│
+├── .github/
+│   └── workflows/
+│       ├── ts.yml             # TypeScript CI
+│       ├── py.yml             # Python CI
+│       └── conformance.yml    # Cross-language tests
+│
+├── CLAUDE.md
+├── README.md
+└── CHANGELOG.md
+```
+
+### 14.3 Design Benefits: Monorepo Approach
+
+**Why monorepo per tool (not per language)?**
+
+1. **Single PR for both languages** - Add a feature to TS and Py together
+2. **Atomic versioning** - Release 1.2.0 for both implementations simultaneously
+3. **Interface sync via specs/** - JSON schemas ensure both languages implement same contracts
+4. **Conformance testing** - Same test cases validate both implementations
+5. **Single issue tracker** - "Add Ollama provider" touches both in one issue
+6. **Simpler naming** - `fractary/core` not `fractary/core-ts` + `fractary/core-py`
+
+**Comparison to industry:**
+- **Prisma**: TypeScript + Rust in same repo
+- **Supabase**: Multiple SDK languages co-located
+- Stripe/OpenAI use separate repos, but they have separate teams per language
+
+### 14.4 Dependency Graph
 
 ```
 @fractary/core          ← Foundation (types, utils, providers, integrations)
@@ -1104,7 +1161,7 @@ Repositories follow the `{tool}-{language}` pattern:
 @fractary/cli           ← Depends on all SDKs
 ```
 
-### 14.3 Design Decision: Unified Core
+### 14.5 Design Decision: Unified Core
 
 The `@fractary/core` package includes both foundational utilities AND integrations (LLM providers, work tracking, repo operations, file storage). This design:
 
@@ -1117,8 +1174,9 @@ The `@fractary/core` package includes both foundational utilities AND integratio
 
 ## 15. Package: @fractary/core
 
-> **Repository**: `fractary/core-ts`
+> **Repository**: `fractary/core`
 > **npm**: `@fractary/core`
+> **PyPI**: `fractary-core` (future)
 > **Purpose**: Foundation package containing types, utilities, LLM providers, and platform integrations
 
 ### 15.1 Overview
@@ -1133,83 +1191,111 @@ The core package is the foundation of the Fractary ecosystem. It provides:
 ### 15.2 Directory Structure
 
 ```
-fractary/core-ts/
-├── src/
-│   ├── types/
-│   │   ├── common.ts           # Common types (Result, Maybe, etc.)
-│   │   ├── config.ts           # Configuration types
-│   │   ├── events.ts           # Event system types
-│   │   ├── errors.ts           # Error types
-│   │   └── index.ts            # Type exports
+fractary/core/
+├── ts/                            # TypeScript implementation
+│   ├── src/
+│   │   ├── types/
+│   │   │   ├── common.ts          # Common types (Result, Maybe, etc.)
+│   │   │   ├── config.ts          # Configuration types
+│   │   │   ├── events.ts          # Event system types
+│   │   │   ├── errors.ts          # Error types
+│   │   │   └── index.ts           # Type exports
+│   │   │
+│   │   ├── config/
+│   │   │   ├── loader.ts          # Config file loading (TOML, JSON)
+│   │   │   ├── validator.ts       # Schema validation
+│   │   │   ├── resolver.ts        # Environment variable resolution
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── errors/
+│   │   │   ├── base.ts            # FractaryError base class
+│   │   │   ├── config.ts          # ConfigurationError
+│   │   │   ├── validation.ts      # ValidationError
+│   │   │   ├── provider.ts        # ProviderError
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── async.ts           # Async utilities (retry, timeout)
+│   │   │   ├── fs.ts              # File system utilities
+│   │   │   ├── json.ts            # JSON utilities
+│   │   │   ├── logger.ts          # Logging interface
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── providers/
+│   │   │   ├── types.ts           # LLMProvider interface
+│   │   │   ├── anthropic.ts       # Anthropic Claude adapter
+│   │   │   ├── openai.ts          # OpenAI GPT adapter
+│   │   │   ├── google.ts          # Google Gemini adapter
+│   │   │   ├── ollama.ts          # Ollama local adapter
+│   │   │   ├── registry.ts        # Provider registry
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── work/
+│   │   │   ├── types.ts           # WorkItem, Issue interfaces
+│   │   │   ├── github.ts          # GitHub Issues adapter
+│   │   │   ├── jira.ts            # Jira Cloud adapter
+│   │   │   ├── linear.ts          # Linear adapter
+│   │   │   ├── registry.ts        # Work provider registry
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── repo/
+│   │   │   ├── types.ts           # Repository, Branch, PR interfaces
+│   │   │   ├── git.ts             # Git CLI operations
+│   │   │   ├── github.ts          # GitHub API adapter
+│   │   │   ├── gitlab.ts          # GitLab API adapter
+│   │   │   ├── bitbucket.ts       # Bitbucket API adapter
+│   │   │   ├── registry.ts        # Repo provider registry
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── file/
+│   │   │   ├── types.ts           # FileStorage interface
+│   │   │   ├── local.ts           # Local filesystem
+│   │   │   ├── s3.ts              # AWS S3
+│   │   │   ├── r2.ts              # Cloudflare R2
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── tools/
+│   │   │   ├── types.ts           # Tool, ToolCall, ToolResult interfaces
+│   │   │   ├── file-tools.ts      # file_read, file_write, file_search
+│   │   │   ├── git-tools.ts       # git_status, git_diff, git_commit
+│   │   │   ├── github-tools.ts    # github_issue, github_pr
+│   │   │   ├── shell-tools.ts     # shell_exec (sandboxed)
+│   │   │   ├── executor.ts        # ToolExecutor implementation
+│   │   │   └── index.ts
+│   │   │
+│   │   └── index.ts               # Public API
 │   │
-│   ├── config/
-│   │   ├── loader.ts           # Config file loading (TOML, JSON)
-│   │   ├── validator.ts        # Schema validation
-│   │   ├── resolver.ts         # Environment variable resolution
-│   │   └── index.ts
-│   │
-│   ├── errors/
-│   │   ├── base.ts             # FractaryError base class
-│   │   ├── config.ts           # ConfigurationError
-│   │   ├── validation.ts       # ValidationError
-│   │   ├── provider.ts         # ProviderError
-│   │   └── index.ts
-│   │
-│   ├── utils/
-│   │   ├── async.ts            # Async utilities (retry, timeout)
-│   │   ├── fs.ts               # File system utilities
-│   │   ├── json.ts             # JSON utilities
-│   │   ├── logger.ts           # Logging interface
-│   │   └── index.ts
-│   │
-│   ├── providers/
-│   │   ├── types.ts            # LLMProvider interface
-│   │   ├── anthropic.ts        # Anthropic Claude adapter
-│   │   ├── openai.ts           # OpenAI GPT adapter
-│   │   ├── google.ts           # Google Gemini adapter
-│   │   ├── ollama.ts           # Ollama local adapter
-│   │   ├── registry.ts         # Provider registry
-│   │   └── index.ts
-│   │
-│   ├── work/
-│   │   ├── types.ts            # WorkItem, Issue interfaces
-│   │   ├── github.ts           # GitHub Issues adapter
-│   │   ├── jira.ts             # Jira Cloud adapter
-│   │   ├── linear.ts           # Linear adapter
-│   │   ├── registry.ts         # Work provider registry
-│   │   └── index.ts
-│   │
-│   ├── repo/
-│   │   ├── types.ts            # Repository, Branch, PR interfaces
-│   │   ├── git.ts              # Git CLI operations
-│   │   ├── github.ts           # GitHub API adapter
-│   │   ├── gitlab.ts           # GitLab API adapter
-│   │   ├── bitbucket.ts        # Bitbucket API adapter
-│   │   ├── registry.ts         # Repo provider registry
-│   │   └── index.ts
-│   │
-│   ├── file/
-│   │   ├── types.ts            # FileStorage interface
-│   │   ├── local.ts            # Local filesystem
-│   │   ├── s3.ts               # AWS S3
-│   │   ├── r2.ts               # Cloudflare R2
-│   │   └── index.ts
-│   │
-│   ├── tools/
-│   │   ├── types.ts            # Tool, ToolCall, ToolResult interfaces
-│   │   ├── file-tools.ts       # file_read, file_write, file_search
-│   │   ├── git-tools.ts        # git_status, git_diff, git_commit
-│   │   ├── github-tools.ts     # github_issue, github_pr
-│   │   ├── shell-tools.ts      # shell_exec (sandboxed)
-│   │   ├── executor.ts         # ToolExecutor implementation
-│   │   └── index.ts
-│   │
-│   └── index.ts                # Public API
+│   ├── package.json               # @fractary/core
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 │
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
+├── py/                            # Python implementation (future)
+│   ├── src/
+│   │   └── fractary_core/
+│   │       ├── __init__.py
+│   │       ├── types/
+│   │       ├── config/
+│   │       ├── errors/
+│   │       ├── providers/
+│   │       ├── work/
+│   │       ├── repo/
+│   │       ├── file/
+│   │       └── tools/
+│   ├── pyproject.toml             # fractary-core
+│   └── pytest.ini
+│
+├── specs/                         # Shared interface specifications
+│   ├── providers.schema.json
+│   ├── work.schema.json
+│   ├── repo.schema.json
+│   └── file.schema.json
+│
+├── tests/
+│   ├── conformance/               # Cross-language test cases
+│   └── fixtures/                  # Shared test data
+│
+├── CLAUDE.md
+└── README.md
 ```
 
 ### 15.3 Core Types
@@ -1640,8 +1726,9 @@ export class ToolExecutor {
 
 ## 16. Package: @fractary/faber
 
-> **Repository**: `fractary/faber-ts`
+> **Repository**: `fractary/faber`
 > **npm**: `@fractary/faber`
+> **PyPI**: `fractary-faber` (future)
 > **Purpose**: Deterministic workflow orchestration engine for AI-assisted development
 
 ### 16.1 Overview
@@ -1651,56 +1738,66 @@ The faber package is the core workflow orchestration engine. It provides determi
 ### 16.2 Directory Structure
 
 ```
-fractary/faber-ts/
-├── src/
-│   ├── engine/
-│   │   ├── types.ts              # WorkflowEngine interface
-│   │   ├── engine.ts             # WorkflowEngine implementation
-│   │   ├── executor.ts           # Step executor (LLM + tool loop)
-│   │   ├── planner.ts            # Execution plan creation
-│   │   └── index.ts
+fractary/faber/
+├── ts/                               # TypeScript implementation
+│   ├── src/
+│   │   ├── engine/
+│   │   │   ├── types.ts              # WorkflowEngine interface
+│   │   │   ├── engine.ts             # WorkflowEngine implementation
+│   │   │   ├── executor.ts           # Step executor (LLM + tool loop)
+│   │   │   ├── planner.ts            # Execution plan creation
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── router/
+│   │   │   ├── types.ts              # ModelRouter interface
+│   │   │   ├── router.ts             # Step-to-model routing
+│   │   │   ├── ensemble.ts           # Ensemble execution strategies
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── state/
+│   │   │   ├── types.ts              # State interfaces
+│   │   │   ├── store.ts              # State persistence
+│   │   │   ├── events.ts             # Event logging
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── workflow/
+│   │   │   ├── types.ts              # Workflow, Phase, Step interfaces
+│   │   │   ├── loader.ts             # Workflow definition loader
+│   │   │   ├── validator.ts          # Workflow validation
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── prompts/
+│   │   │   ├── types.ts              # Prompt template interface
+│   │   │   ├── loader.ts             # Template loading
+│   │   │   ├── renderer.ts           # Variable substitution
+│   │   │   ├── templates/            # Built-in templates
+│   │   │   │   ├── classify_work.md
+│   │   │   │   ├── generate_spec.md
+│   │   │   │   ├── implement.md
+│   │   │   │   └── code_review.md
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── config/
+│   │   │   ├── types.ts              # FaberConfig interface
+│   │   │   ├── loader.ts             # Config loading
+│   │   │   ├── schema.ts             # Config schema
+│   │   │   └── index.ts
+│   │   │
+│   │   └── index.ts                  # Public API
 │   │
-│   ├── router/
-│   │   ├── types.ts              # ModelRouter interface
-│   │   ├── router.ts             # Step-to-model routing
-│   │   ├── ensemble.ts           # Ensemble execution strategies
-│   │   └── index.ts
-│   │
-│   ├── state/
-│   │   ├── types.ts              # State interfaces
-│   │   ├── store.ts              # State persistence
-│   │   ├── events.ts             # Event logging
-│   │   └── index.ts
-│   │
-│   ├── workflow/
-│   │   ├── types.ts              # Workflow, Phase, Step interfaces
-│   │   ├── loader.ts             # Workflow definition loader
-│   │   ├── validator.ts          # Workflow validation
-│   │   └── index.ts
-│   │
-│   ├── prompts/
-│   │   ├── types.ts              # Prompt template interface
-│   │   ├── loader.ts             # Template loading
-│   │   ├── renderer.ts           # Variable substitution
-│   │   ├── templates/            # Built-in templates
-│   │   │   ├── classify_work.md
-│   │   │   ├── generate_spec.md
-│   │   │   ├── implement.md
-│   │   │   └── code_review.md
-│   │   └── index.ts
-│   │
-│   ├── config/
-│   │   ├── types.ts              # FaberConfig interface
-│   │   ├── loader.ts             # Config loading
-│   │   ├── schema.ts             # Config schema
-│   │   └── index.ts
-│   │
-│   └── index.ts                  # Public API
+│   ├── package.json                  # @fractary/faber
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 │
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
+├── py/                               # Python implementation (future)
+│   ├── src/fractary_faber/
+│   ├── pyproject.toml                # fractary-faber
+│   └── pytest.ini
+│
+├── specs/                            # Shared interface specifications
+├── tests/conformance/
+├── CLAUDE.md
+└── README.md
 ```
 
 ### 16.3 Workflow Engine Interface
@@ -1977,8 +2074,9 @@ export class ModelRouter {
 
 ## 17. Package: @fractary/codex
 
-> **Repository**: `fractary/codex-ts`
+> **Repository**: `fractary/codex`
 > **npm**: `@fractary/codex`
+> **PyPI**: `fractary-codex` (future)
 > **Purpose**: Knowledge and memory management for AI-assisted development
 
 ### 17.1 Overview
@@ -1988,38 +2086,48 @@ The codex package provides knowledge management, documentation sync, and memory 
 ### 17.2 Directory Structure
 
 ```
-fractary/codex-ts/
-├── src/
-│   ├── metadata/
-│   │   ├── types.ts              # Frontmatter types
-│   │   ├── parser.ts             # YAML frontmatter parsing
-│   │   ├── validator.ts          # Schema validation
+fractary/codex/
+├── ts/                               # TypeScript implementation
+│   ├── src/
+│   │   ├── metadata/
+│   │   │   ├── types.ts              # Frontmatter types
+│   │   │   ├── parser.ts             # YAML frontmatter parsing
+│   │   │   ├── validator.ts          # Schema validation
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── sync/
+│   │   │   ├── types.ts              # Sync configuration types
+│   │   │   ├── router.ts             # File → repo routing
+│   │   │   ├── differ.ts             # Change detection
+│   │   │   ├── syncer.ts             # Sync execution
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── memory/
+│   │   │   ├── types.ts              # Memory store types
+│   │   │   ├── store.ts              # Memory persistence
+│   │   │   ├── retriever.ts          # Semantic retrieval
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── config/
+│   │   │   ├── types.ts              # CodexConfig interface
+│   │   │   ├── loader.ts             # Config loading
+│   │   │   └── index.ts
+│   │   │
 │   │   └── index.ts
 │   │
-│   ├── sync/
-│   │   ├── types.ts              # Sync configuration types
-│   │   ├── router.ts             # File → repo routing
-│   │   ├── differ.ts             # Change detection
-│   │   ├── syncer.ts             # Sync execution
-│   │   └── index.ts
-│   │
-│   ├── memory/
-│   │   ├── types.ts              # Memory store types
-│   │   ├── store.ts              # Memory persistence
-│   │   ├── retriever.ts          # Semantic retrieval
-│   │   └── index.ts
-│   │
-│   ├── config/
-│   │   ├── types.ts              # CodexConfig interface
-│   │   ├── loader.ts             # Config loading
-│   │   └── index.ts
-│   │
-│   └── index.ts
+│   ├── package.json                  # @fractary/codex
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 │
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
+├── py/                               # Python implementation (future)
+│   ├── src/fractary_codex/
+│   ├── pyproject.toml                # fractary-codex
+│   └── pytest.ini
+│
+├── specs/
+├── tests/conformance/
+├── CLAUDE.md
+└── README.md
 ```
 
 ### 17.3 Core Interfaces
@@ -2076,8 +2184,9 @@ export interface FileChange {
 
 ## 18. Package: @fractary/helm
 
-> **Repository**: `fractary/helm-ts`
+> **Repository**: `fractary/helm`
 > **npm**: `@fractary/helm`
+> **PyPI**: `fractary-helm` (future)
 > **Purpose**: Monitoring, metrics, and governance for AI workflows
 
 ### 18.1 Overview
@@ -2087,38 +2196,48 @@ The helm package provides monitoring, cost tracking, performance metrics, and go
 ### 18.2 Directory Structure
 
 ```
-fractary/helm-ts/
-├── src/
-│   ├── monitor/
-│   │   ├── types.ts              # Monitor interfaces
-│   │   ├── observer.ts           # Workflow observer
-│   │   ├── collector.ts          # Metrics collection
+fractary/helm/
+├── ts/                               # TypeScript implementation
+│   ├── src/
+│   │   ├── monitor/
+│   │   │   ├── types.ts              # Monitor interfaces
+│   │   │   ├── observer.ts           # Workflow observer
+│   │   │   ├── collector.ts          # Metrics collection
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── metrics/
+│   │   │   ├── types.ts              # Metric types
+│   │   │   ├── cost.ts               # Cost tracking
+│   │   │   ├── performance.ts        # Latency, throughput
+│   │   │   ├── quality.ts            # Success rates, retries
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── governance/
+│   │   │   ├── types.ts              # Policy types
+│   │   │   ├── policies.ts           # Built-in policies
+│   │   │   ├── enforcer.ts           # Policy enforcement
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── reports/
+│   │   │   ├── types.ts              # Report types
+│   │   │   ├── generator.ts          # Report generation
+│   │   │   └── index.ts
+│   │   │
 │   │   └── index.ts
 │   │
-│   ├── metrics/
-│   │   ├── types.ts              # Metric types
-│   │   ├── cost.ts               # Cost tracking
-│   │   ├── performance.ts        # Latency, throughput
-│   │   ├── quality.ts            # Success rates, retries
-│   │   └── index.ts
-│   │
-│   ├── governance/
-│   │   ├── types.ts              # Policy types
-│   │   ├── policies.ts           # Built-in policies
-│   │   ├── enforcer.ts           # Policy enforcement
-│   │   └── index.ts
-│   │
-│   ├── reports/
-│   │   ├── types.ts              # Report types
-│   │   ├── generator.ts          # Report generation
-│   │   └── index.ts
-│   │
-│   └── index.ts
+│   ├── package.json                  # @fractary/helm
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 │
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
+├── py/                               # Python implementation (future)
+│   ├── src/fractary_helm/
+│   ├── pyproject.toml                # fractary-helm
+│   └── pytest.ini
+│
+├── specs/
+├── tests/conformance/
+├── CLAUDE.md
+└── README.md
 ```
 
 ### 18.3 Core Interfaces
@@ -2190,8 +2309,9 @@ export interface PolicyResult {
 
 ## 19. Package: @fractary/forge
 
-> **Repository**: `fractary/forge-ts`
+> **Repository**: `fractary/forge`
 > **npm**: `@fractary/forge`
+> **PyPI**: `fractary-forge` (future)
 > **Purpose**: Authoring and templating tools for AI agents and workflows
 
 ### 19.1 Overview
@@ -2201,41 +2321,51 @@ The forge package provides tools for authoring AI agent definitions, workflow te
 ### 19.2 Directory Structure
 
 ```
-fractary/forge-ts/
-├── src/
-│   ├── concepts/
-│   │   ├── types.ts              # Role, Tool, Eval, Team, Workflow
-│   │   ├── loaders/              # Concept loaders
-│   │   │   ├── role.ts
-│   │   │   ├── tool.ts
-│   │   │   ├── eval.ts
-│   │   │   ├── team.ts
-│   │   │   └── workflow.ts
+fractary/forge/
+├── ts/                               # TypeScript implementation
+│   ├── src/
+│   │   ├── concepts/
+│   │   │   ├── types.ts              # Role, Tool, Eval, Team, Workflow
+│   │   │   ├── loaders/              # Concept loaders
+│   │   │   │   ├── role.ts
+│   │   │   │   ├── tool.ts
+│   │   │   │   ├── eval.ts
+│   │   │   │   ├── team.ts
+│   │   │   │   └── workflow.ts
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── bindings/
+│   │   │   ├── types.ts              # Binding interface
+│   │   │   ├── claude-code.ts        # Claude Code transformer
+│   │   │   ├── langgraph.ts          # LangGraph transformer
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── overlays/
+│   │   │   ├── types.ts              # Overlay types
+│   │   │   ├── resolver.ts           # Overlay resolution
+│   │   │   ├── merger.ts             # Deep merge logic
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── templates/
+│   │   │   ├── types.ts              # Template types
+│   │   │   ├── engine.ts             # Template rendering
+│   │   │   └── index.ts
+│   │   │
 │   │   └── index.ts
 │   │
-│   ├── bindings/
-│   │   ├── types.ts              # Binding interface
-│   │   ├── claude-code.ts        # Claude Code transformer
-│   │   ├── langgraph.ts          # LangGraph transformer
-│   │   └── index.ts
-│   │
-│   ├── overlays/
-│   │   ├── types.ts              # Overlay types
-│   │   ├── resolver.ts           # Overlay resolution
-│   │   ├── merger.ts             # Deep merge logic
-│   │   └── index.ts
-│   │
-│   ├── templates/
-│   │   ├── types.ts              # Template types
-│   │   ├── engine.ts             # Template rendering
-│   │   └── index.ts
-│   │
-│   └── index.ts
+│   ├── package.json                  # @fractary/forge
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 │
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
+├── py/                               # Python implementation (future)
+│   ├── src/fractary_forge/
+│   ├── pyproject.toml                # fractary-forge
+│   └── pytest.ini
+│
+├── specs/
+├── tests/conformance/
+├── CLAUDE.md
+└── README.md
 ```
 
 ### 19.3 Dependencies
@@ -2258,6 +2388,7 @@ fractary/forge-ts/
 
 > **Repository**: `fractary/cli`
 > **npm**: `@fractary/cli`
+> **PyPI**: `fractary-cli` (future)
 > **Purpose**: Unified command-line interface for all Fractary tools
 
 ### 20.1 Overview
@@ -2268,59 +2399,68 @@ The CLI package provides the user-facing command-line interface. It's a thin lay
 
 ```
 fractary/cli/
-├── src/
-│   ├── cli.ts                    # Main entry point
-│   │
-│   ├── tools/
-│   │   ├── faber/
-│   │   │   ├── index.ts          # Faber command group
-│   │   │   └── commands/
-│   │   │       ├── run.ts
-│   │   │       ├── plan.ts
-│   │   │       ├── execute.ts
-│   │   │       ├── status.ts
-│   │   │       ├── logs.ts
-│   │   │       ├── cancel.ts
-│   │   │       └── config.ts
+├── ts/                               # TypeScript implementation
+│   ├── src/
+│   │   ├── cli.ts                    # Main entry point
 │   │   │
-│   │   ├── codex/
-│   │   │   ├── index.ts
-│   │   │   └── commands/
-│   │   │       ├── init.ts
-│   │   │       ├── validate.ts
-│   │   │       ├── sync.ts
-│   │   │       └── config.ts
+│   │   ├── tools/
+│   │   │   ├── faber/
+│   │   │   │   ├── index.ts          # Faber command group
+│   │   │   │   └── commands/
+│   │   │   │       ├── run.ts
+│   │   │   │       ├── plan.ts
+│   │   │   │       ├── execute.ts
+│   │   │   │       ├── status.ts
+│   │   │   │       ├── logs.ts
+│   │   │   │       ├── cancel.ts
+│   │   │   │       └── config.ts
+│   │   │   │
+│   │   │   ├── codex/
+│   │   │   │   ├── index.ts
+│   │   │   │   └── commands/
+│   │   │   │       ├── init.ts
+│   │   │   │       ├── validate.ts
+│   │   │   │       ├── sync.ts
+│   │   │   │       └── config.ts
+│   │   │   │
+│   │   │   ├── helm/
+│   │   │   │   ├── index.ts
+│   │   │   │   └── commands/
+│   │   │   │       ├── status.ts
+│   │   │   │       ├── metrics.ts
+│   │   │   │       └── report.ts
+│   │   │   │
+│   │   │   └── forge/
+│   │   │       ├── index.ts
+│   │   │       └── commands/
+│   │   │           ├── init.ts
+│   │   │           ├── create.ts
+│   │   │           ├── build.ts
+│   │   │           └── validate.ts
 │   │   │
-│   │   ├── helm/
-│   │   │   ├── index.ts
-│   │   │   └── commands/
-│   │   │       ├── status.ts
-│   │   │       ├── metrics.ts
-│   │   │       └── report.ts
+│   │   ├── utils/
+│   │   │   ├── output.ts             # Chalk formatting
+│   │   │   ├── prompts.ts            # User prompts
+│   │   │   ├── progress.ts           # Progress indicators
+│   │   │   └── config.ts             # CLI config loading
 │   │   │
-│   │   └── forge/
-│   │       ├── index.ts
-│   │       └── commands/
-│   │           ├── init.ts
-│   │           ├── create.ts
-│   │           ├── build.ts
-│   │           └── validate.ts
+│   │   └── index.ts
 │   │
-│   ├── utils/
-│   │   ├── output.ts             # Chalk formatting
-│   │   ├── prompts.ts            # User prompts
-│   │   ├── progress.ts           # Progress indicators
-│   │   └── config.ts             # CLI config loading
+│   ├── bin/
+│   │   └── fractary                  # CLI entry script
 │   │
-│   └── index.ts
+│   ├── package.json                  # @fractary/cli
+│   ├── tsconfig.json
+│   └── vitest.config.ts
 │
-├── bin/
-│   └── fractary                  # CLI entry script
+├── py/                               # Python implementation (future)
+│   ├── src/fractary_cli/
+│   │   └── __main__.py
+│   ├── pyproject.toml                # fractary-cli
+│   └── pytest.ini
 │
-├── package.json
-├── tsconfig.json
-├── README.md
-└── CLAUDE.md
+├── CLAUDE.md
+└── README.md
 ```
 
 ### 20.3 CLI Entry Point
