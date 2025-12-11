@@ -1,12 +1,12 @@
 {
   "session_id": "20251211",
   "started_at": "2025-12-11T14:31:03Z",
-  "updated_at": "2025-12-11T18:56:55Z",
-  "input_tokens_est": 3061,
-  "output_tokens_est": 9183,
-  "total_tokens_est": 12244,
-  "context_free_percent": 93,
-  "estimated_cost": "0.15",
+  "updated_at": "2025-12-11T19:26:28Z",
+  "input_tokens_est": 3719,
+  "output_tokens_est": 11157,
+  "total_tokens_est": 14876,
+  "context_free_percent": 92,
+  "estimated_cost": "0.18",
   "context_window": 200000,
   "note": "Estimates based on ~4 chars/token heuristic and 3x output ratio"
 }
