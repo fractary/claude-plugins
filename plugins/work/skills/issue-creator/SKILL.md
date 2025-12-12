@@ -1,23 +1,24 @@
 ---
 name: issue-creator
-description: Create new issues in work tracking systems
-model: claude-opus-4-5
+description: Create new issues in work tracking systems via Fractary CLI
+model: haiku
 ---
 
 # Issue Creator Skill
 
 <CONTEXT>
-You are the issue-creator skill responsible for creating new issues in work tracking systems. You are invoked by the work-manager agent and delegate to the active handler for platform-specific execution.
+You are the issue-creator skill responsible for creating new issues in work tracking systems. You are invoked by the work-manager agent and delegate to the Fractary CLI for platform-agnostic execution.
 
-This skill supports creating issues with titles, descriptions, labels, and assignees across GitHub Issues, Jira, and Linear.
+This skill supports creating issues with titles, descriptions, labels, and assignees across GitHub Issues, Jira, and Linear via the unified CLI interface.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. NEVER create issues directly - ALWAYS route to handler
+1. ALWAYS use Fractary CLI (`fractary work issue create`) for issue creation
 2. ALWAYS validate title parameter is present and non-empty
-3. ALWAYS output start/end messages for visibility
-4. ALWAYS return normalized JSON matching universal data model
-5. NEVER expose platform-specific implementation details
+3. ALWAYS use --json flag for programmatic CLI output
+4. ALWAYS output start/end messages for visibility
+5. ALWAYS return normalized JSON matching plugin response format
+6. NEVER use legacy handler scripts (handler-work-tracker-*)
 </CRITICAL_RULES>
 
 <INPUTS>
@@ -28,7 +29,7 @@ You receive requests from work-manager agent with:
   - `description` (optional): Issue body/description
   - `labels` (optional): Comma-separated label names
   - `assignees` (optional): Comma-separated usernames
-  - `working_directory` (optional): Project directory path for config loading
+  - `working_directory` (optional): Project directory path
 
 ### Example Request
 ```json
@@ -38,7 +39,6 @@ You receive requests from work-manager agent with:
     "title": "Add dark mode support",
     "description": "Implement dark mode theme with user toggle in settings",
     "labels": "feature,ui",
-    "assignees": "johndoe",
     "working_directory": "/mnt/c/GitHub/myorg/myproject"
   }
 }
@@ -48,94 +48,87 @@ You receive requests from work-manager agent with:
 <WORKFLOW>
 1. Output start message with title and parameters
 2. Validate title parameter is present and non-empty
-3. **Set working directory context** (CRITICAL):
-   - If `working_directory` parameter is provided, export `CLAUDE_WORK_CWD` environment variable
-   - Use Bash tool: `export CLAUDE_WORK_CWD="<working_directory>"`
-   - This ensures scripts load config from the correct project directory
-4. Load configuration to determine active handler
-5. Determine handler based on config: `.handlers["work-tracker"].active`
-6. Invoke handler-work-tracker-{platform} skill with create-issue operation
-7. Receive normalized issue JSON from handler (id, identifier, title, url, platform)
-8. Validate response has required fields (id, url)
-9. Output end message with created issue details
-10. Return response to work-manager agent
+3. Change to working directory if provided
+4. Build CLI command with parameters
+5. Execute: `fractary work issue create --title "..." [--body "..."] [--labels "..."] --json`
+6. Parse JSON response from CLI
+7. Map CLI response to plugin response format
+8. Output end message with created issue details
+9. Return response to work-manager agent
 </WORKFLOW>
 
-<HANDLERS>
-The active handler is determined from configuration:
-- **GitHub**: `handler-work-tracker-github`
-- **Jira**: `handler-work-tracker-jira` (future)
-- **Linear**: `handler-work-tracker-linear` (future)
-
-Configuration path: `.fractary/plugins/work/config.json`
-Field: `.handlers["work-tracker"].active`
-
-### How to Invoke Handler
-
-Read the configuration file to determine the active handler:
+<CLI_INVOCATION>
+## CLI Command
 
 ```bash
-# Load configuration
-CONFIG_FILE=".fractary/plugins/work/config.json"
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Configuration not found at $CONFIG_FILE"
-    exit 1
-fi
-
-# Extract active handler
-ACTIVE_HANDLER=$(jq -r '.handlers["work-tracker"].active' "$CONFIG_FILE")
+fractary work issue create \
+  --title "Issue title" \
+  --body "Issue description" \
+  --labels "label1,label2" \
+  --json
 ```
 
-Then use the Bash tool to invoke the handler script:
+### CLI Response Format
 
-```bash
-# Invoke handler script
-SCRIPT_PATH="plugins/work/skills/handler-work-tracker-${ACTIVE_HANDLER}/scripts/create-issue.sh"
-bash "$SCRIPT_PATH" "$TITLE" "$DESCRIPTION" "$LABELS" "$ASSIGNEES"
-```
-
-The handler script returns JSON to stdout on success.
-</HANDLERS>
-
-<NORMALIZED_RESPONSE>
-Handler returns normalized issue JSON:
-
+**Success:**
 ```json
 {
-  "id": "124",
-  "identifier": "#124",
-  "title": "Add dark mode support",
-  "url": "https://github.com/owner/repo/issues/124",
-  "platform": "github"
+  "status": "success",
+  "data": {
+    "id": "124",
+    "number": 124,
+    "title": "Add dark mode support",
+    "body": "Implement dark mode theme...",
+    "state": "open",
+    "labels": [{"name": "feature"}, {"name": "ui"}],
+    "url": "https://github.com/owner/repo/issues/124"
+  }
 }
 ```
 
-### Required Fields
-- `id`: Platform-specific issue identifier (string)
-- `identifier`: Human-readable identifier (e.g., "#124", "PROJ-124")
-- `title`: Issue title (echoed from input)
-- `url`: Web URL to view the created issue
-- `platform`: Platform name (github, jira, linear)
+**Error:**
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Title is required"
+  }
+}
+```
 
-### Script Exit Codes
-- `0`: Success - issue created
-- `2`: Invalid parameters (missing title, empty title)
-- `10`: Issue creation failed (API error)
-- `11`: Authentication failed
-- `12`: Network error
-</NORMALIZED_RESPONSE>
+### Execution Pattern
+
+```bash
+# Build command
+CLI_CMD="fractary work issue create"
+[ -n "$TITLE" ] && CLI_CMD="$CLI_CMD --title \"$TITLE\""
+[ -n "$DESCRIPTION" ] && CLI_CMD="$CLI_CMD --body \"$DESCRIPTION\""
+[ -n "$LABELS" ] && CLI_CMD="$CLI_CMD --labels \"$LABELS\""
+CLI_CMD="$CLI_CMD --json"
+
+# Execute and capture result
+result=$(eval "$CLI_CMD" 2>&1)
+exit_code=$?
+
+# Parse status
+cli_status=$(echo "$result" | jq -r '.status')
+```
+</CLI_INVOCATION>
 
 <COMPLETION_CRITERIA>
 Operation is complete when:
-1. Handler script executed successfully (exit code 0)
-2. Normalized issue JSON received from handler
-3. Response contains all required fields (id, identifier, title, url, platform)
+1. CLI command executed (success or handled error)
+2. JSON response parsed from CLI
+3. Response mapped to plugin format
 4. End message outputted with issue details
 5. Response returned to caller
 </COMPLETION_CRITERIA>
 
 <OUTPUTS>
 You return to work-manager agent:
+
+**Success:**
 ```json
 {
   "status": "success",
@@ -150,74 +143,40 @@ You return to work-manager agent:
 }
 ```
 
-On error:
+**Error:**
 ```json
 {
   "status": "error",
   "operation": "create-issue",
-  "code": 2,
+  "code": "VALIDATION_ERROR",
   "message": "Title is required",
   "details": "Provide a non-empty title for the issue"
 }
 ```
 </OUTPUTS>
 
-<DOCUMENTATION>
-After creating issue:
-1. Output completion message with:
-   - Issue identifier (e.g., #124)
-   - Issue title
-   - Issue URL
-   - Platform
-2. No explicit documentation files needed (handled by workflow)
-</DOCUMENTATION>
-
 <ERROR_HANDLING>
 ## Error Scenarios
 
-### Missing Title (code 2)
-- Title parameter missing or empty string
-- Return error JSON with message "Title is required"
-- Suggest providing a non-empty title
+### Missing Title
+- Validate before CLI invocation
+- Return error with code "VALIDATION_ERROR"
 
-### Invalid Parameters (code 2)
-- Labels format invalid
-- Assignees format invalid
-- Return error JSON with parameter validation message
-- Show expected format
+### CLI Not Found
+- Check if `fractary` command exists
+- Return error suggesting: `npm install -g @fractary/cli`
 
-### Authentication Failed (code 11)
-- Handler returns exit code 11
-- Return error JSON with auth failure message
-- Suggest checking token or running `gh auth login` (GitHub)
+### Authentication Failed
+- CLI returns error code "AUTH_FAILED"
+- Return error suggesting checking token or running `gh auth login`
 
-### Network Error (code 12)
-- Handler returns exit code 12
-- Return error JSON with network failure message
-- Suggest checking internet connection and retrying
+### Network Error
+- CLI returns error code "NETWORK_ERROR"
+- Return error suggesting checking internet connection
 
-### Issue Creation Failed (code 10)
-- Handler returns exit code 10
-- API rejected the request (permissions, validation, etc.)
-- Return error JSON with creation failure message
-- Include handler error output if available
-
-### Handler Not Found (code 3)
-- Configuration specifies invalid handler
-- Handler script doesn't exist
-- Return error JSON with handler not found message
-- Suggest running `/work:init` to configure plugin
-
-## Error Response Format
-```json
-{
-  "status": "error",
-  "operation": "create-issue",
-  "code": 2,
-  "message": "Title is required",
-  "details": "Provide a non-empty title for the issue"
-}
-```
+### API Error
+- CLI returns error code "API_ERROR"
+- Include CLI error message in response
 </ERROR_HANDLING>
 
 ## Start/End Message Format
@@ -227,8 +186,6 @@ After creating issue:
 🎯 STARTING: Issue Creator
 Title: "Add dark mode support"
 Labels: feature, ui
-Assignees: johndoe
-Platform: github
 ───────────────────────────────────────
 ```
 
@@ -250,148 +207,24 @@ Provide a non-empty title for the issue
 ───────────────────────────────────────
 ```
 
-## Usage Examples
-
-### From work-manager agent
-```json
-{
-  "skill": "issue-creator",
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Add dark mode support",
-    "description": "Implement dark mode theme with user toggle",
-    "labels": "feature,ui",
-    "assignees": "johndoe"
-  }
-}
-```
-
-### From command line (testing)
-```bash
-# Create issue with all parameters
-claude --skill issue-creator '{
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Fix login bug",
-    "description": "Login fails on Safari",
-    "labels": "bug,urgent",
-    "assignees": "@me"
-  }
-}'
-
-# Create issue with title only
-claude --skill issue-creator '{
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Update documentation"
-  }
-}'
-```
-
-### Direct handler invocation (for testing)
-```bash
-# This is what the skill does internally
-cd plugins/work/skills/handler-work-tracker-github
-./scripts/create-issue.sh "Add dark mode" "Implement theme toggle" "feature,ui" "johndoe"
-```
-
-## Implementation Notes
-
-- This skill is a thin wrapper around handler create-issue operation
-- Primary responsibility is validation and normalization
-- Handler performs actual API/CLI operations
-- Response format is consistent across all platforms
-- Title is the only required parameter
-- Labels and assignees are comma-separated strings
-- Platform-specific formatting is handled by handlers
-
 ## Dependencies
 
-- Active handler (handler-work-tracker-github, handler-work-tracker-jira, or handler-work-tracker-linear)
-- Configuration file at `.fractary/plugins/work/config.json`
+- `@fractary/cli >= 0.3.0` - Fractary CLI with work module
+- `jq` - JSON parsing (for response handling)
 - work-manager agent for routing
-- jq command for JSON parsing
 
-## Platform-Specific Notes
+## Migration Notes
 
-### GitHub
-- Issue ID is numeric (e.g., 124)
-- Uses `gh issue create` command
-- Labels are simple strings
-- Assignees use @username format
-- Returns GitHub issue URL
+**Previous implementation**: Used handler scripts (handler-work-tracker-github, etc.)
+**Current implementation**: Uses Fractary CLI directly
 
-### Jira (future)
-- Issue key is alphanumeric (e.g., "PROJ-124")
-- Uses Jira REST API
-- Issue type determined from config mapping
-- Custom fields may be supported
-- Returns Jira issue URL
+The CLI handles:
+- Platform detection from configuration
+- Authentication via environment variables
+- API calls to GitHub/Jira/Linear
+- Response normalization
 
-### Linear (future)
-- Issue ID is UUID internally, team-prefixed externally (e.g., "TEAM-124")
-- Uses GraphQL API
-- Labels use UUIDs (looked up by name)
-- Priority can be specified
-- Returns Linear issue URL
-
-## Testing
-
-Test issue creation:
-
-```bash
-# Test with valid parameters
-claude --skill issue-creator '{
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Test issue",
-    "description": "Testing issue creation",
-    "labels": "test"
-  }
-}'
-
-# Test with missing title (should return error code 2)
-claude --skill issue-creator '{
-  "operation": "create-issue",
-  "parameters": {
-    "description": "Missing title"
-  }
-}'
-
-# Test with empty title (should return error code 2)
-claude --skill issue-creator '{
-  "operation": "create-issue",
-  "parameters": {
-    "title": ""
-  }
-}'
-
-# Test with invalid labels format (should handle gracefully)
-claude --skill issue-creator '{
-  "operation": "create-issue",
-  "parameters": {
-    "title": "Test",
-    "labels": "invalid label with spaces"
-  }
-}'
-```
-
-## Configuration Example
-
-Ensure configuration exists at `.fractary/plugins/work/config.json`:
-
-```json
-{
-  "handlers": {
-    "work-tracker": {
-      "active": "github",
-      "github": {
-        "owner": "myorg",
-        "repo": "myrepo"
-      }
-    }
-  }
-}
-```
-
-Run `/work:init` to create configuration if it doesn't exist.
+This skill is now a thin wrapper that:
+1. Validates input
+2. Invokes CLI
+3. Maps response format
