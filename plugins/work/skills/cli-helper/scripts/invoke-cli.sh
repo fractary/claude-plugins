@@ -17,6 +17,34 @@ check_cli() {
     fi
 }
 
+# POSIX-compliant version comparison (works on macOS/BSD and Linux)
+# Returns 0 if version1 <= version2, 1 otherwise
+version_lte() {
+    local v1="$1" v2="$2"
+    # Split versions into components
+    local v1_major v1_minor v1_patch v2_major v2_minor v2_patch
+    v1_major=$(echo "$v1" | cut -d. -f1)
+    v1_minor=$(echo "$v1" | cut -d. -f2)
+    v1_patch=$(echo "$v1" | cut -d. -f3)
+    v2_major=$(echo "$v2" | cut -d. -f1)
+    v2_minor=$(echo "$v2" | cut -d. -f2)
+    v2_patch=$(echo "$v2" | cut -d. -f3)
+
+    # Default missing components to 0
+    v1_minor=${v1_minor:-0}
+    v1_patch=${v1_patch:-0}
+    v2_minor=${v2_minor:-0}
+    v2_patch=${v2_patch:-0}
+
+    # Compare major.minor.patch
+    if [ "$v1_major" -lt "$v2_major" ]; then return 0; fi
+    if [ "$v1_major" -gt "$v2_major" ]; then return 1; fi
+    if [ "$v1_minor" -lt "$v2_minor" ]; then return 0; fi
+    if [ "$v1_minor" -gt "$v2_minor" ]; then return 1; fi
+    if [ "$v1_patch" -le "$v2_patch" ]; then return 0; fi
+    return 1
+}
+
 # Check CLI version requirement
 check_version() {
     local required_version="0.3.0"
@@ -28,8 +56,8 @@ check_version() {
         exit 1
     fi
 
-    # Simple version comparison (works for semver x.y.z)
-    if [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -1)" != "$required_version" ]; then
+    # POSIX-compliant version comparison (no sort -V needed)
+    if ! version_lte "$required_version" "$current_version"; then
         echo "{\"status\":\"error\",\"code\":\"VERSION_TOO_OLD\",\"message\":\"CLI version $current_version is too old. Required: >= $required_version\"}" >&2
         exit 1
     fi
