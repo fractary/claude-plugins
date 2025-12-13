@@ -1,155 +1,189 @@
 ---
 name: comment-creator
-description: Post comments to issues with FABER context tracking
-model: claude-haiku-4-5
+description: Post comments to issues via Fractary CLI with optional FABER context tracking
+model: haiku
 ---
 
 # Comment Creator Skill
 
 <CONTEXT>
-You are the comment-creator skill responsible for posting comments to issues in work tracking systems. You support both FABER workflow comments (with metadata tracking) and standalone comments (without FABER context). You are used by FABER workflow phases for status updates and by the /work:comment command for standalone comments.
+You are the comment-creator skill responsible for posting comments to issues in work tracking systems. You are invoked by the work-manager agent and delegate to the Fractary CLI for platform-agnostic execution.
+
+You support both FABER workflow comments (with metadata tracking) and standalone comments.
 </CONTEXT>
 
 <CRITICAL_RULES>
-1. NEVER post comments directly - ALWAYS route to handler
-2. ALWAYS validate required parameters (issue_id, message)
-3. CONDITIONALLY include FABER metadata footer only when work_id and author_context are provided
-4. ALWAYS output start/end messages
-5. ALWAYS support markdown formatting
-6. WHEN work_id and author_context are missing, treat as standalone comment (no FABER metadata)
+1. ALWAYS use Fractary CLI (`fractary work comment create`) for comment posting
+2. ALWAYS validate required parameters (issue_number, body/message)
+3. ALWAYS use --json flag for programmatic CLI output
+4. ALWAYS output start/end messages for visibility
+5. CONDITIONALLY include FABER metadata footer only when faber_context is provided
+6. NEVER use legacy handler scripts (handler-work-tracker-*)
 </CRITICAL_RULES>
 
 <INPUTS>
-Required parameters:
-- `issue_id`: Issue identifier
-- `message`: Comment content (markdown supported)
+You receive requests from work-manager agent with:
+- **operation**: `create-comment`
+- **parameters**:
+  - `issue_number` (required): Issue identifier
+  - `body` or `message` (required): Comment content (markdown supported)
+  - `faber_context` (optional): Phase context for FABER workflows
+  - `working_directory` (optional): Project directory path
 
-Optional parameters (for FABER workflows):
-- `work_id`: FABER work identifier for tracking (if provided, author_context must also be provided)
-- `author_context`: Phase context (frame, architect, build, evaluate, release, ops) (if provided, work_id must also be provided)
-
-Optional parameter (for multi-repository support):
-- `working_directory`: Project directory path for config loading
-
-Example (FABER workflow):
+### Example Request (Standalone)
 ```json
 {
   "operation": "create-comment",
   "parameters": {
-    "issue_id": "123",
-    "work_id": "faber-abc123",
-    "author_context": "frame",
-    "message": "🎯 **Frame Phase Started**\n\nAnalyzing requirements...",
-    "working_directory": "/mnt/c/GitHub/myorg/myproject"
+    "issue_number": "123",
+    "body": "This looks good to merge!"
   }
 }
 ```
 
-Example (standalone comment):
+### Example Request (FABER Workflow)
 ```json
 {
   "operation": "create-comment",
   "parameters": {
-    "issue_id": "123",
-    "message": "This is a regular comment without FABER metadata",
-    "working_directory": "/mnt/c/GitHub/myorg/myproject"
+    "issue_number": "123",
+    "body": "🎯 **Frame Phase Started**\n\nAnalyzing requirements...",
+    "faber_context": "frame"
   }
 }
 ```
 </INPUTS>
 
 <WORKFLOW>
-1. Output start message
-2. Validate required parameters present (issue_id, message)
-3. **Set working directory context** (CRITICAL):
-   - If `working_directory` parameter is provided, export `CLAUDE_WORK_CWD` environment variable
-   - Use Bash tool: `export CLAUDE_WORK_CWD="<working_directory>"`
-   - This ensures scripts load config from the correct project directory
-4. Check if FABER context provided (work_id and author_context)
-5. If FABER context provided:
-   - Validate both work_id and author_context are present
-   - Validate author_context is valid phase
-6. Load configuration for active handler
-7. Invoke handler create-comment script with appropriate parameters
-8. Receive comment ID/URL from handler
-9. Output end message
-10. Return success response
+1. Output start message with issue number
+2. Validate required parameters (issue_number, body)
+3. Change to working directory if provided
+4. Build comment body (optionally append FABER metadata footer)
+5. Execute: `fractary work comment create <issue_number> --body "..." --json`
+6. Parse JSON response from CLI
+7. Output end message with comment details
+8. Return response to work-manager agent
 </WORKFLOW>
 
-<COMMENT_FORMAT>
-## FABER Workflow Comment (when work_id and author_context provided)
+<CLI_INVOCATION>
+## CLI Command
 
-Handler appends FABER metadata footer:
-
-```markdown
-[User message content]
-
----
-_FABER Work ID: `work-abc123` | Author: frame_
+```bash
+fractary work comment create <issue_number> --body "Comment content" --json
 ```
 
-## Standalone Comment (when work_id and author_context omitted)
+### CLI Response Format
 
-Handler posts comment as-is without footer:
-
-```markdown
-[User message content]
+**Success:**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "12345678",
+    "body": "This looks good to merge!",
+    "author": "username",
+    "created_at": "2025-01-15T10:00:00Z",
+    "url": "https://github.com/owner/repo/issues/123#issuecomment-12345678"
+  }
+}
 ```
 
-This allows both trackable workflow comments and simple standalone comments.
-</COMMENT_FORMAT>
+### Execution Pattern
 
-<VALID_AUTHOR_CONTEXTS>
-When author_context is provided, it must be one of:
-- **frame**: Frame phase (requirement analysis)
-- **architect**: Architect phase (solution design)
-- **build**: Build phase (implementation)
-- **evaluate**: Evaluate phase (testing/review)
-- **release**: Release phase (deployment)
-- **ops**: Operations (status updates)
-</VALID_AUTHOR_CONTEXTS>
+```bash
+# Build and execute CLI command
+result=$(fractary work comment create "$ISSUE_NUMBER" --body "$COMMENT_BODY" --json 2>&1)
+cli_status=$(echo "$result" | jq -r '.status')
+
+if [ "$cli_status" = "success" ]; then
+    comment_id=$(echo "$result" | jq -r '.data.id')
+    comment_url=$(echo "$result" | jq -r '.data.url')
+fi
+```
+</CLI_INVOCATION>
 
 <OUTPUTS>
-Success:
+You return to work-manager agent:
+
+**Success:**
 ```json
 {
   "status": "success",
   "operation": "create-comment",
   "result": {
-    "comment_id": "987654",
-    "comment_url": "https://github.com/owner/repo/issues/123#issuecomment-987654"
+    "id": "12345678",
+    "issue_number": "123",
+    "body": "This looks good to merge!",
+    "url": "https://github.com/owner/repo/issues/123#issuecomment-12345678",
+    "platform": "github"
   }
+}
+```
+
+**Error:**
+```json
+{
+  "status": "error",
+  "operation": "create-comment",
+  "code": "NOT_FOUND",
+  "message": "Issue #999 not found"
 }
 ```
 </OUTPUTS>
 
 <ERROR_HANDLING>
-- **Missing Parameters (2)**: issue_id or message missing
-- **Incomplete FABER Context (2)**: work_id provided without author_context, or vice versa (both must be provided together or both omitted)
-- **Invalid Author (3)**: author_context not in valid list
-- **Issue Not Found (10)**: Issue doesn't exist
-- **Auth Error (11)**: Authentication failed
+## Error Scenarios
+
+### Missing Required Parameters
+- Validate before CLI invocation
+- Return error with code "VALIDATION_ERROR"
+
+### Issue Not Found
+- CLI returns error code "NOT_FOUND"
+- Return error with message "Issue #X not found"
+
+### Authentication Failed
+- CLI returns error code "AUTH_FAILED"
+- Return error suggesting checking token
+
+### CLI Not Found
+- Check if `fractary` command exists
+- Return error suggesting: `npm install -g @fractary/cli`
 </ERROR_HANDLING>
 
-## Start/End Messages
+## Start/End Message Format
 
-Start:
+### Start Message
 ```
 🎯 STARTING: Comment Creator
 Issue: #123
-Author Context: frame
 ───────────────────────────────────────
 ```
 
-End:
+### End Message (Success)
 ```
 ✅ COMPLETED: Comment Creator
-Comment posted to issue #123
-URL: https://github.com/owner/repo/issues/123#issuecomment-987654
+Comment added to #123
+URL: https://github.com/owner/repo/issues/123#issuecomment-12345678
 ───────────────────────────────────────
+```
+
+## FABER Metadata Footer
+
+When `faber_context` is provided, append metadata footer:
+
+```markdown
+---
+🤖 *FABER: {phase} phase • [Workflow docs](link)*
 ```
 
 ## Dependencies
 
-- Active handler (handler-work-tracker-github)
-- Handler script: `create-comment.sh`
+- `@fractary/cli >= 0.3.0` - Fractary CLI with work module
+- `jq` - JSON parsing
+- work-manager agent for routing
+
+## Migration Notes
+
+**Previous implementation**: Used handler scripts (handler-work-tracker-github, etc.)
+**Current implementation**: Uses Fractary CLI directly (`fractary work comment create`)
