@@ -98,14 +98,20 @@ fractary work issue search --state open --limit 20 --json
 ### Execution Pattern
 
 ```bash
-# Build command with filters
-CLI_CMD="fractary work issue search"
-[ -n "$STATE" ] && CLI_CMD="$CLI_CMD --state $STATE"
-[ -n "$LIMIT" ] && CLI_CMD="$CLI_CMD --limit $LIMIT"
-CLI_CMD="$CLI_CMD --json"
+# Build command arguments array (safe from injection)
+cmd_args=("--json")
+[ -n "$STATE" ] && cmd_args+=("--state" "$STATE")
+[ -n "$LIMIT" ] && cmd_args+=("--limit" "$LIMIT")
 
-# Execute and capture result
-result=$(eval "$CLI_CMD" 2>&1)
+# Execute CLI directly (NEVER use eval with user input)
+result=$(fractary work issue search "${cmd_args[@]}" 2>&1)
+
+# Validate JSON before parsing
+if ! echo "$result" | jq -e . >/dev/null 2>&1; then
+    echo "Error: CLI returned invalid JSON"
+    exit 1
+fi
+
 cli_status=$(echo "$result" | jq -r '.status')
 
 if [ "$cli_status" = "success" ]; then

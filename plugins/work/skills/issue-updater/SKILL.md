@@ -87,14 +87,20 @@ fractary work issue update <number> --title "New title" --body "New description"
 ### Execution Pattern
 
 ```bash
-# Build command
-CLI_CMD="fractary work issue update $ISSUE_NUMBER"
-[ -n "$TITLE" ] && CLI_CMD="$CLI_CMD --title \"$TITLE\""
-[ -n "$DESCRIPTION" ] && CLI_CMD="$CLI_CMD --body \"$DESCRIPTION\""
-CLI_CMD="$CLI_CMD --json"
+# Build command arguments array (safe from injection)
+cmd_args=("$ISSUE_NUMBER" "--json")
+[ -n "$TITLE" ] && cmd_args+=("--title" "$TITLE")
+[ -n "$DESCRIPTION" ] && cmd_args+=("--body" "$DESCRIPTION")
 
-# Execute and capture result
-result=$(eval "$CLI_CMD" 2>&1)
+# Execute CLI directly (NEVER use eval with user input)
+result=$(fractary work issue update "${cmd_args[@]}" 2>&1)
+
+# Validate JSON before parsing
+if ! echo "$result" | jq -e . >/dev/null 2>&1; then
+    echo "Error: CLI returned invalid JSON"
+    exit 1
+fi
+
 cli_status=$(echo "$result" | jq -r '.status')
 
 if [ "$cli_status" = "success" ]; then

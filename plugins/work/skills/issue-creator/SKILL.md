@@ -100,16 +100,20 @@ fractary work issue create \
 ### Execution Pattern
 
 ```bash
-# Build command
-CLI_CMD="fractary work issue create"
-[ -n "$TITLE" ] && CLI_CMD="$CLI_CMD --title \"$TITLE\""
-[ -n "$DESCRIPTION" ] && CLI_CMD="$CLI_CMD --body \"$DESCRIPTION\""
-[ -n "$LABELS" ] && CLI_CMD="$CLI_CMD --labels \"$LABELS\""
-CLI_CMD="$CLI_CMD --json"
+# Build command arguments array (safe from injection)
+cmd_args=("--title" "$TITLE" "--json")
+[ -n "$DESCRIPTION" ] && cmd_args+=("--body" "$DESCRIPTION")
+[ -n "$LABELS" ] && cmd_args+=("--labels" "$LABELS")
 
-# Execute and capture result
-result=$(eval "$CLI_CMD" 2>&1)
+# Execute CLI directly (NEVER use eval with user input)
+result=$(fractary work issue create "${cmd_args[@]}" 2>&1)
 exit_code=$?
+
+# Validate JSON before parsing
+if ! echo "$result" | jq -e . >/dev/null 2>&1; then
+    echo "Error: CLI returned invalid JSON"
+    exit 1
+fi
 
 # Parse status
 cli_status=$(echo "$result" | jq -r '.status')

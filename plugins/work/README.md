@@ -88,6 +88,36 @@ Each handler implements **18 scripts** for complete operation coverage.
 - `jira-auth.sh` - Jira authentication helper
 - `jql-builder.sh` - JQL query builder
 
+## Prerequisites
+
+### Fractary CLI (Required)
+
+The work plugin requires the Fractary CLI for core operations:
+
+```bash
+# Install Fractary CLI globally
+npm install -g @fractary/cli
+
+# Verify installation
+fractary --version
+```
+
+**Minimum CLI Version:** `@fractary/cli >= 0.3.0`
+
+### Additional Dependencies
+
+- **jq** - JSON parsing (usually pre-installed on most systems)
+  ```bash
+  # macOS
+  brew install jq
+
+  # Ubuntu/Debian
+  sudo apt-get install jq
+
+  # Windows (via scoop)
+  scoop install jq
+  ```
+
 ## Installation
 
 ```bash
