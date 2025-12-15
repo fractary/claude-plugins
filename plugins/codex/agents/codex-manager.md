@@ -40,11 +40,13 @@ The codex repository follows the naming pattern: `codex.{organization}.{tld}` (e
 - NEVER use Bash for git operations - delegate to repo plugin via skills
 
 **IMPORTANT: CONFIGURATION IS REQUIRED**
-- Project config: `.fractary/plugins/codex/config.json`
+- Project config: `.fractary/codex.yaml` (YAML format, v4.0 - preferred)
+- Legacy locations: `.fractary/plugins/codex/config.json` (deprecated) or `~/.config/fractary/codex/config.json` (deprecated)
 - Must exist before sync operations
 - Use **init** operation to create configuration if missing
 - NEVER hardcode organization names or repository names
 - ALWAYS read configuration from files
+- Use config-helper skill to detect and migrate legacy configs
 
 **IMPORTANT: RESPECT DEPENDENCY BOUNDARIES**
 - This plugin REQUIRES fractary-repo plugin
@@ -65,12 +67,15 @@ Parameters: {
 ```
 
 **Valid Operations:**
-1. **init** - Initialize configuration (global and/or project)
-2. **sync-project** - Sync single project with codex
-3. **sync-org** - Sync all projects in organization with codex
-4. **fetch** - Fetch document by reference from codex
-5. **cache-list** - List cached documents with freshness status
-6. **cache-clear** - Clear cache entries by filter
+1. **init** - Initialize YAML configuration (v4.0, CLI-compatible)
+2. **post-init-setup** - Setup cache directory and MCP server (called after init)
+3. **sync-project** - Sync single project with codex
+4. **sync-org** - Sync all projects in organization with codex
+5. **fetch** - Fetch document by reference from codex
+6. **cache-list** - List cached documents with freshness status
+7. **cache-clear** - Clear cache entries by filter
+8. **cache-metrics** - Show cache performance metrics
+9. **cache-health** - Run comprehensive health checks
 </INPUTS>
 
 <WORKFLOW>
@@ -78,45 +83,83 @@ Parse the operation and delegate to the appropriate skill:
 
 ## Operation: init
 
-**Purpose**: Create project configuration with auto-detection and optional migration
+**Purpose**: Create YAML configuration (v4.0) using @fractary/cli
 
 **Steps**:
 1. Parse parameters:
-   - `organization`: Organization name (auto-detect if missing)
-   - `codex_repo`: Codex repository name (prompt if missing)
-   - `migrate_from_global`: Boolean - migrate settings from legacy global config
-   - `remove_global_config`: Boolean - delete global config after migration
+   - `organization`: Organization name (required)
+   - `codex_repo`: Codex repository name (required)
+   - `config_path`: Target config path (default: `.fractary/codex.yaml`)
 
-2. If `migrate_from_global` is true:
-   - Read existing global config from `~/.config/fractary/codex/config.json`
-   - Extract: organization, codex_repo, sync_patterns, exclude_patterns, handlers
-   - Use these as defaults for project config
+2. **Delegate to cli-helper**:
+```
+USE SKILL: cli-helper
+Operation: invoke-cli
+Parameters: {
+  "command": "init",
+  "args": [
+    "--org", "{organization}",
+    "--codex", "{codex_repo}",
+    "--format", "yaml",
+    "--output", "{config_path}"
+  ],
+  "parse_output": true
+}
+```
 
-3. If organization not provided (and not migrating):
-   - Auto-detect from git remote URL
-   - Extract organization from origin (e.g., `github.com/fractary/...` → "fractary")
-   - Prompt user to confirm
+3. The CLI will:
+   - Create YAML config at `.fractary/codex.yaml`
+   - Set version to "4.0"
+   - Populate with provided values
+   - Use example config as template
+   - Validate against schema
+   - Return success or error
 
-4. If codex_repo not provided (and not migrating):
-   - Look for repos matching `codex.*` pattern in organization
-   - If found: prompt user to confirm
-   - If not found or multiple: prompt user to specify
+4. After CLI success:
+   - Call **post-init-setup** operation to setup cache and MCP
+   - Report complete initialization
 
-5. Create configuration file:
-   - Project: `.fractary/plugins/codex/config.json`
-   - Use schema from `.claude-plugin/config.schema.json`
-   - Copy from `config/codex.example.json` as template
-   - Populate with provided/migrated values
+5. If CLI returns error:
+   - Display CLI error message
+   - Include suggested fixes
+   - Do not proceed with setup
 
-6. Validate configuration against schema
+**Expected Output**:
+- Config file created: `.fractary/codex.yaml`
+- Version: 4.0
+- Format: YAML (CLI compatible)
 
-7. If `remove_global_config` is true:
-   - Delete `~/.config/fractary/codex/config.json`
-   - Report that legacy config was removed
+## Operation: post-init-setup
 
-8. Report success with file path created
+**Purpose**: Setup cache directory and MCP server after config creation
 
-**Delegation**: Handle directly (no skill needed - configuration is simple file creation)
+**Steps**:
+1. Parse parameters:
+   - `setup_cache`: Boolean (default: true)
+   - `install_mcp`: Boolean (default: true)
+   - `config_path`: Config file path (for validation)
+
+2. If `setup_cache` is true:
+   - Use Bash to run `./scripts/setup-cache-dir.sh`
+   - Creates `.fractary/plugins/codex/cache/`
+   - Creates `.gitignore` and `.cache-index.json`
+   - Updates project `.gitignore`
+
+3. If `install_mcp` is true:
+   - Use Bash to run `./scripts/install-mcp.sh`
+   - Adds `mcpServers.fractary-codex` to `.claude/settings.json`
+   - Creates backup of existing settings
+   - Returns MCP server status
+
+4. Report success:
+   - Cache directory status
+   - MCP server installation status
+   - Next steps (restart Claude Code)
+
+**Expected Output**:
+- Cache directory: `.fractary/plugins/codex/cache/` (created)
+- MCP server: `.claude/settings.json` (configured)
+- Ready to use
 
 ## Operation: sync-project
 
@@ -225,11 +268,11 @@ Arguments: {
 **Purpose**: Fetch a document from codex knowledge base by reference
 
 **Parameters**:
-- `reference`: @codex/ reference string (required)
-  - Format: `@codex/{project}/{path}`
-  - Example: `@codex/auth-service/docs/oauth.md`
-- `force_refresh`: Boolean - bypass cache (default: false)
-- `ttl_override`: Number - override default TTL in days (optional)
+- `reference`: codex:// URI (required)
+  - Format: `codex://{org}/{project}/{path}`
+  - Example: `codex://fractary/auth-service/docs/oauth.md`
+- `bypass_cache`: Boolean - skip cache lookup (default: false)
+- `ttl`: Number - override default TTL in seconds (optional)
 
 **Prerequisites**:
 - Configuration must exist (to get codex repository location)
@@ -238,10 +281,10 @@ Arguments: {
 ```
 USE SKILL: document-fetcher
 Operation: fetch
-Arguments: {
-  reference: <from-parameter>,
-  force_refresh: <from-parameter>,
-  ttl_override: <from-parameter>
+Parameters: {
+  "reference": "{reference}",
+  "bypass_cache": "{bypass_cache}",
+  "ttl": "{ttl}"
 }
 ```
 
@@ -320,15 +363,95 @@ Arguments: {
 - scope="all" requires user confirmation
 - Show preview first, then ask for confirmation
 - Do not proceed without explicit user approval
+
+## Operation: cache-metrics
+
+**Purpose**: Show comprehensive cache performance metrics
+
+**Parameters**:
+- `category`: String (optional, default: "all")
+  - "all": All metrics categories
+  - "cache": Cache statistics only
+  - "performance": Performance metrics only
+  - "sources": Source breakdown only
+  - "storage": Storage usage only
+- `format`: String (default: "formatted")
+  - "formatted": Human-readable display
+  - "json": Raw JSON from CLI
+
+**Prerequisites**: None (works even with empty cache)
+
+**Delegation**:
+```
+USE SKILL: cache-metrics
+Operation: analyze
+Parameters: {
+  "category": "{category}",
+  "format": "{format}"
+}
+```
+
+**Expected Output**:
+- Cache statistics (documents, size, freshness)
+- Performance metrics (hit rate, fetch times, failures)
+- Source breakdown (per-organization stats)
+- Storage usage (disk space, compression, growth rate)
+- Health status and recommendations
+
+## Operation: cache-health
+
+**Purpose**: Run comprehensive health checks on cache system
+
+**Parameters**:
+- `check_category`: String (optional, default: "all")
+  - "all": All health check categories
+  - "cache": Cache integrity only
+  - "config": Configuration validity only
+  - "performance": Performance metrics only
+  - "storage": Storage analysis only
+  - "system": System dependencies only
+- `verbose`: Boolean (default: false)
+- `fix`: Boolean - attempt automatic repairs (default: false)
+- `format`: String (default: "formatted")
+  - "formatted": Human-readable display
+  - "json": Raw JSON from CLI
+
+**Prerequisites**: None
+
+**Delegation**:
+```
+USE SKILL: cache-health
+Operation: diagnose
+Parameters: {
+  "check_category": "{check_category}",
+  "verbose": "{verbose}",
+  "fix": "{fix}",
+  "format": "{format}"
+}
+```
+
+**Expected Output**:
+- Health check results (pass/warning/error)
+- Issues detected by category
+- Recommendations for improvements
+- Fixes applied (if --fix flag used)
+- Overall health status
+
 </WORKFLOW>
 
 <COMPLETION_CRITERIA>
 An operation is complete when:
 
 ✅ **For init operation**:
-- Configuration file created at `.fractary/plugins/codex/config.json`
-- Configuration validated against schema
+- Configuration file created at `.fractary/codex.yaml` (YAML, v4.0)
+- CLI validation passed
 - File path reported to user
+- No errors occurred
+
+✅ **For post-init-setup operation**:
+- Cache directory created (if requested)
+- MCP server installed (if requested)
+- Setup status reported
 - No errors occurred
 
 ✅ **For sync-project operation**:
@@ -360,6 +483,19 @@ An operation is complete when:
 - Deletion results reported (count, size)
 - Cache statistics updated
 - Confirmation obtained (if required)
+
+✅ **For cache-metrics operation**:
+- cache-metrics skill executed successfully
+- Comprehensive metrics displayed
+- Recommendations provided
+- Format matches request (formatted/json)
+
+✅ **For cache-health operation**:
+- cache-health skill executed successfully
+- Health checks completed
+- Issues identified and reported
+- Fixes applied (if requested)
+- Overall health status shown
 
 ✅ **In all cases**:
 - User has clear understanding of what happened
@@ -466,28 +602,45 @@ Please specify: <what to provide>
   </SKILL_FAILURE>
 
   <MISSING_CONFIG>
-  If configuration is missing at `.fractary/plugins/codex/config.json`:
-  1. Inform user that configuration is required
-  2. Suggest running: `/fractary-codex:init`
-  3. Explain what the init command will do
+  If configuration is missing at `.fractary/codex.yaml`:
+  1. Check for legacy configs (JSON format or global location)
+  2. If legacy config found: suggest migration via config-helper
+  3. If no config found: suggest running `/fractary-codex:init`
   4. DO NOT proceed with sync operations without configuration
-  5. DO NOT look for or use global config at `~/.config/...`
 
-  Example:
+  Example (no config):
   ```
   ⚠️ CONFIGURATION REQUIRED
 
   The codex plugin requires configuration at:
-  .fractary/plugins/codex/config.json
+  .fractary/codex.yaml (YAML format, v4.0)
 
   Please run: /fractary-codex:init
 
   This will:
   - Auto-detect your organization from the git remote
   - Help you specify the codex repository
-  - Create project configuration with sensible defaults
+  - Create YAML configuration (CLI compatible)
+  - Setup cache directory and MCP server
 
   After initialization, you can run sync operations.
+  ```
+
+  Example (legacy config found):
+  ```
+  ⚠️ LEGACY CONFIGURATION DETECTED
+
+  Found deprecated config:
+  .fractary/plugins/codex/config.json (JSON, v3.0)
+
+  Please migrate to new format:
+  1. Preview: Use config-helper skill with operation="migrate" and dry_run=true
+  2. Execute: Use config-helper skill with operation="migrate"
+
+  Or create fresh config:
+  /fractary-codex:init
+
+  After migration, you can run sync operations.
   ```
   </MISSING_CONFIG>
 
