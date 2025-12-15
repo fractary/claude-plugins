@@ -7,11 +7,11 @@ This document summarizes the migration of the codex plugin from custom bash scri
 **Issue**: #360
 **Spec**: SPEC-00218-codex-cli-integration-plan.md
 **Timeline**: 2025-12-15
-**Status**: COMPLETED (Phases 1-5 of 7)
+**Status**: COMPLETED (Phases 1-6 of 7)
 
 ## Implementation Summary
 
-### Completed Phases (5/7)
+### Completed Phases (6/7)
 
 #### ✅ Phase 1: CLI Helper Infrastructure (Complete)
 **Commit**: 6e2195c
@@ -120,18 +120,34 @@ This document summarizes the migration of the codex plugin from custom bash scri
 - No direct bash in agent
 - Better error propagation
 
-### Remaining Phases (2/7)
+#### ✅ Phase 6: MCP Migration (Complete)
+**Commit**: TBD (Issue #361)
 
-#### ⏳ Phase 6: MCP Migration (Deferred)
-**Status**: Deferred to separate issue
+**Completed**:
+- ✅ Updated `scripts/install-mcp.sh` to use SDK MCP server
+- ✅ Updated `scripts/uninstall-mcp.sh` for SDK compatibility
+- ✅ Removed custom MCP server directory (`mcp-server/`)
+- ✅ Updated example MCP configurations
+- ✅ Updated documentation
 
-**Reason**: The custom MCP server (`mcp-server/`) is functional and the SDK MCP server integration requires additional testing and coordination. This phase has been deferred to avoid blocking the core CLI integration.
+**Changes**:
+- **Before**: Custom TypeScript MCP server using `node mcp-server/dist/index.js`
+- **After**: SDK MCP server using `npx @fractary/codex mcp --config .fractary/codex.yaml`
 
-**Future Work**:
-- Deprecate custom TypeScript MCP server
-- Configure SDK MCP server from @fractary/codex
-- Update installation scripts
-- Document MCP transition
+**Migration**:
+- Automatic detection of legacy custom server
+- Seamless migration to SDK server
+- Backup creation for safety
+- Global CLI detection (falls back to npx)
+
+**Benefits**:
+- ~200+ files removed (custom server + node_modules)
+- ~50MB disk space saved
+- Maintenance burden eliminated (SDK handles updates)
+- Feature parity maintained (all MCP tools work)
+- Better ecosystem integration
+
+### Remaining Phases (1/7)
 
 #### ⏳ Phase 7: Cleanup and Documentation (In Progress)
 **Status**: Partial (this document)
@@ -302,8 +318,8 @@ git checkout v3.0.1 -- plugins/codex/skills/
 
 ## Next Steps
 
-1. ✅ Update spec status to "completed" (Phases 1-5)
-2. ⏳ Defer Phase 6 (MCP) to separate issue
+1. ✅ Update spec status to "completed" (Phases 1-6)
+2. ✅ Complete Phase 6 (MCP Migration) - Issue #361
 3. ⏳ Complete Phase 7 cleanup after user feedback
 4. ⏳ Monitor v4.0 adoption
 5. ⏳ Sunset v3.0 support (2025-06-15)

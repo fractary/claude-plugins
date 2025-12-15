@@ -2,7 +2,7 @@
 
 **Knowledge retrieval and documentation sync** - A memory fabric for AI agents with cache-first retrieval, multi-source support, and MCP integration.
 
-> **Version 3.0** - Major architectural update: Pull-based retrieval with local caching, multi-source support, and MCP protocol integration.
+> **Version 4.1** - SDK-based MCP server: Migrated from custom TypeScript MCP server to SDK-provided MCP server for better maintainability and ecosystem integration.
 
 ## Overview
 
@@ -53,9 +53,9 @@ Request codex://org/project/docs/api.md
 ```
 
 This sets up:
-- Configuration at `.fractary/plugins/codex/config.json`
+- Configuration at `.fractary/codex.yaml` (YAML format, v4.0)
 - Cache directory at `.fractary/plugins/codex/cache/`
-- MCP server in `.claude/settings.json`
+- SDK MCP server in `.claude/settings.json`
 
 ### 2. Fetch a Document
 
@@ -617,7 +617,7 @@ Converts deprecated `@codex/project/path` references to `codex://org/project/pat
 
 ## MCP Integration
 
-The codex plugin includes an MCP server that exposes cached documents as resources with on-demand fetching.
+The codex plugin uses the SDK-provided MCP server from `@fractary/codex` to expose cached documents as resources with on-demand fetching.
 
 ### Setup
 
@@ -627,19 +627,20 @@ The codex plugin includes an MCP server that exposes cached documents as resourc
 ```
 
 This automatically:
-1. Creates configuration
+1. Creates YAML configuration at `.fractary/codex.yaml`
 2. Sets up cache directory
-3. Registers MCP server in `.claude/settings.json`
+3. Registers SDK MCP server in `.claude/settings.json`
+4. Detects and migrates legacy custom MCP server (if present)
 
 **Manual:**
 ```bash
-# Build the MCP server
-cd plugins/codex/mcp-server
-npm install
-npm run build
-
-# Install to Claude settings
+# Install the SDK MCP server
 ./scripts/install-mcp.sh
+
+# This configures:
+# - npx @fractary/codex mcp --config .fractary/codex.yaml
+# OR
+# - fractary codex mcp --config .fractary/codex.yaml (if global CLI installed)
 ```
 
 **Verify:**
@@ -970,21 +971,16 @@ plugins/codex/
 │   ├── cache-list/              # Cache listing skill
 │   ├── cache-clear/             # Cache clearing skill
 │   ├── handler-http/            # HTTP handler (Phase 2)
-│   └── [legacy sync skills...]
-├── mcp-server/                  # MCP server (Phase 3)
-│   ├── src/
-│   │   └── index.ts
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md
+│   ├── cli-helper/              # CLI delegation (Phase 4)
+│   └── [other skills...]
 ├── config/
-│   ├── codex.example.json       # Example configuration
-│   └── codex.project.example.json
+│   └── codex.example.yaml       # Example YAML configuration (v4.0)
 ├── docs/
-│   └── MCP-INTEGRATION.md       # MCP setup guide
+│   ├── CLI-INTEGRATION-SUMMARY.md  # CLI integration details
+│   ├── MIGRATION-GUIDE-v4.md       # v3→v4 migration guide
+│   └── MCP-INTEGRATION.md          # MCP setup guide
 └── examples/
-    ├── mcp-config.json          # MCP configuration
-    └── mcp-with-context7.json   # With Context7
+    └── mcp-config.json          # SDK MCP server configuration
 ```
 
 ### Standards Compliance
@@ -1000,7 +996,31 @@ Follows [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDAR
 
 ## Version History
 
-### v3.0.0 (Current) - Knowledge Retrieval Architecture
+### v4.1.0 (Current) - SDK-Based MCP Server
+
+**Phase 6: MCP Migration**
+- Migrated from custom TypeScript MCP server to SDK-provided MCP server
+- Automatic detection and migration of legacy MCP configurations
+- Global CLI detection with npx fallback
+- ~200+ files removed (custom server + node_modules)
+- ~50MB disk space saved
+- Maintenance burden eliminated (SDK handles updates)
+- Full feature parity maintained
+
+### v4.0.0 - CLI Integration
+
+**Phase 4: Configuration Migration**
+- YAML configuration format (`.fractary/codex.yaml`)
+- JSON→YAML migration tooling
+- Version detection and automatic migration
+- CLI delegation via @fractary/cli
+
+**Phase 5: Agent Simplification**
+- Simplified codex-manager agent
+- CLI-first operations
+- Better error propagation
+
+### v3.0.0 - Knowledge Retrieval Architecture
 
 **Phase 1: Local Cache & Reference System**
 - @codex/ reference syntax
@@ -1016,8 +1036,8 @@ Follows [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDAR
 - Source routing
 - External URL fetching
 
-**Phase 3: MCP Integration**
-- TypeScript MCP server
+**Phase 3: MCP Integration** (Custom Server - Deprecated in v4.1)
+- Custom TypeScript MCP server
 - codex:// resource protocol
 - Dual-mode access
 - Context7 integration (documented)
@@ -1049,8 +1069,10 @@ Follows [Fractary Plugin Standards](../../docs/standards/FRACTARY-PLUGIN-STANDAR
 
 ### Required
 
-- **Node.js >= 18.0.0** (for MCP server)
+- **@fractary/codex SDK** (for MCP server, installed automatically via npx)
+- **@fractary/cli** (optional - global install for faster operations, falls back to npx)
 - **jq** (JSON processing)
+- **yq** (YAML processing, for v4.0 config migration)
 - **bash** (scripts)
 
 ### Optional

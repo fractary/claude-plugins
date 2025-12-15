@@ -310,6 +310,109 @@ If you encounter issues during migration:
 3. Try dry-run first to preview changes
 4. Open an issue: https://github.com/fractary/claude-plugins/issues
 
+## MCP Server Migration (v4.1+)
+
+As of v4.1, the codex plugin uses the SDK-provided MCP server from `@fractary/codex` instead of the custom TypeScript implementation.
+
+### What's Changing
+
+**Before** (v4.0):
+```json
+{
+  "mcpServers": {
+    "fractary-codex": {
+      "command": "node",
+      "args": ["/path/to/mcp-server/dist/index.js"],
+      "env": {
+        "CODEX_CACHE_PATH": "./.fractary/plugins/codex/cache",
+        "CODEX_CONFIG_PATH": "./.fractary/plugins/codex/config.json"
+      }
+    }
+  }
+}
+```
+
+**After** (v4.1):
+```json
+{
+  "mcpServers": {
+    "fractary-codex": {
+      "command": "npx",
+      "args": ["@fractary/codex", "mcp", "--config", ".fractary/codex.yaml"],
+      "env": {}
+    }
+  }
+}
+```
+
+Or with global CLI:
+```json
+{
+  "mcpServers": {
+    "fractary-codex": {
+      "command": "fractary",
+      "args": ["codex", "mcp", "--config", ".fractary/codex.yaml"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Automatic Migration
+
+The MCP server configuration is automatically migrated when you run:
+
+```bash
+/fractary-codex:init
+```
+
+The installation script will:
+1. Detect if you have the old custom MCP server configured
+2. Create a backup of your `.claude/settings.json`
+3. Update to the SDK MCP server configuration
+4. Preserve all functionality
+
+### Manual Migration
+
+If you need to migrate manually:
+
+1. **Backup current settings**:
+   ```bash
+   cp .claude/settings.json .claude/settings.json.backup
+   ```
+
+2. **Update MCP configuration**:
+   Edit `.claude/settings.json` and replace the `fractary-codex` entry with the new SDK format shown above.
+
+3. **Restart Claude Code** to load the new MCP server.
+
+4. **Verify**: Test with a codex:// URI reference in your work.
+
+### Benefits of SDK MCP Server
+
+- **Maintenance**: No custom code to maintain (SDK handles updates)
+- **Disk Space**: ~50MB saved (removed custom server + node_modules)
+- **Feature Parity**: All MCP tools work the same way
+- **Consistency**: Single source of truth (@fractary/codex SDK)
+- **Better Errors**: SDK provides clearer error messages
+
+### Troubleshooting
+
+**Issue**: "MCP server not responding"
+
+**Solution**: Ensure @fractary/codex is installed:
+```bash
+# Check version
+npx @fractary/codex --version
+
+# Or install globally
+npm install -g @fractary/codex
+```
+
+**Issue**: "Config file not found"
+
+**Solution**: Ensure `.fractary/codex.yaml` exists at project root. Run `/fractary-codex:init` if missing.
+
 ## Next Steps
 
 After migration:

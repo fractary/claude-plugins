@@ -2,14 +2,14 @@
   "$schema": "https://claude.ai/schemas/mcp-config.json",
   "mcpServers": {
     "fractary-codex": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "/absolute/path/to/claude-plugins/plugins/codex/mcp-server/dist/index.js"
+        "@fractary/codex",
+        "mcp",
+        "--config",
+        ".fractary/codex.yaml"
       ],
-      "env": {
-        "CODEX_CACHE_PATH": "${workspaceFolder}/codex",
-        "CODEX_CONFIG_PATH": "${workspaceFolder}/.fractary/plugins/codex/config.json"
-      }
+      "env": {}
     }
   }
 }
