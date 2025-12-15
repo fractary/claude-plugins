@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@fractary/cli": "^0.3.2"
+  }
+}
