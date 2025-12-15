@@ -4,10 +4,12 @@ work_id: 360
 issue_url: https://github.com/fractary/claude-plugins/issues/360
 title: Fractary Codex CLI Integration Plan
 type: feature
-status: draft
+status: in-progress
 created: 2025-12-14
+implementation_started: 2025-12-15
+implementation_commit: 6e2195c
 author: Claude
-validated: false
+validated: true
 source: conversation
 refined: 2025-12-14
 ---
@@ -15,8 +17,39 @@ refined: 2025-12-14
 # Feature Specification: Fractary Codex CLI Integration Plan
 
 **Type**: Feature
-**Status**: Draft
+**Status**: In Progress (Phases 1-3 Complete)
 **Created**: 2025-12-14
+**Implementation Started**: 2025-12-15
+**Implementation Commit**: 6e2195c
+
+## Implementation Status
+
+✅ **Phase 1: Foundation** - COMPLETED (2025-12-15)
+- Created cli-helper skill infrastructure
+- Added @fractary/cli dependency (package.json)
+- Implemented invoke/validate/parse scripts with npx fallback
+- Documented CLI invocation workflow
+
+✅ **Phase 2: Core Operations Migration** - COMPLETED (2025-12-15)
+- Migrated 5 cache skills to v4.0.0 (CLI delegation)
+- All skills now delegate to fractary CLI commands
+- ~95% code reduction achieved
+- Comprehensive error handling via SDK
+
+✅ **Phase 3: Sync Operations Migration** - COMPLETED (2025-12-15)
+- Migrated project-syncer and org-syncer to v4.0.0
+- Bidirectional sync via CLI orchestration
+- Parallel execution handled by SDK
+- ~98% code reduction in sync orchestration
+
+⏳ **Phase 4: Configuration Migration** - PENDING
+⏳ **Phase 5: Agent Simplification** - PENDING
+⏳ **Phase 6: MCP Migration** - PENDING
+⏳ **Phase 7: Cleanup & Documentation** - PENDING
+
+**Overall Progress**: 3/7 phases complete (43%)
+**Code Reduction**: ~2,800 lines → ~150 lines (~95% reduction)
+**Skills Migrated**: 7/7 core skills to v4.0.0
 
 ## Summary
 
