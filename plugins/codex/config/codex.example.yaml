@@ -1,0 +1,94 @@
+# Fractary Codex Plugin Configuration
+# This file configures the codex plugin for knowledge management and sync operations
+# CLI version: Use this format with @fractary/cli and @fractary/codex SDK
+
+version: "4.0"
+
+# Organization identification
+organization: fractary
+
+# Codex repository (naming convention: codex.{org}.{tld})
+codex_repo: codex.fractary.com
+
+# Sync patterns: Files to include in sync operations
+sync_patterns:
+  - "docs/**"
+  - "CLAUDE.md"
+  - "README.md"
+  - ".claude/**"
+  - "standards/**"
+  - "guides/**"
+
+# Exclude patterns: Files to skip in sync operations
+exclude_patterns:
+  - "**/.git/**"
+  - "**/node_modules/**"
+  - "**/.env"
+  - "**/.env.*"
+  - "**/*.log"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.DS_Store"
+  - "**/credentials.json"
+  - "**/*secret*"
+  - "**/*password*"
+  - "docs/private/**"
+  - "docs/drafts/**"
+
+# Auto-sync: Automatically sync on commit (requires hooks)
+auto_sync: false
+
+# Default sync direction
+sync_direction: bidirectional  # Options: to-codex, from-codex, bidirectional
+
+# Environment-to-branch mappings for codex repository
+environments:
+  dev:
+    branch: test
+    description: Development environment
+  test:
+    branch: test
+    description: Test/QA environment
+  staging:
+    branch: main
+    description: Staging environment (defaults to prod branch)
+  prod:
+    branch: main
+    description: Production environment
+
+# Handler configuration (platform-specific behavior)
+handlers:
+  sync:
+    active: github
+    options:
+      github:
+        parallel_repos: 5
+        deletion_threshold: 50
+        deletion_threshold_percent: 20
+        sparse_checkout: true
+        retry_attempts: 3
+        retry_delay: 5
+
+# Logging configuration
+logging:
+  enabled: true
+  log_file: .fractary/plugins/codex/logs/audit.log
+  level: info  # Options: debug, info, warn, error
+
+# Cache configuration (managed by @fractary/codex SDK)
+cache:
+  ttl_days: 7
+  max_size_mb: 0  # 0 = unlimited
+  auto_cleanup: true
+  cleanup_interval_days: 7
+
+# CLI-specific settings
+cli:
+  # Default format for CLI output
+  output_format: json  # Options: json, yaml, text
+
+  # Enable verbose logging in CLI commands
+  verbose: false
+
+  # Color output (auto-detected if terminal supports it)
+  color: auto  # Options: always, never, auto

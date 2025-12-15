@@ -10,11 +10,12 @@ You are the **init command router** for the codex plugin.
 
 Your role is to guide users through configuration setup for the codex plugin. You parse command arguments and invoke the codex-manager agent with the init operation.
 
-Configuration location: `.fractary/plugins/codex/config.json` (project-level only)
+Configuration location: `.fractary/codex.yaml` (project-level, YAML format - v4.0)
+Legacy locations: `.fractary/plugins/codex/config.json` (deprecated) or `~/.config/fractary/codex/config.json` (deprecated)
 Cache location: `.fractary/plugins/codex/cache/` (ephemeral, gitignored)
 MCP server: Installed in `.claude/settings.json`
 
-You provide a streamlined setup experience with auto-detection and sensible defaults.
+You provide a streamlined setup experience with auto-detection, config migration assistance, and sensible defaults.
 </CONTEXT>
 
 <CRITICAL_RULES>
@@ -103,39 +104,90 @@ Multiple codex repositories found:
 Select (1-2):
 ```
 
-## Step 4: Handle Legacy Global Config
+## Step 4: Detect Existing Configuration
 
-Check if a global config exists at `~/.config/fractary/codex/config.json`:
+**Use config-helper skill to detect existing configs**:
 
-If found:
 ```
-⚠️ Legacy global config detected
+USE SKILL: config-helper with operation="detect"
+```
 
-Found deprecated global config at:
-~/.config/fractary/codex/config.json
+This returns:
+- `status`: "found" or "not_found"
+- `format`: "json" or "yaml"
+- `location`: "project" or "global"
+- `migration_needed`: Boolean
 
-This config format is deprecated. Settings will be migrated to:
-.fractary/plugins/codex/config.json
+### Case A: YAML Config Already Exists
+
+If `.fractary/codex.yaml` exists:
+```
+✅ Configuration already exists!
+
+Location: .fractary/codex.yaml (YAML)
+Status: Up to date (v4.0)
 
 Would you like to:
-1. Migrate settings and remove global config (recommended)
-2. Create fresh project config and remove global config
-3. Create project config but keep global config (not recommended)
+1. Keep existing config (skip initialization)
+2. Reconfigure with new settings (backup existing)
+3. Validate existing config only
 
 Select (1-3):
 ```
 
+For option 1: Exit initialization (nothing to do)
+For option 2: Backup existing, proceed with steps 5-6
+For option 3: Validate only, then exit
+
+### Case B: JSON Config Exists (Migration Needed)
+
+If `.fractary/plugins/codex/config.json` or `~/.config/fractary/codex/config.json` exists:
+
+```
+⚠️  Legacy config detected!
+
+Found: {path}
+Format: JSON (deprecated)
+Location: {project|global}
+
+This config format is deprecated. Migration to YAML recommended.
+
+Would you like to:
+1. Migrate settings to YAML and remove old config (recommended)
+2. Create fresh YAML config and remove old config
+3. Create fresh YAML config but keep old config (not recommended)
+4. Cancel initialization
+
+Select (1-4):
+```
+
 For option 1 (recommended):
-- Read existing global config values (organization, codex_repo, patterns, etc.)
-- Use these values as defaults for the new project config
-- Delete the global config file after successful project config creation
+- Use config-helper to migrate
+- Preview migration (dry-run)
+- Execute migration
+- Remove source after successful migration
+- Skip steps 2-3 (use migrated values)
+- Continue to step 5
 
 For option 2:
-- Proceed with auto-detection as normal
-- Delete the global config file after successful project config creation
+- Proceed with auto-detection (steps 2-3)
+- Create new YAML config
+- Remove old config after success
+- Continue to step 5
 
 For option 3:
-- Proceed normally but warn that global config will be ignored
+- Warn that old config will be ignored
+- Proceed with auto-detection (steps 2-3)
+- Keep old config
+- Continue to step 5
+
+For option 4:
+- Exit initialization
+- No changes made
+
+### Case C: No Config Found
+
+If no config exists: Proceed to steps 2-3 (auto-detection)
 
 ## Step 5: Confirm Configuration
 
@@ -144,55 +196,80 @@ Show what will be created:
 Output:
 ```
 Will create/configure:
-  ✓ Project config: .fractary/plugins/codex/config.json
+  ✓ Project config: .fractary/codex.yaml (YAML format, v4.0)
   ✓ Cache directory: .fractary/plugins/codex/cache/
   ✓ MCP server: .claude/settings.json (mcpServers.fractary-codex)
+
+Configuration:
+  Organization: {organization}
+  Codex Repository: {codex_repo}
+  Format: YAML (CLI compatible)
+  Version: 4.0
 
 Continue? (Y/n)
 ```
 
-## Step 6: Invoke Codex-Manager Agent
+## Step 6: Invoke CLI Helper for Initialization
 
-Use the codex-manager agent with init operation:
+**Use cli-helper skill to create config via CLI**:
+
+```
+USE SKILL: cli-helper
+Operation: invoke-cli
+Parameters:
+{
+  "command": "init",
+  "args": [
+    "--org", "{organization}",
+    "--codex", "{codex_repo}",
+    "--format", "yaml",
+    "--output", ".fractary/codex.yaml"
+  ],
+  "parse_output": true
+}
+```
+
+The CLI will:
+1. Create YAML config at `.fractary/codex.yaml`
+2. Set version to "4.0"
+3. Populate with provided values
+4. Validate against schema
+5. Return success or error
+
+## Step 7: Setup Cache and MCP (via Codex-Manager)
+
+After CLI creates config, invoke codex-manager for additional setup:
 
 ```
 Use the @agent-fractary-codex:codex-manager agent with the following request:
 {
-  "operation": "init",
+  "operation": "post-init-setup",
   "parameters": {
-    "organization": "<organization-name>",
-    "codex_repo": "<codex-repo-name>",
-    "skip_confirmation": <true if --yes flag>,
-    "migrate_from_global": <true if migrating from global config>,
-    "remove_global_config": <true if user chose to remove global config>,
     "setup_cache": true,
-    "install_mcp": true
+    "install_mcp": true,
+    "config_path": ".fractary/codex.yaml"
   }
 }
 ```
 
 The agent will:
-1. Create configuration file at `.fractary/plugins/codex/config.json`
-2. Use example config as template (or migrate values from global config)
-3. Populate with provided values
-4. Validate against schema
-5. Remove global config file if requested
-6. **Create cache directory** at `.fractary/plugins/codex/cache/`
+1. **Create cache directory** at `.fractary/plugins/codex/cache/`
    - Run `scripts/setup-cache-dir.sh`
    - Creates `.gitignore` and `.cache-index.json`
    - Updates project `.gitignore`
-7. **Install MCP server** in `.claude/settings.json`
+2. **Install MCP server** in `.claude/settings.json`
    - Run `scripts/install-mcp.sh`
    - Adds `mcpServers.fractary-codex` configuration
    - Creates backup of existing settings
-8. Report success with file paths and MCP status
+3. Report success with file paths and MCP status
 
-## Step 7: Display Results
+## Step 8: Display Results
 
-Show the agent's response to the user, which includes:
-- Configuration file created
+Show the results to the user, which includes:
+- Configuration file created (YAML format, v4.0)
 - Cache directory status
 - MCP server installation status
+- Migration status (if applicable)
 - Next steps (how to customize, how to sync)
 
 Example output:
@@ -200,21 +277,54 @@ Example output:
 ✅ Codex plugin initialized successfully!
 
 Created:
-  - Project config: .fractary/plugins/codex/config.json
+  - Project config: .fractary/codex.yaml (YAML, v4.0)
   - Cache directory: .fractary/plugins/codex/cache/
   - MCP server: .claude/settings.json (fractary-codex)
 
 Configuration:
   Organization: fractary
   Codex Repository: codex.fractary.com
-  Cache TTL: 7 days (604800 seconds)
-  Offline Mode: disabled
+  Format: YAML (CLI compatible)
+  Version: 4.0
+  Cache TTL: 7 days
 
 Next steps:
   1. Restart Claude Code to load the MCP server
-  2. Review and customize configuration if needed
-  3. Run your first sync: /fractary-codex:sync-project --from-codex
-  4. Use codex:// URIs to reference documents
+  2. Review and customize: cat .fractary/codex.yaml
+  3. Validate setup: fractary codex health
+  4. Run first sync: /fractary-codex:sync-project --dry-run
+  5. Use codex:// URIs to reference documents
+
+CLI Commands:
+  - fractary codex health        # Validate setup
+  - fractary codex cache list    # View cache
+  - fractary codex sync project --dry-run  # Preview sync
+```
+
+If migrated from JSON:
+```
+✅ Configuration migrated and initialized!
+
+Migrated:
+  From: .fractary/plugins/codex/config.json (JSON, v3.0)
+  To: .fractary/codex.yaml (YAML, v4.0)
+  Status: Settings preserved, format updated
+
+Created:
+  - Cache directory: .fractary/plugins/codex/cache/
+  - MCP server: .claude/settings.json (fractary-codex)
+
+Configuration:
+  Organization: fractary
+  Codex Repository: codex.fractary.com
+  Format: YAML (CLI compatible)
+  Version: 4.0
+
+Next steps:
+  1. Restart Claude Code to load the MCP server
+  2. Review new config: cat .fractary/codex.yaml
+  3. Test setup: fractary codex health
+  4. Remove old config (optional): rm .fractary/plugins/codex/config.json
 ```
 </WORKFLOW>
 
@@ -304,13 +414,13 @@ Run /fractary-codex:init again when ready.
 After successful initialization, guide the user:
 
 1. **What was created**:
-   - Configuration file at `.fractary/plugins/codex/config.json`
+   - Configuration file at `.fractary/codex.yaml` (YAML format, v4.0)
    - Cache directory at `.fractary/plugins/codex/cache/`
    - MCP server in `.claude/settings.json`
    - Show key configuration values
 
 2. **How to customize**:
-   - **Project config**: `.fractary/plugins/codex/config.json`
+   - **Project config**: `.fractary/codex.yaml`
      - `organization`: Organization name
      - `codex_repo`: Codex repository name
      - `project_name`: Current project name (for URI resolution)
